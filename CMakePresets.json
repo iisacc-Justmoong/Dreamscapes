@@ -13,7 +13,7 @@
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "Qt6_DIR": "$env{HOME}/Qt/6.8.3/macos/lib/cmake/Qt6",
+        "Qt6_DIR": "/Volumes/Storage/Qt/6.8.3/macos/lib/cmake/Qt6",
         "LVRS_DIR": "$env{HOME}/.local/SDK/LVRS",
         "BUILD_TESTING": "ON"
       }

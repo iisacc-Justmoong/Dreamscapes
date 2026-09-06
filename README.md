@@ -38,7 +38,7 @@ Qt 6.8.3 설치본과 로컬 LVRS 프레임워크를 사용하는 데스크탑·
 
 ## macOS 빌드와 실행
 
-Qt 설치 경로는 `$HOME/Qt/6.8.3/macos`이며, 위 9개 제품 패키지의 설치본이 모두 필요하다. CMake 3.31 이상, Ninja, C++20 컴파일러가 필요하다. `find_package`의 `EXACT` 조건으로 다른 Qt 버전이 선택되는 것을 막는다.
+Qt 설치 경로는 `/Volumes/Storage/Qt/6.8.3/macos`이며, 위 9개 제품 패키지의 설치본이 모두 필요하다. CMake 3.31 이상, Ninja, C++20 컴파일러가 필요하다. `find_package`의 `EXACT` 조건으로 다른 Qt 버전이 선택되는 것을 막는다.
 
 ```sh
 cmake --preset macos-debug
