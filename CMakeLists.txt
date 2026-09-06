@@ -34,10 +34,11 @@ lvrs_add_qml_app(
         App/Main.qml
         App/Views/Desktop.qml
         App/Views/Mobile.qml
+        App/Views/Home/QuickGenerate.qml
     NO_PLATFORM_RUNTIME_TARGETS
 )
 
-target_link_libraries(Dreamscapes PRIVATE
+set(dreamscapes_product_dependencies
     iiCSMIDI::iiCSMIDI
     iiLicenseManager::iiLicenseManager
     iiLocalDiffusion::iiLocalDiffusion
@@ -48,6 +49,14 @@ target_link_libraries(Dreamscapes PRIVATE
     iiUpdateManager::iiUpdateManager
     LVRS::LVRS
 )
+target_link_libraries(Dreamscapes PRIVATE ${dreamscapes_product_dependencies})
+
+if(ANDROID)
+    foreach(dependency IN LISTS dreamscapes_product_dependencies)
+        set_property(TARGET Dreamscapes APPEND PROPERTY QT_ANDROID_EXTRA_LIBS
+            "$<TARGET_FILE:${dependency}>")
+    endforeach()
+endif()
 
 # The installed iOS archive has QML registration/resources but no plugin archive.
 # Retain its startup objects even when no C++ symbol directly references them.
