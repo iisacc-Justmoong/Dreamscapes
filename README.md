@@ -31,6 +31,10 @@ Qt 6.8.3 설치본과 로컬 LVRS 프레임워크를 사용하는 데스크탑·
 - `App/Views/Home/QuickGenerate.qml`: LVRS 입력란·버튼·메뉴를 조합한 모바일 상단 패널이다. `Mobile.qml`은 `Home` 디렉터리를 명시적으로 가져온다.
 - `App/tst_Gui.cpp`: Main 진입점·창 수명·모바일 패널 배치·입력 및 메뉴 선택·요청 전달을 검증한다.
 
+GUI 테스트 타깃에는 이 저장소에 존재하는 소스만 등록한다. 현재 `App/AI` 디렉터리는
+없으며, Society의 AI 연동 클래스 경로를 Dreamscapes 테스트 소스로 등록하면 CMake
+생성이 실패한다. 이 소스 목록은 위 macOS 구성·빌드와 기존 GUI 회귀 테스트로 검증한다.
+
 `Main.qml`은 LVRS 런타임의 `LV.Platform.mobile`을 사용한다. 모바일이면 `Views/Mobile.qml`, 아니면 `Views/Desktop.qml`을 로드한다. 선택된 QML의 `LV.ApplicationWindow`만 생성하며 추가 숨은 부모 창은 없다. C++에 플랫폼 분기는 없고 창 너비를 줄여도 다른 플랫폼 창으로 전환하지 않는다. 각 창은 자체 창 크기·최소 크기를 관리한다. 모바일 패널은 LVRS가 제공하는 시스템 안전 영역의 위·왼쪽·오른쪽 여백을 적용한다.
 
 ## 모바일 QuickGenerate

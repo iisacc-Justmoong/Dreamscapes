@@ -77,6 +77,7 @@ set_target_properties(Dreamscapes PROPERTIES
 include(CTest)
 if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Test)
+    # Keep this GUI target limited to sources present in Dreamscapes.
     qt_add_executable(DreamscapesGuiTests App/tst_Gui.cpp)
     target_link_libraries(DreamscapesGuiTests PRIVATE Qt6::Test Qt6::Quick Qt6::QuickControls2)
     target_compile_definitions(DreamscapesGuiTests PRIVATE
