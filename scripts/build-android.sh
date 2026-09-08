@@ -64,6 +64,8 @@ common=(
     -DBUILD_TESTING=OFF
     "-DCMAKE_INSTALL_PREFIX=$prefix"
     "-DCMAKE_PREFIX_PATH=$prefix"
+    "-DiiFileProvider_DIR=$prefix/lib/cmake/iiFileProvider"
+    "-DiiSocietyContainer_DIR=$prefix/lib/cmake/iiSocietyContainer"
 )
 
 build_dependency() {
@@ -80,7 +82,7 @@ build_dependency() {
 build_dependency json-c "$android_root/sources/json-c" \
     -DBUILD_SHARED_LIBS=OFF -DBUILD_STATIC_LIBS=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-for package in iiCSMIDI iiSocietyContainer iiSocietyHelper iiSocietySync; do
+for package in iiFileProvider iiCSMIDI iiSocietyContainer iiSocietyHelper iiSocietySync; do
     build_dependency "$package" "$sdk_source_root/$package"
 done
 build_dependency iiLocalDiffusion "$sdk_source_root/iiLocalDiffusion" \
@@ -88,15 +90,16 @@ build_dependency iiLocalDiffusion "$sdk_source_root/iiLocalDiffusion" \
     -DIILD_BUILD_TOOLS=OFF -DIILD_INSTALL_PYTHON_REFERENCE=OFF \
     "-Djson-c_DIR=$prefix/lib/cmake/json-c"
 
-packages=("-DLVRS_DIR=$sdk_install_root/LVRS")
-for package in iiCSMIDI iiSocietyContainer iiSocietyHelper iiSocietySync iiLocalDiffusion; do
+packages=("-DLVRS_DIR=$sdk_install_root/LVRS/platforms/android/lib/cmake/LVRS")
+for package in iiFileProvider iiCSMIDI iiSocietyContainer iiSocietyHelper iiSocietySync iiLocalDiffusion; do
     packages+=("-D${package}_DIR=$prefix/lib/cmake/$package")
 done
 for package in iiLicenseManager iiPaintEngine iiUpdateManager; do
     packages+=("-D${package}_DIR=$sdk_install_root/$package/platforms/android/lib/cmake/$package")
 done
 run_logged Dreamscapes-configure cmake -S "$project_dir" -B "$android_root/build" \
-    "${common[@]}" "${packages[@]}" -DQT_ANDROID_BUILD_ALL_ABIS=OFF -DCMAKE_BUILD_TYPE=Debug
+    "${common[@]}" "${packages[@]}" -DQT_ANDROID_BUILD_ALL_ABIS=OFF -DCMAKE_BUILD_TYPE=Debug \
+    -DDREAMSCAPES_BUILD_ANDROID_PHOTO_TESTS=OFF -DQT_USE_TARGET_ANDROID_BUILD_DIR=OFF
 run_logged Dreamscapes-apk cmake --build "$android_root/build" --target apk --parallel 4
 apk="$android_root/build/android-build/Dreamscapes.apk"
 test -s "$apk"

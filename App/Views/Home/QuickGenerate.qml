@@ -9,10 +9,25 @@ Item {
     property alias prompt: promptField.text
     readonly property string mediaType: "Image"
     property string aspectRatio: "1:1"
+    property bool menusOpenUpward: false
+    readonly property var platformInputMethod: Qt.inputMethod
     signal generateRequested(string prompt, string mediaType, string aspectRatio)
 
     implicitWidth: 402
     implicitHeight: content.implicitHeight + LV.Theme.gap10 * 2
+
+    function openMenu(menu, button) {
+        const offset = menusOpenUpward
+            ? -Math.max(menu.implicitHeight, menu.height) - LV.Theme.gap2
+            : button.height + LV.Theme.gap2
+        menu.openFor(button, 0, offset)
+    }
+
+    function dismissInput() {
+        mediaMenu.close()
+        ratioMenu.close()
+        platformInputMethod.hide()
+    }
 
     function submit() {
         const trimmedPrompt = prompt.trim()
@@ -20,6 +35,7 @@ Item {
             promptField.inputItem.forceActiveFocus()
             return
         }
+        dismissInput()
         generateRequested(trimmedPrompt, mediaType, aspectRatio)
     }
 
@@ -49,7 +65,7 @@ Item {
             Layout.fillWidth: true
             spacing: 0
 
-            // Preserve natural button widths when mobile metrics meet a narrow viewport.
+            // Preserve natural button widths when the shared layout narrows.
             readonly property real actionSpacing: Math.min(LV.Theme.gap8, Math.max(0,
                 (width - mediaButton.implicitWidth - ratioButton.implicitWidth
                  - generateButton.implicitWidth) / 2))
@@ -64,7 +80,7 @@ Item {
                     text: qsTr("Image")
                     tone: LV.AbstractButton.Default
                     Accessible.name: qsTr("Media type: Image")
-                    onClicked: mediaMenu.openFor(mediaButton, 0, mediaButton.height + LV.Theme.gap2)
+                    onClicked: root.openMenu(mediaMenu, mediaButton)
                 }
 
                 LV.LabelMenuButton {
@@ -73,7 +89,7 @@ Item {
                     text: root.aspectRatio
                     tone: LV.AbstractButton.Default
                     Accessible.name: qsTr("Aspect ratio: %1").arg(root.aspectRatio)
-                    onClicked: ratioMenu.openFor(ratioButton, 0, ratioButton.height + LV.Theme.gap2)
+                    onClicked: root.openMenu(ratioMenu, ratioButton)
                 }
             }
 
