@@ -36,7 +36,7 @@ LV.ApplicationWindow {
     useInternalPageStack: false
     windowDragExclusionItems: [appContent]
 
-    signal generateRequested(string prompt, string mediaType, string aspectRatio)
+    signal generateRequested(string prompt, string mediaType, string aspectRatio, int count)
     signal newProjectRequested(url imageSource, var generationResult)
 
     function presentLatestResult() {
@@ -121,9 +121,9 @@ LV.ApplicationWindow {
             anchors.right: parent.right
             height: implicitHeight
             menusOpenUpward: window.resultVisible
-            onGenerateRequested: function(prompt, mediaType, aspectRatio) {
-                window.generateRequested(prompt, mediaType, aspectRatio)
-                if (generation.enqueue(prompt, aspectRatio).length > 0) {
+            onGenerateRequested: function(prompt, mediaType, aspectRatio, count) {
+                window.generateRequested(prompt, mediaType, aspectRatio, count)
+                if (generation.enqueue(prompt, aspectRatio, count).length > 0) {
                     quickGenerate.dismissInput()
                     modelMenu.close()
                     window.resultVisible = true

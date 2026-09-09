@@ -1,6 +1,7 @@
 #include <QDir>
 #include <QGuiApplication>
 #include <QImage>
+#include <QJSValue>
 #include <QPainter>
 #include <QPointer>
 #include <QProcess>
@@ -70,6 +71,7 @@ private slots:
     void sharedControlsSubmitCurrentSelection();
     void packagedApplicationStarts();
     void generateButtonUsesSocietyStorage();
+    void countSelectionCreatesThreeImagesInSociety();
     void resultScreenLayout_data();
     void resultScreenLayout();
     void resultCannotOpenProjectWithoutReadableImage();
@@ -410,6 +412,40 @@ void GuiTests::generateOpensResultImmediatelyAndDisplaysEveryPreview()
     QVERIFY(controller->previewImage().isEmpty());
 }
 
+void GuiTests::countSelectionCreatesThreeImagesInSociety()
+{
+    QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/gui-count-XXXXXX");
+    QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+    QFile model(storage.filePath("Models/count.safetensors"));
+    QVERIFY(model.open(QIODevice::WriteOnly));
+    model.write("count protocol test model");
+    model.close();
+    QQmlApplicationEngine engine;
+    engine.setInitialProperties({{"initialContainerPath", storage.path()}});
+    engine.load(sourceUrl("Main.qml"));
+    QCOMPARE(engine.rootObjects().size(), 1);
+    auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
+    QVERIFY(window && QTest::qWaitForWindowExposed(window));
+    auto *controller = window->findChild<GenerationController *>("generationController");
+    auto *quick = item(window, "quickGenerate");
+    auto *menu = window->findChild<QObject *>("generationCountMenu");
+    QVERIFY(controller && quick && menu);
+    QVERIFY(QMetaObject::invokeMethod(menu, "triggerEntry", Q_ARG(QVariant, 2)));
+    QCOMPARE(quick->property("generationCount").toInt(), 3);
+    quick->setProperty("prompt", "Three images from one submission");
+    click(window, item(quick, "generateButton"));
+    QTRY_COMPARE(controller->jobs().size(), 3);
+    const auto allCompleted = [&] {
+        for (const auto &entry : controller->jobs())
+            if (entry.toMap().value("state") != "completed") return false;
+        return true;
+    };
+    QTRY_VERIFY_WITH_TIMEOUT(allCompleted(), 10000);
+    QCOMPARE(QDir(storage.filePath("Generation History")).entryList(QDir::Files).size(), 3);
+    QCOMPARE(quick->property("generationCount").toInt(), 3);
+    QVERIFY(window->property("resultVisible").toBool());
+}
+
 void GuiTests::generateButtonUsesSocietyStorage()
 {
     QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/gui-generation-XXXXXX");
@@ -625,10 +661,11 @@ void GuiTests::resultScreenLayout()
         QVERIFY(!capture.isNull());
         QVERIFY(capture.save(captureDirectory + '/' + QTest::currentDataTag() + ".png"));
     }
-    // Both bottom menus remain within the window and above their trigger.
-    for (const auto *name : {"mediaTypeButton", "aspectRatioButton"}) {
+    // All bottom menus remain within the window and above their trigger.
+    for (const auto *name : {"mediaTypeButton", "aspectRatioButton", "generationCountButton"}) {
         auto *button = item(quick, name);
-        auto *menu = quick->findChild<QObject *>(QString::fromLatin1(name) == "mediaTypeButton" ? "mediaTypeMenu" : "aspectRatioMenu");
+        auto *menu = quick->findChild<QObject *>(QString::fromLatin1(name) == "mediaTypeButton" ? "mediaTypeMenu"
+            : QString::fromLatin1(name) == "aspectRatioButton" ? "aspectRatioMenu" : "generationCountMenu");
         QVERIFY(button && menu);
         click(window, button);
         QTRY_VERIFY(menu->property("opened").toBool());
@@ -702,10 +739,11 @@ void GuiTests::sharedContentSurvivesLayoutChanges()
     QVERIFY(panel);
     QVERIFY(panel->setProperty("prompt", "a quiet forest"));
     QVERIFY(panel->setProperty("aspectRatio", "16:9"));
+    QVERIFY(panel->setProperty("generationCount", 1000));
     QVERIFY(QTest::qWaitForWindowExposed(window));
     QSignalSpy widthClassChanges(window, SIGNAL(widthClassChanged()));
     QVERIFY(widthClassChanges.isValid());
-    QSignalSpy requests(window, SIGNAL(generateRequested(QString,QString,QString)));
+    QSignalSpy requests(window, SIGNAL(generateRequested(QString,QString,QString,int)));
     QVERIFY(requests.isValid());
     for (const auto size : {QSize(960, 640), QSize(320, 844), QSize(800, 600),
                             QSize(1440, 900), QSize(390, 844)}) {
@@ -717,13 +755,14 @@ void GuiTests::sharedContentSurvivesLayoutChanges()
         QCOMPARE(item(window, "quickGenerate"), panel.data());
         QCOMPARE(panel->property("prompt").toString(), "a quiet forest");
         QCOMPARE(panel->property("aspectRatio").toString(), "16:9");
+        QCOMPARE(panel->property("generationCount").toInt(), 1000);
     }
     QVERIFY(widthClassChanges.size() >= 3);
     auto *generate = item(panel, "generateButton");
     QVERIFY(generate);
     click(window, generate);
     QCOMPARE(requests.size(), 1);
-    QCOMPARE(requests.constFirst(), QVariantList({"a quiet forest", "Image", "16:9"}));
+    QCOMPARE(requests.constFirst(), QVariantList({"a quiet forest", "Image", "16:9", 1000}));
 }
 
 void GuiTests::sharedPanelLayout_data()
@@ -761,8 +800,9 @@ void GuiTests::sharedPanelLayout()
     auto *prompt = item(panel, "promptField");
     auto *media = item(panel, "mediaTypeButton");
     auto *ratio = item(panel, "aspectRatioButton");
+    auto *quantity = item(panel, "generationCountButton");
     auto *generate = item(panel, "generateButton");
-    QVERIFY(prompt && media && ratio && generate);
+    QVERIFY(prompt && media && ratio && quantity && generate);
     QVERIFY(QTest::qWaitForWindowExposed(window));
     QTRY_COMPARE(panel->width(), width - root->property("mobileSystemSafeLeftInset").toReal()
                                       - root->property("mobileSystemSafeRightInset").toReal());
@@ -783,6 +823,7 @@ void GuiTests::sharedPanelLayout()
     QCOMPARE(prompt->property("placeholderText").toString(), "Prompt");
     QCOMPARE(media->property("text").toString(), "Image");
     QCOMPARE(ratio->property("text").toString(), "1:1");
+    QCOMPARE(quantity->property("text").toString(), "1");
     QCOMPARE(generate->property("text").toString(), "Generate");
     QVERIFY(!item(root.get(), "helloLabel"));
 
@@ -798,7 +839,12 @@ void GuiTests::sharedPanelLayout()
         QVERIFY(panel->setProperty("aspectRatio", aspect));
         QCoreApplication::processEvents();
         QVERIFY(bounds(media, panel).right() <= bounds(ratio, panel).left());
-        QVERIFY(bounds(ratio, panel).right() <= bounds(generate, panel).left());
+        for (int count : {1, 1000}) {
+            QVERIFY(panel->setProperty("generationCount", count));
+            QTRY_VERIFY(bounds(ratio, panel).right() <= bounds(quantity, panel).left());
+            QTRY_VERIFY(bounds(quantity, panel).right() <= bounds(generate, panel).left());
+            QTRY_VERIFY(quantity->width() >= quantity->implicitWidth());
+        }
         QVERIFY(ratio->width() >= ratio->implicitWidth());
         QVERIFY(generate->width() >= generate->implicitWidth());
     }
@@ -833,12 +879,13 @@ void GuiTests::sharedControlsSubmitCurrentSelection()
     auto *prompt = item(panel, "promptField");
     auto *media = item(panel, "mediaTypeButton");
     auto *ratio = item(panel, "aspectRatioButton");
+    auto *quantity = item(panel, "generationCountButton");
     auto *generate = item(panel, "generateButton");
-    QVERIFY(prompt && media && ratio && generate);
+    QVERIFY(prompt && media && ratio && quantity && generate);
     auto *mediaMenu = panel->findChild<QObject *>("mediaTypeMenu");
     auto *ratioMenu = panel->findChild<QObject *>("aspectRatioMenu");
     QVERIFY(mediaMenu && ratioMenu);
-    QSignalSpy requests(root.get(), SIGNAL(generateRequested(QString,QString,QString)));
+    QSignalSpy requests(root.get(), SIGNAL(generateRequested(QString,QString,QString,int)));
     QVERIFY(requests.isValid());
     QVERIFY(QTest::qWaitForWindowExposed(window));
 
@@ -869,9 +916,42 @@ void GuiTests::sharedControlsSubmitCurrentSelection()
     QTRY_VERIFY(!ratioMenu->property("visible").toBool());
     QCOMPARE(ratio->property("text").toString(), "16:9");
 
+    const QVariantList counts{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40, 50, 100, 200, 500, 1000};
+    QCOMPARE(panel->property("generationCounts").value<QJSValue>().toVariant().toList(), counts);
+    auto *countMenu = panel->findChild<QObject *>("generationCountMenu");
+    QVERIFY(countMenu);
+    for (int index = 0; index < counts.size(); ++index) {
+        QVERIFY(QMetaObject::invokeMethod(countMenu, "triggerEntry", Q_ARG(QVariant, index)));
+        QCOMPARE(panel->property("generationCount").toInt(), counts.at(index).toInt());
+        QCOMPARE(quantity->property("text").toString(), counts.at(index).toString());
+    }
+    panel->setProperty("generationCount", 1);
+    window->resize(width, 480);
+    QTRY_COMPARE(window->height(), 480);
+    click(window, quantity);
+    QTRY_VERIFY(countMenu->property("opened").toBool());
+    auto *countList = item(panel, "generationCountList");
+    QVERIFY(countList);
+    QTRY_VERIFY(countList->property("contentHeight").toReal() > countList->height());
+    QTest::keyClick(window, Qt::Key_End);
+    QTRY_COMPARE(countList->property("currentIndex").toInt(), 19);
+    QTRY_VERIFY(menuEntry(countList, "1000"));
+    auto *lastCount = menuEntry(countList, "1000");
+    QTRY_VERIFY(countList->boundingRect().contains(bounds(lastCount, countList)));
+    QVERIFY(countMenu->property("y").toReal() >= 0);
+    QVERIFY(countMenu->property("y").toReal() + countMenu->property("height").toReal() <= window->height());
+    click(window, lastCount);
+    QTRY_VERIFY(!countMenu->property("visible").toBool());
+    QCOMPARE(panel->property("generationCount").toInt(), 1000);
+    click(window, quantity);
+    QTRY_VERIFY(countMenu->property("opened").toBool());
+    QTRY_VERIFY(countList->boundingRect().contains(bounds(menuEntry(countList, "1000"), countList)));
+    QTest::keyClick(window, Qt::Key_Return);
+    QTRY_VERIFY(!countMenu->property("visible").toBool());
+
     click(window, generate);
     QCOMPARE(requests.size(), 1);
-    QCOMPARE(requests.at(0), QVariantList({"a quiet forest", "Image", "16:9"}));
+    QCOMPARE(requests.at(0), QVariantList({"a quiet forest", "Image", "16:9", 1000}));
     click(window, prompt);
     QTest::keyClick(window, Qt::Key_Return);
     QCOMPARE(requests.size(), 2);

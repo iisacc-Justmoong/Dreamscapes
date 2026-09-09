@@ -53,6 +53,77 @@ class GenerationTests : public QObject
 {
     Q_OBJECT
 private slots:
+    void batchSubmissionKeepsOneModelSnapshotAndRejectsInvalidCounts()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/batch-queue-XXXXXX");
+        QVERIFY(prepare(root));
+        auto runtime = fakeRuntime();
+        runtime.executable.clear();
+        GenerationController controller(runtime);
+        QVERIFY(controller.connectStorage(root.path()));
+        const auto model = controller.selectedModel();
+        QSignalSpy changes(&controller, &GenerationController::jobsChanged);
+        const auto first = controller.enqueue("  a forest  ", "16:9", 1000);
+        QVERIFY(!first.isEmpty());
+        QCOMPARE(controller.jobs().size(), 1000);
+        QCOMPARE(changes.size(), 1);
+        controller.setSelectedModel(controller.models().last().toMap().value("id").toString());
+        QSet<QString> ids;
+        QSet<QString> creationTimes;
+        for (const auto &entry : controller.jobs()) {
+            const auto job = entry.toMap();
+            ids.insert(job.value("id").toString());
+            creationTimes.insert(job.value("createdAt").toString());
+            QCOMPARE(job.value("state").toString(), QString("queued"));
+            QCOMPARE(job.value("prompt").toString(), QString("a forest"));
+            QCOMPARE(job.value("aspectRatio").toString(), QString("16:9"));
+            QCOMPARE(job.value("model").toMap().value("path").toString(), model);
+        }
+        QCOMPARE(ids.size(), 1000);
+        QCOMPARE(creationTimes.size(), 1000);
+        QVERIFY(ids.contains(first));
+        for (int invalid : {-1, 0, 1001})
+            QVERIFY(controller.enqueue("invalid count", "1:1", invalid).isEmpty());
+        QVERIFY(controller.enqueue(" ", "1:1", 3).isEmpty());
+        QVERIFY(controller.enqueue("invalid ratio", "bad", 3).isEmpty());
+        QCOMPARE(controller.jobs().size(), 1000);
+        QVERIFY(controller.cancel(first));
+        QCOMPARE(state(controller, first), QString("cancelled"));
+        QVERIFY(QDir(root.filePath("Generation History")).isEmpty());
+        QVERIFY(!QFileInfo::exists(root.filePath(".dreamscapes")));
+    }
+
+    void batchGenerationPublishesTheSelectedNumberOfImagesSerially()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/batch-generation-XXXXXX");
+        QVERIFY(prepare(root));
+        GenerationController controller(fakeRuntime());
+        QVERIFY(controller.connectStorage(root.path()));
+        connect(&controller, &GenerationController::jobsChanged, this, [&] {
+            int running = 0;
+            for (const auto &entry : controller.jobs())
+                running += entry.toMap().value("state") == "running";
+            QVERIFY(running <= 1);
+        });
+        QVERIFY(!controller.enqueue("three images", "4:3", 3).isEmpty());
+        QCOMPARE(controller.jobs().size(), 3);
+        const auto allCompleted = [&] {
+            for (const auto &entry : controller.jobs())
+                if (entry.toMap().value("state") != "completed") return false;
+            return true;
+        };
+        QTRY_VERIFY_WITH_TIMEOUT(allCompleted(), 10000);
+        QCOMPARE(QDir(root.filePath("Generation History")).entryList(QDir::Files).size(), 3);
+        QSet<qint64> workerIds;
+        for (const auto &entry : controller.jobs()) {
+            const auto job = QJsonObject::fromVariantMap(entry.toMap());
+            workerIds.insert(job.value("worker").toObject().value("pid").toInteger());
+        }
+        QCOMPARE(workerIds.size(), 1);
+        QVERIFY(!workerIds.contains(0));
+        QVERIFY(!QFileInfo::exists(root.filePath(".dreamscapes")));
+    }
+
     void foregroundPreparationFailureCanRecoverWithAnotherModel()
     {
         QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/foreground-failure-XXXXXX");

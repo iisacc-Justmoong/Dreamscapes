@@ -335,8 +335,9 @@ void GenerationController::clearWorkingFiles()
     m_output.clear();
 }
 
-QString GenerationController::enqueue(const QString &prompt, const QString &aspectRatio)
+QString GenerationController::enqueue(const QString &prompt, const QString &aspectRatio, int count)
 {
+    if (count < 1 || count > 1000) { fail(tr("Choose an image count from 1 to 1000.")); return {}; }
     if (!m_storage) { fail(tr("Open Society and choose the shared container first.")); return {}; }
     const auto trimmed = prompt.trimmed();
     const auto size = imageSize(aspectRatio, m_runtime.imageExtent);
@@ -347,21 +348,29 @@ QString GenerationController::enqueue(const QString &prompt, const QString &aspe
     const auto reference = selected->reference(m_storage->drive().identifier());
     QString error;
     if (m_storage->resolveModel(reference, &error).isEmpty()) { fail(error); return {}; }
-    const auto id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     // Preserve submission order even when multiple requests share a millisecond.
     auto created = QDateTime::currentDateTimeUtc();
     if (!m_jobs.isEmpty()) {
         const auto last = QDateTime::fromString(m_jobs.last().value("createdAt").toString(), Qt::ISODateWithMs);
         if (created <= last) created = last.addMSecs(1);
     }
-    const QJsonObject job{{"schemaVersion", 1}, {"id", id}, {"appId", "com.iisacc.dreamscapes"},
-        {"createdAt", created.toString(Qt::ISODateWithMs)}, {"state", "queued"}, {"prompt", trimmed},
-        {"aspectRatio", aspectRatio}, {"width", size.width()}, {"height", size.height()},
-        {"steps", m_runtime.steps}, {"device", m_runtime.device}, {"model", reference}, {"modelName", selected->name}};
-    updateJob(job);
+    QString firstId;
+    const auto updated = now();
+    for (int index = 0; index < count; ++index) {
+        const auto id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        if (firstId.isEmpty()) firstId = id;
+        const QJsonObject job{{"schemaVersion", 1}, {"id", id}, {"appId", "com.iisacc.dreamscapes"},
+            {"createdAt", created.addMSecs(index).toString(Qt::ISODateWithMs)}, {"updatedAt", updated},
+            {"state", "queued"}, {"prompt", trimmed},
+            {"aspectRatio", aspectRatio}, {"width", size.width()}, {"height", size.height()},
+            {"steps", m_runtime.steps}, {"device", m_runtime.device}, {"model", reference}, {"modelName", selected->name}};
+        m_jobs.append(job);
+    }
+    // Validate once and publish the whole submission before starting the serial worker.
+    emit jobsChanged();
     fail({});
     QTimer::singleShot(0, this, &GenerationController::pump);
-    return id;
+    return firstId;
 }
 
 void GenerationController::pump()
