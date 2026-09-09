@@ -979,7 +979,7 @@ void GuiTests::packagedApplicationStarts()
     QByteArray output;
     QElapsedTimer timer;
     timer.start();
-    while (!output.contains("LVRS bootstrap.entry.root-loaded") && timer.elapsed() < 5000
+    while (!output.contains("LVRS bootstrap.entry.root-loaded") && timer.elapsed() < 30000
            && process.state() != QProcess::NotRunning) {
         process.waitForReadyRead(100);
         output += process.readAll();
@@ -988,7 +988,7 @@ void GuiTests::packagedApplicationStarts()
     // Both participants must actually observe each other through the installed SDK.
     QElapsedTimer discovery;
     discovery.start();
-    while (discovery.elapsed() < 5000 && (observer.peers().isEmpty()
+    while (discovery.elapsed() < 15000 && (observer.peers().isEmpty()
            || !output.contains("com.iisacc.dreamscapes observed com.iisacc.dreamscapes.test"))) {
         QTest::qWait(50);
         output += process.readAll();
@@ -1001,10 +1001,10 @@ void GuiTests::packagedApplicationStarts()
     }
     output += process.readAll();
     QVERIFY2(running, output.constData());
-    QCOMPARE(peers.size(), 1);
+    QVERIFY2(output.contains("LVRS bootstrap.entry.root-loaded"), output.constData());
+    QVERIFY2(peers.size() == 1, output.constData());
     QCOMPARE(peers.first().application.id, "com.iisacc.dreamscapes");
     QVERIFY2(output.contains("com.iisacc.dreamscapes observed com.iisacc.dreamscapes.test"), output.constData());
-    QVERIFY2(output.contains("LVRS bootstrap.entry.root-loaded"), output.constData());
     QVERIFY2(output.contains("\"windowCount\":1"), output.constData());
     QVERIFY2(!output.contains("failed to load") && !output.contains("is not installed"), output.constData());
 }

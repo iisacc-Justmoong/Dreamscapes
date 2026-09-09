@@ -23,9 +23,11 @@ def verify(bundle, device):
     executable = bundle / info['CFBundleExecutable']
     assert executable.is_file()
     assert '/Photos.framework/' in output('otool', '-L', str(executable)).decode(), 'Missing PhotoKit backend'
-    symbols = output('nm', '-g', str(executable)).decode()
+    # Release LTO can keep Qt's registration and qrc constructors as local symbols.
+    symbols = output('nm', str(executable)).decode()
     assert 'qml_register_types_LVRS' in symbols, 'Missing LVRS QML registration'
-    assert 'qInitResources_qmake_LVRS' in symbols, 'Missing LVRS QML resources'
+    assert ('qInitResources_qmake_LVRS' in symbols
+            or '__GLOBAL__sub_I_qrc_qmake_LVRS.cpp' in symbols), 'Missing LVRS QML resources'
     assert '@executable_path/Frameworks' in output('otool', '-l', str(executable)).decode(), \
         'The executable cannot resolve its embedded runtime libraries'
     subprocess.run(['codesign', '--verify', '--deep', '--strict', str(bundle)], check=True)

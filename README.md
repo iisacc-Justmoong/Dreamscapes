@@ -26,6 +26,12 @@ Helper의 시작·전경/배경·상호 관측 이벤트는 공통 영속 발신
 
 요청에서 `iiLisenseManager`로 표기된 라이브러리의 실제 설치 패키지명은 `iiLicenseManager`이다. 패키지가 없으면 CMake 구성 단계에서 실패하며, 선택적으로 생략하거나 빈 대체 타깃을 만들지 않는다. 이 선언만으로 각 라이브러리를 사용하는 제품 기능이 구현되는 것은 아니다.
 
+Android의 `scripts/build-android.sh`는 Helper의 전이 의존성인 iiAcountManager를
+동일 ABI로 먼저 빌드·설치한다. Dreamscapes에서는 계정 모델에 필요한 Core/Network
+부분을 사용하므로 이 전용 설치의 Quick 컴포넌트는 끈다. 패키징 마지막에는
+`tests/verify_android_bundle.py`가 APK 안의 Helper·계정 라이브러리의 arm64 형식과
+실제 ELF 연결을 검사한다. 이 검사는 앱을 실행하거나 로그인 요청을 보내지 않는다.
+
 ## 소스 구조
 
 프로젝트 루트·`App`·`App/Views`와 생성 큐 전용 `App/Generation`을 사용한다. QWidget은 사용하지 않는다.
@@ -240,13 +246,13 @@ Objective-C 클래스 중복 경고가 남아 있으므로 장시간 사용 안�
 
 Android는 Android SDK/NDK/JDK, iOS는 Xcode와 대상 기기 또는 시뮬레이터용 라이브러리가 별도로 필요하다. 크로스 빌드에서는 호스트 GUI 테스트를 생성하지 않는다. 플랫폼 전환 시 서로 다른 툴체인의 CMake 캐시를 섞지 말고, 생성물 전용 `build/`를 정리한 후 같은 경로에 다시 구성한다.
 
-현재 Android LVRS 설치본은 `arm64-v8a`용이므로 `android_arm64_v8a` 키트와 맞춘다. iOS의 LVRS 정적 아카이브는 별도 QML 플러그인이 없으므로 앱 링크에서 `WHOLE_ARCHIVE`를 적용해 QML 타입 등록과 리소스 초기화 객체가 제거되지 않도록 한다.
+현재 Android LVRS 설치본은 `arm64-v8a`용이므로 `android_arm64_v8a` 키트와 맞춘다. iOS의 LVRS 정적 아카이브는 별도 QML 플러그인이 없으므로 앱 링크에서 `WHOLE_ARCHIVE`를 적용해 QML 타입 등록과 리소스 초기화 객체가 제거되지 않도록 한다. 번들 검사는 Release LTO가 초기화 함수를 인라인했을 때 해당 qrc 번역 단위의 정적 생성자가 남아 있는지도 확인한다.
 
 호스트에서는 Main의 단일 창과 LVRS의 실제 런타임 플랫폼 값을 검증한다. iOS·Android 테마를 적용한 레이아웃 검사도 같은 Main을 사용한다. 읽기 전용 런타임 플랫폼을 강제로 바꾸지 않으므로 모바일 바이너리 빌드·시스템 안전 영역·실기기 실행을 대신하지 않는다.
 
 ### Android 에뮬레이터 실행
 
-`scripts/build-android.sh`는 설치된 Qt 6.8.3 Android arm64 키트·NDK·SDK와 JDK 21을 사용해 서명된 디버그 APK를 만든다. 호스트 빌드를 유지하면서 모든 Android 생성물을 `build/android/` 아래에 두고, 각 CMake 빌드 디렉터리 이름도 `build/`로 사용한다. 필수 제품 의존성 9개를 APK에 포함하며 빈 대체 라이브러리를 만들지 않는다.
+`scripts/build-android.sh`는 설치된 Qt 6.8.3 Android arm64 키트·NDK·SDK와 JDK 21을 사용해 서명된 디버그 APK를 만든다. 앱 생성물은 `build/android/`, SDK별 빌드는 각 SDK의 `build/dreamscapes-android/`에 둔다. 호스트 빌드와 다른 제품의 모바일 빌드를 함께 유지하면서 SDK의 빌드 경로 제약을 지킨다. 필수 제품 의존성 9개와 전이 의존성을 APK에 포함하며 빈 대체 라이브러리를 만들지 않는다.
 
 Android 설치본이 없는 iiCSMIDI·Society 계열 3개·iiLocalDiffusion과 iiCSMIDI의 전이 의존성 iiFileProvider는 `Workspace/SDK`의 실제 소스로 빌드해 `build/android/sdk`에 설치한다. iiFileProvider를 먼저 빌드하고 APK에도 포함한다. 기존 macOS SDK 설치본은 유지한다. iiLocalDiffusion은 기존 옵션으로 Apple 전용 Core ML·MLX와 선택적 LibTorch를 끄며, 기존 의존성 [json-c 0.18](https://github.com/json-c/json-c/releases/tag/json-c-0.18-20240915)을 SHA-256으로 확인한 뒤 정적으로 링크한다. 생성 엔진과 앱 UI의 연결 범위는 바뀌지 않는다.
 
@@ -286,6 +292,7 @@ QML_DISABLE_DISK_CACHE=1 DREAMSCAPES_CAPTURE_DIR="$PWD/build" \
 ```
 
 또한 런타임 라이브러리·QML 검색 경로 환경변수를 제거한 별도 프로세스로 실제 앱을 실행하여 내장된 `Main` QML 진입점이 정상 로딩되는지 검증한다.
+외장 디스크에서 네이티브 의존성을 처음 로딩하는 경우도 검사하도록 이 프로세스의 시작은 최대 30초, 양방향 Society 관찰은 최대 15초 기다린다. 전체 GUI 검사의 제한은 120초이며 관찰 대상의 만료 시간 5초는 유지한다. 시작 또는 관찰에 실패하면 해당 앱의 출력도 함께 보고한다.
 
 LVRS 시작 로그의 `windowCount`는 직접 QML 루트 중 창인 객체만 센다. Main 자체가 창이므로 `windowCount: 1`이어야 한다. 공통 패널의 표시와 입력 동작은 GUI 테스트와 실제 데스크탑 창으로 검증한다.
 

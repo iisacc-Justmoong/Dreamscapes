@@ -207,7 +207,7 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_test(NAME Dreamscapes.Gui COMMAND DreamscapesGuiTests)
     set_tests_properties(Dreamscapes.Gui PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1"
-        TIMEOUT 60
+        TIMEOUT 120
     )
     qt_add_executable(DreamscapesGenerationTests App/Generation/tst_Generation.cpp)
     target_link_libraries(DreamscapesGenerationTests PRIVATE DreamscapesGeneration Qt6::Test)

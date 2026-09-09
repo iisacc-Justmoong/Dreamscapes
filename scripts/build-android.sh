@@ -66,13 +66,14 @@ common=(
     "-DCMAKE_PREFIX_PATH=$prefix"
     "-DiiFileProvider_DIR=$prefix/lib/cmake/iiFileProvider"
     "-DiiSocietyContainer_DIR=$prefix/lib/cmake/iiSocietyContainer"
+    "-DiiAcountManager_DIR=$prefix/lib/cmake/iiAcountManager"
 )
 
 build_dependency() {
     local name="$1"
     local source="$2"
     shift 2
-    local binary="$android_root/dependencies/$name/build"
+    local binary="$source/build/dreamscapes-android"
     run_logged "$name-configure" cmake -S "$source" -B "$binary" "${common[@]}" "$@"
     run_logged "$name-build" cmake --build "$binary" --parallel 4
     run_logged "$name-install" cmake --install "$binary"
@@ -82,6 +83,8 @@ build_dependency() {
 build_dependency json-c "$android_root/sources/json-c" \
     -DBUILD_SHARED_LIBS=OFF -DBUILD_STATIC_LIBS=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+build_dependency iiAcountManager "$sdk_source_root/iiAcountManager" \
+    -DIIACCOUNTMANAGER_BUILD_QUICK=OFF
 for package in iiFileProvider iiCSMIDI iiSocietyContainer iiSocietyHelper iiSocietySync; do
     build_dependency "$package" "$sdk_source_root/$package"
 done
@@ -91,7 +94,7 @@ build_dependency iiLocalDiffusion "$sdk_source_root/iiLocalDiffusion" \
     "-Djson-c_DIR=$prefix/lib/cmake/json-c"
 
 packages=("-DLVRS_DIR=$sdk_install_root/LVRS/platforms/android/lib/cmake/LVRS")
-for package in iiFileProvider iiCSMIDI iiSocietyContainer iiSocietyHelper iiSocietySync iiLocalDiffusion; do
+for package in iiAcountManager iiFileProvider iiCSMIDI iiSocietyContainer iiSocietyHelper iiSocietySync iiLocalDiffusion; do
     packages+=("-D${package}_DIR=$prefix/lib/cmake/$package")
 done
 for package in iiLicenseManager iiPaintEngine iiUpdateManager; do
@@ -104,4 +107,6 @@ run_logged Dreamscapes-apk cmake --build "$android_root/build" --target apk --pa
 apk="$android_root/build/android-build/Dreamscapes.apk"
 test -s "$apk"
 run_logged Dreamscapes-signature "$ANDROID_SDK_ROOT/build-tools/36.0.0/apksigner" verify "$apk"
+run_logged Dreamscapes-native-dependencies python3 "$project_dir/tests/verify_android_bundle.py" \
+    "$apk" --ndk "$ANDROID_NDK_ROOT"
 echo "APK: $apk"
