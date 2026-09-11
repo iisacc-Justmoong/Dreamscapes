@@ -7,6 +7,9 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#ifdef DREAMSCAPES_LOCAL_RUNTIME_PROBE
+void dreamscapesLocalRuntimeProbe(QObject *root);
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -16,6 +19,10 @@ int main(int argc, char *argv[])
     application.moduleUri = QStringLiteral("Dreamscapes");
     application.rootObject = QStringLiteral("Main");
     application.configureEngine = [](QQmlApplicationEngine &engine) {
+#ifdef DREAMSCAPES_LOCAL_RUNTIME_PROBE
+        QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
+            [](QObject *root, const QUrl &) { if (root) dreamscapesLocalRuntimeProbe(root); });
+#endif
         qmlRegisterType<GenerationController>("Dreamscapes.Storage", 1, 0, "GenerationController");
         qmlRegisterType<ImageFileExporter>("Dreamscapes.Storage", 1, 0, "ImageFileExporter");
         qmlRegisterType<PhotoLibraryExporter>("Dreamscapes.Storage", 1, 0, "PhotoLibraryExporter");

@@ -53,6 +53,98 @@ class GenerationTests : public QObject
 {
     Q_OBJECT
 private slots:
+    void defaultResolutionReachesBothGenerationBackends_data()
+    {
+        QTest::addColumn<QString>("ratio");
+        QTest::addColumn<QSize>("expected");
+        QTest::addColumn<bool>("native");
+        const QList<QPair<QString, QSize>> sizes{{"1:1", {1024, 1024}}, {"4:3", {1368, 1024}},
+            {"3:4", {1024, 1368}}, {"16:9", {1824, 1024}}, {"9:16", {1024, 1824}}};
+        for (bool native : {false, true})
+            for (const auto &[ratio, size] : sizes)
+                QTest::newRow(qPrintable((native ? "native-" : "worker-") + ratio)) << ratio << size << native;
+    }
+
+    void defaultResolutionReachesBothGenerationBackends()
+    {
+        QFETCH(QString, ratio);
+        QFETCH(QSize, expected);
+        QFETCH(bool, native);
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/default-resolution-XXXXXX");
+        QVERIFY(prepare(root));
+        GenerationRuntime runtime;
+        runtime.executable = QStringLiteral(DREAMSCAPES_FAKE_GENERATOR);
+        runtime.temporaryDirectory = QStringLiteral(DREAMSCAPES_TEST_DIRECTORY);
+        runtime.nativeInference = native;
+        iiLocalDiffusion::NativeGenerationRequest nativeRequest;
+        runtime.nativeGenerate = [&nativeRequest](const auto &request, const auto &, const auto &) {
+            nativeRequest = request;
+            return iiLocalDiffusion::NativeGenerationResult{
+                std::vector<std::uint8_t>(request.width * request.height * 3, 127), request.width, request.height};
+        };
+        GenerationController controller(runtime);
+        QVERIFY(controller.connectStorage(root.path()));
+        controller.setForeground(true);
+        const auto id = controller.enqueue("default resolution", ratio);
+        QVERIFY(!id.isEmpty());
+        const auto submitted = recordedJob(controller, id);
+        QCOMPARE(QSize(submitted.value("width").toInt(), submitted.value("height").toInt()), expected);
+        QCOMPARE(qMin(submitted.value("width").toInt(), submitted.value("height").toInt()), 1024);
+        QCOMPARE(submitted.value("steps").toInt(), 10);
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 10000);
+        QCOMPARE(QImage(controller.latestImage().toLocalFile()).size(), expected);
+        if (native) {
+            QCOMPARE(QSize(nativeRequest.width, nativeRequest.height), expected);
+            QCOMPARE(nativeRequest.steps, 10);
+        } else {
+            const auto received = recordedJob(controller, id).value("generation").toObject();
+            QCOMPARE(QSize(received.value("width").toInt(), received.value("height").toInt()), expected);
+            QCOMPARE(received.value("steps").toInt(), 10);
+        }
+    }
+
+    void completedResultsExposeEveryImageAndExcludeUnpublishedFiles()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/gallery-results-XXXXXX");
+        QVERIFY(prepare(root));
+        GenerationController controller(fakeRuntime());
+        QVERIFY(controller.connectStorage(root.path()));
+        QVERIFY(controller.property("completedResults").isValid());
+        QVERIFY(controller.property("completedResults").toList().isEmpty());
+        const auto first = controller.enqueue("multiple", "4:3");
+        const auto second = controller.enqueue("another image");
+        const auto cancelled = controller.enqueue("cancel before execution");
+        QVERIFY(controller.cancel(cancelled));
+        const auto failed = controller.enqueue("fail");
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, failed), QString("failed"), 10000);
+        QCOMPARE(state(controller, first), "completed");
+        QCOMPARE(state(controller, second), "completed");
+        const auto results = controller.property("completedResults").toList();
+        QCOMPARE(results.size(), 3);
+        QSet<QUrl> sources;
+        for (int index = 0; index < results.size(); ++index) {
+            const auto result = results[index].toMap();
+            QCOMPARE(result.value("id").toString(), index < 2 ? first : second);
+            QCOMPARE(result.value("prompt").toString(), index < 2 ? "multiple" : "another image");
+            const auto source = result.value("imageSource").toUrl();
+            QVERIFY(!QImage(source.toLocalFile()).isNull());
+            QCOMPARE(source.toLocalFile(), root.filePath(result.value("image").toString()));
+            sources.insert(source);
+        }
+        QCOMPARE(sources.size(), 3);
+        QCOMPARE(results.last().toMap(), controller.latestResult());
+        // A deleted or redirected published file cannot become a gallery/project input.
+        const auto firstPath = results.first().toMap().value("imageSource").toUrl().toLocalFile();
+        QVERIFY(QFile::remove(firstPath));
+        QCOMPARE(controller.property("completedResults").toList().size(), 2);
+        QVERIFY(QFile::link(results.last().toMap().value("imageSource").toUrl().toLocalFile(), firstPath));
+        QCOMPARE(controller.property("completedResults").toList().size(), 2);
+        QTemporaryDir other(DREAMSCAPES_TEST_DIRECTORY "/gallery-other-storage-XXXXXX");
+        QVERIFY(prepare(other));
+        QVERIFY(controller.connectStorage(other.path()));
+        QVERIFY(controller.property("completedResults").toList().isEmpty());
+    }
+
     void batchSubmissionKeepsOneModelSnapshotAndRejectsInvalidCounts()
     {
         QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/batch-queue-XXXXXX");
@@ -321,8 +413,8 @@ private slots:
         const auto firstOutput = recordedJob(controller, first).value("generation").toObject();
         QCOMPARE(firstOutput.value("model_path").toString(), root.filePath("Models/first model.safetensor"));
         QCOMPARE(firstOutput.value("prompt").toString(), literal);
-        QCOMPARE(firstOutput.value("width").toInt(), 64);
-        QCOMPARE(firstOutput.value("height").toInt(), 48);
+        QCOMPARE(firstOutput.value("width").toInt(), 88);
+        QCOMPARE(firstOutput.value("height").toInt(), 64);
         for (const auto &key : {"work_dir", "cache_dir", "output_dir", "preview_dir"}) {
             const auto path = firstOutput.value(key).toString();
             QVERIFY(!path.isEmpty());

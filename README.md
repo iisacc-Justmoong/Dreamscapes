@@ -1,8 +1,8 @@
 # Dreamscapes
 
-앱 시작 시 iiSocietyHelper 0.3.0을 `com.iisacc.dreamscapes`로 가동한다. Society를 포함해 같은 기기에서 공용 관측 위치를 사용하는 Helper들이 서로 실행 인스턴스를 발견한다. LVRS 엔진 수명에 Helper를 연결하고 전경·배경 상태를 반영하며 QML에 `societyHelper.observedApplications`와 이벤트를 제공한다. 관측이 중단된 경우 앱 상태 전환에서 재시작을 시도한다. 생성 큐나 모델 저장 위치는 이 관측 등록에 사용하지 않는다. iOS는 기존 Society App Group을 재사용하며 중단된 앱의 관측은 만료된다.
+앱 시작 시 iiSocietyHelper를 `com.iisacc.dreamscapes`로 가동한다. Society를 포함해 같은 기기에서 공용 관측 위치를 사용하는 Helper들이 서로 실행 인스턴스를 발견한다. LVRS 엔진 수명에 Helper를 연결하고 전경·배경 상태를 반영하며 QML에 `societyHelper.observedApplications`와 이벤트를 제공한다. 관측이 중단된 경우 앱 상태 전환에서 재시작을 시도한다. 생성 큐나 모델 저장 위치는 이 관측 등록에 사용하지 않는다. iOS는 기존 Society App Group을 재사용하며 중단된 앱의 관측은 만료된다.
 
-`Dreamscapes.Gui`의 패키지 실행 검증은 실제 앱과 별도 테스트 Helper가 서로를 발견하는지 검사한다. `SOCIETY_HELPER_DIRECTORY`를 테스트별 `build/` 경로로 지정한다. SDK 0.3.0 설치 위치는 `iiSocietyHelper_DIR`로 지정하며 현재 Workspace 검증본은 `SDK/iiSocietyHelper/build/install/lib/cmake/iiSocietyHelper`이다.
+`Dreamscapes.Gui`의 패키지 실행 검증은 실제 앱과 별도 테스트 Helper가 서로를 발견하는지 검사한다. `SOCIETY_HELPER_DIRECTORY`를 테스트별 `build/` 경로로 지정한다. SDK 설치 위치는 `iiSocietyHelper_DIR`로 지정하며 현재 Workspace 검증본은 `SDK/iiSocietyHelper/build/install/lib/cmake/iiSocietyHelper`이다.
 
 Qt 6.8.3 설치본과 로컬 LVRS 프레임워크를 사용하는 데스크탑·모바일 Qt Quick 앱이다. 모든 플랫폼이 하나의 UI를 공유한다. 홈에서는 QuickGenerate를 상단에 표시하며, 생성 완료 후에는 이미지 결과와 상단 이동 버튼을 표시하고 동일한 QuickGenerate를 하단에 배치한다. 플랫폼 판정과 반응형 레이아웃은 LVRS에 맡긴다. 아래 제품 의존성을 필수 패키지로 선언하며, CMake가 추가 패키지를 내려받거나 설치하지는 않는다.
 
@@ -20,7 +20,6 @@ Helper의 시작·전경/배경·상호 관측 이벤트는 공통 영속 발신
 | iiPaintEngine | `iiPaintEngine::iiPaintEngine` |
 | iiSocietyContainer | `iiSocietyContainer::iiSocietyContainer` |
 | iiSocietyHelper | `iiSocietyHelper::iiSocietyHelper` |
-| iiSocietySync | `iiSocietySync::iiSocietySync` |
 | iiUpdateManager | `iiUpdateManager::iiUpdateManager` |
 | LVRS | `LVRS::LVRS` |
 
@@ -39,7 +38,7 @@ Android의 `scripts/build-android.sh`는 Helper의 전이 의존성인 iiAcountM
 - `main.cpp`: LVRS 런타임을 초기화하고 항상 `Main.qml`만 연다.
 - `App/Main.qml`: 모든 플랫폼이 사용하는 단일 `LV.ApplicationWindow`이며 생성 완료·뒤로 이동과 QuickGenerate의 상단/하단 배치를 연결한다.
 - `App/Views/Home/QuickGenerate.qml`: LVRS 입력란·버튼·메뉴와 반응형 스택 레이아웃을 조합한 공통 생성 패널이다.
-- `App/Views/Result/GenerationResult.qml`: 생성 이미지의 Fit 표시와 Back·New Project 버튼, 생성 중/오류 상태를 제공한다.
+- `App/Views/Result/GenerationResult.qml`: 여러 결과의 스크롤 갤러리, 선택 이미지의 Fit 확대 보기, Back·New Project 버튼과 생성 중/오류 상태를 제공한다.
 - `App/Views/Result/Assets/right.svg`: Figma에서 내려받은 정확한 화살표 원본이며 LVRS IconButton 안에서 180도 회전한다.
 - `App/tst_Gui.cpp`: Main 진입점·창 수명·화면 크기 변경 시 상태 유지·공통 패널 배치·입력 및 메뉴 선택·요청 전달을 검증한다.
 - `App/Generation/GenerationController.h/.cpp`: Society 모델 참조를 고정한 앱 메모리 큐와 기존 iiLocalDiffusion 실행기 연결을 담당한다.
@@ -61,7 +60,7 @@ GUI 테스트 타깃에는 이 저장소에 존재하는 소스만 등록한다.
 
 [Figma QuickGenerate, 15:218](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=15-218)의 구성이다. Figma TextField는 `LV.InputField`의 Rounded 재질, DropdownButton은 `LV.LabelMenuButton`, PushButton은 `LV.LabelButton`에 대응한다. 레이아웃은 `LV.VStack`·`LV.HStack`을 사용하며 별도 UI 라이브러리나 복제한 아이콘을 추가하지 않는다. `generalchevronDown`은 Figma와 벡터 모양·색상이 같은 LVRS 내장 자산이다.
 
-바깥 여백은 `LV.Theme.gap10`, 행 간격과 선택 버튼 간격은 `LV.Theme.gap8`이다. LVRS의 플랫폼 공통 치수 정책에 따라 데스크탑·iOS·Android 모두 높이 69px, 입력란 19px, 버튼 22px, Body 글자 13px을 사용한다. 좁은 화면에서는 가로 버튼 간격만 남은 폭에 맞춰 줄여 버튼의 글자와 화살표가 겹치지 않게 한다. 홈에서는 상단 핸들 및 시스템 안전 영역 아래의 콘텐츠 시작점에 고정된다. 결과 화면에서는 하단 안전 영역과 Qt 입력기가 보고한 키보드 영역 위에 배치하며, 메뉴를 버튼 위쪽으로 연다.
+바깥 여백은 `LV.Theme.gap10`, 행 간격과 선택 버튼 간격은 `LV.Theme.gap8`이다. LVRS의 플랫폼 공통 치수 정책에 따라 데스크탑·iOS·Android 모두 높이 72px, 입력란 22px, 버튼 22px, Body 글자 13px을 사용한다. 좁은 화면에서는 가로 버튼 간격만 남은 폭에 맞춰 줄여 버튼의 글자와 화살표가 겹치지 않게 한다. 홈에서는 상단 핸들 및 시스템 안전 영역 아래의 콘텐츠 시작점에 고정된다. 결과 화면에서는 하단 안전 영역과 Qt 입력기가 보고한 키보드 영역 위에 배치하며, 메뉴를 버튼 위쪽으로 연다.
 
 초기 상태는 빈 `Prompt`, `Image`, `1:1`, 수량 `1`이다. 출력 형식 메뉴에는 현재 지원하는 UI 형식인 Image만 표시한다. 비율 메뉴는 `1:1`, `4:3`, `3:4`, `16:9`, `9:16`을 제공하며, 메뉴의 폭은 안전 영역의 가용 너비 안으로 제한한다. Generate 클릭 또는 입력란의 Enter는 앞뒤 공백을 제거한 프롬프트와 현재 설정으로 `Main.generateRequested(prompt, mediaType, aspectRatio, count)` 신호를 한 번 전달한다. 빈 입력은 요청을 전달하지 않고 입력란에 포커스를 둔다. 입력 내용은 요청 후에도 유지한다.
 
@@ -75,7 +74,13 @@ QuickGenerate는 [Figma 15:218](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1T
 
 ## 생성 결과 화면
 
-[Figma 생성 결과, 31:81](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=31-81)을 `GenerationResult.qml`로 구현한다. Figma의 402×547은 창 장식을 제외한 콘텐츠 기준이며, 기본 데스크탑 창은 상단 핸들 28px을 포함해 402×575이다. 콘텐츠 상단 버튼은 22px, 가운데 이미지 영역은 402×242px, 하단 QuickGenerate는 69px이며 이미지 위아래 여백은 각각 107px이다. 창 크기가 바뀌면 이미지 프레임은 안전 영역의 전체 너비를 채우고 상단 버튼과 하단 패널 사이 중앙에 놓인다. 세로 공간이 부족하면 이미지 영역을 줄인다. 배경·버튼·입력란·글자는 기존 LVRS 테마와 컴포넌트를 재사용한다. 새로운 UI/이미지 의존성은 없다.
+[Figma 생성 결과, 31:81](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=31-81)의 도구 모음과 QuickGenerate를 유지하면서 다중 결과를 갤러리로 확장한다. 기본 데스크탑 창은 960×640이며, 402×575 기준 창에서 단일 이미지 영역은 기존 402×242px Fit 표시를 유지한다. 콘텐츠 상단 버튼은 22px, 하단 QuickGenerate는 현재 LVRS 입력 계약에 따라 72px이다. 배경·버튼·입력란·글자는 기존 LVRS 테마와 컴포넌트를 재사용한다.
+
+완료 이미지가 여러 장이면 상단 도구 모음과 하단 QuickGenerate 사이의 전체 공간을 스크롤 갤러리로 사용한다. 사진 앱처럼 2px 간격의 정사각형 썸네일을 `PreserveAspectCrop`으로 채우며, 가용 폭 160px당 한 열을 두고 최소 2열로 배치한다. 예를 들어 390px 창은 2열, 960px 창은 6열이며 리사이즈에 따라 바뀐다. 썸네일을 누르면 가용 영역 전체에서 원본 비율로 크게 표시하고, Back은 같은 스크롤 위치의 갤러리로 돌아간다. 갤러리에서 Back을 누르면 홈으로 이동한다. 확대 중에 QuickGenerate로 새 생성을 제출하면 갤러리로 전환해 기존·새 결과를 함께 볼 수 있다. 방향키·Home·End로 선택하고 Enter로 확대할 수 있다. 오른쪽 클릭·길게 누르기는 선택 이미지의 기존 저장 메뉴를 연다.
+
+`GenerationController.completedResults`는 현재 앱 세션에서 완료된 모든 작업의 모든 출력 이미지를 생성 순서대로 제공한다. 각 항목의 `imageSource`·`image`와 프롬프트·비율·모델 정보가 같은 이미지를 가리킨다. 실패·취소·진행 중 작업, 삭제된 파일과 심볼릭 링크는 제외하며 저장소를 다시 연결하면 목록을 비운다. `latestResult`의 기존 최근 작업 첫 이미지 계약은 유지한다. 갤러리는 완료 이미지를 뒤에 추가하며 스크롤 위치와 확대 중인 선택을 보존한다. 다음 프롬프트를 편집하거나 다른 생성이 완료되어도 선택 이미지의 저장·New Project 입력은 바뀌지 않는다.
+
+생성 중인 작업은 갤러리 마지막 미리보기 타일로 표시하며 저장·프로젝트 입력으로 선택할 수 없다. 기존 Qt Quick [GridView](https://doc.qt.io/qt-6.8/qml-qtquick-gridview.html)의 항목 재사용·세로 스크롤과 Qt Quick Controls ScrollBar를 LVRS 색상으로 사용한다. 화면 주변만 썸네일을 만들고 [Image.sourceSize](https://doc.qt.io/qt-6.8/qml-qtquick-image.html#sourceSize-prop)를 타일 크기와 화면 배율에 맞춰 제한한다. 확대 모드에서 원본을 로딩하며, 새 이미지 라이브러리나 외부 의존성은 추가하지 않는다.
 
 생성 이미지는 `Image.PreserveAspectFit`으로 원본 비율을 유지하면서 프레임 안에 전체 이미지가 보이도록 맞춘다. 이미지는 가로·세로 중앙에 배치하며 프레임과 비율이 다르면 남는 공간은 여백으로 둔다. `clip: true`로 이미지가 버튼과 패널 영역에 그려지지 않게 한다. Generate 요청이 검증되어 앱 메모리의 대기열에 들어가면 프로세스 시작이나 이미지 완성을 기다리지 않고 즉시 결과 화면으로 이동한다. 입력·모델 검증에 실패하면 현재 화면에서 오류를 표시한다. 첫 중간 이미지가 오기 전에는 마지막 완료 이미지와 준비 상태를 표시하고, 이후 매 디노이징 단계의 실제 VAE 디코딩 이미지를 Fit으로 갱신한다. 비동기 로딩 중에는 직전 이미지를 유지한다. Back은 홈으로 돌아가며 생성 중에도 `View result`로 다시 열 수 있다. 중간 이미지·실패·취소·대기열 알림은 Back 이동을 취소하지 않는다.
 
@@ -123,7 +128,9 @@ QuickGenerate는 홈과 결과 화면을 오갈 때 `implicitHeight`를 유지�
 
 QuickGenerate는 이동·리사이즈 시 재생성하지 않는다. 현재 앱 세션에서는 직전 프롬프트와 비율·수량을 유지하므로 하단에서 수정하고 연속 생성할 수 있다. 앱을 다시 열면 큐·프롬프트·결과 화면은 복원하지 않으며, Society에 저장한 완성 이미지 파일은 유지한다. 작업 도중 사용자가 입력한 다음 프롬프트는 완료 이벤트가 덮어쓰지 않는다. 제출 시 키보드와 메뉴를 닫으며, 생성 중·대기·실패·이미지 로딩 오류는 결과 화면 안에 표시한다.
 
-`GenerationController.latestResult`는 검증된 최근 완료 이미지 URL(`imageSource`)과 같은 작업의 ID·프롬프트·비율·모델·저장 위치 정보를 함께 반환한다. `New Project`는 대기·생성이 끝나고 완성 이미지가 로딩된 경우에만 활성화되고 `Main.newProjectRequested(url imageSource, var generationResult)`를 전달한다. 중간 미리보기는 프로젝트 입력으로 전달하지 않는다. 이 값은 화면에 표시된 생성 작업의 정보이며, 입력란에서 수정 중인 다음 프롬프트와 구분된다. 프로젝트 편집 화면과 프로젝트 파일 생성은 현재 저장소에 없으며 이 연결 인터페이스를 소비할 후속 기능이다.
+`GenerationController.latestResult`는 검증된 최근 완료 이미지 URL(`imageSource`)과 같은 작업의 ID·프롬프트·비율·모델·저장 위치 정보를 함께 반환한다. 갤러리에서 선택한 경우 `selectedResult`로 해당 이미지의 정보를 유지한다. `New Project`는 대기·생성이 끝나고 선택한 완성 이미지가 로딩된 경우에만 활성화되고 `Main.newProjectRequested(url imageSource, var generationResult)`를 전달한다. 중간 미리보기는 프로젝트 입력으로 전달하지 않는다. 이 값은 화면에 표시된 생성 작업의 정보이며, 입력란에서 수정 중인 다음 프롬프트와 구분된다. 프로젝트 편집 화면과 프로젝트 파일 생성은 현재 저장소에 없으며 이 연결 인터페이스를 소비할 후속 기능이다.
+
+`resultGalleryLayoutAndSelection`은 320·390·960·1440px 창과 1,000장 목록에서 넓은 그리드, 마지막 이미지 도달, 제한된 썸네일 생성, 확대·프로젝트 선택, 새 결과 추가 후 선택·스크롤·초안 보존을 검사한다. `countSelectionCreatesThreeImagesInSociety`는 실제 QuickGenerate 수량 3 제출이 저장소의 파일 3개와 갤러리 항목 3개로 연결되는지 확인한다. `completedResultsExposeEveryImageAndExcludeUnpublishedFiles`는 한 작업의 다중 출력, 연속 작업, 실패·취소·삭제·리디렉션 제외와 저장소 전환을 검사한다. 이 테스트는 결정적 생성 fixture를 사용하며 실제 모델 추론·물리 모바일 기기 실행을 증명하지 않는다.
 
 `resultScreenLayout`은 기준 화면·좁은 창·데스크탑·모바일 테마·가로 화면에서 치수, 원본 비율과 전체 이미지가 보존되는 Fit 크기, 하단 패널 및 위로 열리는 메뉴를 검사한다. 가로·세로·정사각형 원본의 실제 표시 크기를 프레임에 맞춘 예상 크기와 비교한다. `generateOpensResultImmediatelyAndDisplaysEveryPreview`는 Generate 직후 전환, 매 단계 미리보기 교체, 진행 단계, New Project 비활성화, 생성 중 Back/재진입과 초안 보존을 검사한다. 생성 컨트롤러 테스트는 나뉘어 도착한 이벤트, 중복·잘못된 이벤트, 미리보기 이후 실패·취소, 임시 파일 정리와 최종 파일 분리를 검사한다. `generateButtonUsesSocietyStorage`는 완료 전환과 연속 생성, 프로젝트 입력을 검사한다. 테스트용 결정적 생성기는 UI·저장 프로토콜을 검증하며 실제 모델 추론을 대신하지 않는다. 아래 명령으로 캡처하는 이미지도 Fit 검사용 색상 패턴이다.
 
@@ -137,6 +144,8 @@ QSG_RHI_BACKEND=metal QML_DISABLE_DISK_CACHE=1 DREAMSCAPES_CAPTURE_DIR="$PWD/bui
 Society에서 컨테이너를 열면 `iiSocietyContainer::SharedStorage`에 원본 경로와 UUID가 등록된다. Dreamscapes는 같은 기본 저장소를 자동으로 열며 `--society-container /absolute/source/path`로 특정 원본을 지정할 수도 있다. 이 경로는 Finder의 공개 드라이브가 아닌 8개 영역이 있는 원본이다. 기본 저장소를 바꾼 경우 Dreamscapes를 다시 열면 새 선택을 따른다. 앱별 모델 디렉터리·모델 복사본을 만들지 않는다.
 
 Society 창에 `.safetensor` 또는 `.safetensors`를 드롭한 뒤 Dreamscapes에서 모델을 선택하고 Generate를 누른다. Diffusers 패키지(`model_index.json` 포함)도 Society의 `Models/`에서 사용할 수 있다. 목록은 저장 형식 후보이고 모델 아키텍처·LoRA 등 역할·필수 구성요소는 iiLocalDiffusion이 검사한다. 분리된 VAE·텍스트 인코더·어댑터를 조립하는 UI는 현재 포함하지 않는다.
+
+QuickGenerate의 기본 생성 크기는 iiLocalDiffusion SDXL 기본값과 같은 1024×1024이며 20단계를 사용한다. 비율을 바꾸면 짧은 변 1024px을 유지하고 긴 변을 가장 가까운 8px 단위로 반올림한다. 따라서 4:3은 1368×1024, 3:4는 1024×1368, 16:9는 1824×1024, 9:16은 1024×1824이다. 비율은 생성기의 8px 격자에 맞춘 근사값이다. 데스크톱 worker와 모바일 네이티브 생성 요청에 같은 계산을 적용하며, 사전 모델 준비는 기본 정사각형 1024×1024를 사용한다. 시험용 `GenerationRuntime.imageExtent`도 짧은 변을 뜻하고 `steps` 명시값은 유지한다. CFG·정밀도·scheduler 등 별도 지정하지 않은 옵션은 계속 iiLocalDiffusion이 모델에 따라 결정한다. `Dreamscapes.Generation`은 다섯 비율의 짧은 변이 1024px로 유지되고 두 실행 경로에서 해당 크기의 최종 파일로 저장되는지 검증한다.
 
 완성된 생성 이미지는 Asset이 아니다. 모든 앱의 결과를 `Generation History/` 바로 아래에 이미지 파일로 저장하며 앱별·작업별 하위 폴더를 만들지 않는다. Dreamscapes는 `<UUID>-0001.png`처럼 작업 UUID와 이미지 순번으로 이름 충돌을 피한다. 생성만으로 `Asset Library/`에 파일을 추가하지 않는다.
 
@@ -182,20 +191,29 @@ DREAMSCAPES_REAL_SMOKE_CONTAINER=/path/to/verification-society \
 
 기존 Qt Core/Gui의 QProcess·QTemporaryDir·QSaveFile과 iiLocalDiffusion을 재사용한다. 추가 큐 프레임워크나 영구 데이터베이스를 도입하지 않는다. 추론 의존성과 라이선스는 iiLocalDiffusion의 기존 Diffusers/PyTorch 런타임과 번들 설정 리소스의 라이선스를 따른다. SDK 라이브러리만 링크했다고 Python 추론 환경이 설치되는 것은 아니다.
 
-필수 버전은 `iiSocietyContainer >= 0.7.0`, `iiLocalDiffusion >= 0.3.0`이다. 데스크톱 구성 시 발견한 실행기의 `--model-path` 계약도 검사하여 오래된 설치본을 거부한다. `DREAMSCAPES_DIFFUSION_EXECUTABLE` CMake 경로나 `IILD_GENERATOR_EXECUTABLE` 실행 환경으로 SDK 실행기를 지정한다. Python 환경은 SDK의 관리 환경을 기본으로 사용하며 `DREAMSCAPES_DIFFUSION_PYTHON_EXECUTABLE` CMake 옵션 또는 우선하는 `IILD_PYTHON_EXECUTABLE` 환경변수로 지정할 수 있다. 단일 체크포인트는 현재 SDK의 독립 실행기와 번들 SD1/SDXL 설정을 사용하며 ComfyUI를 요구하지 않는다. 누락된 런타임·지원하지 않는 모델은 실패 원인을 표시한다.
+필수 버전은 `iiSocietyContainer >= 0.10.0`, `iiSocietyHelper >= 0.5.0`, `iiLocalDiffusion >= 0.5.0`이다. 데스크톱 구성 시 발견한 실행기의 `--model-path` 계약도 검사하여 오래된 설치본을 거부한다. `DREAMSCAPES_DIFFUSION_EXECUTABLE` CMake 경로나 `IILD_GENERATOR_EXECUTABLE` 실행 환경으로 SDK 실행기를 지정한다. Python 환경은 SDK의 관리 환경을 기본으로 사용하며 `DREAMSCAPES_DIFFUSION_PYTHON_EXECUTABLE` CMake 옵션 또는 우선하는 `IILD_PYTHON_EXECUTABLE` 환경변수로 지정할 수 있다. 단일 체크포인트는 현재 SDK의 독립 실행기와 번들 SD1/SDXL 설정을 사용하며 ComfyUI를 요구하지 않는다. 누락된 런타임·지원하지 않는 모델은 실패 원인을 표시한다.
 
-iOS는 `iiSocietyContainer_configure_ios_client()`와 `SOCIETY_IOS_APP_GROUP`·`SOCIETY_IOS_TEAM`으로 Society와 같은 App Group의 모델·완성 이미지에 접근한다. 큐는 각 앱의 메모리에만 둔다. Documents나 Files 투영본으로 내부 모델을 공개하지 않는다. [Qt QProcess는 iOS에서 지원하지 않으므로](https://doc.qt.io/qt-6/qprocess.html) 이 데스크톱 Python 실행기를 모바일에서 실행하지 않는다. iOS·Android에서는 현재 앱 세션의 메모리 큐와 상태 열람을 제공하고 실행기 미지원 상태를 표시한다. 모바일 네이티브 추론·다른 기기로 요청 전달·계정 간 저장소 동기화는 아직 구현하지 않았다. Android 앱 간 저장소 발견은 iOS App Group과 동일하게 제공되지 않는다.
+iOS는 `iiSocietyContainer_configure_ios_client()`와 `SOCIETY_IOS_APP_GROUP`·`SOCIETY_IOS_TEAM`으로 같은 기기의 Society 원본 컨테이너에 접근한다. 다른 기기의 연결·인증·동기화는 Society끼리 수행한다. Finder/iOS Files는 계속 `Files/`만 공개한다.
 
-프로세스 계약 테스트는 `fixtures/generate.py`의 명시적인 테스트 이미지를 사용하며 추론 증거로 취급하지 않는다. 실제 엔진 검증은 준비된 검증용 Society 컨테이너를 지정하여 별도로 실행한다.
+### Society 간 동기화와 로컬 생성
 
-```sh
-DREAMSCAPES_REAL_SMOKE_CONTAINER="$PWD/build/society-inference-verification" \
-IILD_GENERATOR_EXECUTABLE="/path/to/current/iiLocalDiffusion/bin/iild-generate" \
-IILD_PYTHON_EXECUTABLE="/path/to/managed/.venv/bin/python" \
-  build/DreamscapesGenerationTests realSocietyInference
-```
+1. 데스크톱 Society와 아이폰 Society가 같은 계정으로 연결된다.
+2. Society끼리 `iiSocietySync`를 통해 `Models/`를 포함한 원본 컨테이너를 동기화한다. 초기 미러가 완성되기 전에는 소비 앱에 모델을 공개하지 않는다.
+3. 아이폰 Dreamscapes는 `iiSocietyHelper::FileSystem`에서 로컬 App Group의 준비된 경로를 얻고 `SharedStorage`로 모델을 읽는다. 호스트 URL이나 원격 연결 인자가 필요하지 않다. 전경 복귀와 2초 간격의 로컬 상태 확인으로 동기화 완료·모델 추가·변경을 반영한다.
+4. 아이폰 Dreamscapes의 `iiLocalDiffusion` 네이티브 경로가 로컬 모델로 이미지를 생성한다. 데스크톱은 기존 Python worker를 유지한다. 큐는 앱 메모리, 중간 파일은 앱 임시 저장소, 완성 이미지는 로컬 Society의 `Generation History/`에 둔다.
+5. 완성 이미지의 기기 간 복제도 Society가 다음 동기화에서 수행한다. 모델 수신 후의 로컬 생성에는 호스트 연결이 필요하지 않다.
 
-Main 자체가 최상위 창이며 `transientParent: null`을 명시한다. 별도 부모 창이나 중간 로더가 없으며, 마지막 창을 닫으면 Qt의 기본 종료 정책을 따른다.
+Dreamscapes 제품 타깃에는 iiServerHost·iiSocietySync, 호스트 입력 UI, `--society-host`, 원격 생성 클라이언트가 없다. Society도 Dreamscapes 실행기를 원격 요청으로 시작하지 않는다. Sync는 테스트 하네스에서만 두 Society 역할을 구현하기 위해 사용한다.
+
+네이티브 생성에는 iiLocalDiffusion 0.5.0의 `IILD_ENABLE_NATIVE_DIFFUSION=ON` 패키지가 필요하다. 현재 API는 단일 체크포인트 파일을 입력으로 받고, 모델 로딩과 추론은 앱 작업 스레드에서 수행한다. 임의의 모델이 iPhone 메모리에 들어간다는 보장은 없으며 실패·취소 시 완성 이미지로 게시하지 않는다. 엔진이 포함되지 않은 빌드는 로컬 생성 불가 상태를 표시한다. [SDK 계약](../../SDK/iiLocalDiffusion/docs/native-image-generation.md)을 참조한다.
+
+`Dreamscapes.LocalSociety`는 두 Society 역할의 실제 loopback TLS로 700,000바이트 모델을 동기화하고, 로컬 Helper 경로·컨테이너 UUID를 확인한 다음 모든 연결을 끊는다. 이어 Dreamscapes 생성 fixture에 전달된 경로가 클라이언트 `Models/`인지와 결과가 클라이언트 `Generation History/`에만 저장되는지 검증한다. 이 fixture는 프로세스·저장 계약 검증이며 실제 모델 추론이나 물리 iPhone 성공 증거가 아니다. iOS 번들 검사는 App Group·네이티브 경로·서명과 원격 클라이언트/Sync 부재를 확인한다.
+
+2026-09-10 검증에서는 Society 16/16, Dreamscapes 5/5, 로컬 동기화·생성 회귀와 두 앱 qmllint가 통과했다. 새 네이티브 SDK는 macOS와 iOS arm64로 빌드했으며, macOS에서 실제 `redLilyIllu_v10.safetensors`의 512×512·20스텝 로컬 이미지 생성을 확인했다. iOS 번들은 서명·App Group·로컬 엔진·원격 Sync 라이브러리 부재 검사를 통과했다. 최종 점검에서 iPhone 연결이 복구되어 최신 개발 서명 앱을 설치·실행하고 프로세스를 확인했다. 아이폰 Society의 Models에 6.46GB 체크포인트가 있는 것도 확인했다. 추가 생성 검증용 빌드 설치 단계에서 기기 연결이 끊겨 아이폰 자체 추론 완료는 아직 검증하지 못했다. 상세 기록은 `build/society-local-generation/REPORT.md`이다.
+
+`DREAMSCAPES_LOCAL_RUNTIME_PROBE=ON`은 실기기 검증용 옵션이며 기본 OFF이다. 이 빌드의 `--verify-local-generation --local-model <로컬 모델 ID> --local-prompt <문장>`은 이미 준비된 로컬 모델을 선택해 실제 컨트롤러를 실행한다. 호스트 주소를 받거나 모델을 전달하지 않으며 결과 상태와 앱 화면만 Documents에 기록한다. 검증 후 일반 빌드를 다시 설치한다.
+
+이전 `build/iphone-remote-generation/` 기록은 데스크톱 추론 결과 PNG를 아이폰으로 전송한 과거 방식의 증거이다. 현재 구조의 모델 동기화·아이폰 자체 생성 증거로 사용하지 않는다.
 
 ## macOS 빌드와 실행
 
@@ -233,7 +251,7 @@ python3 -B tests/verify_ios_bundle.py build/ios-device/bin/Debug/Dreamscapes.app
   --device <iPhone-UDID>
 ```
 
-iOS의 생성 실행기 미지원 범위는 위 ‘Society 모델로 이미지 생성’ 설명과 같다.
+iOS는 기기의 Society 저장소를 읽는 네이티브 생성 경로를 사용하며 데스크톱 실행기를 기기에서 직접 실행하지 않는다.
 앱 설치나 SDK 링크만으로 모바일 네이티브 추론이 연결되는 것은 아니다.
 
 2026-09-08 Xcode 27 beta 6와 Qt 6.8.3으로 iPhone 15 Pro Max(iOS 27)에 개발 서명
@@ -322,3 +340,35 @@ MPS FP16 이미지를 생성하고 네이티브 결과 화면에 표시했다. C
 않았다. 작업 ID는 `4e4f253e-33e2-4ee8-8c0e-89c176883dc8`이며 이전 실패 기록은
 보존했다. 재빌드 후 GUI·생성 테스트 2/2가 통과했다. 세부 SDK 검증은
 `SDK/iiLocalDiffusion/docs/standalone-validation.md`에 기록했다.
+
+### iPhone 생성 진행 및 종료 계약
+
+네이티브 생성은 모델 로딩, 프롬프트 준비, 노이즈 제거, 이미지 렌더링을 구분한다. 텐서 로딩 수나 VAE 타일 수는 요청한 생성 스텝에 합산하지 않는다. 결과 화면에는 경과 시간과 취소 버튼을 표시하며, 파일 게시가 끝나야 완료 처리한다.
+
+iOS는 생성 중에만 `UIApplication.idleTimerDisabled`를 설정하고 완료·실패·취소·백그라운드 전환 시 이전 값을 복원한다. 잠깐의 inactive 상태는 작업을 취소하지 않는다. 실제로 앱을 백그라운드로 보내면 취소 신호를 전달하고 중단 이유를 표시한다. 기본 제한 시간은 15분이다. 엔진은 텐서 로딩과 연산 구간 사이에서 취소 및 제한 시간을 확인하며 실행 중인 GPU 호출은 반환을 기다린다.
+
+`DreamscapesLocalSocietyTests`는 단계 혼동, 로딩 중 취소/백그라운드/제한 시간/예외, 다음 요청 재시도, 화면 유지 해제를 검사한다. 실제 기기 검증은 `DREAMSCAPES_LOCAL_RUNTIME_PROBE=ON` 빌드의 `--verify-local-generation --local-model <model> --local-prompt <prompt>`를 이용하며, Documents의 `local-generation-verification.json`에서 단계·경과 관측 시각·전경·화면 유지·최종 결과를 확인한다. 테스트용 엔진 결과와 실기기 결과는 별도 증거로 기록한다. 화면 유지 API: [Apple UIKit](https://developer.apple.com/documentation/uikit/uiapplication/isidletimerdisabled).
+
+공유 프롬프트 필드는 현재 LVRS의 22px 계약을 따른다. 기본 QuickGenerate 높이는 패딩 20px + 입력 22px + 간격 8px + 버튼 22px = 72px이며, 결과 이미지 중앙 배치 검증도 이 높이를 기준으로 한다.
+
+실기기 취소 재현에는 probe 인자 `--local-cancel-after-ms 3000`을 추가할 수 있다. probe 보고서의 `ui`는 실제 입력 높이·결과 화면·이미지 로딩 상태도 기록한다. 최종 앱은 probe를 OFF로 재빌드하며 `verify_ios_bundle.py`는 진단 probe가 남은 바이너리를 거부한다. 진단용 번들 자체를 검사할 때만 `--allow-runtime-probe`를 명시한다.
+
+2026-09-11 수정 후 iPhone 15 Pro Max에서 `redLilyIllu_v10.safetensors`의 512×512·20스텝 생성·화면 표시·Society 저장을 294.647초에 완료했다. 로딩 중 3초 후 취소 요청은 시작부터 3.162초에 정상 취소되었다. 앱 CTest 5/5, 네이티브 SDK 79/79, iOS LVRS 설치 QML 62/62 해시와 기기 입력 높이 22px을 확인했다. 상세 재현·로그·이미지는 [검증 보고서](build/iphone-generation-hang/REPORT.md)에 있다.
+
+
+QuickGenerate의 기본 출력은 짧은 변 1024px·10스텝이다. 공통 `GenerationRuntime`의 기본 스텝을 20에서 10으로 낮췄으며 네이티브 엔진과 데스크톱 worker에 동일하게 전달한다. `DreamscapesGenerationTests`는 5가지 종횡비에서 두 백엔드에 전달되는 기본 해상도와 10스텝을 검사하고, `DreamscapesLocalSocietyTests`는 10스텝 진행률을 검사한다. iOS 로컬 네이티브 엔진은 Society Models 원본을 보존하고 앱 CacheLocation에 Q8_0/VAE F16 GGUF 사본을 준비하며, 성공한 최근 모델의 컨텍스트와 파일 매핑을 다음 이미지에 재사용한다. iOS는 기기 메모리 여유에 따른 Metal 예산과 전체 CPU 코어를 사용한다. 백그라운드 진입·메모리 경고·컨트롤러 종료 시 유휴 캐시를 해제하고 진행 중 작업은 종료 시 해제한다. 네이티브 job의 `generation.performance`에는 캐시 적중, 예산, 스레드 수, 모델 준비 및 추론 시간이 기록된다.
+
+성능 검증용 빌드에서만 `DREAMSCAPES_PROBE_EXTENT`, `DREAMSCAPES_PROBE_SEED`와 `--local-repeat 2`로 동일 조건의 첫 생성·메모리 캐시 재사용을 비교할 수 있다. 일반 앱은 이 진단 입력을 포함하지 않는다. 빌드·테스트·실기기 결과와 한계는 `build/quickgenerate-acceleration/REPORT.md`에 기록한다.
+
+
+iOS 네이티브 추론은 `Platform/iOS/Dreamscapes.entitlements.in`의 Extended Virtual Addressing 및 Increased Memory Limit capability를 사용한다. 6.94GB 체크포인트가 기본 가상 주소 한도로 mmap에 실패하는 실기기 경로를 확인했다. `-allowProvisioningUpdates`로 해당 capability를 포함한 프로비저닝 프로필을 갱신해 빌드하며, 번들 검사는 서명과 프로필 양쪽의 권한을 확인한다. 추가 메모리는 지원 기기에만 제공되므로 실제 `os_proc_available_memory()`와 Metal 권장 작업 세트로 예산을 제한한다. 근거: [Apple 메모리 한도](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.kernel.increased-memory-limit), [확장 주소 공간](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.kernel.extended-virtual-addressing).
+
+네이티브 0.5는 체크포인트 mmap을 재사용하며 GPU 업로드용 임시 버퍼의 중복 할당과 복사를 줄인다. 적재 완료 시 조건 변수로 즉시 진행해 구간마다 200ms를 기다리던 지연도 제거한다. 기존 생성 품질 설정은 유지한다.
+
+`IILD_NATIVE_DIAGNOSTICS=1`인 기기 검증에서는 UIKit 메모리 경고에 의한 캐시 해제를 기록한다. 사용 가능 메모리가 부족한 모델은 컨텍스트 캐시가 해제될 수 있으므로 연속 생성의 `modelCacheHit`를 실제 결과로 확인한다.
+
+QuickGenerate는 iOS에서 iiLocalDiffusion 0.6의 Q8 캐시를 기본 사용한다. 첫 요청에만 모델 변환 시간이 추가되며 화면에 준비 단계를 표시한다. 원본 변경·변환 결과 손상은 캐시를 무효화하고 취소·실패한 부분 파일은 재사용하지 않는다. Q8은 같은 seed의 원본 FP16 결과와 픽셀이 달라질 수 있다. 기본 해상도와 스텝 수는 위 공통 설정을 따른다. `generation.performance`의 `q8CacheUsed`, `diskCacheHit`, `modelBytes`, `preparationMilliseconds`로 디스크 준비·재사용을, `modelCacheHit`로 메모리 재사용을 별도로 검증한다.
+
+2026-09-11 Q8 실기기 측정: iPhone 15 Pro Max의 동일 512×512·20스텝은 원본 FP16 기준 294.647초에서 첫 변환 포함 140.366초로 약 52.4% 줄었다. 연속 생성은 149.795초이고 디스크/메모리 캐시가 모두 적중했다. 당시 기본값인 1024×1024·20스텝은 643.309초에 완료했다. 이 측정은 기본값을 10스텝으로 낮추기 전 결과이며 10스텝의 생성 시간은 별도로 측정해야 한다. 재시작 후 디스크 캐시 준비는 1.287ms로 확인했다. 원본 보존·실제 결과·캐시 해제와 기기 측정 한계는 [검증 보고서](build/quickgenerate-acceleration/REPORT.md)에 있다.
+
+기기 probe는 Qt Image 상태가 숫자 또는 enum 이름 `Ready`로 직렬화되는 경우를 모두 처리한다. 실행 시작 때 과거 화면 캡처를 지우고 PNG 저장 성공 후에만 캡처 완료로 표시한다. UI의 Ready/source 관측과 실제 화면 PNG 검증을 구분한다.

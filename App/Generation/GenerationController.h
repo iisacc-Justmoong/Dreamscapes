@@ -1,6 +1,9 @@
 #pragma once
 
 #include <SharedStorage.h>
+#include <iiSocietyHelper.h>
+#include <Generation/NativeDiffusion.hpp>
+#include <QFutureWatcher>
 #include <QObject>
 #include <QJsonObject>
 #include <QTimer>
@@ -16,10 +19,16 @@
 struct GenerationRuntime {
     QString executable;
     QString device = QStringLiteral("auto");
-    int steps = 20;
-    int imageExtent = 512;
+    int steps = 10;
+    int imageExtent = 1024; // Shorter output side, aligned to the 8px latent grid.
     QString pythonExecutable;
     QString temporaryDirectory;
+    bool nativeInference = false;
+    int nativeTimeoutMilliseconds = 900000;
+    QString nativeQ8CacheDirectory;
+    std::function<iiLocalDiffusion::NativeGenerationResult(const iiLocalDiffusion::NativeGenerationRequest &,
+        const std::atomic_bool &, const iiLocalDiffusion::NativeProgressCallback &)> nativeGenerate;
+    std::function<void(bool)> screenActivity;
 };
 
 class GenerationController : public QObject
@@ -32,15 +41,17 @@ class GenerationController : public QObject
     Q_PROPERTY(QString selectedModel READ selectedModel WRITE setSelectedModel NOTIFY modelsChanged)
     Q_PROPERTY(QVariantList jobs READ jobs NOTIFY jobsChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY jobsChanged)
-    Q_PROPERTY(bool runtimeAvailable READ runtimeAvailable CONSTANT)
+    Q_PROPERTY(bool runtimeAvailable READ runtimeAvailable NOTIFY storageChanged)
     Q_PROPERTY(QString errorString READ errorString NOTIFY errorChanged)
     Q_PROPERTY(QUrl latestImage READ latestImage NOTIFY jobsChanged)
     Q_PROPERTY(QVariantMap latestResult READ latestResult NOTIFY jobsChanged)
+    Q_PROPERTY(QVariantList completedResults READ completedResults NOTIFY jobsChanged)
     Q_PROPERTY(QUrl previewImage READ previewImage NOTIFY previewChanged)
     Q_PROPERTY(int previewStep READ previewStep NOTIFY previewChanged)
     Q_PROPERTY(int previewTotalSteps READ previewTotalSteps NOTIFY previewChanged)
     Q_PROPERTY(bool foreground READ foreground WRITE setForeground NOTIFY foregroundChanged)
     Q_PROPERTY(QVariantMap inferenceStatus READ inferenceStatus NOTIFY inferenceStatusChanged)
+    Q_PROPERTY(bool keepsScreenAwake READ keepsScreenAwake NOTIFY screenActivityChanged)
 public:
     explicit GenerationController(QObject *parent = nullptr);
     explicit GenerationController(GenerationRuntime runtime, QObject *parent = nullptr);
@@ -57,12 +68,14 @@ public:
     QString errorString() const;
     QUrl latestImage() const;
     QVariantMap latestResult() const;
+    QVariantList completedResults() const;
     QUrl previewImage() const;
     int previewStep() const;
     int previewTotalSteps() const;
     bool foreground() const;
     void setForeground(bool foreground);
     QVariantMap inferenceStatus() const;
+    bool keepsScreenAwake() const;
 
     Q_INVOKABLE bool connectStorage(const QString &path = {});
     Q_INVOKABLE void refreshModels();
@@ -77,9 +90,14 @@ signals:
     void previewChanged();
     void foregroundChanged();
     void inferenceStatusChanged();
+    void screenActivityChanged();
 
 private:
+    QVariantMap resultForImage(const QJsonObject &job, const QString &relative) const;
     bool fail(const QString &message);
+    void pollStorage();
+    void startNative(const QString &model);
+    void finishNative();
     bool discardLegacyStorage();
     bool createWorkingFiles(QString *error);
     void clearWorkingFiles();
@@ -97,8 +115,18 @@ private:
     bool startWorker(QString *error);
     void prepareForeground();
     void setInferenceStatus(QJsonObject status);
+    void updateScreenActivity();
 
     GenerationRuntime m_runtime;
+    iiSocietyHelper::FileSystem m_fileSystem;
+    QString m_storageSelection;
+    QTimer m_storagePoll;
+    QFutureWatcher<iiLocalDiffusion::NativeGenerationResult> m_nativeWatcher;
+    std::atomic_bool m_nativeCancelled{false};
+    QTimer m_nativeDeadline;
+    bool m_nativeTimedOut = false;
+    bool m_interrupted = false;
+    bool m_screenActive = false;
     std::optional<iiSocietyContainer::SharedStorage> m_storage;
     QList<iiSocietyContainer::StoredModel> m_models;
     QString m_selected;

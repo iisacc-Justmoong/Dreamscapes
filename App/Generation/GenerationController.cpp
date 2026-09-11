@@ -1,4 +1,10 @@
 #include "GenerationController.h"
+#include <QtConcurrent/QtConcurrentRun>
+#include <QRandomGenerator>
+#include <QImage>
+#if defined(Q_OS_IOS)
+#include "GenerationScreenActivity.h"
+#endif
 
 #include <QDateTime>
 #include <QDir>
@@ -9,6 +15,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QSaveFile>
+#include <QStandardPaths>
 #include <QLockFile>
 #include <QCryptographicHash>
 #include <QUuid>
@@ -27,21 +34,40 @@ bool jobId(const QString &value)
 QSize imageSize(const QString &ratio, int extent)
 {
     const auto unit = std::max(8, extent / 8 * 8);
-    const auto rounded = [](int value) { return std::max(8, value / 8 * 8); };
+    if (unit > 4096) return {};
+    // Keep the shorter side fixed; round the expanded side to the nearest latent-grid unit.
+    const auto expanded = [unit](int numerator, int denominator) {
+        return ((unit * numerator + 4 * denominator) / (8 * denominator)) * 8;
+    };
     if (ratio == "1:1") return {unit, unit};
-    if (ratio == "4:3") return {unit, rounded(unit * 3 / 4)};
-    if (ratio == "3:4") return {rounded(unit * 3 / 4), unit};
-    if (ratio == "16:9") return {unit, rounded(unit * 9 / 16)};
-    if (ratio == "9:16") return {rounded(unit * 9 / 16), unit};
+    if (ratio == "4:3") return {expanded(4, 3), unit};
+    if (ratio == "3:4") return {unit, expanded(4, 3)};
+    if (ratio == "16:9") return {expanded(16, 9), unit};
+    if (ratio == "9:16") return {unit, expanded(16, 9)};
     return {};
 }
 GenerationRuntime defaultRuntime()
 {
     GenerationRuntime runtime;
+#if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
+    runtime.nativeInference = true;
+#endif
+#if defined(Q_OS_IOS)
+    runtime.screenActivity = nativeGenerationScreenActivity();
+    runtime.nativeQ8CacheDirectory = QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation))
+        .filePath("iiLocalDiffusion/q8");
+#endif
     runtime.executable = qEnvironmentVariable("IILD_GENERATOR_EXECUTABLE");
     if (runtime.executable.isEmpty())
         runtime.executable = QStringLiteral(DREAMSCAPES_DIFFUSION_EXECUTABLE);
     runtime.pythonExecutable = QStringLiteral(DREAMSCAPES_DIFFUSION_PYTHON_EXECUTABLE);
+#ifdef DREAMSCAPES_LOCAL_RUNTIME_PROBE
+    // Device benchmarks can reproduce historical sizes without changing the
+    // production QuickGenerate resolution contract.
+    bool validExtent = false;
+    const auto extent = qEnvironmentVariableIntValue("DREAMSCAPES_PROBE_EXTENT", &validExtent);
+    if (validExtent && extent >= 64 && extent <= 2048 && extent % 8 == 0) runtime.imageExtent = extent;
+#endif
     return runtime;
 }
 }
@@ -50,11 +76,27 @@ GenerationController::GenerationController(QObject *parent) : GenerationControll
 GenerationController::GenerationController(GenerationRuntime runtime, QObject *parent)
     : QObject(parent), m_runtime(std::move(runtime))
 {
+    m_storagePoll.setInterval(2000);
+    connect(&m_storagePoll, &QTimer::timeout, this, &GenerationController::pollStorage);
+    connect(&m_nativeWatcher, &QFutureWatcher<iiLocalDiffusion::NativeGenerationResult>::finished,
+            this, &GenerationController::finishNative);
+    m_nativeDeadline.setSingleShot(true);
+    connect(&m_nativeDeadline, &QTimer::timeout, this, [this] {
+        if (!busy() || m_nativeWatcher.isFinished()) return;
+        m_nativeTimedOut = true;
+        m_nativeCancelled = true;
+        setInferenceStatus({{"state", "cancelling"}, {"ready", false}, {"backend", "native"}});
+    });
+    m_storagePoll.start();
     if (m_runtime.temporaryDirectory.isEmpty())
         m_runtime.temporaryDirectory = qEnvironmentVariable("DREAMSCAPES_TEMP_DIRECTORY", QDir::tempPath());
     if (auto *application = qobject_cast<QGuiApplication *>(QCoreApplication::instance())) {
         connect(application, &QGuiApplication::applicationStateChanged, this, [this](Qt::ApplicationState state) {
-            setForeground(state == Qt::ApplicationActive);
+            // A temporary inactive state (an alert or Control Center) is not
+            // background execution. Cancel only after the app is hidden.
+            setForeground(m_runtime.nativeInference
+                ? state == Qt::ApplicationActive || state == Qt::ApplicationInactive
+                : state == Qt::ApplicationActive);
         });
         setForeground(application->applicationState() == Qt::ApplicationActive);
     }
@@ -99,6 +141,11 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
 
 GenerationController::~GenerationController()
 {
+    if (m_screenActive && m_runtime.screenActivity) m_runtime.screenActivity(false);
+    m_nativeCancelled = true;
+    disconnect(&m_nativeWatcher, nullptr, this, nullptr);
+    m_nativeWatcher.waitForFinished();
+    if (m_runtime.nativeInference) iiLocalDiffusion::releaseNativeDiffusionCache();
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
     disconnect(&m_process, nullptr, this, nullptr);
     if (m_process.state() != QProcess::NotRunning) {
@@ -109,7 +156,7 @@ GenerationController::~GenerationController()
     clearWorkingFiles();
 }
 
-bool GenerationController::connected() const { return m_storage.has_value(); }
+bool GenerationController::connected() const { return m_storage && m_storage->drive().isReady(); }
 QString GenerationController::containerPath() const { return m_storage ? m_storage->drive().rootPath() : QString(); }
 QString GenerationController::selectedModel() const { return m_selected; }
 bool GenerationController::busy() const { return !m_active.isEmpty(); }
@@ -119,6 +166,15 @@ int GenerationController::previewStep() const { return m_previewStep; }
 int GenerationController::previewTotalSteps() const { return m_previewTotalSteps; }
 bool GenerationController::foreground() const { return m_foreground; }
 QVariantMap GenerationController::inferenceStatus() const { return m_inferenceStatus.toVariantMap(); }
+bool GenerationController::keepsScreenAwake() const { return m_screenActive; }
+void GenerationController::updateScreenActivity()
+{
+    const bool active = m_runtime.nativeInference && busy() && m_foreground;
+    if (m_screenActive == active) return;
+    m_screenActive = active;
+    if (m_runtime.screenActivity) m_runtime.screenActivity(active);
+    emit screenActivityChanged();
+}
 void GenerationController::setInferenceStatus(QJsonObject status)
 {
     if (m_inferenceStatus == status) return;
@@ -129,6 +185,13 @@ void GenerationController::setForeground(bool foreground)
 {
     if (m_foreground == foreground) return;
     m_foreground = foreground;
+    if (!foreground && m_runtime.nativeInference) iiLocalDiffusion::releaseNativeDiffusionCache();
+    if (!foreground && m_runtime.nativeInference && busy()) {
+        m_interrupted = true;
+        m_cancelled = true;
+        m_nativeCancelled = true;
+    }
+    updateScreenActivity();
     m_residencyPending = true;
     setInferenceStatus({{"state", foreground ? "preparing" : "background"},
                         {"foreground", foreground}, {"ready", false}});
@@ -137,6 +200,7 @@ void GenerationController::setForeground(bool foreground)
 }
 bool GenerationController::runtimeAvailable() const
 {
+    if (m_runtime.nativeInference) return m_runtime.nativeGenerate || iiLocalDiffusion::nativeDiffusionAvailable();
 #if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
     return false;
 #else
@@ -173,30 +237,49 @@ QUrl GenerationController::latestImage() const
 }
 QVariantMap GenerationController::latestResult() const
 {
-    if (!m_storage || !m_storage->drive().isValid()) return {};
     for (auto job = m_jobs.crbegin(); job != m_jobs.crend(); ++job) {
-        if (job->value("state") != "completed") continue;
-        const auto relative = job->value("image").toString();
-        const auto prefix = QStringLiteral("Generation History/");
-        const auto name = relative.mid(prefix.size());
-        if (!relative.startsWith(prefix) || !name.startsWith(job->value("id").toString() + '-')
-            || name.contains('/') || name.contains('\\')) continue;
-        const auto path = QDir(containerPath()).filePath(relative);
-        const QFileInfo info(path);
-        if (info.isFile() && !info.isSymLink() && info.canonicalFilePath() == path) {
-            auto result = job->toVariantMap();
-            result.insert("imageSource", QUrl::fromLocalFile(path));
-            return result;
-        }
+        const auto result = resultForImage(*job, job->value("image").toString());
+        if (!result.isEmpty()) return result;
     }
     return {};
+}
+
+QVariantList GenerationController::completedResults() const
+{
+    QVariantList results;
+    // Keep submission/output order so newly completed images append to the gallery.
+    for (const auto &job : m_jobs) {
+        for (const auto &image : job.value("images").toArray()) {
+            const auto result = resultForImage(job, image.toString());
+            if (!result.isEmpty()) results.append(result);
+        }
+    }
+    return results;
+}
+
+QVariantMap GenerationController::resultForImage(const QJsonObject &job, const QString &relative) const
+{
+    if (!m_storage || !m_storage->drive().isValid() || job.value("state") != "completed") return {};
+    const auto prefix = QStringLiteral("Generation History/");
+    const auto name = relative.mid(prefix.size());
+    if (!relative.startsWith(prefix) || !name.startsWith(job.value("id").toString() + '-')
+        || name.contains('/') || name.contains('\\')) return {};
+    const auto path = QDir(containerPath()).filePath(relative);
+    const QFileInfo info(path);
+    if (!info.isFile() || info.isSymLink() || info.canonicalFilePath() != path) return {};
+    auto result = job.toVariantMap();
+    result.insert("image", relative);
+    result.insert("imageSource", QUrl::fromLocalFile(path));
+    return result;
 }
 
 bool GenerationController::connectStorage(const QString &path)
 {
     if (busy()) return fail(tr("Wait for the current generation or cancel it before changing storage."));
     QString error;
-    auto storage = SharedStorage::open(path, &error);
+    m_storageSelection = path;
+    if (!m_fileSystem.open(path)) return fail(m_fileSystem.errorString());
+    auto storage = SharedStorage::open(m_fileSystem.rootPath(), &error);
     if (!storage) return fail(error);
     m_storage = std::move(storage);
     m_selected.clear();
@@ -211,17 +294,46 @@ bool GenerationController::connectStorage(const QString &path)
     emit jobsChanged();
     return true;
 }
+void GenerationController::pollStorage()
+{
+    if (m_foreground && !busy() && m_controlId.isEmpty()) {
+        const auto previousError = m_error;
+        const bool previouslyReady = connected();
+        refreshModels();
+        // A background inventory poll must not erase a generation failure.
+        if (previouslyReady && m_error.isEmpty() && !previousError.isEmpty()) fail(previousError);
+    }
+}
 void GenerationController::refreshModels()
 {
-    if (!m_storage) { connectStorage(); return; }
+    if (busy()) return;
     QString error;
-    m_models = m_storage->models(&error);
+    auto storage = m_fileSystem.open(m_storageSelection)
+        ? SharedStorage::open(m_fileSystem.rootPath(), &error) : std::optional<SharedStorage>();
+    if (!storage) {
+        if (error.isEmpty()) error = m_fileSystem.errorString();
+        m_storage.reset(); m_models.clear(); m_selected.clear();
+        emit storageChanged(); emit modelsChanged();
+        fail(error);
+        return;
+    }
+    const bool storageChangedNow = !m_storage || m_storage->drive().identifier() != storage->drive().identifier()
+        || m_storage->drive().rootPath() != storage->drive().rootPath();
+    auto models = storage->models(&error);
+    const bool changed = storageChangedNow || models.size() != m_models.size()
+        || !std::equal(models.cbegin(), models.cend(), m_models.cbegin(), m_models.cend(),
+            [](const StoredModel &a, const StoredModel &b) { return a.id == b.id && a.fingerprint == b.fingerprint; });
+    m_storage = std::move(storage);
+    m_models = std::move(models);
     if (std::none_of(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == m_selected; }))
         m_selected = m_models.isEmpty() ? QString() : m_models.first().id;
     fail(error);
-    emit modelsChanged();
-    m_residencyPending = true;
-    QTimer::singleShot(0, this, &GenerationController::pump);
+    if (storageChangedNow) emit storageChanged();
+    if (changed) {
+        emit modelsChanged();
+        m_residencyPending = true;
+        QTimer::singleShot(0, this, &GenerationController::pump);
+    }
 }
 bool GenerationController::discardLegacyStorage()
 {
@@ -296,6 +408,7 @@ bool GenerationController::discardLegacyStorage()
 
 void GenerationController::updateJob(QJsonObject job)
 {
+    updateScreenActivity();
     job["updatedAt"] = now();
     const auto found = std::find_if(m_jobs.begin(), m_jobs.end(), [&](const auto &existing) {
         return existing.value("id") == job.value("id");
@@ -337,14 +450,20 @@ void GenerationController::clearWorkingFiles()
 
 QString GenerationController::enqueue(const QString &prompt, const QString &aspectRatio, int count)
 {
+#if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
+    if (!runtimeAvailable()) { fail(tr("Local image generation is unavailable in this build.")); return {}; }
+#endif
     if (count < 1 || count > 1000) { fail(tr("Choose an image count from 1 to 1000.")); return {}; }
-    if (!m_storage) { fail(tr("Open Society and choose the shared container first.")); return {}; }
+    if (!connected()) { fail(tr("Open Society on this device and wait for its models to finish syncing.")); return {}; }
     const auto trimmed = prompt.trimmed();
     const auto size = imageSize(aspectRatio, m_runtime.imageExtent);
     if (trimmed.isEmpty() || trimmed.size() > 32000 || size.isEmpty() || size.width() > 4096 || size.height() > 4096
         || m_runtime.steps < 1 || m_runtime.steps > 1000) { fail(tr("Enter a prompt and a supported image size.")); return {}; }
     auto selected = std::find_if(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == m_selected; });
     if (selected == m_models.cend()) { fail(tr("Add a Diffusion model to Society, then refresh the model list.")); return {}; }
+    if (m_runtime.nativeInference && selected->format != "safetensors") {
+        fail(tr("Choose a single checkpoint model for on-device generation.")); return {};
+    }
     const auto reference = selected->reference(m_storage->drive().identifier());
     QString error;
     if (m_storage->resolveModel(reference, &error).isEmpty()) { fail(error); return {}; }
@@ -375,6 +494,7 @@ QString GenerationController::enqueue(const QString &prompt, const QString &aspe
 
 void GenerationController::pump()
 {
+    if (m_runtime.nativeInference && !m_foreground) return;
     if (!m_storage || busy() || !m_controlId.isEmpty() || !runtimeAvailable()) return;
     QString error;
     const auto queued = std::find_if(m_jobs.cbegin(), m_jobs.cend(), [](const auto &job) { return job.value("state") == "queued"; });
@@ -384,6 +504,8 @@ void GenerationController::pump()
     m_pendingOutput.clear();
     clearWorkingFiles();
     m_cancelled = false;
+    m_interrupted = false;
+    m_nativeTimedOut = false;
     const auto model = m_storage->resolveModel(m_active.value("model").toObject(), &error);
     if (model.isEmpty()) { finish("failed", error); return; }
     if (!createWorkingFiles(&error)) { finish("failed", error); return; }
@@ -391,6 +513,7 @@ void GenerationController::pump()
     m_active["startedAt"] = now();
     m_active["output"] = "Generation History";
     updateJob(m_active);
+    if (m_runtime.nativeInference) { startNative(model); return; }
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
     if (m_cancelled) { finish("cancelled"); return; }
     QStringList arguments{"--model-path", model, "--prompt", m_active.value("prompt").toString(),
@@ -405,6 +528,98 @@ void GenerationController::pump()
         {"id", m_active.value("id")}, {"arguments", QJsonArray::fromStringList(arguments)}}).toJson(QJsonDocument::Compact) + '\n';
     if (!startWorker(&error)) finish("failed", error);
 #endif
+}
+
+void GenerationController::startNative(const QString &model)
+{
+    // jobsChanged can synchronously cancel the transition to running.
+    if (m_cancelled) { finish(m_interrupted ? "interrupted" : "cancelled"); return; }
+    m_nativeCancelled = false;
+    iiLocalDiffusion::NativeGenerationRequest request;
+    request.modelPath = QFile::encodeName(model).toStdString();
+    request.prompt = m_active.value("prompt").toString().toStdString();
+    request.width = m_active.value("width").toInt();
+    request.height = m_active.value("height").toInt();
+    request.steps = m_active.value("steps").toInt();
+    request.seed = static_cast<qint64>(QRandomGenerator::global()->generate());
+#ifdef DREAMSCAPES_LOCAL_RUNTIME_PROBE
+    bool validSeed = false;
+    const auto probeSeed = qEnvironmentVariable("DREAMSCAPES_PROBE_SEED").toLongLong(&validSeed);
+    if (validSeed) request.seed = probeSeed;
+#endif
+    request.timeoutMilliseconds = m_runtime.nativeTimeoutMilliseconds;
+    request.q8CacheDirectory = QFile::encodeName(m_runtime.nativeQ8CacheDirectory).toStdString();
+    m_active["generation"] = QJsonObject{{"backend", "iiLocalDiffusion-native"},
+        {"model_path", model}, {"seed", QString::number(request.seed)}};
+    const auto id = m_active.value("id").toString();
+    setInferenceStatus({{"state", "loading"}, {"ready", false}, {"backend", "native"}});
+    const auto generate = m_runtime.nativeGenerate ? m_runtime.nativeGenerate : iiLocalDiffusion::generateNativeImageWithProgress;
+    m_nativeWatcher.setFuture(QtConcurrent::run([this, request, id, generate] {
+        try {
+            return generate(request, m_nativeCancelled, [this, id](const iiLocalDiffusion::NativeGenerationProgress &event) {
+                QMetaObject::invokeMethod(this, [this, id, event] {
+                    if (m_active.value("id") != id || m_cancelled || m_nativeTimedOut) return;
+                    using Stage = iiLocalDiffusion::NativeGenerationStage;
+                    const char *state = event.stage == Stage::Waiting ? "waiting-engine"
+                        : event.stage == Stage::Preparing ? "preparing-model"
+                        : event.stage == Stage::Loading ? "loading" : event.stage == Stage::Encoding ? "encoding"
+                        : event.stage == Stage::Decoding ? "decoding" : "denoising";
+                    setInferenceStatus({{"state", state}, {"ready", false}, {"backend", "native"},
+                        {"step", event.step}, {"total", event.total}});
+                    if (event.stage == Stage::Denoising && event.total == m_active.value("steps").toInt()
+                        && event.step >= m_previewStep && event.step <= event.total) {
+                        m_previewStep = event.step;
+                        m_previewTotalSteps = event.total;
+                        emit previewChanged();
+                    }
+                }, Qt::QueuedConnection);
+            });
+        } catch (const std::exception &error) {
+            iiLocalDiffusion::NativeGenerationResult result;
+            result.error = error.what();
+            return result;
+        } catch (...) {
+            iiLocalDiffusion::NativeGenerationResult result;
+            result.error = "The native image engine stopped unexpectedly.";
+            return result;
+        }
+    }));
+    m_nativeDeadline.start(std::max(1, request.timeoutMilliseconds));
+}
+
+void GenerationController::finishNative()
+{
+    m_nativeDeadline.stop();
+    const auto result = m_nativeWatcher.result();
+    auto generation = m_active.value("generation").toObject();
+    generation["performance"] = QJsonObject{{"modelCacheHit", result.modelCacheHit},
+        {"memoryBudgetBytes", static_cast<double>(result.memoryBudgetBytes)}, {"threads", result.threads},
+        {"modelLoadMilliseconds", result.modelLoadMilliseconds}, {"generationMilliseconds", result.generationMilliseconds}};
+    auto performance = generation["performance"].toObject();
+    performance["q8CacheUsed"] = result.q8CacheUsed;
+    performance["diskCacheHit"] = result.diskCacheHit;
+    performance["modelBytes"] = static_cast<double>(result.modelBytes);
+    performance["preparationMilliseconds"] = result.preparationMilliseconds;
+    generation["performance"] = performance;
+    m_active["generation"] = generation;
+    setInferenceStatus({{"state", "idle"}, {"ready", false}, {"backend", "native"}});
+    if (m_nativeTimedOut) { finish("failed", tr("Image generation exceeded its time limit. Try again with a smaller model.")); return; }
+    if (m_interrupted) { finish("interrupted", tr("Generation stopped when Dreamscapes moved to the background. Keep the app open and try again.")); return; }
+    if (m_cancelled || result.cancelled) { finish("cancelled"); return; }
+    if (!result.error.empty()) { finish("failed", QString::fromStdString(result.error)); return; }
+    QString error;
+    if (m_storage->resolveModel(m_active.value("model").toObject(), &error).isEmpty()) {
+        finish("failed", error); return;
+    }
+    if (result.width != m_active.value("width").toInt() || result.height != m_active.value("height").toInt()
+        || result.rgb.size() != static_cast<size_t>(result.width) * static_cast<size_t>(result.height) * 3) {
+        finish("failed", tr("The local engine returned an incomplete image.")); return;
+    }
+    const QImage image(result.rgb.data(), result.width, result.height, result.width * 3, QImage::Format_RGB888);
+    const auto path = QDir(m_output).filePath("image.png");
+    if (!image.save(path, "PNG")) { finish("failed", tr("Cannot save the generated image.")); return; }
+    if (!publishImages({path}, m_active, &error)) finish("failed", error);
+    else finish("completed");
 }
 
 bool GenerationController::startWorker(QString *error)
@@ -446,6 +661,11 @@ bool GenerationController::startWorker(QString *error)
 
 void GenerationController::prepareForeground()
 {
+    if (m_runtime.nativeInference) {
+        m_residencyPending = false;
+        setInferenceStatus({{"state", m_foreground ? "waiting-generation" : "background"}, {"ready", false}});
+        return;
+    }
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
     if (!m_residencyPending) return;
     m_residencyPending = false;
@@ -569,6 +789,7 @@ void GenerationController::finish(const QString &state, const QString &error)
     updateJob(m_active);
     fail(error);
     m_active = {};
+    updateScreenActivity();
     if (m_foreground) m_residencyPending = true;
     m_workerRequest.clear();
     clearWorkingFiles();
@@ -714,6 +935,9 @@ bool GenerationController::cancel(const QString &id)
 {
     if (busy() && m_active.value("id") == id) {
         m_cancelled = true;
+        m_nativeCancelled = true;
+        if (m_runtime.nativeInference)
+            setInferenceStatus({{"state", "cancelling"}, {"ready", false}, {"backend", "native"}});
         stopProcess(false);
         QTimer::singleShot(2000, this, [this, id] { if (m_active.value("id") == id) stopProcess(true); });
         return true;

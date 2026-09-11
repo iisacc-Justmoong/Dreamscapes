@@ -85,16 +85,16 @@ build_dependency json-c "$android_root/sources/json-c" \
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 build_dependency iiAcountManager "$sdk_source_root/iiAcountManager" \
     -DIIACCOUNTMANAGER_BUILD_QUICK=OFF
-for package in iiFileProvider iiCSMIDI iiSocietyContainer iiSocietyHelper iiSocietySync; do
+for package in iiFileProvider iiCSMIDI iiSocietyContainer iiSocietyHelper; do
     build_dependency "$package" "$sdk_source_root/$package"
 done
 build_dependency iiLocalDiffusion "$sdk_source_root/iiLocalDiffusion" \
     -DIILD_ENABLE_MLX=OFF -DIILD_ENABLE_LIBTORCH=OFF -DIILD_ENABLE_COREML=OFF \
-    -DIILD_BUILD_TOOLS=OFF -DIILD_INSTALL_PYTHON_REFERENCE=OFF \
+    -DIILD_BUILD_TOOLS=OFF -DIILD_INSTALL_PYTHON_REFERENCE=OFF -DIILD_ENABLE_NATIVE_DIFFUSION=ON \
     "-Djson-c_DIR=$prefix/lib/cmake/json-c"
 
 packages=("-DLVRS_DIR=$sdk_install_root/LVRS/platforms/android/lib/cmake/LVRS")
-for package in iiAcountManager iiFileProvider iiCSMIDI iiSocietyContainer iiSocietyHelper iiSocietySync iiLocalDiffusion; do
+for package in iiAcountManager iiFileProvider iiCSMIDI iiSocietyContainer iiSocietyHelper iiLocalDiffusion; do
     packages+=("-D${package}_DIR=$prefix/lib/cmake/$package")
 done
 for package in iiLicenseManager iiPaintEngine iiUpdateManager; do

@@ -12,11 +12,12 @@ def output(*command):
     return subprocess.check_output(command, stderr=subprocess.DEVNULL)
 
 
-def verify(bundle, device):
+def verify(bundle, device, allow_runtime_probe=False):
     info = plistlib.loads((bundle / 'Info.plist').read_bytes())
     assert info['CFBundleSupportedPlatforms'] == ['iPhoneOS'], 'Expected a device bundle'
     assert info['CFBundleIdentifier'] == 'com.iisacc.dreamscapes'
     assert info.get('NSPhotoLibraryAddUsageDescription'), 'Missing add-only Photos permission purpose'
+    assert not info.get('NSLocalNetworkUsageDescription'), 'Dreamscapes must not request host network access'
     assert set(info['UIDeviceFamily']) == {1, 2}
     group = info['SocietyAppGroup']
     assert group == 'group.com.iisacc.society'
@@ -25,6 +26,11 @@ def verify(bundle, device):
     assert '/Photos.framework/' in output('otool', '-L', str(executable)).decode(), 'Missing PhotoKit backend'
     # Release LTO can keep Qt's registration and qrc constructors as local symbols.
     symbols = output('nm', str(executable)).decode()
+    if not allow_runtime_probe:
+        assert 'dreamscapesLocalRuntimeProbe' not in symbols, 'Disable DREAMSCAPES_LOCAL_RUNTIME_PROBE for the final app'
+        assert b'DREAMSCAPES_PROBE_EXTENT' not in executable.read_bytes(), 'Remove diagnostic generation overrides from the final app'
+    assert 'RemoteGenerationClient' not in symbols, 'Dreamscapes must not contain the remote generation client'
+    assert 'startNative' in symbols, 'Missing in-process image generation path'
     assert 'qml_register_types_LVRS' in symbols, 'Missing LVRS QML registration'
     assert ('qInitResources_qmake_LVRS' in symbols
             or '__GLOBAL__sub_I_qrc_qmake_LVRS.cpp' in symbols), 'Missing LVRS QML resources'
@@ -33,14 +39,21 @@ def verify(bundle, device):
     subprocess.run(['codesign', '--verify', '--deep', '--strict', str(bundle)], check=True)
     rights = plistlib.loads(output('codesign', '-d', '--entitlements', ':-', str(bundle)))
     assert rights['com.apple.security.application-groups'] == [group]
+    memory_entitlements = ('com.apple.developer.kernel.extended-virtual-addressing',
+                           'com.apple.developer.kernel.increased-memory-limit')
+    for key in memory_entitlements:
+        assert rights.get(key) is True, f'Missing native inference entitlement: {key}'
     profile = plistlib.loads(output('security', 'cms', '-D', '-i', str(bundle / 'embedded.mobileprovision')))
     assert profile['ExpirationDate'].replace(tzinfo=timezone.utc) > datetime.now(timezone.utc)
     assert device in profile['ProvisionedDevices'], 'The signing profile does not include the device'
     assert group in profile['Entitlements']['com.apple.security.application-groups']
+    for key in memory_entitlements:
+        assert profile['Entitlements'].get(key) is True, f'Provisioning profile does not authorize: {key}'
     assert rights['application-identifier'] == profile['Entitlements']['application-identifier']
     libraries = sorted((bundle / 'Frameworks').glob('*.dylib'))
     expected = {'libiiCSMIDI', 'libiiFileProvider', 'libiiLicenseManager',
-                'libiiLocalDiffusion', 'libiiPaintEngine', 'libiiSocietySync', 'libiiUpdateManager'}
+                'libiiLocalDiffusion', 'libiiPaintEngine', 'libiiUpdateManager'}
+    assert not any(lib.name.startswith(('libiiSocietySync.', 'libiiServerHost.')) for lib in libraries), 'Only Society owns network synchronization'
     for name in expected:
         assert any(lib.name.startswith(name + '.') for lib in libraries), f'Missing embedded {name}'
     for binary in [executable, *libraries]:
@@ -71,5 +84,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('bundle', type=Path)
     parser.add_argument('--device', required=True)
+    parser.add_argument('--allow-runtime-probe', action='store_true', help='Verify an opt-in device test build')
     args = parser.parse_args()
-    print(json.dumps(verify(args.bundle.resolve(), args.device), indent=2))
+    print(json.dumps(verify(args.bundle.resolve(), args.device, args.allow_runtime_probe), indent=2))

@@ -16,6 +16,37 @@ LV.ApplicationWindow {
     property string lastPresentedImage: ""
     readonly property bool generationPending: generation.busy || generation.jobs.some(function(job) { return job.state === "queued" })
     readonly property var activeGeneration: generation.jobs.find(function(job) { return job.state === "running" }) || ({})
+    property int generationElapsedSeconds: 0
+    readonly property string generationStatusText: {
+        if (!generation.busy) {
+            if (generationPending) return qsTr("Queued")
+            const last = generation.jobs[0]
+            return last && (last.state === "cancelled" || last.state === "interrupted") ? stateLabel(last.state) : ""
+        }
+        const phase = generation.inferenceStatus.state
+        const labels = { "preparing-model": qsTr("Preparing model for faster generation…"),
+            "loading": qsTr("Loading model…"), "encoding": qsTr("Preparing prompt…"),
+            "decoding": qsTr("Rendering image…"), "cancelling": qsTr("Stopping generation…"),
+            "waiting-engine": qsTr("Waiting for image engine…") }
+        const finishedSteps = generation.previewTotalSteps > 0 && generation.previewStep === generation.previewTotalSteps
+        const label = phase === "cancelling" ? labels[phase]
+            : phase === "decoding" || (finishedSteps && generation.inferenceStatus.backend === "native")
+                ? qsTr("Rendering image…")
+            : generation.previewTotalSteps > 0
+                ? qsTr("Denoising %1 / %2").arg(generation.previewStep).arg(generation.previewTotalSteps)
+            : labels[phase] || (generation.previewStep > 0
+            ? qsTr("Denoising %1 / %2").arg(generation.previewStep).arg(generation.previewTotalSteps)
+            : qsTr("Preparing generation…"))
+        return label + qsTr(" · %1 s").arg(generationElapsedSeconds)
+    }
+    Timer {
+        interval: 1000
+        repeat: true
+        running: generation.busy
+        triggeredOnStart: true
+        onTriggered: window.generationElapsedSeconds = Math.max(0,
+            Math.floor((Date.now() - Date.parse(window.activeGeneration.startedAt || new Date().toISOString())) / 1000))
+    }
     // Qt 6.8 exposes QInputMethod as QObject in its QML type metadata.
     readonly property var platformInputMethod: Qt.inputMethod
     readonly property real keyboardBottomInset: platformInputMethod.visible && platformInputMethod.keyboardRectangle.height > 0
@@ -61,11 +92,13 @@ LV.ApplicationWindow {
     }
     function stateLabel(state) {
         const labels = { "queued": qsTr("Queued"), "running": qsTr("Generating"), "completed": qsTr("Completed"),
-            "failed": qsTr("Failed"), "cancelled": qsTr("Cancelled"), "interrupted": qsTr("Interrupted") }
+            "failed": qsTr("Failed"), "cancelled": qsTr("Cancelled"), "interrupted": qsTr("Interrupted"), "downloading": qsTr("Receiving image") }
         return labels[state] || state
     }
-    Component.onCompleted: generation.connectStorage(initialContainerPath)
-    onActiveChanged: { if (active && generation.connected) generation.refreshModels() }
+    Component.onCompleted: {
+        generation.connectStorage(initialContainerPath)
+    }
+    onActiveChanged: { if (active) generation.refreshModels() }
 
     GenerationController {
         id: generation
@@ -92,14 +125,13 @@ LV.ApplicationWindow {
             anchors.right: parent.right
             visible: window.resultVisible
             result: window.currentResult
+            results: generation.connected ? generation.completedResults : []
             previewSource: generation.previewImage
             previewPrompt: window.activeGeneration.prompt || ""
             generationPending: window.generationPending
-            statusText: generation.busy
-                ? generation.previewStep > 0
-                    ? qsTr("Denoising %1 / %2").arg(generation.previewStep).arg(generation.previewTotalSteps)
-                    : qsTr("Preparing generation…")
-                : window.generationPending ? qsTr("Queued") : ""
+            statusText: window.generationStatusText
+            generationCancellable: generation.busy && generation.inferenceStatus.state !== "cancelling"
+            onCancelRequested: generation.cancel(window.activeGeneration.id || "")
             errorText: generation.errorString
             onBackRequested: {
                 quickGenerate.dismissInput()
@@ -126,6 +158,7 @@ LV.ApplicationWindow {
                 if (generation.enqueue(prompt, aspectRatio, count).length > 0) {
                     quickGenerate.dismissInput()
                     modelMenu.close()
+                    resultView.detailVisible = false
                     window.resultVisible = true
                 }
             }
@@ -158,7 +191,7 @@ LV.ApplicationWindow {
                     LV.Label { text: qsTr("Society"); Layout.fillWidth: true }
                     LV.LabelButton {
                         objectName: "refreshSociety"
-                        text: generation.connected ? qsTr("Refresh models") : qsTr("Connect")
+                        text: generation.connected ? qsTr("Refresh models") : qsTr("Check Society storage")
                         tone: LV.AbstractButton.Default
                         onClicked: generation.refreshModels()
                     }
@@ -168,8 +201,8 @@ LV.ApplicationWindow {
                     wrapMode: Text.Wrap
                     style: caption
                     text: generation.connected
-                        ? qsTr("Models and generated images are stored in Society.")
-                        : qsTr("Open Society and choose your shared storage, then connect here.")
+                        ? qsTr("Models and generated images are stored in Society on this device.")
+                        : qsTr("Open Society on this device and let it finish syncing your models.")
                 }
                 LV.LabelButton {
                     objectName: "showGenerationResultButton"
@@ -191,7 +224,7 @@ LV.ApplicationWindow {
                     Layout.fillWidth: true
                     visible: generation.connected && !generation.runtimeAvailable
                     wrapMode: Text.Wrap
-                    text: qsTr("Image generation is not available on this device yet.")
+                    text: qsTr("Local image generation is unavailable in this build.")
                 }
                 LV.Label {
                     objectName: "generationError"

@@ -5,20 +5,25 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 QuickDialogs2)
+find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 QuickDialogs2 Concurrent)
 
 # Keep every product dependency required, including packages not installed yet.
 # Future packages are expected to export <Package>::<Package> targets.
 find_package(iiCSMIDI CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiCSMIDI")
 find_package(iiLicenseManager CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLicenseManager")
-find_package(iiLocalDiffusion 0.3.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLocalDiffusion")
+find_package(iiLocalDiffusion 0.6.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLocalDiffusion")
 find_package(iiPaintEngine CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiPaintEngine")
-find_package(iiSocietyContainer 0.7.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietyContainer")
-find_package(iiSocietyHelper 0.3.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietyHelper")
-find_package(iiSocietySync CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietySync")
+find_package(iiSocietyContainer 0.10.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietyContainer")
+find_package(iiSocietyHelper 0.5.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietyHelper")
 find_package(iiUpdateManager CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiUpdateManager")
 find_package(LVRS CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/LVRS")
 qt_standard_project_setup(REQUIRES 6.8)
+if(IOS AND NOT iiLocalDiffusion_NATIVE_DIFFUSION)
+    message(FATAL_ERROR "Dreamscapes iOS requires iiLocalDiffusion with IILD_ENABLE_NATIVE_DIFFUSION=ON")
+endif()
+if(iiLocalDiffusion_NATIVE_DIFFUSION)
+    get_filename_component(dreamscapes_diffusion_prefix "${iiLocalDiffusion_DIR}/../../.." ABSOLUTE)
+endif()
 
 # Run the existing SDK's inference launcher; no second engine or weight cache.
 if(NOT IOS AND NOT ANDROID)
@@ -59,10 +64,14 @@ elseif(ANDROID)
 else()
     target_sources(DreamscapesGeneration PRIVATE App/Views/Result/PhotoLibraryUnsupported.cpp)
 endif()
-target_link_libraries(DreamscapesGeneration PUBLIC Qt6::Gui Qt6::Qml iiSocietyContainer::iiSocietyContainer)
+target_link_libraries(DreamscapesGeneration PUBLIC Qt6::Gui Qt6::Qml iiSocietyContainer::iiSocietyContainer iiSocietyHelper::iiSocietyHelper iiLocalDiffusion::iiLocalDiffusion Qt6::Concurrent)
 target_include_directories(DreamscapesGeneration PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(DreamscapesGeneration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/App/Generation")
 target_include_directories(DreamscapesGeneration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/App/Views/Result")
+if(IOS)
+    target_sources(DreamscapesGeneration PRIVATE App/Generation/GenerationScreenActivity.mm)
+    target_link_libraries(DreamscapesGeneration PRIVATE "-framework UIKit")
+endif()
 target_compile_definitions(DreamscapesGeneration PRIVATE
     DREAMSCAPES_DIFFUSION_EXECUTABLE="${DREAMSCAPES_DIFFUSION_EXECUTABLE}"
     DREAMSCAPES_DIFFUSION_PYTHON_EXECUTABLE="${DREAMSCAPES_DIFFUSION_PYTHON_EXECUTABLE}")
@@ -86,6 +95,19 @@ lvrs_add_qml_app(
 qt_add_resources(Dreamscapes result_assets
     PREFIX "/qt/qml/Dreamscapes"
     FILES App/Views/Result/Assets/right.svg)
+option(DREAMSCAPES_LOCAL_RUNTIME_PROBE "Enable opt-in local device inference verification" OFF)
+if(DREAMSCAPES_LOCAL_RUNTIME_PROBE)
+    target_compile_definitions(DreamscapesGeneration PRIVATE DREAMSCAPES_LOCAL_RUNTIME_PROBE)
+    target_sources(Dreamscapes PRIVATE tests/LocalRuntimeProbe.cpp)
+    target_compile_definitions(Dreamscapes PRIVATE DREAMSCAPES_LOCAL_RUNTIME_PROBE)
+endif()
+if(iiLocalDiffusion_NATIVE_DIFFUSION)
+    file(GLOB dreamscapes_native_notices CONFIGURE_DEPENDS
+        "${dreamscapes_diffusion_prefix}/share/iiLocalDiffusion/licenses/*")
+    qt_add_resources(Dreamscapes native_inference_licenses PREFIX "/licenses/native-inference"
+        BASE "${dreamscapes_diffusion_prefix}/share/iiLocalDiffusion/licenses"
+        FILES ${dreamscapes_native_notices})
+endif()
 
 set(dreamscapes_product_dependencies
     iiCSMIDI::iiCSMIDI
@@ -94,7 +116,6 @@ set(dreamscapes_product_dependencies
     iiPaintEngine::iiPaintEngine
     iiSocietyContainer::iiSocietyContainer
     iiSocietyHelper::iiSocietyHelper
-    iiSocietySync::iiSocietySync
     iiUpdateManager::iiUpdateManager
     LVRS::LVRS
 )
@@ -156,6 +177,12 @@ if(IOS)
     set(SOCIETY_IOS_TEAM "" CACHE STRING "Apple development team shared with Society")
     iiSocietyContainer_configure_ios_client(Dreamscapes APP_GROUP "${SOCIETY_IOS_APP_GROUP}"
         TEAM "${SOCIETY_IOS_TEAM}" DISPLAY_NAME Dreamscapes)
+    # Large checkpoint mappings need virtual address space as well as RAM.
+    # The runtime still sizes its working set from the actual process limit.
+    configure_file(Platform/iOS/Dreamscapes.entitlements.in
+        "${CMAKE_CURRENT_BINARY_DIR}/Dreamscapes.entitlements" @ONLY)
+    set_property(TARGET Dreamscapes PROPERTY XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS
+        "${CMAKE_CURRENT_BINARY_DIR}/Dreamscapes.entitlements")
 endif()
 
 if(APPLE)
@@ -190,7 +217,17 @@ if(ANDROID AND DREAMSCAPES_BUILD_ANDROID_PHOTO_TESTS)
         "$<TARGET_FILE:iiSocietyContainer::iiSocietyContainer>")
 endif()
 if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+    # Only the integration harness acts as Society peers; the app has no Sync transport.
+    find_package(iiSocietySync 0.3.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietySync")
     find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Test)
+    qt_add_executable(DreamscapesLocalSocietyTests App/Generation/tst_LocalSociety.cpp)
+    target_link_libraries(DreamscapesLocalSocietyTests PRIVATE DreamscapesGeneration
+        iiSocietyHelper::iiSocietyHelper iiSocietySync::iiSocietySync Qt6::Test)
+    target_compile_definitions(DreamscapesLocalSocietyTests PRIVATE
+        DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}"
+        DREAMSCAPES_FAKE_GENERATOR="${CMAKE_CURRENT_SOURCE_DIR}/App/Generation/fixtures/generate.py")
+    add_test(NAME Dreamscapes.LocalSociety COMMAND DreamscapesLocalSocietyTests)
+    set_tests_properties(Dreamscapes.LocalSociety PROPERTIES TIMEOUT 60)
     # Keep this GUI target limited to sources present in Dreamscapes.
     qt_add_executable(DreamscapesGuiTests App/tst_Gui.cpp)
     target_link_libraries(DreamscapesGuiTests PRIVATE Qt6::Test Qt6::Quick Qt6::QuickControls2 Qt6::QuickDialogs2)
