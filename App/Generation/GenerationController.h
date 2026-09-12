@@ -15,6 +15,7 @@
 #include <QProcess>
 #endif
 #include <memory>
+#include "GenerationBackgroundActivity.h"
 
 struct GenerationRuntime {
     QString executable;
@@ -29,6 +30,8 @@ struct GenerationRuntime {
     std::function<iiLocalDiffusion::NativeGenerationResult(const iiLocalDiffusion::NativeGenerationRequest &,
         const std::atomic_bool &, const iiLocalDiffusion::NativeProgressCallback &)> nativeGenerate;
     std::function<void(bool)> screenActivity;
+    std::shared_ptr<GenerationBackgroundActivity> backgroundActivity;
+    std::shared_ptr<iiLocalDiffusion::NativeExecutionControl> nativeExecutionControl;
 };
 
 class GenerationController : public QObject
@@ -76,6 +79,7 @@ public:
     void setForeground(bool foreground);
     QVariantMap inferenceStatus() const;
     bool keepsScreenAwake() const;
+    QVariantMap backgroundExecutionStatus() const;
 
     Q_INVOKABLE bool connectStorage(const QString &path = {});
     Q_INVOKABLE void refreshModels();
@@ -116,6 +120,8 @@ private:
     void prepareForeground();
     void setInferenceStatus(QJsonObject status);
     void updateScreenActivity();
+    void interruptNative();
+    void setNativePaused(bool paused);
 
     GenerationRuntime m_runtime;
     iiSocietyHelper::FileSystem m_fileSystem;
@@ -127,6 +133,10 @@ private:
     bool m_nativeTimedOut = false;
     bool m_interrupted = false;
     bool m_screenActive = false;
+    bool m_backgroundActivityActive = false;
+    bool m_nativePaused = false;
+    int m_nativeTimeRemaining = 0;
+    QJsonObject m_resumeInferenceStatus;
     std::optional<iiSocietyContainer::SharedStorage> m_storage;
     QList<iiSocietyContainer::StoredModel> m_models;
     QString m_selected;

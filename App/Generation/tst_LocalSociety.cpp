@@ -12,6 +12,22 @@
 #include <stdexcept>
 
 namespace {
+class BackgroundActivity final : public GenerationBackgroundActivity {
+public:
+    bool permitted = true;
+    int starts = 0;
+    QList<bool> completions;
+    int updates = 0;
+    std::function<void(bool)> foregroundChanged;
+    std::function<void()> expiration;
+    void observeForeground(std::function<void(bool)> changed) override { foregroundChanged = std::move(changed); }
+    void begin(const QString &, std::function<void()> expired) override { ++starts; expiration = std::move(expired); }
+    bool allowsBackgroundExecution() const override { return permitted && starts > completions.size(); }
+    void update(const iiLocalDiffusion::NativeGenerationProgress &) override { ++updates; }
+    void end(bool success) override { completions.append(success); }
+    QVariantMap status() const override { return {}; }
+};
+
 iiLocalDiffusion::NativeGenerationResult imageResult(const iiLocalDiffusion::NativeGenerationRequest &request)
 {
     return {std::vector<std::uint8_t>(request.width * request.height * 3, 127), request.width, request.height};
@@ -27,6 +43,132 @@ void waitForCancellation(const std::atomic_bool &cancelled)
 class LocalSocietyTests : public QObject {
     Q_OBJECT
 private slots:
+    void unsupportedBackgroundGpuPausesTheSameRequest_data() {
+        QTest::addColumn<bool>("cancelPaused");
+        QTest::newRow("resume") << false;
+        QTest::newRow("cancel-while-paused") << true;
+    }
+    void unsupportedBackgroundGpuPausesTheSameRequest() {
+        QFETCH(bool, cancelPaused);
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-paused-XXXXXX");
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+        QFile model(storage.filePath("Models/model.safetensors"));
+        QVERIFY(model.open(QIODevice::WriteOnly)); model.write("fixture"); model.close();
+        auto activity = std::make_shared<BackgroundActivity>();
+        activity->permitted = false;
+        auto control = std::make_shared<iiLocalDiffusion::NativeExecutionControl>();
+        GenerationRuntime runtime;
+        runtime.nativeInference = true;
+        runtime.imageExtent = 64;
+        runtime.temporaryDirectory = DREAMSCAPES_TEST_DIRECTORY;
+        runtime.nativeTimeoutMilliseconds = 300;
+        runtime.backgroundActivity = activity;
+        runtime.nativeExecutionControl = control;
+        std::atomic_int calls{0};
+        runtime.nativeGenerate = [&](const auto &request, const auto &cancelled, const auto &progress) {
+            ++calls;
+            progress({iiLocalDiffusion::NativeGenerationStage::Denoising, 3, 10});
+            const auto limit = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+            while (!control->isPaused() && !cancelled && std::chrono::steady_clock::now() < limit)
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            if (!control->waitUntilRunnable(cancelled)) {
+                iiLocalDiffusion::NativeGenerationResult result; result.cancelled = true; return result;
+            }
+            progress({iiLocalDiffusion::NativeGenerationStage::Denoising, 4, 10});
+            return imageResult(request);
+        };
+        GenerationController app(runtime);
+        QVERIFY(app.connectStorage(storage.path())); app.setForeground(true);
+        const auto id = app.enqueue("preserve latent state");
+        QTRY_COMPARE(app.previewStep(), 3);
+        app.setForeground(false);
+        QTRY_VERIFY(control->isWaiting());
+        QTest::qWait(400); // Longer than the inference timeout, without using it.
+        QVERIFY(app.busy());
+        QCOMPARE(app.previewStep(), 3);
+        QCOMPARE(app.inferenceStatus().value("state").toString(), "paused");
+        QVERIFY(!app.keepsScreenAwake() && app.errorString().isEmpty());
+        if (cancelPaused) QVERIFY(app.cancel(id));
+        else app.setForeground(true);
+        QTRY_VERIFY(!app.busy());
+        QCOMPARE(app.jobs().first().toMap().value("state").toString(), cancelPaused ? "cancelled" : "completed");
+        QCOMPARE(app.jobs().first().toMap().value("id").toString(), id);
+        QCOMPARE(calls.load(), 1);
+        QCOMPARE(activity->completions, QList<bool>({!cancelPaused}));
+        QVERIFY(!control->isPaused());
+    }
+    void nativeBackgroundPermissionPreservesGeneration() {
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-background-XXXXXX");
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+        QFile model(storage.filePath("Models/model.safetensors"));
+        QVERIFY(model.open(QIODevice::WriteOnly)); model.write("fixture"); model.close();
+        auto activity = std::make_shared<BackgroundActivity>();
+        GenerationRuntime runtime;
+        runtime.nativeInference = true;
+        runtime.imageExtent = 64;
+        runtime.temporaryDirectory = DREAMSCAPES_TEST_DIRECTORY;
+        runtime.backgroundActivity = activity;
+        std::atomic_int phase{0};
+        runtime.nativeGenerate = [&](const auto &request, const auto &cancelled, const auto &progress) {
+            progress({iiLocalDiffusion::NativeGenerationStage::Denoising, 1, 10});
+            while (phase == 0 && !cancelled) std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            if (cancelled) { iiLocalDiffusion::NativeGenerationResult result; result.cancelled = true; return result; }
+            progress({iiLocalDiffusion::NativeGenerationStage::Denoising, 2, 10});
+            while (phase == 1 && !cancelled) std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            return imageResult(request);
+        };
+        GenerationController app(runtime);
+        QVERIFY(app.connectStorage(storage.path())); app.setForeground(true);
+        QVERIFY(!app.enqueue("continue while hidden").isEmpty());
+        QTRY_COMPARE(app.previewStep(), 1);
+        QCOMPARE(activity->starts, 1);
+        QVERIFY(activity->foregroundChanged);
+        activity->foregroundChanged(false);
+        QVERIFY(!app.keepsScreenAwake());
+        QCOMPARE(app.inferenceStatus().value("state").toString(), "denoising");
+        phase = 1;
+        QTRY_COMPARE(app.previewStep(), 2);
+        QVERIFY(app.busy());
+        activity->foregroundChanged(true);
+        QCOMPARE(app.inferenceStatus().value("state").toString(), "denoising");
+        QVERIFY(app.keepsScreenAwake());
+        activity->foregroundChanged(false);
+        phase = 2;
+        QTRY_VERIFY(!app.latestImage().isEmpty());
+        QCOMPARE(app.jobs().first().toMap().value("state").toString(), "completed");
+        QCOMPARE(activity->completions, QList<bool>({true}));
+        QVERIFY(activity->updates >= 2);
+        QVERIFY(!app.foreground() && !app.keepsScreenAwake());
+    }
+    void nativeBackgroundExpirationCancelsAndReleasesActivity() {
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-background-expired-XXXXXX");
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+        QFile model(storage.filePath("Models/model.safetensors"));
+        QVERIFY(model.open(QIODevice::WriteOnly)); model.write("fixture"); model.close();
+        auto activity = std::make_shared<BackgroundActivity>();
+        GenerationRuntime runtime;
+        runtime.nativeInference = true;
+        runtime.temporaryDirectory = DREAMSCAPES_TEST_DIRECTORY;
+        runtime.backgroundActivity = activity;
+        runtime.nativeGenerate = [](const auto &, const auto &cancelled, const auto &progress) {
+            progress({iiLocalDiffusion::NativeGenerationStage::Loading, 1, 220});
+            waitForCancellation(cancelled);
+            iiLocalDiffusion::NativeGenerationResult result;
+            result.cancelled = cancelled;
+            return result;
+        };
+        GenerationController app(runtime);
+        QVERIFY(app.connectStorage(storage.path())); app.setForeground(true);
+        QVERIFY(!app.enqueue("expire a running background task").isEmpty());
+        QTRY_COMPARE(app.inferenceStatus().value("total").toInt(), 220);
+        QVERIFY(activity->expiration);
+        app.setForeground(false);
+        activity->expiration();
+        QTRY_COMPARE(app.jobs().first().toMap().value("state").toString(), "interrupted");
+        QCOMPARE(activity->completions, QList<bool>({false}));
+        QVERIFY(!app.busy() && !app.keepsScreenAwake());
+        QVERIFY(!app.errorString().isEmpty());
+    }
     void nativeProgressAndScreenActivityFollowTheWholeImage() {
         QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-progress-XXXXXX");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));

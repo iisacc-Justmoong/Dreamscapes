@@ -5,6 +5,7 @@
 #include <QtQml/qqml.h>
 #include <iiSocietyHelper.h>
 #include <QGuiApplication>
+#include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #ifdef DREAMSCAPES_LOCAL_RUNTIME_PROBE
@@ -19,6 +20,8 @@ int main(int argc, char *argv[])
     application.moduleUri = QStringLiteral("Dreamscapes");
     application.rootObject = QStringLiteral("Main");
     application.configureEngine = [](QQmlApplicationEngine &engine) {
+        QGuiApplication::setWindowIcon(QIcon(QStringLiteral(":/branding/Dreamscapes.png")));
+        QGuiApplication::setDesktopFileName(QStringLiteral("com.iisacc.dreamscapes"));
 #ifdef DREAMSCAPES_LOCAL_RUNTIME_PROBE
         QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
             [](QObject *root, const QUrl &) { if (root) dreamscapesLocalRuntimeProbe(root); });

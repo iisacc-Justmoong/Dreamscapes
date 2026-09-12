@@ -27,9 +27,10 @@ LV.ApplicationWindow {
         const labels = { "preparing-model": qsTr("Preparing model for faster generation…"),
             "loading": qsTr("Loading model…"), "encoding": qsTr("Preparing prompt…"),
             "decoding": qsTr("Rendering image…"), "cancelling": qsTr("Stopping generation…"),
+            "paused": qsTr("Paused — return to Dreamscapes to continue"),
             "waiting-engine": qsTr("Waiting for image engine…") }
         const finishedSteps = generation.previewTotalSteps > 0 && generation.previewStep === generation.previewTotalSteps
-        const label = phase === "cancelling" ? labels[phase]
+        const label = phase === "cancelling" || phase === "paused" ? labels[phase]
             : phase === "decoding" || (finishedSteps && generation.inferenceStatus.backend === "native")
                 ? qsTr("Rendering image…")
             : generation.previewTotalSteps > 0
@@ -55,6 +56,7 @@ LV.ApplicationWindow {
         windowChromeInteractionsEnabled && windowDragHandleEnabled && visibility !== Window.FullScreen
             ? Math.max(0, windowDragHandleTopMargin + windowDragHandleHeight) : 0)
     title: "Dreamscapes"
+    primaryColor: LV.Theme.defaultPrimary
     width: isMobilePlatform ? 390 : 960
     height: isMobilePlatform ? 844 : 640
     desktopMinWidth: 320

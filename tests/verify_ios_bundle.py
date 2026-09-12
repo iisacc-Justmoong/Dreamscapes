@@ -17,6 +17,8 @@ def verify(bundle, device, allow_runtime_probe=False):
     assert info['CFBundleSupportedPlatforms'] == ['iPhoneOS'], 'Expected a device bundle'
     assert info['CFBundleIdentifier'] == 'com.iisacc.dreamscapes'
     assert info.get('NSPhotoLibraryAddUsageDescription'), 'Missing add-only Photos permission purpose'
+    assert info.get('UIBackgroundModes') == ['processing'], 'Missing continued background processing mode'
+    assert info.get('BGTaskSchedulerPermittedIdentifiers') == ['com.iisacc.dreamscapes.generation.*']
     assert not info.get('NSLocalNetworkUsageDescription'), 'Dreamscapes must not request host network access'
     assert set(info['UIDeviceFamily']) == {1, 2}
     group = info['SocietyAppGroup']
@@ -24,13 +26,16 @@ def verify(bundle, device, allow_runtime_probe=False):
     executable = bundle / info['CFBundleExecutable']
     assert executable.is_file()
     assert '/Photos.framework/' in output('otool', '-L', str(executable)).decode(), 'Missing PhotoKit backend'
+    assert '/BackgroundTasks.framework/' in output('otool', '-L', str(executable)).decode(), 'Missing BackgroundTasks backend'
     # Release LTO can keep Qt's registration and qrc constructors as local symbols.
     symbols = output('nm', str(executable)).decode()
     if not allow_runtime_probe:
         assert 'dreamscapesLocalRuntimeProbe' not in symbols, 'Disable DREAMSCAPES_LOCAL_RUNTIME_PROBE for the final app'
+        assert 'nativeGenerationScreenStatus' not in symbols, 'Remove diagnostic UIKit state inspection from the final app'
         assert b'DREAMSCAPES_PROBE_EXTENT' not in executable.read_bytes(), 'Remove diagnostic generation overrides from the final app'
     assert 'RemoteGenerationClient' not in symbols, 'Dreamscapes must not contain the remote generation client'
     assert 'startNative' in symbols, 'Missing in-process image generation path'
+    assert 'generateNativeImageWithExecutionControl' in symbols, 'Missing resumable native inference path'
     assert 'qml_register_types_LVRS' in symbols, 'Missing LVRS QML registration'
     assert ('qInitResources_qmake_LVRS' in symbols
             or '__GLOBAL__sub_I_qrc_qmake_LVRS.cpp' in symbols), 'Missing LVRS QML resources'
@@ -40,7 +45,8 @@ def verify(bundle, device, allow_runtime_probe=False):
     rights = plistlib.loads(output('codesign', '-d', '--entitlements', ':-', str(bundle)))
     assert rights['com.apple.security.application-groups'] == [group]
     memory_entitlements = ('com.apple.developer.kernel.extended-virtual-addressing',
-                           'com.apple.developer.kernel.increased-memory-limit')
+                           'com.apple.developer.kernel.increased-memory-limit',
+                           'com.apple.developer.background-tasks.continued-processing.gpu')
     for key in memory_entitlements:
         assert rights.get(key) is True, f'Missing native inference entitlement: {key}'
     profile = plistlib.loads(output('security', 'cms', '-D', '-i', str(bundle / 'embedded.mobileprovision')))
@@ -56,6 +62,9 @@ def verify(bundle, device, allow_runtime_probe=False):
     assert not any(lib.name.startswith(('libiiSocietySync.', 'libiiServerHost.')) for lib in libraries), 'Only Society owns network synchronization'
     for name in expected:
         assert any(lib.name.startswith(name + '.') for lib in libraries), f'Missing embedded {name}'
+    diffusion = next(lib for lib in libraries if lib.name.startswith('libiiLocalDiffusion.'))
+    assert 'generateNativeImageWithExecutionControl' in output('nm', '-gU', str(diffusion)).decode(), \
+        'Embedded iiLocalDiffusion does not support pause/resume'
     for binary in [executable, *libraries]:
         platform = output('xcrun', 'vtool', '-show-build', str(binary)).decode()
         assert 'platform IOS\n' in platform, f'Wrong platform: {binary}'

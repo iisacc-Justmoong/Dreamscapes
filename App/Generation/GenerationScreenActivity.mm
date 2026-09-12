@@ -39,3 +39,13 @@ std::function<void(bool)> nativeGenerationScreenActivity()
     auto activity = std::make_shared<ScreenActivity>();
     return [activity](bool active) { activity->set(active); };
 }
+
+#ifdef DREAMSCAPES_LOCAL_RUNTIME_PROBE
+QVariantMap nativeGenerationScreenStatus()
+{
+    return {{QStringLiteral("idleTimerDisabled"), bool(UIApplication.sharedApplication.idleTimerDisabled)},
+            {QStringLiteral("applicationState"), int(UIApplication.sharedApplication.applicationState)},
+            {QStringLiteral("thermalState"), int(NSProcessInfo.processInfo.thermalState)},
+            {QStringLiteral("lowPowerMode"), bool(NSProcessInfo.processInfo.lowPowerModeEnabled)}};
+}
+#endif

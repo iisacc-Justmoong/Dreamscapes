@@ -247,6 +247,7 @@ void GuiTests::resultImageSaveDialogPreservesSelectionAndCancel()
     QCOMPARE(failed.size(), 0);
     QCOMPARE(preview->property("source").toUrl(), source);
 
+    QTRY_VERIFY(!menu->property("visible").toBool());
     QTest::mouseClick(window, Qt::RightButton, Qt::NoModifier, point);
     QTRY_VERIFY(menu->property("opened").toBool());
     click(window, entry);
@@ -323,11 +324,13 @@ void GuiTests::resultImageSaveToPhotos()
     QCOMPARE(result->property("saveFeedback").toString(), QStringLiteral("Saving to Photos…"));
     QVERIFY(QMetaObject::invokeMethod(result, "saveImageToPhotos"));
     QCOMPARE(requests, 1);
+    QTRY_VERIFY(!menu->property("visible").toBool());
     QTest::mouseClick(window, Qt::RightButton, Qt::NoModifier, point);
     QTRY_VERIFY(menu->property("opened").toBool());
     photo = menuEntry(window->contentItem(), QStringLiteral("Save to Photos"));
     QVERIFY(photo && !photo->isEnabled());
     QTest::keyClick(window, Qt::Key_Escape);
+    QTRY_VERIFY(!menu->property("visible").toBool());
     QVERIFY(window->setProperty("currentResult", QVariantMap{{"imageSource", nextSource}}));
     finish("photo-library-id", {});
     QTRY_COMPARE(result->property("saveFeedback").toString(), QStringLiteral("Saved to Photos"));
@@ -939,6 +942,15 @@ void GuiTests::mainCreatesOneSharedWindow()
         QCOMPARE(engine.rootObjects().size(), 1);
         window = qobject_cast<QQuickWindow *>(engine.rootObjects().constFirst());
         QVERIFY2(window, "Main must directly create the shared application window.");
+        QCOMPARE(window->property("primaryColor").value<QColor>(), QColor("#0A84FF"));
+        auto *material = item(window, "applicationWindowMaterial");
+        QVERIFY(material);
+        QCOMPARE(material->property("primaryColor").value<QColor>(), QColor("#0A84FF"));
+        QCOMPARE(material->property("color").value<QColor>(), QColor("#0B0B0B"));
+        QCOMPARE(material->property("tintOpacity").toReal(), 0.5);
+        QCOMPARE(material->property("intenseOpacity").toReal(), 0.0);
+        QCOMPARE(material->property("faintOpacity").toReal(), 0.0);
+        QCOMPARE(material->property("blurRadius").toReal(), 64.0);
         QCOMPARE(window->findChildren<QQuickWindow *>().size(), 0);
         QCOMPARE(QGuiApplication::topLevelWindows().size(), 1);
         auto *platform = engine.singletonInstance<QObject *>("LVRS", "Platform");

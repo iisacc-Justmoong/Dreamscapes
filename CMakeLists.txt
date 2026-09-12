@@ -69,8 +69,10 @@ target_include_directories(DreamscapesGeneration PUBLIC "${CMAKE_CURRENT_SOURCE_
 target_include_directories(DreamscapesGeneration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/App/Generation")
 target_include_directories(DreamscapesGeneration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/App/Views/Result")
 if(IOS)
-    target_sources(DreamscapesGeneration PRIVATE App/Generation/GenerationScreenActivity.mm)
-    target_link_libraries(DreamscapesGeneration PRIVATE "-framework UIKit")
+    target_sources(DreamscapesGeneration PRIVATE App/Generation/GenerationScreenActivity.mm
+        App/Generation/GenerationBackgroundActivity.mm)
+    set_source_files_properties(App/Generation/GenerationBackgroundActivity.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+    target_link_libraries(DreamscapesGeneration PRIVATE "-framework UIKit" "-framework BackgroundTasks")
 endif()
 target_compile_definitions(DreamscapesGeneration PRIVATE
     DREAMSCAPES_DIFFUSION_EXECUTABLE="${DREAMSCAPES_DIFFUSION_EXECUTABLE}"
@@ -193,6 +195,11 @@ if(APPLE)
     endif()
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${dreamscapes_plist}")
     file(READ "${dreamscapes_plist}" dreamscapes_plist_content)
+    if(IOS)
+        string(REGEX REPLACE "</dict>[ \t\r\n]*</plist>"
+            "<key>UIBackgroundModes</key><array><string>processing</string></array>\n<key>BGTaskSchedulerPermittedIdentifiers</key><array><string>com.iisacc.dreamscapes.generation.*</string></array>\n</dict></plist>"
+            dreamscapes_plist_content "${dreamscapes_plist_content}")
+    endif()
     string(REGEX REPLACE "</dict>[ \t\r\n]*</plist>"
         "<key>NSPhotoLibraryAddUsageDescription</key><string>Save generated images to Photos. iCloud Photos syncs them when enabled for your photo library.</string>\n</dict></plist>"
         dreamscapes_plist_content "${dreamscapes_plist_content}")
@@ -202,6 +209,9 @@ if(APPLE)
         "${CMAKE_CURRENT_BINARY_DIR}/photo-library/Dreamscapes.Info.plist.in")
 endif()
 
+include(cmake/AppIcons.cmake)
+dreamscapes_add_app_icons(Dreamscapes)
+
 include(CTest)
 option(DREAMSCAPES_BUILD_ANDROID_PHOTO_TESTS "Build the native MediaStore integration test APK" OFF)
 if(ANDROID AND DREAMSCAPES_BUILD_ANDROID_PHOTO_TESTS)
@@ -209,14 +219,18 @@ if(ANDROID AND DREAMSCAPES_BUILD_ANDROID_PHOTO_TESTS)
     find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Test)
     qt_add_executable(DreamscapesPhotoNativeTests App/Views/Result/tst_PhotoLibraryAndroid.cpp)
     target_link_libraries(DreamscapesPhotoNativeTests PRIVATE DreamscapesGeneration Qt6::Test)
+    get_target_property(dreamscapes_android_package Dreamscapes QT_ANDROID_PACKAGE_SOURCE_DIR)
     set_target_properties(DreamscapesPhotoNativeTests PROPERTIES
-        QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/platform/android"
+        QT_ANDROID_PACKAGE_SOURCE_DIR "${dreamscapes_android_package}"
         QT_ANDROID_PACKAGE_NAME "com.iisacc.dreamscapes.phototests"
         QT_ANDROID_APP_NAME "Dreamscapes Photo Tests")
     set_property(TARGET DreamscapesPhotoNativeTests APPEND PROPERTY QT_ANDROID_EXTRA_LIBS
         "$<TARGET_FILE:iiSocietyContainer::iiSocietyContainer>")
 endif()
 if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME Dreamscapes.AppIcons
+        COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_app_icons.py")
     # Only the integration harness acts as Society peers; the app has no Sync transport.
     find_package(iiSocietySync 0.3.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietySync")
     find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Test)

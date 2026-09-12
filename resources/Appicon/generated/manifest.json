@@ -1,0 +1,483 @@
+{
+  "files": {
+    "android/res/drawable-hdpi/ic_launcher_foreground.png": {
+      "height": 162,
+      "mode": "RGBA",
+      "sha256": "ce32504e6d75edd8940250ffc8d707887ce2e43cd573474a67c9e616c1206245",
+      "width": 162
+    },
+    "android/res/drawable-hdpi/ic_launcher_monochrome.png": {
+      "height": 162,
+      "mode": "RGBA",
+      "sha256": "ceca787359d0993db42dd3396e8f9104c73fb9ca75f03a55824e865a35c41d59",
+      "width": 162
+    },
+    "android/res/drawable-ldpi/ic_launcher_foreground.png": {
+      "height": 81,
+      "mode": "RGBA",
+      "sha256": "6535d00c089f234d56a3ec8570d2f56572ab1c15817e47196b230ee6e295a6d8",
+      "width": 81
+    },
+    "android/res/drawable-ldpi/ic_launcher_monochrome.png": {
+      "height": 81,
+      "mode": "RGBA",
+      "sha256": "f2f4bb687132f3b5b0f6cb4bdcf4e021cdc40e6872cb3cef2b57bc978918e6b1",
+      "width": 81
+    },
+    "android/res/drawable-mdpi/ic_launcher_foreground.png": {
+      "height": 108,
+      "mode": "RGBA",
+      "sha256": "dda22d82779ad20f551fb9aca063aee64660b7c8ad9ada12fc1255ff4419a45a",
+      "width": 108
+    },
+    "android/res/drawable-mdpi/ic_launcher_monochrome.png": {
+      "height": 108,
+      "mode": "RGBA",
+      "sha256": "107a514b866e76adee9f472c26b3346316c3fb8b555c503aee1761a7e27d1f7a",
+      "width": 108
+    },
+    "android/res/drawable-xhdpi/ic_launcher_foreground.png": {
+      "height": 216,
+      "mode": "RGBA",
+      "sha256": "6104ddf726f292ecbe9673787164b8b02d987c8f3c47efb8c3135560d3981e8a",
+      "width": 216
+    },
+    "android/res/drawable-xhdpi/ic_launcher_monochrome.png": {
+      "height": 216,
+      "mode": "RGBA",
+      "sha256": "78752f7339919e5b2d94bacc8be9467831a7c36513b10f13250d6b67173c6ba6",
+      "width": 216
+    },
+    "android/res/drawable-xxhdpi/ic_launcher_foreground.png": {
+      "height": 324,
+      "mode": "RGBA",
+      "sha256": "0cc8b8cb8226a45e434ca62226ca9cb20d6c97cce3cdc9541bf3c4130dc1daaa",
+      "width": 324
+    },
+    "android/res/drawable-xxhdpi/ic_launcher_monochrome.png": {
+      "height": 324,
+      "mode": "RGBA",
+      "sha256": "fce6b65db35eca1842ae6a0b50075f183af4a654cedd31cdf70c78833d6b70b8",
+      "width": 324
+    },
+    "android/res/drawable-xxxhdpi/ic_launcher_foreground.png": {
+      "height": 432,
+      "mode": "RGBA",
+      "sha256": "7ad7ccca73442a289a2eb74797ec1ab07766438d86c3ac1558f23bbd7d85f7b4",
+      "width": 432
+    },
+    "android/res/drawable-xxxhdpi/ic_launcher_monochrome.png": {
+      "height": 432,
+      "mode": "RGBA",
+      "sha256": "ed4eab8498924a0cf900f492b70eab2948ded84257bf431ccc9880340af5a185",
+      "width": 432
+    },
+    "android/res/mipmap-anydpi-v26/ic_launcher.xml": {
+      "sha256": "32715ff646f6b9fef7c321138e4a14556c4a1f98a87b06070b56f41643dad718"
+    },
+    "android/res/mipmap-anydpi-v26/ic_launcher_round.xml": {
+      "sha256": "32715ff646f6b9fef7c321138e4a14556c4a1f98a87b06070b56f41643dad718"
+    },
+    "android/res/mipmap-anydpi-v33/ic_launcher.xml": {
+      "sha256": "bbaf996b7b1356da55819d20c1920c34e20b1288fe7cec441aefeda5ea53d24a"
+    },
+    "android/res/mipmap-anydpi-v33/ic_launcher_round.xml": {
+      "sha256": "bbaf996b7b1356da55819d20c1920c34e20b1288fe7cec441aefeda5ea53d24a"
+    },
+    "android/res/mipmap-hdpi/ic_launcher.png": {
+      "height": 72,
+      "mode": "RGB",
+      "sha256": "f21a15c1a3eea357e6e41b3e61116b519018e5c2ba535d04431572de6da90485",
+      "width": 72
+    },
+    "android/res/mipmap-hdpi/ic_launcher_round.png": {
+      "height": 72,
+      "mode": "RGBA",
+      "sha256": "c103d5636e88c5a836d07bf73114b6312df9f12f5f74628a00f9844c3f7c2d37",
+      "width": 72
+    },
+    "android/res/mipmap-ldpi/ic_launcher.png": {
+      "height": 36,
+      "mode": "RGB",
+      "sha256": "f3e66b1412e6ea7dde5e01ba966d9f15380332ef1edc52ddf836d1d8c70b2198",
+      "width": 36
+    },
+    "android/res/mipmap-ldpi/ic_launcher_round.png": {
+      "height": 36,
+      "mode": "RGBA",
+      "sha256": "109312097573fdd6f9195310c6d887982623ca22deccd144546481cd98d2c646",
+      "width": 36
+    },
+    "android/res/mipmap-mdpi/ic_launcher.png": {
+      "height": 48,
+      "mode": "RGB",
+      "sha256": "b9845c79702fb28a7b82279f5217a9be298fff6cf685ccdcd19b6bf8440c0c1d",
+      "width": 48
+    },
+    "android/res/mipmap-mdpi/ic_launcher_round.png": {
+      "height": 48,
+      "mode": "RGBA",
+      "sha256": "d512f43bb84530ac2865d927ecd9d65b570462e5b4728f5969ff307b4d75386a",
+      "width": 48
+    },
+    "android/res/mipmap-xhdpi/ic_launcher.png": {
+      "height": 96,
+      "mode": "RGB",
+      "sha256": "100298e37efe0107df320f1c847dcd085ef7deb1daae634c91a9b5b00bc2c7a4",
+      "width": 96
+    },
+    "android/res/mipmap-xhdpi/ic_launcher_round.png": {
+      "height": 96,
+      "mode": "RGBA",
+      "sha256": "2e72d5f0cc1ccc352e0008d609b9e922ec459c5ef127d003d7c6d699195720a0",
+      "width": 96
+    },
+    "android/res/mipmap-xxhdpi/ic_launcher.png": {
+      "height": 144,
+      "mode": "RGB",
+      "sha256": "e7e6e9791404bd314d855f2388bacf94ea252450859099fc2a6eb4b28f63f8ed",
+      "width": 144
+    },
+    "android/res/mipmap-xxhdpi/ic_launcher_round.png": {
+      "height": 144,
+      "mode": "RGBA",
+      "sha256": "50c09f5c119f4b782c42406bc1e287cea268b6d7159cfa120fbc328dd2153ed4",
+      "width": 144
+    },
+    "android/res/mipmap-xxxhdpi/ic_launcher.png": {
+      "height": 192,
+      "mode": "RGB",
+      "sha256": "6444b857d07369060db3d846cb87278d17c73f722f6b4e15dba8b771b005e347",
+      "width": 192
+    },
+    "android/res/mipmap-xxxhdpi/ic_launcher_round.png": {
+      "height": 192,
+      "mode": "RGBA",
+      "sha256": "52e67584ac759c0e67f308f5b6cfa9e8c02af41ede9633977c2c5cda136e5ae5",
+      "width": 192
+    },
+    "android/res/values/icon_colors.xml": {
+      "sha256": "e0dfdbe9dd015c713474dcd77fa7e4c1c5544c2393ab905435e95c1dd5ad2f92"
+    },
+    "common/Dreamscapes.png": {
+      "height": 1024,
+      "mode": "RGB",
+      "sha256": "a75b396ab069a05eb13f5d8e909f5f7600fab4a9ebc4ccf0b9fe5fa652e09b09",
+      "width": 1024
+    },
+    "ios/Assets.xcassets/AppIcon.appiconset/Contents.json": {
+      "sha256": "aa2f83abb8d4feeb2e2a1e6ccdef7e48cac9fb789639753183ffaa5a67b4823d"
+    },
+    "ios/Assets.xcassets/AppIcon.appiconset/icon-1024@1x.png": {
+      "height": 1024,
+      "mode": "RGB",
+      "sha256": "a75b396ab069a05eb13f5d8e909f5f7600fab4a9ebc4ccf0b9fe5fa652e09b09",
+      "width": 1024
+    },
+    "ios/Assets.xcassets/AppIcon.appiconset/icon-20@1x.png": {
+      "height": 20,
+      "mode": "RGB",
+      "sha256": "b538109a41511f8b575a9daa362b7203bee1e87b4703a2e1ab0e319a2a818e7d",
+      "width": 20
+    },
+    "ios/Assets.xcassets/AppIcon.appiconset/icon-20@2x.png": {
+      "height": 40,
+      "mode": "RGB",
+      "sha256": "4848579c6a234a2cdab8ee264ed4df76de80f55ede3c30dc45a415134a954e9f",
+      "width": 40
+    },
+    "ios/Assets.xcassets/AppIcon.appiconset/icon-20@3x.png": {
+      "height": 60,
+      "mode": "RGB",
+      "sha256": "0bcc7cf473914e794adb73767a55482169724ad54c91822a11f36a2875be651e",
+      "width": 60
+    },
+    "ios/Assets.xcassets/AppIcon.appiconset/icon-29@1x.png": {
+      "height": 29,
+      "mode": "RGB",
+      "sha256": "83a58af4f6673abebf79c11b61abbb5e13df43d9ccbf58ffc636e5cb770817c3",
+      "width": 29
+    },
+    "ios/Assets.xcassets/AppIcon.appiconset/icon-29@2x.png": {
+      "height": 58,
+      "mode": "RGB",
+      "sha256": "4c1b616163d4722b3698d061aefca4a0c830d7948bda16b06e5764994dca4ba8",
+      "width": 58
+    },
+    "ios/Assets.xcassets/AppIcon.appiconset/icon-29@3x.png": {
+      "height": 87,
+      "mode": "RGB",
+      "sha256": "c29ecdbdfd9ee86be1d3106ecbe0795118eac94ba3ec593fc6fad15092327f26",
+      "width": 87
+    },
+    "ios/Assets.xcassets/AppIcon.appiconset/icon-40@1x.png": {
+      "height": 40,
+      "mode": "RGB",
+      "sha256": "4848579c6a234a2cdab8ee264ed4df76de80f55ede3c30dc45a415134a954e9f",
+      "width": 40
+    },
+    "ios/Assets.xcassets/AppIcon.appiconset/icon-40@2x.png": {
+      "height": 80,
+      "mode": "RGB",
+      "sha256": "691c189724c7af2bfd94739a05e0355d93c64f1865ab0e6f57f221ed90a63b48",
+      "width": 80
+    },
+    "ios/Assets.xcassets/AppIcon.appiconset/icon-40@3x.png": {
+      "height": 120,
+      "mode": "RGB",
+      "sha256": "f6d9bb2b678425424632a8dd90639203126e46947e4f96551c9a614fb648c35c",
+      "width": 120
+    },
+    "ios/Assets.xcassets/AppIcon.appiconset/icon-60@2x.png": {
+      "height": 120,
+      "mode": "RGB",
+      "sha256": "f6d9bb2b678425424632a8dd90639203126e46947e4f96551c9a614fb648c35c",
+      "width": 120
+    },
+    "ios/Assets.xcassets/AppIcon.appiconset/icon-60@3x.png": {
+      "height": 180,
+      "mode": "RGB",
+      "sha256": "4d9c0d8dd76ce74085239dbe7d8300d6d404f4b03445a03dcd483c7bc555bebf",
+      "width": 180
+    },
+    "ios/Assets.xcassets/AppIcon.appiconset/icon-76@1x.png": {
+      "height": 76,
+      "mode": "RGB",
+      "sha256": "dddcdcc03b6ab6f3c8db311d936a2fe3fe68a81dea1e43aa27496a41f18bb1e8",
+      "width": 76
+    },
+    "ios/Assets.xcassets/AppIcon.appiconset/icon-76@2x.png": {
+      "height": 152,
+      "mode": "RGB",
+      "sha256": "214924e34a675849cc48689f2998d1bcbe5ef45271057f93c49714966fd6aa60",
+      "width": 152
+    },
+    "ios/Assets.xcassets/AppIcon.appiconset/icon-83.5@2x.png": {
+      "height": 167,
+      "mode": "RGB",
+      "sha256": "40761dd875dd0013f036f18325b8e35c27cefba170210d8ad4dfe1a2b81d7515",
+      "width": 167
+    },
+    "ios/Assets.xcassets/Contents.json": {
+      "sha256": "5ccec2dda9392d8aae50b5eec8821e5df8f430e32cf72ddaeb791d66cbd1fe01"
+    },
+    "linux/hicolor/1024x1024/apps/com.iisacc.dreamscapes.png": {
+      "height": 1024,
+      "mode": "RGB",
+      "sha256": "a75b396ab069a05eb13f5d8e909f5f7600fab4a9ebc4ccf0b9fe5fa652e09b09",
+      "width": 1024
+    },
+    "linux/hicolor/128x128/apps/com.iisacc.dreamscapes.png": {
+      "height": 128,
+      "mode": "RGB",
+      "sha256": "e86025d01ef98f83875d22feae191010bb79903cc602b97a05fae682656e2013",
+      "width": 128
+    },
+    "linux/hicolor/16x16/apps/com.iisacc.dreamscapes.png": {
+      "height": 16,
+      "mode": "RGB",
+      "sha256": "e6eaa92544bffb1df02d757986c27ec533421a477ab1ef688eca82585f5931bb",
+      "width": 16
+    },
+    "linux/hicolor/22x22/apps/com.iisacc.dreamscapes.png": {
+      "height": 22,
+      "mode": "RGB",
+      "sha256": "e6f9fb35372ac1321a95f5b4553044f87d950c15f46b7f19d85c9abce7cb38d2",
+      "width": 22
+    },
+    "linux/hicolor/24x24/apps/com.iisacc.dreamscapes.png": {
+      "height": 24,
+      "mode": "RGB",
+      "sha256": "4f47c29882b01da39a57e9f37d1d810f85b6841ffe36636ba22e0b23f8e77bca",
+      "width": 24
+    },
+    "linux/hicolor/256x256/apps/com.iisacc.dreamscapes.png": {
+      "height": 256,
+      "mode": "RGB",
+      "sha256": "b21d4a1683cbbd1da595cb4b83e879ff6e35b4ed40b53e81ab3dadaf4cfa0d9d",
+      "width": 256
+    },
+    "linux/hicolor/32x32/apps/com.iisacc.dreamscapes.png": {
+      "height": 32,
+      "mode": "RGB",
+      "sha256": "b85cf43bbbac362d1a7d50e8cb7e78bff2b85e1ba5907550541af2600c38d217",
+      "width": 32
+    },
+    "linux/hicolor/48x48/apps/com.iisacc.dreamscapes.png": {
+      "height": 48,
+      "mode": "RGB",
+      "sha256": "b9845c79702fb28a7b82279f5217a9be298fff6cf685ccdcd19b6bf8440c0c1d",
+      "width": 48
+    },
+    "linux/hicolor/512x512/apps/com.iisacc.dreamscapes.png": {
+      "height": 512,
+      "mode": "RGB",
+      "sha256": "88eab7cd229a68496e1ffc6791a2e8371d4a39ede5ed825b13f88d4a299bd123",
+      "width": 512
+    },
+    "linux/hicolor/64x64/apps/com.iisacc.dreamscapes.png": {
+      "height": 64,
+      "mode": "RGB",
+      "sha256": "66c8aaeea1693e9c038f5ccea0d139d5a3daee28b818a911fd0116a0e587de8c",
+      "width": 64
+    },
+    "macos/Dreamscapes.icns": {
+      "sha256": "da317f69ddaa35195be107fd783b587eca69694685c466dcb6fa86c9b96c6673"
+    },
+    "macos/Dreamscapes.iconset/icon_128x128.png": {
+      "height": 128,
+      "mode": "RGBA",
+      "sha256": "d6bbd115a6f041a271f257f8132cefb742d4eba1f23a1e76b845cbaf5b0453a1",
+      "width": 128
+    },
+    "macos/Dreamscapes.iconset/icon_128x128@2x.png": {
+      "height": 256,
+      "mode": "RGBA",
+      "sha256": "687827ac1b9bea19b0b2407ab3a31a02b329b4bfb1cd18820911cfcfda68f3f6",
+      "width": 256
+    },
+    "macos/Dreamscapes.iconset/icon_16x16.png": {
+      "height": 16,
+      "mode": "RGBA",
+      "sha256": "0f471f20f70035468c6ba5f8133373d271c3e4d57e9b9f29e22ec14e591133ff",
+      "width": 16
+    },
+    "macos/Dreamscapes.iconset/icon_16x16@2x.png": {
+      "height": 32,
+      "mode": "RGBA",
+      "sha256": "8285cb6482eb94376e220219fc0a4e0417d9500fc1bf7fb9d4ff5fe6baff6483",
+      "width": 32
+    },
+    "macos/Dreamscapes.iconset/icon_256x256.png": {
+      "height": 256,
+      "mode": "RGBA",
+      "sha256": "687827ac1b9bea19b0b2407ab3a31a02b329b4bfb1cd18820911cfcfda68f3f6",
+      "width": 256
+    },
+    "macos/Dreamscapes.iconset/icon_256x256@2x.png": {
+      "height": 512,
+      "mode": "RGBA",
+      "sha256": "244ef9f4ccc48b9b600f65ad4eeb98fccbb1bdb66e07961d0019ac2eeb4728fe",
+      "width": 512
+    },
+    "macos/Dreamscapes.iconset/icon_32x32.png": {
+      "height": 32,
+      "mode": "RGBA",
+      "sha256": "8285cb6482eb94376e220219fc0a4e0417d9500fc1bf7fb9d4ff5fe6baff6483",
+      "width": 32
+    },
+    "macos/Dreamscapes.iconset/icon_32x32@2x.png": {
+      "height": 64,
+      "mode": "RGBA",
+      "sha256": "bf348f6463346e48bf90b6ccc226e575c1efa4c23c7661a4ff04870469e5c155",
+      "width": 64
+    },
+    "macos/Dreamscapes.iconset/icon_512x512.png": {
+      "height": 512,
+      "mode": "RGBA",
+      "sha256": "244ef9f4ccc48b9b600f65ad4eeb98fccbb1bdb66e07961d0019ac2eeb4728fe",
+      "width": 512
+    },
+    "macos/Dreamscapes.iconset/icon_512x512@2x.png": {
+      "height": 1024,
+      "mode": "RGBA",
+      "sha256": "f77448612ddc1f336e0137908177c6ea2966a9951c6a2fe76fe7982d62deb217",
+      "width": 1024
+    },
+    "macos/Dreamscapes.png": {
+      "height": 512,
+      "mode": "RGBA",
+      "sha256": "244ef9f4ccc48b9b600f65ad4eeb98fccbb1bdb66e07961d0019ac2eeb4728fe",
+      "width": 512
+    },
+    "store/app-store-1024.png": {
+      "height": 1024,
+      "mode": "RGB",
+      "sha256": "a75b396ab069a05eb13f5d8e909f5f7600fab4a9ebc4ccf0b9fe5fa652e09b09",
+      "width": 1024
+    },
+    "store/google-play-512.png": {
+      "height": 512,
+      "mode": "RGB",
+      "sha256": "88eab7cd229a68496e1ffc6791a2e8371d4a39ede5ed825b13f88d4a299bd123",
+      "width": 512
+    },
+    "web/apple-touch-icon.png": {
+      "height": 180,
+      "mode": "RGB",
+      "sha256": "4d9c0d8dd76ce74085239dbe7d8300d6d404f4b03445a03dcd483c7bc555bebf",
+      "width": 180
+    },
+    "web/favicon.ico": {
+      "sha256": "9c9e10ceae29d66f13594c123d29ae9ff954ed9c15615a9ecc8d869c035b8e65",
+      "sizes": [
+        16,
+        32,
+        48
+      ]
+    },
+    "web/icon-16.png": {
+      "height": 16,
+      "mode": "RGB",
+      "sha256": "e6eaa92544bffb1df02d757986c27ec533421a477ab1ef688eca82585f5931bb",
+      "width": 16
+    },
+    "web/icon-192.png": {
+      "height": 192,
+      "mode": "RGB",
+      "sha256": "6444b857d07369060db3d846cb87278d17c73f722f6b4e15dba8b771b005e347",
+      "width": 192
+    },
+    "web/icon-32.png": {
+      "height": 32,
+      "mode": "RGB",
+      "sha256": "b85cf43bbbac362d1a7d50e8cb7e78bff2b85e1ba5907550541af2600c38d217",
+      "width": 32
+    },
+    "web/icon-48.png": {
+      "height": 48,
+      "mode": "RGB",
+      "sha256": "b9845c79702fb28a7b82279f5217a9be298fff6cf685ccdcd19b6bf8440c0c1d",
+      "width": 48
+    },
+    "web/icon-512.png": {
+      "height": 512,
+      "mode": "RGB",
+      "sha256": "88eab7cd229a68496e1ffc6791a2e8371d4a39ede5ed825b13f88d4a299bd123",
+      "width": 512
+    },
+    "web/manifest.webmanifest": {
+      "sha256": "01d81d4bf32f5196d2e48a65a3e462ba284bd65243a18d1656913a038a76ff8c"
+    },
+    "web/maskable-192.png": {
+      "height": 192,
+      "mode": "RGB",
+      "sha256": "eeba2fb5d204e9ef83f43b612b553669c44454556416f5ee97720e1f0596a23b",
+      "width": 192
+    },
+    "web/maskable-512.png": {
+      "height": 512,
+      "mode": "RGB",
+      "sha256": "3b0f6f010c295fd15230b5937c4f9952225f173d50ee959ced4a9ba4e8b65cd4",
+      "width": 512
+    },
+    "windows/Dreamscapes.ico": {
+      "sha256": "49315997b3e68d98c4df71c4a4cb699bc670918550de6e4a7aa1a560affbbec8",
+      "sizes": [
+        16,
+        20,
+        24,
+        32,
+        40,
+        48,
+        64,
+        96,
+        128,
+        256
+      ]
+    }
+  },
+  "matte": "#141027",
+  "source": "Artboard 1.png",
+  "source_sha256": "0d8225ae481c192e426c17b3d6c27708d8ecd2d42a1f84445ba37d4b217caaad"
+}

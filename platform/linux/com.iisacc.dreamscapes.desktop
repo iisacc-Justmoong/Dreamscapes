@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Dreamscapes
+Comment=Create images on your device
+Exec=Dreamscapes
+Icon=com.iisacc.dreamscapes
+Terminal=false
+Categories=Graphics;
+StartupWMClass=Dreamscapes

@@ -1,5 +1,9 @@
 # Dreamscapes
 
+Dreamscapes는 `LV.ApplicationWindow`와 `LV.Theme.defaultPrimary` (`#0A84FF`)를 사용한다. 창 전체를 그레디언트 없이 거의 블랙에 가까운 `#0B0B0B`로 채우며 fill 불투명도는 50%이다. 창 배경은 Primary와 분리하고 버튼과 선택 상태에는 앱 악센트 색상을 유지한다. 64px 머티리얼 블러와 macOS 네이티브 배경 블러를 유지하고 글자와 버튼의 불투명도는 낮추지 않는다. `Dreamscapes.Gui`의 `mainCreatesOneSharedWindow`가 색상·불투명도·그레디언트 제거와 실제 창 머티리얼을 함께 검증한다.
+
+최신 LVRS 패키지를 사용해야 한다. 현재 Workspace 실행본은 `SDK/LVRS/build/material-runtime`에 설치한 프레임워크를 Society와 공유하며, `build/` 구성의 `LVRS_DIR`는 해당 `lib/cmake/LVRS`를 가리킨다.
+
 앱 시작 시 iiSocietyHelper를 `com.iisacc.dreamscapes`로 가동한다. Society를 포함해 같은 기기에서 공용 관측 위치를 사용하는 Helper들이 서로 실행 인스턴스를 발견한다. LVRS 엔진 수명에 Helper를 연결하고 전경·배경 상태를 반영하며 QML에 `societyHelper.observedApplications`와 이벤트를 제공한다. 관측이 중단된 경우 앱 상태 전환에서 재시작을 시도한다. 생성 큐나 모델 저장 위치는 이 관측 등록에 사용하지 않는다. iOS는 기존 Society App Group을 재사용하며 중단된 앱의 관측은 만료된다.
 
 `Dreamscapes.Gui`의 패키지 실행 검증은 실제 앱과 별도 테스트 Helper가 서로를 발견하는지 검사한다. `SOCIETY_HELPER_DIRECTORY`를 테스트별 `build/` 경로로 지정한다. SDK 설치 위치는 `iiSocietyHelper_DIR`로 지정하며 현재 Workspace 검증본은 `SDK/iiSocietyHelper/build/install/lib/cmake/iiSocietyHelper`이다.
@@ -145,7 +149,7 @@ Society에서 컨테이너를 열면 `iiSocietyContainer::SharedStorage`에 원�
 
 Society 창에 `.safetensor` 또는 `.safetensors`를 드롭한 뒤 Dreamscapes에서 모델을 선택하고 Generate를 누른다. Diffusers 패키지(`model_index.json` 포함)도 Society의 `Models/`에서 사용할 수 있다. 목록은 저장 형식 후보이고 모델 아키텍처·LoRA 등 역할·필수 구성요소는 iiLocalDiffusion이 검사한다. 분리된 VAE·텍스트 인코더·어댑터를 조립하는 UI는 현재 포함하지 않는다.
 
-QuickGenerate의 기본 생성 크기는 iiLocalDiffusion SDXL 기본값과 같은 1024×1024이며 20단계를 사용한다. 비율을 바꾸면 짧은 변 1024px을 유지하고 긴 변을 가장 가까운 8px 단위로 반올림한다. 따라서 4:3은 1368×1024, 3:4는 1024×1368, 16:9는 1824×1024, 9:16은 1024×1824이다. 비율은 생성기의 8px 격자에 맞춘 근사값이다. 데스크톱 worker와 모바일 네이티브 생성 요청에 같은 계산을 적용하며, 사전 모델 준비는 기본 정사각형 1024×1024를 사용한다. 시험용 `GenerationRuntime.imageExtent`도 짧은 변을 뜻하고 `steps` 명시값은 유지한다. CFG·정밀도·scheduler 등 별도 지정하지 않은 옵션은 계속 iiLocalDiffusion이 모델에 따라 결정한다. `Dreamscapes.Generation`은 다섯 비율의 짧은 변이 1024px로 유지되고 두 실행 경로에서 해당 크기의 최종 파일로 저장되는지 검증한다.
+QuickGenerate의 기본 생성 크기는 iiLocalDiffusion SDXL 기본값과 같은 1024×1024이며 10단계를 사용한다. 비율을 바꾸면 짧은 변 1024px을 유지하고 긴 변을 가장 가까운 8px 단위로 반올림한다. 따라서 4:3은 1368×1024, 3:4는 1024×1368, 16:9는 1824×1024, 9:16은 1024×1824이다. 비율은 생성기의 8px 격자에 맞춘 근사값이다. 데스크톱 worker와 모바일 네이티브 생성 요청에 같은 계산을 적용하며, 사전 모델 준비는 기본 정사각형 1024×1024를 사용한다. 시험용 `GenerationRuntime.imageExtent`도 짧은 변을 뜻하고 `steps` 명시값은 유지한다. CFG·정밀도·scheduler 등 별도 지정하지 않은 옵션은 계속 iiLocalDiffusion이 모델에 따라 결정한다. `Dreamscapes.Generation`은 다섯 비율의 짧은 변이 1024px로 유지되고 두 실행 경로에서 해당 크기의 최종 파일로 저장되는지 검증한다.
 
 완성된 생성 이미지는 Asset이 아니다. 모든 앱의 결과를 `Generation History/` 바로 아래에 이미지 파일로 저장하며 앱별·작업별 하위 폴더를 만들지 않는다. Dreamscapes는 `<UUID>-0001.png`처럼 작업 UUID와 이미지 순번으로 이름 충돌을 피한다. 생성만으로 `Asset Library/`에 파일을 추가하지 않는다.
 
@@ -345,11 +349,25 @@ MPS FP16 이미지를 생성하고 네이티브 결과 화면에 표시했다. C
 
 네이티브 생성은 모델 로딩, 프롬프트 준비, 노이즈 제거, 이미지 렌더링을 구분한다. 텐서 로딩 수나 VAE 타일 수는 요청한 생성 스텝에 합산하지 않는다. 결과 화면에는 경과 시간과 취소 버튼을 표시하며, 파일 게시가 끝나야 완료 처리한다.
 
-iOS는 생성 중에만 `UIApplication.idleTimerDisabled`를 설정하고 완료·실패·취소·백그라운드 전환 시 이전 값을 복원한다. 잠깐의 inactive 상태는 작업을 취소하지 않는다. 실제로 앱을 백그라운드로 보내면 취소 신호를 전달하고 중단 이유를 표시한다. 기본 제한 시간은 15분이다. 엔진은 텐서 로딩과 연산 구간 사이에서 취소 및 제한 시간을 확인하며 실행 중인 GPU 호출은 반환을 기다린다.
+iOS는 생성 중에만 `UIApplication.idleTimerDisabled`를 설정하고 완료·실패·취소·백그라운드 전환 시 이전 값을 복원한다. 잠깐의 inactive 상태는 작업을 취소하지 않는다. 실제 백그라운드에서는 아래의 시스템 실행 권한에 따라 생성을 유지한다. 기본 제한 시간은 15분이다. 엔진은 텐서 로딩과 연산 구간 사이에서 취소 및 제한 시간을 확인하며 실행 중인 GPU 호출은 반환을 기다린다.
+
+#### iOS 백그라운드 생성
+
+iOS는 Qt 창의 활성화 여부 대신 UIKit의 실제 `DidEnterBackground` / `WillEnterForeground` 알림으로 생성 수명주기를 판단한다. 제어 센터·알림 센터·시스템 대화상자에 의한 일시 비활성화는 생성 취소나 모델 캐시 해제 사유가 아니다. 실행 중 전면/후면 전환은 현재 생성 단계와 진행률을 덮어쓰지 않는다.
+
+iOS 26 이상에서 기기가 백그라운드 GPU 실행을 지원하면, 사용자가 시작한 이미지 생성에 `BGContinuedProcessingTask`를 등록한다. `Background GPU Access` entitlement, `processing` 모드와 작업 식별자를 번들에 선언하고, 실제 시스템 작업을 받은 뒤에만 백그라운드 실행이 허용되었다고 판단한다. 모델 준비·적재·생성·렌더링 진행을 시스템 Live Activity에 보고하며, Society에 최종 이미지 저장이 성공한 뒤 작업을 완료한다. 작업 등록·권한 획득과 앱의 화면 유지 기능은 분리되어 있다. OS 작업은 현재 이미지 한 장을 대상으로 하며, 남은 생성 큐는 앱으로 돌아올 때 시작한다.
+
+구버전 iOS, 미지원 GPU 또는 시스템의 요청 거절에서는 실제 백그라운드 진입 시 `NativeExecutionControl`로 기존 텐서/연산 구간 경계에서 작업을 일시 정지한다. 앱으로 돌아오면 같은 요청·모델·latent·seed를 그대로 재개하며 처음부터 다시 생성하지 않는다. 이미 제출한 GPU 호출은 반환을 기다린다. 앱과 SDK 양쪽의 제한 시간에서 정지 시간을 제외하며, 정지 중 사용자 취소도 처리한다. 유한한 UIKit background assertion은 인계·저장·정리 시간을 확보하고 만료되면 OS가 정지된 프로세스를 suspend하도록 해제한다. 이 assertion은 GPU 권한을 대신하지 않는다. OS의 지속 실행 작업 자체가 만료되거나 시스템 UI에서 취소되면 협력적으로 종료하고 이유를 표시한다. 강제 종료 또는 메모리 압박으로 프로세스가 제거된 이후의 복원은 제공하지 않는다.
+
+외부 패키지를 추가하지 않고 기존 Qt/iiLocalDiffusion과 Apple 시스템 프레임워크를 사용한다. 게임의 리소스 다운로드에 쓰이는 background `URLSession`은 파일 전송을 운영체제에 맡기는 기능이며 로컬 GPU 추론의 실행 권한을 제공하지 않는다. 근거: [Apple 장시간 작업](https://developer.apple.com/documentation/backgroundtasks/performing-long-running-tasks-on-ios-and-ipados), [GPU 권한](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.background-tasks.continued-processing.gpu), [유한 백그라운드 실행](https://developer.apple.com/documentation/uikit/extending-your-app-s-background-execution-time).
+
+`Dreamscapes.LocalSociety`는 허용된 백그라운드에서 실제 컨트롤러의 진행·완료·저장, GPU 미지원 시 같은 요청의 정지·재개, 정지 중 취소·제한 시간 보존, 전면 복귀 시 진행률 보존, 만료 취소와 작업 해제를 검사한다. `verify_ios_bundle.py`는 프레임워크 링크, Info.plist, 서명과 프로비저닝 프로필의 GPU 권한, 앱과 포함 SDK의 재개 API를 확인한다. opt-in 기기 probe는 `backgroundExecution`과 시계열 `Documents/local-generation-lifecycle.jsonl`을 기록하며, 백그라운드에서는 Qt 화면 캡처를 시도하지 않는다. `python3 tests/verify_ios_lifecycle.py <timeline.jsonl> --mode paused`는 실제 UIKit background 상태·30초 이상 전환·엔진 대기 확인·동일 요청 재개·완료 이미지를 검증한다. `--mode continued`는 OS 허가와 후면 생성 스텝 증가를 별도로 요구한다. 검증기 회귀는 `python3 -m unittest discover -s tests -p test_ios_lifecycle.py`로 실행한다. 호스트 회귀 테스트는 실제 기기의 OS 실행 허용 증거와 구분한다.
 
 `DreamscapesLocalSocietyTests`는 단계 혼동, 로딩 중 취소/백그라운드/제한 시간/예외, 다음 요청 재시도, 화면 유지 해제를 검사한다. 실제 기기 검증은 `DREAMSCAPES_LOCAL_RUNTIME_PROBE=ON` 빌드의 `--verify-local-generation --local-model <model> --local-prompt <prompt>`를 이용하며, Documents의 `local-generation-verification.json`에서 단계·경과 관측 시각·전경·화면 유지·최종 결과를 확인한다. 테스트용 엔진 결과와 실기기 결과는 별도 증거로 기록한다. 화면 유지 API: [Apple UIKit](https://developer.apple.com/documentation/uikit/uiapplication/isidletimerdisabled).
 
 공유 프롬프트 필드는 현재 LVRS의 22px 계약을 따른다. 기본 QuickGenerate 높이는 패딩 20px + 입력 22px + 간격 8px + 버튼 22px = 72px이며, 결과 이미지 중앙 배치 검증도 이 높이를 기준으로 한다.
+
+LVRS 공통 모션은 버튼의 눌림·복원과 컨텍스트 메뉴의 진입·닫힘에 적용된다. 이미지 저장 GUI 회귀 테스트는 메뉴의 `visible`이 false가 되어 닫힘 애니메이션이 완료된 뒤 다음 클릭을 전송하며, 고정 시간 대기 없이 파일 저장 취소·재시도와 사진 저장 중 중복 요청 방지를 검사한다.
 
 실기기 취소 재현에는 probe 인자 `--local-cancel-after-ms 3000`을 추가할 수 있다. probe 보고서의 `ui`는 실제 입력 높이·결과 화면·이미지 로딩 상태도 기록한다. 최종 앱은 probe를 OFF로 재빌드하며 `verify_ios_bundle.py`는 진단 probe가 남은 바이너리를 거부한다. 진단용 번들 자체를 검사할 때만 `--allow-runtime-probe`를 명시한다.
 
@@ -372,3 +390,15 @@ QuickGenerate는 iOS에서 iiLocalDiffusion 0.6의 Q8 캐시를 기본 사용한
 2026-09-11 Q8 실기기 측정: iPhone 15 Pro Max의 동일 512×512·20스텝은 원본 FP16 기준 294.647초에서 첫 변환 포함 140.366초로 약 52.4% 줄었다. 연속 생성은 149.795초이고 디스크/메모리 캐시가 모두 적중했다. 당시 기본값인 1024×1024·20스텝은 643.309초에 완료했다. 이 측정은 기본값을 10스텝으로 낮추기 전 결과이며 10스텝의 생성 시간은 별도로 측정해야 한다. 재시작 후 디스크 캐시 준비는 1.287ms로 확인했다. 원본 보존·실제 결과·캐시 해제와 기기 측정 한계는 [검증 보고서](build/quickgenerate-acceleration/REPORT.md)에 있다.
 
 기기 probe는 Qt Image 상태가 숫자 또는 enum 이름 `Ready`로 직렬화되는 경우를 모두 처리한다. 실행 시작 때 과거 화면 캡처를 지우고 PNG 저장 성공 후에만 캡처 완료로 표시한다. UI의 Ready/source 관측과 실제 화면 PNG 검증을 구분한다.
+
+## iPhone 생성 완료 후 결과 처리
+
+iOS 진단 probe는 앱의 논리적 화면 유지 상태와 별도로 실제 UIKit의 `idleTimerDisabled`, `applicationState`, 기기의 `thermalState`·저전력 모드를 기록한다. 자동 잠금·백그라운드 전환과 생성 엔진 오류를 구분하기 위한 관측값이며, 기기의 열 보호 또는 잠금 정책을 우회하지 않는다.
+
+네이티브 SDK는 요청한 출력 크기를 그대로 반환한다. SDXL이 내부 캔버스를 64픽셀 단위로 올림하는 경우 초과 가장자리만 중앙 기준으로 잘라내며 보간하지 않는다. 예를 들어 QuickGenerate 3:4의 1024×1368은 내부 1024×1408 결과에서 상하 20픽셀씩 제거하여 저장·표시한다. VAE의 `using Conv2D scale 0.031` 경고가 크기 검증 실패를 대신 표시하던 경로도 SDK에서 수정했다. 새 외부 의존성 없이 기존 stable-diffusion.cpp, 표준 C++ RGB 복사, Qt 이미지 저장을 사용한다.
+
+선택 진단 빌드의 `--verify-local-generation --local-aspect-ratio 3:4`는 실제 컨트롤러에 해당 비율을 전달한다. 비율을 생략하면 기존 1:1이고, 반복 실행에도 같은 비율을 적용한다. `DREAMSCAPES_PROBE_EXTENT`를 지정하지 않으면 제품 기본 크기·스텝을 사용한다. 일반 설치본은 `DREAMSCAPES_LOCAL_RUNTIME_PROBE=OFF`로 다시 빌드하고 `tests/verify_ios_bundle.py`로 진단 코드 제외·포함 SDK·서명·기기 프로필을 검증한다. 수정 전후 회귀와 실기 결과는 `build/iphone-result-fix/`에 기록한다.
+
+## 앱 아이콘
+
+`resources/Appicon/Artboard 1.png`를 원본으로 macOS, iPhone/iPad, Android, Windows, Linux, WebAssembly용 아이콘을 생성하고 CMake와 Qt 런타임에 연결한다. 원본 Illustrator 파일은 `resources/Appicon/Appicon.ai`이다. 재생성 방법, 플랫폼별 마스크·크기와 패키징 설명은 [앱 아이콘 문서](resources/Appicon/README.md)를 참조한다. `Dreamscapes.AppIcons`는 원본 해시, 자산 규격, Android의 Activity·FileProvider 보존과 웹의 반복 패키징을 검사한다.

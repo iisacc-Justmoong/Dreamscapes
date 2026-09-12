@@ -1,6 +1,7 @@
 #include "GenerationController.h"
 #include <QtConcurrent/QtConcurrentRun>
 #include <QRandomGenerator>
+#include <QPointer>
 #include <QImage>
 #if defined(Q_OS_IOS)
 #include "GenerationScreenActivity.h"
@@ -54,6 +55,7 @@ GenerationRuntime defaultRuntime()
 #endif
 #if defined(Q_OS_IOS)
     runtime.screenActivity = nativeGenerationScreenActivity();
+    runtime.backgroundActivity = nativeGenerationBackgroundActivity();
     runtime.nativeQ8CacheDirectory = QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation))
         .filePath("iiLocalDiffusion/q8");
 #endif
@@ -76,6 +78,8 @@ GenerationController::GenerationController(QObject *parent) : GenerationControll
 GenerationController::GenerationController(GenerationRuntime runtime, QObject *parent)
     : QObject(parent), m_runtime(std::move(runtime))
 {
+    if (!m_runtime.nativeExecutionControl)
+        m_runtime.nativeExecutionControl = std::make_shared<iiLocalDiffusion::NativeExecutionControl>();
     m_storagePoll.setInterval(2000);
     connect(&m_storagePoll, &QTimer::timeout, this, &GenerationController::pollStorage);
     connect(&m_nativeWatcher, &QFutureWatcher<iiLocalDiffusion::NativeGenerationResult>::finished,
@@ -90,7 +94,12 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
     m_storagePoll.start();
     if (m_runtime.temporaryDirectory.isEmpty())
         m_runtime.temporaryDirectory = qEnvironmentVariable("DREAMSCAPES_TEMP_DIRECTORY", QDir::tempPath());
-    if (auto *application = qobject_cast<QGuiApplication *>(QCoreApplication::instance())) {
+    if (m_runtime.backgroundActivity) {
+        const QPointer<GenerationController> self(this);
+        m_runtime.backgroundActivity->observeForeground([self](bool foreground) {
+            if (self) self->setForeground(foreground);
+        });
+    } else if (auto *application = qobject_cast<QGuiApplication *>(QCoreApplication::instance())) {
         connect(application, &QGuiApplication::applicationStateChanged, this, [this](Qt::ApplicationState state) {
             // A temporary inactive state (an alert or Control Center) is not
             // background execution. Cancel only after the app is hidden.
@@ -98,7 +107,8 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
                 ? state == Qt::ApplicationActive || state == Qt::ApplicationInactive
                 : state == Qt::ApplicationActive);
         });
-        setForeground(application->applicationState() == Qt::ApplicationActive);
+        setForeground(application->applicationState() == Qt::ApplicationActive
+            || (m_runtime.nativeInference && application->applicationState() == Qt::ApplicationInactive));
     }
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
     m_process.setProcessChannelMode(QProcess::MergedChannels);
@@ -145,6 +155,7 @@ GenerationController::~GenerationController()
     m_nativeCancelled = true;
     disconnect(&m_nativeWatcher, nullptr, this, nullptr);
     m_nativeWatcher.waitForFinished();
+    if (m_backgroundActivityActive) m_runtime.backgroundActivity->end(false);
     if (m_runtime.nativeInference) iiLocalDiffusion::releaseNativeDiffusionCache();
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
     disconnect(&m_process, nullptr, this, nullptr);
@@ -167,6 +178,15 @@ int GenerationController::previewTotalSteps() const { return m_previewTotalSteps
 bool GenerationController::foreground() const { return m_foreground; }
 QVariantMap GenerationController::inferenceStatus() const { return m_inferenceStatus.toVariantMap(); }
 bool GenerationController::keepsScreenAwake() const { return m_screenActive; }
+QVariantMap GenerationController::backgroundExecutionStatus() const
+{
+    auto status = m_runtime.backgroundActivity ? m_runtime.backgroundActivity->status() : QVariantMap();
+    status.insert("paused", m_nativePaused);
+    status.insert("waitingAtEngineBoundary", m_runtime.nativeExecutionControl->isWaiting());
+    status.insert("pausedMilliseconds", std::chrono::duration<double, std::milli>(
+        m_runtime.nativeExecutionControl->pausedDuration()).count());
+    return status;
+}
 void GenerationController::updateScreenActivity()
 {
     const bool active = m_runtime.nativeInference && busy() && m_foreground;
@@ -183,20 +203,49 @@ void GenerationController::setInferenceStatus(QJsonObject status)
 }
 void GenerationController::setForeground(bool foreground)
 {
-    if (m_foreground == foreground) return;
-    m_foreground = foreground;
-    if (!foreground && m_runtime.nativeInference) iiLocalDiffusion::releaseNativeDiffusionCache();
-    if (!foreground && m_runtime.nativeInference && busy()) {
-        m_interrupted = true;
-        m_cancelled = true;
-        m_nativeCancelled = true;
+    if (m_foreground == foreground) {
+        if (busy() && m_runtime.backgroundActivity && !foreground)
+            setNativePaused(!m_runtime.backgroundActivity->allowsBackgroundExecution());
+        return;
     }
+    m_foreground = foreground;
+    if (!foreground && m_runtime.nativeInference) {
+        if (!busy()) iiLocalDiffusion::releaseNativeDiffusionCache();
+        else if (m_runtime.backgroundActivity)
+            setNativePaused(!m_runtime.backgroundActivity->allowsBackgroundExecution());
+        else interruptNative();
+    }
+    if (foreground) setNativePaused(false);
     updateScreenActivity();
     m_residencyPending = true;
-    setInferenceStatus({{"state", foreground ? "preparing" : "background"},
-                        {"foreground", foreground}, {"ready", false}});
+    if (!busy())
+        setInferenceStatus({{"state", foreground ? "preparing" : "background"},
+                            {"foreground", foreground}, {"ready", false}});
     emit foregroundChanged();
     QTimer::singleShot(0, this, &GenerationController::pump);
+}
+void GenerationController::setNativePaused(bool paused)
+{
+    if (m_nativePaused == paused || m_cancelled) return;
+    m_nativePaused = paused;
+    m_runtime.nativeExecutionControl->setPaused(paused);
+    if (paused) {
+        m_resumeInferenceStatus = m_inferenceStatus;
+        if (m_nativeDeadline.isActive()) m_nativeTimeRemaining = m_nativeDeadline.remainingTime();
+        m_nativeDeadline.stop();
+        setInferenceStatus({{"state", "paused"}, {"ready", false}, {"backend", "native"}});
+    } else if (busy()) {
+        if (!m_nativeWatcher.isFinished()) m_nativeDeadline.start(std::max(1, m_nativeTimeRemaining));
+        setInferenceStatus(m_resumeInferenceStatus);
+    }
+}
+void GenerationController::interruptNative()
+{
+    if (!busy() || m_cancelled) return;
+    m_interrupted = true;
+    m_cancelled = true;
+    m_nativeCancelled = true;
+    setInferenceStatus({{"state", "cancelling"}, {"ready", false}, {"backend", "native"}});
 }
 bool GenerationController::runtimeAvailable() const
 {
@@ -552,20 +601,36 @@ void GenerationController::startNative(const QString &model)
     m_active["generation"] = QJsonObject{{"backend", "iiLocalDiffusion-native"},
         {"model_path", model}, {"seed", QString::number(request.seed)}};
     const auto id = m_active.value("id").toString();
-    setInferenceStatus({{"state", "loading"}, {"ready", false}, {"backend", "native"}});
-    const auto generate = m_runtime.nativeGenerate ? m_runtime.nativeGenerate : iiLocalDiffusion::generateNativeImageWithProgress;
+    if (m_runtime.backgroundActivity) {
+        const QPointer<GenerationController> self(this);
+        m_backgroundActivityActive = true;
+        m_runtime.backgroundActivity->begin(id, [self, id] {
+            if (self && self->m_active.value("id") == id) self->interruptNative();
+        });
+    }
+    const QJsonObject loading{{"state", "loading"}, {"ready", false}, {"backend", "native"}};
+    if (m_nativePaused) m_resumeInferenceStatus = loading;
+    else setInferenceStatus(loading);
+    const auto control = m_runtime.nativeExecutionControl;
+    const auto generate = m_runtime.nativeGenerate ? m_runtime.nativeGenerate
+        : [control](const auto &request, const auto &cancelled, const auto &progress) {
+            return iiLocalDiffusion::generateNativeImageWithExecutionControl(request, cancelled, progress, control);
+        };
     m_nativeWatcher.setFuture(QtConcurrent::run([this, request, id, generate] {
         try {
             return generate(request, m_nativeCancelled, [this, id](const iiLocalDiffusion::NativeGenerationProgress &event) {
                 QMetaObject::invokeMethod(this, [this, id, event] {
                     if (m_active.value("id") != id || m_cancelled || m_nativeTimedOut) return;
+                    if (m_backgroundActivityActive) m_runtime.backgroundActivity->update(event);
                     using Stage = iiLocalDiffusion::NativeGenerationStage;
                     const char *state = event.stage == Stage::Waiting ? "waiting-engine"
                         : event.stage == Stage::Preparing ? "preparing-model"
                         : event.stage == Stage::Loading ? "loading" : event.stage == Stage::Encoding ? "encoding"
                         : event.stage == Stage::Decoding ? "decoding" : "denoising";
-                    setInferenceStatus({{"state", state}, {"ready", false}, {"backend", "native"},
-                        {"step", event.step}, {"total", event.total}});
+                    const QJsonObject status{{"state", state}, {"ready", false}, {"backend", "native"},
+                        {"step", event.step}, {"total", event.total}};
+                    if (m_nativePaused) m_resumeInferenceStatus = status;
+                    else setInferenceStatus(status);
                     if (event.stage == Stage::Denoising && event.total == m_active.value("steps").toInt()
                         && event.step >= m_previewStep && event.step <= event.total) {
                         m_previewStep = event.step;
@@ -584,7 +649,8 @@ void GenerationController::startNative(const QString &model)
             return result;
         }
     }));
-    m_nativeDeadline.start(std::max(1, request.timeoutMilliseconds));
+    m_nativeTimeRemaining = std::max(1, request.timeoutMilliseconds);
+    if (!m_nativePaused) m_nativeDeadline.start(m_nativeTimeRemaining);
 }
 
 void GenerationController::finishNative()
@@ -604,7 +670,7 @@ void GenerationController::finishNative()
     m_active["generation"] = generation;
     setInferenceStatus({{"state", "idle"}, {"ready", false}, {"backend", "native"}});
     if (m_nativeTimedOut) { finish("failed", tr("Image generation exceeded its time limit. Try again with a smaller model.")); return; }
-    if (m_interrupted) { finish("interrupted", tr("Generation stopped when Dreamscapes moved to the background. Keep the app open and try again.")); return; }
+    if (m_interrupted) { finish("interrupted", tr("The system ended background generation. Return to Dreamscapes and try again.")); return; }
     if (m_cancelled || result.cancelled) { finish("cancelled"); return; }
     if (!result.error.empty()) { finish("failed", QString::fromStdString(result.error)); return; }
     QString error;
@@ -789,10 +855,17 @@ void GenerationController::finish(const QString &state, const QString &error)
     updateJob(m_active);
     fail(error);
     m_active = {};
+    m_runtime.nativeExecutionControl->setPaused(false);
+    m_nativePaused = false;
     updateScreenActivity();
     if (m_foreground) m_residencyPending = true;
     m_workerRequest.clear();
     clearWorkingFiles();
+    if (m_backgroundActivityActive) {
+        m_backgroundActivityActive = false;
+        m_runtime.backgroundActivity->end(state == "completed");
+    }
+    if (!m_foreground && m_runtime.nativeInference) iiLocalDiffusion::releaseNativeDiffusionCache();
     emit jobsChanged();
     QTimer::singleShot(0, this, &GenerationController::pump);
 }
