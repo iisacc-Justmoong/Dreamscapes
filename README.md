@@ -402,3 +402,7 @@ iOS 진단 probe는 앱의 논리적 화면 유지 상태와 별도로 실제 UI
 ## 앱 아이콘
 
 `resources/Appicon/Artboard 1.png`를 원본으로 macOS, iPhone/iPad, Android, Windows, Linux, WebAssembly용 아이콘을 생성하고 CMake와 Qt 런타임에 연결한다. 원본 Illustrator 파일은 `resources/Appicon/Appicon.ai`이다. 재생성 방법, 플랫폼별 마스크·크기와 패키징 설명은 [앱 아이콘 문서](resources/Appicon/README.md)를 참조한다. `Dreamscapes.AppIcons`는 원본 해시, 자산 규격, Android의 Activity·FileProvider 보존과 웹의 반복 패키징을 검사한다.
+
+## 로컬 MCP 제어
+
+데스크톱 POSIX 빌드는 iiLocalLLM 0.10.0으로 실행 중인 Dreamscapes의 컨트롤러를 인증된 로컬 MCP 도구로 제공한다. 자동 발견, 입력·권한·취소 계약과 실제 앱 실행 테스트는 [Mcp.md](docs/Mcp.md)에 기록한다. `IILOCALLLM_DISABLE_APP_MCP=1`로 비활성화할 수 있다.

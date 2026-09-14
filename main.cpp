@@ -8,6 +8,9 @@
 #include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#ifdef DREAMSCAPES_WITH_LOCAL_MCP
+#include "App/Mcp/DreamscapesMcp.h"
+#endif
 #ifdef DREAMSCAPES_LOCAL_RUNTIME_PROBE
 void dreamscapesLocalRuntimeProbe(QObject *root);
 #endif
@@ -20,6 +23,10 @@ int main(int argc, char *argv[])
     application.moduleUri = QStringLiteral("Dreamscapes");
     application.rootObject = QStringLiteral("Main");
     application.configureEngine = [](QQmlApplicationEngine &engine) {
+#ifdef DREAMSCAPES_WITH_LOCAL_MCP
+        QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
+            [&engine](QObject* root, const QUrl&) { if (root) installDreamscapesMcp(root, &engine); });
+#endif
         QGuiApplication::setWindowIcon(QIcon(QStringLiteral(":/branding/Dreamscapes.png")));
         QGuiApplication::setDesktopFileName(QStringLiteral("com.iisacc.dreamscapes"));
 #ifdef DREAMSCAPES_LOCAL_RUNTIME_PROBE

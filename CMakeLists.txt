@@ -278,3 +278,27 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
         DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
     add_test(NAME Dreamscapes.PhotoLibrary COMMAND DreamscapesPhotoLibraryTests)
 endif()
+
+# Running desktop apps publish authenticated same-user MCP endpoints.
+if(UNIX AND NOT IOS AND NOT ANDROID AND NOT EMSCRIPTEN)
+    find_package(iiLocalLLM 0.10.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLocalLLM")
+    target_sources(Dreamscapes PRIVATE App/Mcp/DreamscapesMcp.cpp App/Mcp/DreamscapesMcp.h)
+    target_link_libraries(Dreamscapes PRIVATE iiLocalLLM::iiLocalLLM)
+    target_compile_definitions(Dreamscapes PRIVATE DREAMSCAPES_WITH_LOCAL_MCP=1)
+    if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+        # Existing UI tests must not advertise fixtures to the user's live agent.
+        get_property(_existing_app_tests DIRECTORY PROPERTY TESTS)
+        set_property(TEST ${_existing_app_tests} APPEND PROPERTY ENVIRONMENT "IILOCALLLM_DISABLE_APP_MCP=1")
+        qt_add_executable(DreamscapesMcpTests tests/tst_mcp.cpp)
+        target_link_libraries(DreamscapesMcpTests PRIVATE Qt6::Test iiLocalLLM::iiLocalLLM iiSocietyContainer::iiSocietyContainer)
+        target_compile_definitions(DreamscapesMcpTests PRIVATE
+            MCP_APP_EXECUTABLE="$<TARGET_FILE:Dreamscapes>"
+            MCP_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+        target_compile_definitions(DreamscapesMcpTests PRIVATE
+            MCP_GENERATOR_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/App/Generation/fixtures/generate.py")
+        target_link_libraries(DreamscapesMcpTests PRIVATE Qt6::Gui)
+        add_dependencies(DreamscapesMcpTests Dreamscapes)
+        add_test(NAME Dreamscapes.Mcp COMMAND DreamscapesMcpTests)
+        set_tests_properties(Dreamscapes.Mcp PROPERTIES TIMEOUT 90)
+    endif()
+endif()
