@@ -1,4 +1,5 @@
 #include "GenerationController.h"
+#include "SocietyGenerationStorage.h"
 #include <QtConcurrent/QtConcurrentRun>
 #include <QRandomGenerator>
 #include <QPointer>
@@ -21,6 +22,7 @@
 #include <QCryptographicHash>
 #include <QUuid>
 #include <algorithm>
+#include <limits>
 #if defined(Q_OS_UNIX) && !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
 #include <signal.h>
 #endif
@@ -56,8 +58,10 @@ GenerationRuntime defaultRuntime()
 #if defined(Q_OS_IOS)
     runtime.screenActivity = nativeGenerationScreenActivity();
     runtime.backgroundActivity = nativeGenerationBackgroundActivity();
-    runtime.nativeQ8CacheDirectory = QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation))
-        .filePath("iiLocalDiffusion/q8");
+    const QFileInfo previousCache(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+    // Normalize OS aliases such as /var before checking for redirected cache entries.
+    runtime.legacyQ8CacheDirectory = QDir(previousCache.exists()
+        ? previousCache.canonicalFilePath() : previousCache.absoluteFilePath()).filePath("iiLocalDiffusion/q8");
 #endif
     runtime.executable = qEnvironmentVariable("IILD_GENERATOR_EXECUTABLE");
     if (runtime.executable.isEmpty())
@@ -84,6 +88,12 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
     connect(&m_storagePoll, &QTimer::timeout, this, &GenerationController::pollStorage);
     connect(&m_nativeWatcher, &QFutureWatcher<iiLocalDiffusion::NativeGenerationResult>::finished,
             this, &GenerationController::finishNative);
+    connect(&m_cacheMigrationWatcher, &QFutureWatcher<QString>::finished, this, [this] {
+        m_cacheMigrationActive = false;
+        const auto error = m_cacheMigrationWatcher.result();
+        if (!error.isEmpty()) fail(error);
+        QTimer::singleShot(0, this, &GenerationController::pump);
+    });
     m_nativeDeadline.setSingleShot(true);
     connect(&m_nativeDeadline, &QTimer::timeout, this, [this] {
         if (!busy() || m_nativeWatcher.isFinished()) return;
@@ -92,8 +102,6 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
         setInferenceStatus({{"state", "cancelling"}, {"ready", false}, {"backend", "native"}});
     });
     m_storagePoll.start();
-    if (m_runtime.temporaryDirectory.isEmpty())
-        m_runtime.temporaryDirectory = qEnvironmentVariable("DREAMSCAPES_TEMP_DIRECTORY", QDir::tempPath());
     if (m_runtime.backgroundActivity) {
         const QPointer<GenerationController> self(this);
         m_runtime.backgroundActivity->observeForeground([self](bool foreground) {
@@ -153,6 +161,9 @@ GenerationController::~GenerationController()
 {
     if (m_screenActive && m_runtime.screenActivity) m_runtime.screenActivity(false);
     m_nativeCancelled = true;
+    m_cacheMigrationCancelled = true;
+    disconnect(&m_cacheMigrationWatcher, nullptr, this, nullptr);
+    m_cacheMigrationWatcher.waitForFinished();
     disconnect(&m_nativeWatcher, nullptr, this, nullptr);
     m_nativeWatcher.waitForFinished();
     if (m_backgroundActivityActive) m_runtime.backgroundActivity->end(false);
@@ -324,7 +335,7 @@ QVariantMap GenerationController::resultForImage(const QJsonObject &job, const Q
 
 bool GenerationController::connectStorage(const QString &path)
 {
-    if (busy()) return fail(tr("Wait for the current generation or cancel it before changing storage."));
+    if (busy() || m_cacheMigrationActive) return fail(tr("Wait for the current storage operation before changing storage."));
     QString error;
     m_storageSelection = path;
     if (!m_fileSystem.open(path)) return fail(m_fileSystem.errorString());
@@ -340,6 +351,7 @@ bool GenerationController::connectStorage(const QString &path)
     }
     emit storageChanged();
     refreshModels();
+    startLegacyCacheMigration();
     emit jobsChanged();
     return true;
 }
@@ -355,7 +367,7 @@ void GenerationController::pollStorage()
 }
 void GenerationController::refreshModels()
 {
-    if (busy()) return;
+    if (busy() || m_cacheMigrationActive) return;
     QString error;
     auto storage = m_fileSystem.open(m_storageSelection)
         ? SharedStorage::open(m_fileSystem.rootPath(), &error) : std::optional<SharedStorage>();
@@ -377,12 +389,32 @@ void GenerationController::refreshModels()
     if (std::none_of(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == m_selected; }))
         m_selected = m_models.isEmpty() ? QString() : m_models.first().id;
     fail(error);
-    if (storageChangedNow) emit storageChanged();
+    if (storageChangedNow) {
+        emit storageChanged();
+        startLegacyCacheMigration();
+    }
     if (changed) {
         emit modelsChanged();
         m_residencyPending = true;
         QTimer::singleShot(0, this, &GenerationController::pump);
     }
+}
+void GenerationController::startLegacyCacheMigration()
+{
+    const auto source = m_runtime.legacyQ8CacheDirectory;
+    if (!m_storage || m_cacheMigrationActive || source.isEmpty()
+        || (!QFileInfo::exists(source) && !QFileInfo(source).isSymLink())) return;
+    QString error;
+    const auto target = m_storage->ensureDirectory(StoreSection::Models,
+        ".society-runtime/iiLocalDiffusion/q8", &error);
+    if (target.isEmpty()) { fail(error); return; }
+    m_cacheMigrationActive = true;
+    m_cacheMigrationCancelled = false;
+    m_cacheMigrationWatcher.setFuture(QtConcurrent::run([this, source, target] {
+        QString error;
+        dreamscapes::migrateLegacyQ8Cache(source, target, m_cacheMigrationCancelled, &error);
+        return error;
+    }));
 }
 bool GenerationController::discardLegacyStorage()
 {
@@ -469,18 +501,13 @@ void GenerationController::updateJob(QJsonObject job)
 
 bool GenerationController::createWorkingFiles(QString *error)
 {
-    const QFileInfo base(m_runtime.temporaryDirectory);
-    const auto path = base.canonicalFilePath();
-    if (!base.isAbsolute() || !base.isDir() || path.isEmpty()
-        || path == containerPath() || path.startsWith(containerPath() + '/')) {
-        *error = tr("Use an available app temporary directory outside Society.");
-        return false;
-    }
+    const auto path = m_storage ? dreamscapes::generationRuntimeDirectory(*m_storage, error) : QString();
+    if (path.isEmpty()) return false;
     m_workDirectory = std::make_unique<QTemporaryDir>(QDir(path).filePath("dreamscapes-generation-XXXXXX"));
     if (!m_workDirectory->isValid()) { *error = m_workDirectory->errorString(); return false; }
     for (const auto &name : {"output", "runtime", "cache"}) {
         if (!QDir(m_workDirectory->path()).mkdir(name)) {
-            *error = tr("Cannot prepare the app's temporary generation files.");
+            *error = tr("Cannot prepare generation files in Society.");
             return false;
         }
     }
@@ -488,6 +515,18 @@ bool GenerationController::createWorkingFiles(QString *error)
     m_previewDirectory = std::make_unique<QTemporaryDir>(m_workDirectory->filePath("preview-XXXXXX"));
     if (!m_previewDirectory->isValid()) { *error = m_previewDirectory->errorString(); return false; }
     return true;
+}
+
+QStringList GenerationController::resourceArguments(QString *error)
+{
+    if (!m_storage) { *error = tr("Open Society to access generation resources."); return {}; }
+    const auto resources = dreamscapes::generationResourceDirectory(*m_storage, error);
+    if (resources.isEmpty()) return {};
+    const auto manifest = m_storage->filePath(StoreSection::Models,
+        ".generation-resources/iiLocalDiffusion/generation-defaults.json", error);
+    if (manifest.isEmpty()) return {};
+    return {"--generation-resources", resources,
+        QFileInfo::exists(manifest) ? "--default-modifiers" : "--no-default-modifiers"};
 }
 
 void GenerationController::clearWorkingFiles()
@@ -544,7 +583,7 @@ QString GenerationController::enqueue(const QString &prompt, const QString &aspe
 void GenerationController::pump()
 {
     if (m_runtime.nativeInference && !m_foreground) return;
-    if (!m_storage || busy() || !m_controlId.isEmpty() || !runtimeAvailable()) return;
+    if (!m_storage || busy() || m_cacheMigrationActive || !m_controlId.isEmpty() || !runtimeAvailable()) return;
     QString error;
     const auto queued = std::find_if(m_jobs.cbegin(), m_jobs.cend(), [](const auto &job) { return job.value("state") == "queued"; });
     if (queued == m_jobs.cend()) { prepareForeground(); return; }
@@ -571,6 +610,8 @@ void GenerationController::pump()
         "--output-dir", m_output};
     arguments.append({"--cache-dir", m_workDirectory->filePath("cache"),
         "--preview-dir", m_previewDirectory->path()});
+    arguments.append(resourceArguments(&error));
+    if (!error.isEmpty()) { finish("failed", error); return; }
     if (m_active.value("model").toObject().value("format") == "safetensors")
         arguments.append({"--backend", "local", "--work-dir", m_workDirectory->filePath("runtime")});
     m_workerRequest = QJsonDocument(QJsonObject{{"schema", "iild-worker-request-v1"},
@@ -596,8 +637,19 @@ void GenerationController::startNative(const QString &model)
     const auto probeSeed = qEnvironmentVariable("DREAMSCAPES_PROBE_SEED").toLongLong(&validSeed);
     if (validSeed) request.seed = probeSeed;
 #endif
-    request.timeoutMilliseconds = m_runtime.nativeTimeoutMilliseconds;
-    request.q8CacheDirectory = QFile::encodeName(m_runtime.nativeQ8CacheDirectory).toStdString();
+    // This controller owns the inactivity deadline. The SDK's independent
+    // total-duration limit must allow a long generation that keeps progressing.
+    request.timeoutMilliseconds = std::numeric_limits<int>::max();
+    QString storageError;
+    const auto cache = m_storage->ensureDirectory(StoreSection::Models,
+        ".society-runtime/iiLocalDiffusion/q8", &storageError);
+    if (cache.isEmpty()) { finish("failed", storageError); return; }
+    const auto resources = resourceArguments(&storageError);
+    if (resources.isEmpty()) { finish("failed", storageError); return; }
+    request.q8CacheDirectory = QFile::encodeName(cache).toStdString();
+    iiLocalDiffusion::NativeGenerationOptions options;
+    options.resourceDirectory = QFile::encodeName(resources[1]).toStdString();
+    options.defaultModifiers = resources[2] == "--default-modifiers";
     m_active["generation"] = QJsonObject{{"backend", "iiLocalDiffusion-native"},
         {"model_path", model}, {"seed", QString::number(request.seed)}};
     const auto id = m_active.value("id").toString();
@@ -612,17 +664,31 @@ void GenerationController::startNative(const QString &model)
     if (m_nativePaused) m_resumeInferenceStatus = loading;
     else setInferenceStatus(loading);
     const auto control = m_runtime.nativeExecutionControl;
+    const auto backend = m_runtime.backgroundActivity && m_runtime.backgroundActivity->requiresCpuExecution()
+        ? iiLocalDiffusion::NativeComputeBackend::Cpu : iiLocalDiffusion::NativeComputeBackend::Automatic;
+    auto generation = m_active.value("generation").toObject();
+    generation["computeBackend"] = backend == iiLocalDiffusion::NativeComputeBackend::Cpu ? "cpu" : "automatic";
+    m_active["generation"] = generation;
     const auto generate = m_runtime.nativeGenerate ? m_runtime.nativeGenerate
-        : [control](const auto &request, const auto &cancelled, const auto &progress) {
-            return iiLocalDiffusion::generateNativeImageWithExecutionControl(request, cancelled, progress, control);
+        : [control, backend](const auto &request, const auto &options, const auto &cancelled, const auto &progress) {
+            return iiLocalDiffusion::generateNativeImageWithOptions(request, options, backend, cancelled, progress, control);
         };
-    m_nativeWatcher.setFuture(QtConcurrent::run([this, request, id, generate] {
+    const auto legacyCache = m_runtime.legacyQ8CacheDirectory;
+    m_nativeWatcher.setFuture(QtConcurrent::run([this, request, options, id, generate, legacyCache, cache] {
         try {
-            return generate(request, m_nativeCancelled, [this, id](const iiLocalDiffusion::NativeGenerationProgress &event) {
+            QString migrationError;
+            if (!dreamscapes::migrateLegacyQ8Cache(legacyCache, cache, m_nativeCancelled, &migrationError))
+                throw std::runtime_error(migrationError.toStdString());
+            return generate(request, options, m_nativeCancelled, [this, id](const iiLocalDiffusion::NativeGenerationProgress &event) {
                 QMetaObject::invokeMethod(this, [this, id, event] {
                     if (m_active.value("id") != id || m_cancelled || m_nativeTimedOut) return;
                     if (m_backgroundActivityActive) m_runtime.backgroundActivity->update(event);
                     using Stage = iiLocalDiffusion::NativeGenerationStage;
+                    if (!m_nativePaused && event.stage != Stage::Waiting
+                        && event.step > 0 && event.total >= event.step) {
+                        m_nativeTimeRemaining = std::max(1, m_runtime.nativeTimeoutMilliseconds);
+                        m_nativeDeadline.start(m_nativeTimeRemaining);
+                    }
                     const char *state = event.stage == Stage::Waiting ? "waiting-engine"
                         : event.stage == Stage::Preparing ? "preparing-model"
                         : event.stage == Stage::Loading ? "loading" : event.stage == Stage::Encoding ? "encoding"
@@ -649,7 +715,7 @@ void GenerationController::startNative(const QString &model)
             return result;
         }
     }));
-    m_nativeTimeRemaining = std::max(1, request.timeoutMilliseconds);
+    m_nativeTimeRemaining = std::max(1, m_runtime.nativeTimeoutMilliseconds);
     if (!m_nativePaused) m_nativeDeadline.start(m_nativeTimeRemaining);
 }
 
@@ -669,7 +735,7 @@ void GenerationController::finishNative()
     generation["performance"] = performance;
     m_active["generation"] = generation;
     setInferenceStatus({{"state", "idle"}, {"ready", false}, {"backend", "native"}});
-    if (m_nativeTimedOut) { finish("failed", tr("Image generation exceeded its time limit. Try again with a smaller model.")); return; }
+    if (m_nativeTimedOut) { finish("failed", tr("Image generation stopped making progress. Try again with a smaller model.")); return; }
     if (m_interrupted) { finish("interrupted", tr("The system ended background generation. Return to Dreamscapes and try again.")); return; }
     if (m_cancelled || result.cancelled) { finish("cancelled"); return; }
     if (!result.error.empty()) { finish("failed", QString::fromStdString(result.error)); return; }
@@ -692,13 +758,8 @@ bool GenerationController::startWorker(QString *error)
 {
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
     if (m_process.state() == QProcess::NotRunning) {
-        const QFileInfo base(m_runtime.temporaryDirectory);
-        const auto path = base.canonicalFilePath();
-        if (!base.isAbsolute() || !base.isDir() || path.isEmpty()
-            || path == containerPath() || path.startsWith(containerPath() + '/')) {
-            *error = tr("Use an available app temporary directory outside Society.");
-            return false;
-        }
+        const auto path = m_storage ? dreamscapes::generationRuntimeDirectory(*m_storage, error) : QString();
+        if (path.isEmpty()) return false;
         // Python imports/JIT may retain temporary paths. Keep their directory valid
         // for the SDK worker's lifetime, separately from disposable per-job files.
         m_workerDirectory = std::make_unique<QTemporaryDir>(
@@ -706,6 +767,16 @@ bool GenerationController::startWorker(QString *error)
         if (!m_workerDirectory->isValid()) { *error = m_workerDirectory->errorString(); return false; }
         auto environment = m_process.processEnvironment();
         for (const auto &name : {"TMPDIR", "TEMP", "TMP"}) environment.insert(name, m_workerDirectory->path());
+        // Backend/model caches also belong to Society. The client consumes
+        // already available local sources; missing models are managed in Society.
+        for (const auto &name : {"HF_HOME", "HUGGINGFACE_HUB_CACHE", "TRANSFORMERS_CACHE", "TORCH_HOME",
+                 "TORCH_EXTENSIONS_DIR", "TRITON_CACHE_DIR", "XDG_CACHE_HOME"})
+            environment.insert(name, m_workerDirectory->filePath("cache/" + QString::fromLatin1(name)));
+        environment.insert("HF_HUB_OFFLINE", "1");
+        environment.insert("TRANSFORMERS_OFFLINE", "1");
+        const auto resources = resourceArguments(error);
+        if (resources.isEmpty()) return false;
+        environment.insert("IILD_GENERATION_RESOURCES", resources[1]);
         environment.insert("PYTHONDONTWRITEBYTECODE", "1");
         // Read installed bytecode caches; a fresh prefix would force source recompilation.
         environment.remove("PYTHONPYCACHEPREFIX");
@@ -748,6 +819,8 @@ void GenerationController::prepareForeground()
         arguments = {"--model-path", model, "--device", m_runtime.device,
                      "--width", QString::number(m_runtime.imageExtent), "--height", QString::number(m_runtime.imageExtent),
                      "--steps", QString::number(m_runtime.steps)};
+        arguments.append(resourceArguments(&error));
+        if (!error.isEmpty()) { setInferenceStatus({{"state", "error"}, {"ready", false}, {"error", error}}); return; }
         if (selected->format == "safetensors") arguments.append({"--backend", "local"});
     }
     m_controlId = "foreground-" + QUuid::createUuid().toString(QUuid::WithoutBraces);
@@ -825,8 +898,8 @@ bool GenerationController::publishImages(const QStringList &sources, QJsonObject
         images.append("Generation History/" + name);
     }
     for (qsizetype i = 0; i < sources.size(); ++i) {
-        // The app temporary directory and Society may be on different volumes.
-        // Only final image bytes are committed; engine working files stay in the app.
+        // Only validated final images are published into Generation History.
+        // Engine intermediates remain in Society's private runtime area.
         QFile source(sources[i]);
         QSaveFile destination(destinations[i]);
         bool copied = source.open(QIODevice::ReadOnly) && destination.open(QIODevice::WriteOnly);
@@ -883,6 +956,9 @@ void GenerationController::readProcessOutput()
         // Progress bars can leave a carriage-return prefix on the merged stream.
         const auto start = line.indexOf("IILD_PREVIEW ");
         if (start >= 0 && line.size() - start <= 4096) acceptPreview(line.mid(start + 13));
+        const auto nativeProgress = line.indexOf("IILD_NATIVE_PROGRESS ");
+        if (nativeProgress >= 0 && line.size() - nativeProgress <= 4096)
+            acceptNativeWorkerProgress(line.mid(nativeProgress + 21));
         const auto ready = line.indexOf("IILD_READY ");
         if (ready >= 0 && line.size() - ready <= 4096
             && QJsonDocument::fromJson(line.mid(ready + 11)).object().value("schema") == "iild-worker-v1") {
@@ -897,6 +973,25 @@ void GenerationController::readProcessOutput()
     // A 4,000-character SDK error can expand to 48 KB when JSON escapes Unicode.
     m_pendingOutput = m_pendingOutput.right(65536);
 #endif
+}
+
+void GenerationController::acceptNativeWorkerProgress(const QByteArray &line)
+{
+    if (!busy() || m_cancelled || !m_controlId.isEmpty()) return;
+    const auto event = QJsonDocument::fromJson(line).object();
+    if (event.value("schema") != "iild-native-progress-v1") return;
+    const auto stage = event.value("stage").toString();
+    if (!QStringList{"waiting", "loading", "encoding", "denoising", "decoding", "preparing-model"}.contains(stage)) return;
+    const int step = event.value("step").toInt(-1), total = event.value("total").toInt(-1);
+    if (step < 0 || total < 0 || step > total || total > 1000000) return;
+    if (stage == "denoising") {
+        if (total != m_active.value("steps").toInt() || step <= m_previewStep) return;
+        m_previewStep = step;
+        m_previewTotalSteps = total;
+        emit previewChanged();
+    }
+    setInferenceStatus({{"state", stage}, {"ready", false}, {"backend", "native"},
+                        {"step", step}, {"total", total}});
 }
 
 void GenerationController::sendWorkerRequest()

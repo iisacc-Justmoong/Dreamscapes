@@ -1,4 +1,5 @@
 #include <QDir>
+#include <QDirIterator>
 #include <QGuiApplication>
 #include <QImage>
 #include <QJSValue>
@@ -697,7 +698,8 @@ void GuiTests::generateButtonUsesSocietyStorage()
     QTRY_COMPARE(item(window, "generatedImage")->property("status").toInt(), 1);
     QTRY_VERIFY(window->property("resultVisible").toBool());
     QVERIFY(controller->latestImage().toLocalFile().startsWith(storage.filePath("Generation History/")));
-    QVERIFY(QDir(storage.filePath("Files")).isEmpty());
+    QVERIFY(!QDirIterator(storage.filePath("Files"), QDir::Files | QDir::Hidden | QDir::System,
+                          QDirIterator::Subdirectories).hasNext());
     QVERIFY(QDir(storage.filePath("Asset Library")).isEmpty());
 
     auto *preview = item(window, "generatedImage");

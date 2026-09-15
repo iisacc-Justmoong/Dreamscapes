@@ -14,6 +14,7 @@ public:
     virtual void observeForeground(std::function<void(bool)> changed) = 0;
     virtual void begin(const QString &job, std::function<void()> expired) = 0;
     virtual bool allowsBackgroundExecution() const = 0;
+    virtual bool requiresCpuExecution() const { return false; }
     virtual void update(const iiLocalDiffusion::NativeGenerationProgress &progress) = 0;
     virtual void end(bool success) = 0;
     virtual QVariantMap status() const = 0;

@@ -21,6 +21,8 @@ parser.add_argument('--work-dir', type=pathlib.Path)
 parser.add_argument('--cache-dir', type=pathlib.Path)
 parser.add_argument('--preview-dir', type=pathlib.Path)
 parser.add_argument('--backend', choices=['local'])
+parser.add_argument('--generation-resources', type=pathlib.Path, required=True)
+parser.add_argument('--default-modifiers', action=argparse.BooleanOptionalAction, default=True)
 
 def generate(arguments, request_count=1):
     args = parser.parse_args(arguments)
@@ -34,12 +36,30 @@ def generate(arguments, request_count=1):
         time.sleep(0.3)
     if args.prompt == 'fail':
         sys.exit('inference fixture rejected this model')
+    if args.prompt == 'native-progress':
+        for stage, step, total in [('loading', 200, 685), ('encoding', 0, 0),
+                                   ('denoising', 1, args.steps), ('denoising', args.steps, args.steps),
+                                   ('decoding', 1, 18)]:
+            event = 'IILD_NATIVE_PROGRESS ' + json.dumps({'schema': 'iild-native-progress-v1',
+                    'stage': stage, 'step': step, 'total': total}) + '\n'
+            sys.stdout.write('progress\r' + event[:28])
+            sys.stdout.flush()
+            time.sleep(0.03)
+            sys.stdout.write(event[28:])
+            sys.stdout.flush()
+            time.sleep(0.05)
+        for stage, step, total in [('denoising', 2, 685), ('denoising', 0, args.steps),
+                                   ('denoising', args.steps + 1, args.steps), ('unknown', 0, 0)]:
+            print('IILD_NATIVE_PROGRESS ' + json.dumps({'schema': 'iild-native-progress-v1',
+                  'stage': stage, 'step': step, 'total': total}), flush=True)
 
     record = {key: str(value) if isinstance(value, pathlib.Path) else value for key, value in vars(args).items()}
     record.update(worker_pid=os.getpid(), request_count=request_count,
                   python_cache_prefix=os.environ.get('PYTHONPYCACHEPREFIX'),
                   dont_write_bytecode=os.environ.get('PYTHONDONTWRITEBYTECODE'),
-                  worker_temporary=os.environ.get('TMPDIR'))
+                  worker_temporary=os.environ.get('TMPDIR'),
+                  resource_environment=os.environ.get('IILD_GENERATION_RESOURCES'),
+                  hf_home=os.environ.get('HF_HOME'), hf_offline=os.environ.get('HF_HUB_OFFLINE'))
     (args.output_dir / 'generation.json').write_text(json.dumps(record))
     if args.prompt == 'empty':
         sys.exit(0)

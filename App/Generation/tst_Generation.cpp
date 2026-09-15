@@ -1,5 +1,6 @@
 #include "GenerationController.h"
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -23,7 +24,7 @@ QJsonObject read(const QString &path)
 }
 GenerationRuntime fakeRuntime()
 {
-    return {QStringLiteral(DREAMSCAPES_FAKE_GENERATOR), "cpu", 1, 64, {}, QStringLiteral(DREAMSCAPES_TEST_DIRECTORY)};
+    return {QStringLiteral(DREAMSCAPES_FAKE_GENERATOR), "cpu", 1, 64, {}};
 }
 QJsonObject recordedJob(const GenerationController &controller, const QString &id)
 {
@@ -53,6 +54,34 @@ class GenerationTests : public QObject
 {
     Q_OBJECT
 private slots:
+    void nativeWorkerReportsStagesWithoutInventingPreviewImages()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/native-worker-progress-XXXXXX");
+        QVERIFY(prepare(root));
+        auto runtime = fakeRuntime();
+        runtime.steps = 10;
+        GenerationController controller(runtime);
+        QVERIFY(controller.connectStorage(root.path()));
+        QList<int> steps;
+        QStringList phases;
+        connect(&controller, &GenerationController::previewChanged, this, [&] {
+            QVERIFY(controller.previewImage().isEmpty());
+            if (controller.previewStep()) {
+                QCOMPARE(controller.previewTotalSteps(), 10);
+                steps.append(controller.previewStep());
+            }
+        });
+        connect(&controller, &GenerationController::inferenceStatusChanged, this, [&] {
+            const auto status = controller.inferenceStatus();
+            if (status.value("backend").toString() == "native") phases.append(status.value("state").toString());
+        });
+        const auto id = controller.enqueue("native-progress", "9:16");
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 10000);
+        QCOMPARE(steps, QList<int>({1, 10}));
+        QCOMPARE(phases, QStringList({"loading", "encoding", "denoising", "denoising", "decoding"}));
+        QCOMPARE(QImage(controller.latestImage().toLocalFile()).size(), QSize(64, 112));
+    }
+
     void defaultResolutionReachesBothGenerationBackends_data()
     {
         QTest::addColumn<QString>("ratio");
@@ -74,10 +103,10 @@ private slots:
         QVERIFY(prepare(root));
         GenerationRuntime runtime;
         runtime.executable = QStringLiteral(DREAMSCAPES_FAKE_GENERATOR);
-        runtime.temporaryDirectory = QStringLiteral(DREAMSCAPES_TEST_DIRECTORY);
+
         runtime.nativeInference = native;
         iiLocalDiffusion::NativeGenerationRequest nativeRequest;
-        runtime.nativeGenerate = [&nativeRequest](const auto &request, const auto &, const auto &) {
+        runtime.nativeGenerate = [&nativeRequest](const auto &request, const auto &, const auto &, const auto &) {
             nativeRequest = request;
             return iiLocalDiffusion::NativeGenerationResult{
                 std::vector<std::uint8_t>(request.width * request.height * 3, 127), request.width, request.height};
@@ -418,11 +447,16 @@ private slots:
         for (const auto &key : {"work_dir", "cache_dir", "output_dir", "preview_dir"}) {
             const auto path = firstOutput.value(key).toString();
             QVERIFY(!path.isEmpty());
-            QVERIFY(!path.startsWith(root.path() + '/'));
+            QVERIFY(path.startsWith(root.filePath("Models/.society-runtime/iiLocalDiffusion/")));
             QVERIFY(!QFileInfo::exists(path));
         }
         QVERIFY(!QFileInfo::exists(root.filePath(".dreamscapes")));
         QCOMPARE(firstOutput.value("backend").toString(), QString("local"));
+        QCOMPARE(firstOutput.value("generation_resources").toString(), root.filePath("Models/.generation-resources/iiLocalDiffusion"));
+        QCOMPARE(firstOutput.value("resource_environment"), firstOutput.value("generation_resources"));
+        QVERIFY(!firstOutput.value("default_modifiers").toBool());
+        QVERIFY(firstOutput.value("hf_home").toString().startsWith(root.filePath("Models/.society-runtime/iiLocalDiffusion/")));
+        QCOMPARE(firstOutput.value("hf_offline").toString(), QString("1"));
         QVERIFY(!firstOutput.contains("startup_timeout"));
         const auto secondOutput = recordedJob(controller, second).value("generation").toObject();
         QCOMPARE(firstOutput.value("worker_pid"), secondOutput.value("worker_pid"));
@@ -433,7 +467,8 @@ private slots:
         QCOMPARE(secondOutput.value("model_path").toString(), root.filePath("Models/second.SAFETENSORS"));
         const auto request = recordedJob(controller, first);
         QCOMPARE(request.value("model").toObject().value("containerId").toString(), SharedStorage::open()->drive().identifier());
-        QVERIFY(QDir(root.filePath("Files")).isEmpty());
+        QVERIFY(!QDirIterator(root.filePath("Files"), QDir::Files | QDir::Hidden | QDir::System,
+                              QDirIterator::Subdirectories).hasNext());
         QVERIFY(QDir(root.filePath("Asset Library")).isEmpty());
         const auto history = QDir(root.filePath("Generation History")).entryList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden);
         QCOMPARE(history.size(), 2);
@@ -564,7 +599,8 @@ private slots:
         QVERIFY(QFile::link(root.filePath("Files"), root.filePath("Generation History")));
         GenerationController controller(fakeRuntime());
         QVERIFY(!controller.connectStorage(root.path()));
-        QVERIFY(QDir(root.filePath("Files")).isEmpty());
+        QVERIFY(!QDirIterator(root.filePath("Files"), QDir::Files | QDir::Hidden | QDir::System,
+                              QDirIterator::Subdirectories).hasNext());
     }
 
     void allImagesShareOneFlatHistoryAndAssetsAreUntouched()
@@ -732,7 +768,7 @@ private slots:
         QVERIFY(temporary.isValid());
         const auto original = QDir(root.path()).entryList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden);
         auto runtime = fakeRuntime();
-        runtime.temporaryDirectory = temporary.path();
+
         runtime.steps = 3;
         {
             GenerationController controller(runtime);
@@ -741,14 +777,14 @@ private slots:
             QTRY_VERIFY(!controller.previewImage().isEmpty());
             auto jobDirectory = QFileInfo(controller.previewImage().toLocalFile()).dir();
             QVERIFY(jobDirectory.cdUp());
-            QVERIFY(controller.previewImage().toLocalFile().startsWith(temporary.path() + '/'));
+            QVERIFY(controller.previewImage().toLocalFile().startsWith(root.filePath("Models/.society-runtime/iiLocalDiffusion/")));
             QCOMPARE(QDir(root.path()).entryList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden), original);
             QVERIFY(QDir(root.filePath("Generation History")).isEmpty());
             if (expected == "cancelled") QVERIFY(controller.cancel(id));
             if (expected != "closed") {
                 QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), expected, 10000);
                 QVERIFY(!QFileInfo::exists(jobDirectory.path()));
-                for (const auto &name : QDir(temporary.path()).entryList(QDir::AllEntries | QDir::NoDotAndDotDot))
+                for (const auto &name : QDir(root.filePath("Models/.society-runtime/iiLocalDiffusion")).entryList(QDir::AllEntries | QDir::NoDotAndDotDot))
                     QVERIFY(name.startsWith("dreamscapes-inference-"));
             }
         }
@@ -761,17 +797,28 @@ private slots:
         QVERIFY(reopened.jobs().isEmpty());
     }
 
-    void temporaryFilesCannotBePlacedInSociety()
+    void storageDirectoriesCannotBeRedirectedOutsideSociety_data()
     {
+        QTest::addColumn<QString>("directory");
+        QTest::newRow("runtime") << "Models/.society-runtime";
+        QTest::newRow("model-resources") << "Models/.generation-resources";
+    }
+    void storageDirectoriesCannotBeRedirectedOutsideSociety()
+    {
+        QFETCH(QString, directory);
         QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/invalid-temporary-XXXXXX");
         QVERIFY(prepare(root));
         auto runtime = fakeRuntime();
-        runtime.temporaryDirectory = root.filePath("Files");
+
         GenerationController controller(runtime);
         QVERIFY(controller.connectStorage(root.path()));
-        const auto id = controller.enqueue("must not create Society work files");
+        QTemporaryDir outside(DREAMSCAPES_TEST_DIRECTORY "/outside-runtime-XXXXXX");
+        QVERIFY(QFile::link(outside.path(), root.filePath(directory)));
+        const auto id = controller.enqueue("must not follow redirected runtime storage");
         QTRY_COMPARE(state(controller, id), QString("failed"));
-        QVERIFY(QDir(root.filePath("Files")).isEmpty());
+        QVERIFY(QDir(outside.path()).isEmpty());
+        QVERIFY(!QDirIterator(root.filePath("Files"), QDir::Files | QDir::Hidden | QDir::System,
+                              QDirIterator::Subdirectories).hasNext());
         QVERIFY(QDir(root.filePath("Generation History")).isEmpty());
     }
 
@@ -779,7 +826,7 @@ private slots:
     {
         const auto root = qEnvironmentVariable("DREAMSCAPES_REAL_SMOKE_CONTAINER");
         if (root.isEmpty()) QSKIP("Opt-in foreground preparation requires a local Society model fixture.");
-        GenerationRuntime runtime{qEnvironmentVariable("IILD_GENERATOR_EXECUTABLE"), "auto", 1, 64, {}, QStringLiteral(DREAMSCAPES_TEST_DIRECTORY)};
+        GenerationRuntime runtime{qEnvironmentVariable("IILD_GENERATOR_EXECUTABLE"), "auto", 1, 64, {}};
         GenerationController controller(runtime);
         QVERIFY(controller.connectStorage(root));
         const auto before = QDir(root + "/Generation History").entryList(QDir::Files);
@@ -806,7 +853,7 @@ private slots:
     {
         const auto root = qEnvironmentVariable("DREAMSCAPES_REAL_SMOKE_CONTAINER");
         if (root.isEmpty()) QSKIP("Opt-in real inference requires a prepared Society model fixture.");
-        GenerationRuntime runtime{qEnvironmentVariable("IILD_GENERATOR_EXECUTABLE"), "cpu", 1, 64, {}, QStringLiteral(DREAMSCAPES_TEST_DIRECTORY)};
+        GenerationRuntime runtime{qEnvironmentVariable("IILD_GENERATOR_EXECUTABLE"), "cpu", 1, 64, {}};
         QVERIFY(!runtime.executable.isEmpty());
         GenerationController controller(runtime);
         QVERIFY2(controller.connectStorage(root), qPrintable(controller.errorString()));

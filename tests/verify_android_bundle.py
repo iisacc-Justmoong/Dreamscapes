@@ -6,9 +6,11 @@ import re
 import subprocess
 import tempfile
 import zipfile
+from verify_generation_resources import verify_archive
 
 
 def verify(apk, ndk):
+    verify_archive(apk)
     readers = list((ndk / "toolchains/llvm/prebuilt").glob("*/bin/llvm-readelf"))
     if len(readers) != 1:
         raise RuntimeError("The NDK must provide one host llvm-readelf executable")

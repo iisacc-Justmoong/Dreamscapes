@@ -1,4 +1,5 @@
 #include "GenerationController.h"
+#include "SocietyGenerationStorage.h"
 #include <iiSocietyHelper.h>
 #include <iiSocietySync.h>
 #include <QFile>
@@ -15,6 +16,7 @@ namespace {
 class BackgroundActivity final : public GenerationBackgroundActivity {
 public:
     bool permitted = true;
+    bool cpuOnly = false;
     int starts = 0;
     QList<bool> completions;
     int updates = 0;
@@ -23,6 +25,7 @@ public:
     void observeForeground(std::function<void(bool)> changed) override { foregroundChanged = std::move(changed); }
     void begin(const QString &, std::function<void()> expired) override { ++starts; expiration = std::move(expired); }
     bool allowsBackgroundExecution() const override { return permitted && starts > completions.size(); }
+    bool requiresCpuExecution() const override { return cpuOnly; }
     void update(const iiLocalDiffusion::NativeGenerationProgress &) override { ++updates; }
     void end(bool success) override { completions.append(success); }
     QVariantMap status() const override { return {}; }
@@ -43,6 +46,150 @@ void waitForCancellation(const std::atomic_bool &cancelled)
 class LocalSocietyTests : public QObject {
     Q_OBJECT
 private slots:
+    void legacyCacheMovesOnConnectionWithoutGeneration() {
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/society-cache-upgrade-XXXXXX");
+        QTemporaryDir previous(DREAMSCAPES_TEST_DIRECTORY "/private-cache-upgrade-XXXXXX");
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+        QFile cached(previous.filePath("converted.gguf"));
+        QVERIFY(cached.open(QIODevice::WriteOnly)); cached.write("derived model"); cached.close();
+        GenerationRuntime runtime;
+        runtime.nativeInference = true;
+        runtime.legacyQ8CacheDirectory = previous.path();
+        GenerationController app(runtime);
+        QVERIFY(app.connectStorage(storage.path()));
+        QTRY_VERIFY_WITH_TIMEOUT(!QFileInfo::exists(previous.path()), 2000);
+        QFile moved(storage.filePath("Models/.society-runtime/iiLocalDiffusion/q8/converted.gguf"));
+        QVERIFY(moved.open(QIODevice::ReadOnly)); QCOMPARE(moved.readAll(), "derived model");
+        QVERIFY(app.jobs().isEmpty());
+    }
+    void nativeResourcesAndConvertedModelsBelongToSociety_data() {
+        QTest::addColumn<bool>("hasResources");
+        QTest::newRow("embedded-vae-without-optional-resources") << false;
+        QTest::newRow("society-resource-catalog") << true;
+    }
+    void nativeResourcesAndConvertedModelsBelongToSociety() {
+        QFETCH(bool, hasResources);
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/society-owned-native-XXXXXX");
+        QTemporaryDir previous(DREAMSCAPES_TEST_DIRECTORY "/old-private-cache-XXXXXX");
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+        if (hasResources) {
+            QVERIFY(QDir().mkpath(storage.filePath("Models/.generation-resources/iiLocalDiffusion")));
+            QFile manifest(storage.filePath("Models/.generation-resources/iiLocalDiffusion/generation-defaults.json"));
+            QVERIFY(manifest.open(QIODevice::WriteOnly)); manifest.write("{}");
+        }
+        QFile model(storage.filePath("Models/checkpoint.safetensors"));
+        QVERIFY(model.open(QIODevice::WriteOnly)); model.write("source model"); model.close();
+        QVERIFY(QDir(previous.path()).mkdir("q8"));
+        QFile cached(previous.filePath("q8/converted.gguf"));
+        QVERIFY(cached.open(QIODevice::WriteOnly)); cached.write("derived model"); cached.close();
+        GenerationRuntime runtime;
+        runtime.nativeInference = true; runtime.imageExtent = 64;
+        runtime.legacyQ8CacheDirectory = previous.filePath("q8");
+        QString observedResources, observedCache;
+        bool modifiers = true;
+        runtime.nativeGenerate = [&](const auto &request, const auto &options, const auto &, const auto &) {
+            observedResources = QString::fromStdString(options.resourceDirectory.string());
+            observedCache = QString::fromStdString(request.q8CacheDirectory.string());
+            modifiers = options.defaultModifiers;
+            if (QFileInfo::exists(runtime.legacyQ8CacheDirectory)
+                || !QFileInfo::exists(QDir(observedCache).filePath("converted.gguf")))
+                throw std::runtime_error("Private cache was not migrated before inference");
+            return imageResult(request);
+        };
+        GenerationController app(runtime);
+        QVERIFY(app.connectStorage(storage.path()));
+        app.setForeground(true);
+        const auto id = app.enqueue("use Society storage"); QVERIFY(!id.isEmpty());
+        QTRY_COMPARE_WITH_TIMEOUT(app.jobs().first().toMap().value("state").toString(), QString("completed"), 10000);
+        QCOMPARE(observedResources, storage.filePath("Models/.generation-resources/iiLocalDiffusion"));
+        QCOMPARE(observedCache, storage.filePath("Models/.society-runtime/iiLocalDiffusion/q8"));
+        QCOMPARE(modifiers, hasResources); // The SDK validates the catalog contents during real inference.
+        QVERIFY(QDir(previous.path()).isEmpty());
+        QVERIFY(app.latestImage().toLocalFile().startsWith(storage.filePath("Generation History/")));
+        QVERIFY(model.open(QIODevice::ReadOnly)); QCOMPARE(model.readAll(), "source model");
+        app.refreshModels(); QCOMPARE(app.models().size(), 1); // Hidden runtime data is not another selectable model.
+    }
+    void cacheMigrationPreservesRedirectedAndConflictingFiles() {
+        QTemporaryDir source(DREAMSCAPES_TEST_DIRECTORY "/cache-source-XXXXXX");
+        QTemporaryDir destination(DREAMSCAPES_TEST_DIRECTORY "/cache-target-XXXXXX");
+        QTemporaryDir outside(DREAMSCAPES_TEST_DIRECTORY "/cache-outside-XXXXXX");
+        QVERIFY(QFile::link(outside.path(), source.filePath("redirect")));
+        std::atomic_bool cancelled{false}; QString error;
+        QVERIFY(!dreamscapes::migrateLegacyQ8Cache(source.path(), destination.path(), cancelled, &error));
+        QVERIFY(QFileInfo(source.filePath("redirect")).isSymLink());
+        QVERIFY(QFile::remove(source.filePath("redirect")));
+        QFile original(source.filePath("model.gguf")), existing(destination.filePath("model.gguf"));
+        QVERIFY(original.open(QIODevice::WriteOnly)); original.write("original"); original.close();
+        QVERIFY(existing.open(QIODevice::WriteOnly)); existing.write("different"); existing.close();
+        QVERIFY(!dreamscapes::migrateLegacyQ8Cache(source.path(), destination.path(), cancelled, &error));
+        QVERIFY(original.open(QIODevice::ReadOnly)); QCOMPARE(original.readAll(), "original"); original.close();
+        QVERIFY(existing.open(QIODevice::ReadOnly)); QCOMPARE(existing.readAll(), "different"); existing.close();
+        QVERIFY(existing.open(QIODevice::WriteOnly | QIODevice::Truncate)); existing.write("original"); existing.close();
+        cancelled = true;
+        QVERIFY(!dreamscapes::migrateLegacyQ8Cache(source.path(), destination.path(), cancelled, &error));
+        QVERIFY(QFileInfo::exists(original.fileName()));
+        cancelled = false;
+        QVERIFY(dreamscapes::migrateLegacyQ8Cache(source.path(), destination.path(), cancelled, &error));
+        QVERIFY(!QFileInfo::exists(source.path()));
+        QVERIFY(existing.open(QIODevice::ReadOnly)); QCOMPARE(existing.readAll(), "original");
+    }
+    void nativeTimeoutTracksProgress_data() {
+        QTest::addColumn<int>("stage");
+        QTest::addColumn<bool>("hasProgress");
+        QTest::addColumn<bool>("completes");
+        using Stage = iiLocalDiffusion::NativeGenerationStage;
+        QTest::newRow("repeated-tensor-progress") << int(Stage::Preparing) << true << true;
+        QTest::newRow("encoding-progress") << int(Stage::Encoding) << true << true;
+        QTest::newRow("denoising-progress") << int(Stage::Denoising) << true << true;
+        QTest::newRow("decoding-progress") << int(Stage::Decoding) << true << true;
+        QTest::newRow("status-without-progress") << int(Stage::Encoding) << false << false;
+        QTest::newRow("waiting-does-not-extend-timeout") << int(Stage::Waiting) << true << false;
+    }
+    void nativeTimeoutTracksProgress() {
+        QFETCH(int, stage);
+        QFETCH(bool, hasProgress);
+        QFETCH(bool, completes);
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-progress-timeout-XXXXXX");
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+        QFile model(storage.filePath("Models/model.safetensors"));
+        QVERIFY(model.open(QIODevice::WriteOnly)); model.write("fixture"); model.close();
+        GenerationRuntime runtime;
+        runtime.nativeInference = true;
+        runtime.imageExtent = 64;
+
+        runtime.nativeTimeoutMilliseconds = 200;
+        runtime.nativeGenerate = [stage, hasProgress](const auto &request, const auto &, const auto &cancelled, const auto &progress) {
+            const auto started = std::chrono::steady_clock::now();
+            for (int index = 0; index < 20 && !cancelled; ++index) {
+                progress({static_cast<iiLocalDiffusion::NativeGenerationStage>(stage),
+                    hasProgress ? 1 : 0, hasProgress ? 10 : 0});
+                std::this_thread::sleep_for(std::chrono::milliseconds(30));
+                // Match the SDK's independent total-duration deadline.
+                if (std::chrono::steady_clock::now() - started >= std::chrono::milliseconds(request.timeoutMilliseconds)) {
+                    iiLocalDiffusion::NativeGenerationResult result;
+                    result.error = "The SDK total-duration deadline expired.";
+                    return result;
+                }
+            }
+            auto result = imageResult(request);
+            result.cancelled = cancelled;
+            return result;
+        };
+        GenerationController app(runtime);
+        QVERIFY(app.connectStorage(storage.path())); app.setForeground(true);
+        QElapsedTimer elapsed; elapsed.start();
+        QVERIFY(!app.enqueue("keep working while progress continues").isEmpty());
+        QTRY_VERIFY(app.jobs().first().toMap().value("state").toString() != "queued");
+        QTRY_VERIFY(!app.busy());
+        QCOMPARE(app.jobs().first().toMap().value("state").toString(), completes ? "completed" : "failed");
+        if (completes) {
+            QVERIFY(elapsed.elapsed() >= 2 * runtime.nativeTimeoutMilliseconds);
+            QVERIFY(!app.latestImage().isEmpty());
+        } else {
+            QVERIFY(app.latestImage().isEmpty());
+            QVERIFY(app.errorString().contains("stopped making progress"));
+        }
+    }
     void unsupportedBackgroundGpuPausesTheSameRequest_data() {
         QTest::addColumn<bool>("cancelPaused");
         QTest::newRow("resume") << false;
@@ -60,12 +207,12 @@ private slots:
         GenerationRuntime runtime;
         runtime.nativeInference = true;
         runtime.imageExtent = 64;
-        runtime.temporaryDirectory = DREAMSCAPES_TEST_DIRECTORY;
+
         runtime.nativeTimeoutMilliseconds = 300;
         runtime.backgroundActivity = activity;
         runtime.nativeExecutionControl = control;
         std::atomic_int calls{0};
-        runtime.nativeGenerate = [&](const auto &request, const auto &cancelled, const auto &progress) {
+        runtime.nativeGenerate = [&](const auto &request, const auto &, const auto &cancelled, const auto &progress) {
             ++calls;
             progress({iiLocalDiffusion::NativeGenerationStage::Denoising, 3, 10});
             const auto limit = std::chrono::steady_clock::now() + std::chrono::seconds(2);
@@ -97,19 +244,26 @@ private slots:
         QCOMPARE(activity->completions, QList<bool>({!cancelPaused}));
         QVERIFY(!control->isPaused());
     }
+    void nativeBackgroundPermissionPreservesGeneration_data() {
+        QTest::addColumn<bool>("cpuOnly");
+        QTest::newRow("background-gpu") << false;
+        QTest::newRow("background-cpu") << true;
+    }
     void nativeBackgroundPermissionPreservesGeneration() {
+        QFETCH(bool, cpuOnly);
         QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-background-XXXXXX");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
         QFile model(storage.filePath("Models/model.safetensors"));
         QVERIFY(model.open(QIODevice::WriteOnly)); model.write("fixture"); model.close();
         auto activity = std::make_shared<BackgroundActivity>();
+        activity->cpuOnly = cpuOnly;
         GenerationRuntime runtime;
         runtime.nativeInference = true;
         runtime.imageExtent = 64;
-        runtime.temporaryDirectory = DREAMSCAPES_TEST_DIRECTORY;
+
         runtime.backgroundActivity = activity;
         std::atomic_int phase{0};
-        runtime.nativeGenerate = [&](const auto &request, const auto &cancelled, const auto &progress) {
+        runtime.nativeGenerate = [&](const auto &request, const auto &, const auto &cancelled, const auto &progress) {
             progress({iiLocalDiffusion::NativeGenerationStage::Denoising, 1, 10});
             while (phase == 0 && !cancelled) std::this_thread::sleep_for(std::chrono::milliseconds(2));
             if (cancelled) { iiLocalDiffusion::NativeGenerationResult result; result.cancelled = true; return result; }
@@ -137,6 +291,8 @@ private slots:
         QTRY_VERIFY(!app.latestImage().isEmpty());
         QCOMPARE(app.jobs().first().toMap().value("state").toString(), "completed");
         QCOMPARE(activity->completions, QList<bool>({true}));
+        QCOMPARE(app.jobs().first().toMap().value("generation").toMap().value("computeBackend").toString(),
+                 cpuOnly ? QString("cpu") : QString("automatic"));
         QVERIFY(activity->updates >= 2);
         QVERIFY(!app.foreground() && !app.keepsScreenAwake());
     }
@@ -148,9 +304,9 @@ private slots:
         auto activity = std::make_shared<BackgroundActivity>();
         GenerationRuntime runtime;
         runtime.nativeInference = true;
-        runtime.temporaryDirectory = DREAMSCAPES_TEST_DIRECTORY;
+
         runtime.backgroundActivity = activity;
-        runtime.nativeGenerate = [](const auto &, const auto &cancelled, const auto &progress) {
+        runtime.nativeGenerate = [](const auto &, const auto &, const auto &cancelled, const auto &progress) {
             progress({iiLocalDiffusion::NativeGenerationStage::Loading, 1, 220});
             waitForCancellation(cancelled);
             iiLocalDiffusion::NativeGenerationResult result;
@@ -177,13 +333,12 @@ private slots:
         GenerationRuntime runtime;
         runtime.nativeInference = true;
         runtime.imageExtent = 64;
-        runtime.temporaryDirectory = DREAMSCAPES_TEST_DIRECTORY;
-        runtime.nativeQ8CacheDirectory = QStringLiteral(DREAMSCAPES_TEST_DIRECTORY "/q8-cache");
+
         QList<bool> screen;
         runtime.screenActivity = [&](bool active) { screen.append(active); };
-        runtime.nativeGenerate = [](const auto &request, const auto &, const auto &progress) {
+        runtime.nativeGenerate = [](const auto &request, const auto &, const auto &, const auto &progress) {
             using Stage = iiLocalDiffusion::NativeGenerationStage;
-            if (request.q8CacheDirectory.string() != DREAMSCAPES_TEST_DIRECTORY "/q8-cache")
+            if (request.q8CacheDirectory.string().find("Models/.society-runtime/iiLocalDiffusion/q8") == std::string::npos)
                 throw std::runtime_error("Missing Q8 cache request");
             progress({Stage::Preparing, 1, 220});
             progress({Stage::Loading, 220, 220});
@@ -255,9 +410,9 @@ private slots:
         runtime.nativeInference = true;
         runtime.imageExtent = 64;
         runtime.nativeTimeoutMilliseconds = reason == "timeout" ? 30 : 3000;
-        runtime.temporaryDirectory = DREAMSCAPES_TEST_DIRECTORY;
+
         std::atomic_int calls{0};
-        runtime.nativeGenerate = [&](const auto &request, const auto &cancelled, const auto &progress) {
+        runtime.nativeGenerate = [&](const auto &request, const auto &, const auto &cancelled, const auto &progress) {
             if (++calls > 1) return imageResult(request);
             if (reason == "exception") throw std::runtime_error("fixture engine exception");
             if (reason == "unknown-exception") throw 42;
@@ -295,9 +450,9 @@ private slots:
         QVERIFY(model.open(QIODevice::WriteOnly)); model.write("fixture"); model.close();
         GenerationRuntime runtime;
         runtime.nativeInference = true;
-        runtime.temporaryDirectory = DREAMSCAPES_TEST_DIRECTORY;
+
         std::atomic_int calls{0};
-        runtime.nativeGenerate = [&](const auto &request, const auto &, const auto &) { ++calls; return imageResult(request); };
+        runtime.nativeGenerate = [&](const auto &request, const auto &, const auto &, const auto &) { ++calls; return imageResult(request); };
         GenerationController app(runtime);
         QVERIFY(app.connectStorage(storage.path())); app.setForeground(true);
         connect(&app, &GenerationController::jobsChanged, &app, [&] {
@@ -344,7 +499,7 @@ private slots:
         QVERIFY(model.open(QIODevice::WriteOnly)); model.write("invalid checkpoint"); model.close();
         GenerationRuntime runtime;
         runtime.nativeInference = true;
-        runtime.temporaryDirectory = DREAMSCAPES_TEST_DIRECTORY;
+
         GenerationController app(runtime);
         QVERIFY(app.connectStorage(phone.path()));
         app.setForeground(true);
@@ -372,7 +527,7 @@ private slots:
         if (!runtime.steps) runtime.steps = 4;
         runtime.imageExtent = qEnvironmentVariableIntValue("DREAMSCAPES_NATIVE_TEST_EXTENT");
         if (!runtime.imageExtent) runtime.imageExtent = 256;
-        runtime.temporaryDirectory = DREAMSCAPES_TEST_DIRECTORY;
+
         GenerationController app(runtime);
         QVERIFY(app.connectStorage(local.path()));
         connect(&app, &GenerationController::previewChanged, &app, [&] {
@@ -403,8 +558,15 @@ private slots:
         QFile weights(desktop.filePath("Models/synced.safetensors"));
         const QByteArray modelBytes(700000, 'm');
         QVERIFY(weights.open(QIODevice::WriteOnly)); QCOMPARE(weights.write(modelBytes), modelBytes.size()); weights.close();
+        const auto resources = QStringLiteral("Models/.generation-resources/iiLocalDiffusion/");
+        const auto runtimeCache = QStringLiteral("Models/.society-runtime/iiLocalDiffusion/q8/");
+        for (const auto &relative : {resources + "generation-defaults.json", resources + "vae.safetensors", runtimeCache + "model.gguf"}) {
+            QVERIFY(QDir().mkpath(QFileInfo(desktop.filePath(relative)).absolutePath()));
+            QFile fixture(desktop.filePath(relative));
+            QVERIFY(fixture.open(QIODevice::WriteOnly)); fixture.write("fixture");
+        }
 
-        GenerationRuntime runtime{DREAMSCAPES_FAKE_GENERATOR, "cpu", 1, 64, {}, DREAMSCAPES_TEST_DIRECTORY};
+        GenerationRuntime runtime{DREAMSCAPES_FAKE_GENERATOR, "cpu", 1, 64, {}};
         GenerationController app(runtime);
         QVERIFY(app.connectStorage(phone.path()));
         QVERIFY(app.models().isEmpty());
@@ -440,6 +602,11 @@ private slots:
         QCOMPARE(local.path("models", "synced.safetensors"), phone.filePath("Models/synced.safetensors"));
         QFile copied(local.path("models", "synced.safetensors"));
         QVERIFY(copied.open(QIODevice::ReadOnly)); QCOMPARE(copied.readAll(), modelBytes); copied.close();
+        for (const auto &relative : {resources + "generation-defaults.json", resources + "vae.safetensors"}) {
+            QFile resource(phone.filePath(relative));
+            QVERIFY(resource.open(QIODevice::ReadOnly)); QCOMPARE(resource.readAll(), "fixture");
+        }
+        QVERIFY(!QFileInfo::exists(phone.filePath(runtimeCache + "model.gguf")));
 
         syncing.close(); hosting.close(); client.stop(); host.stop();
         const auto id = app.enqueue("offline local generation");

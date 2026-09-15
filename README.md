@@ -48,6 +48,8 @@ Android의 `scripts/build-android.sh`는 Helper의 전이 의존성인 iiAcountM
 - `App/Generation/GenerationController.h/.cpp`: Society 모델 참조를 고정한 앱 메모리 큐와 기존 iiLocalDiffusion 실행기 연결을 담당한다.
 - `App/Generation/tst_Generation.cpp`: 큐 격리·재실행 시 소멸·모델 변경·순차 실행·결과 검증·취소·동시 창·경계 이탈을 검사한다.
 
+생성 격리 테스트는 Society가 `Files` 아래에 준비하는 기본 폴더를 허용하되, 모든 하위 폴더까지 순회하여 생성 파일·숨김 파일이 유출되지 않는지 확인한다. 완성 이미지는 `Generation History`에만 저장되어야 한다.
+
 GUI 테스트 타깃에는 이 저장소에 존재하는 소스만 등록한다. 현재 `App/AI` 디렉터리는
 없으며, Society의 AI 연동 클래스 경로를 Dreamscapes 테스트 소스로 등록하면 CMake
 생성이 실패한다. 이 소스 목록은 위 macOS 구성·빌드와 기존 GUI 회귀 테스트로 검증한다.
@@ -88,7 +90,7 @@ QuickGenerate는 [Figma 15:218](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1T
 
 생성 이미지는 `Image.PreserveAspectFit`으로 원본 비율을 유지하면서 프레임 안에 전체 이미지가 보이도록 맞춘다. 이미지는 가로·세로 중앙에 배치하며 프레임과 비율이 다르면 남는 공간은 여백으로 둔다. `clip: true`로 이미지가 버튼과 패널 영역에 그려지지 않게 한다. Generate 요청이 검증되어 앱 메모리의 대기열에 들어가면 프로세스 시작이나 이미지 완성을 기다리지 않고 즉시 결과 화면으로 이동한다. 입력·모델 검증에 실패하면 현재 화면에서 오류를 표시한다. 첫 중간 이미지가 오기 전에는 마지막 완료 이미지와 준비 상태를 표시하고, 이후 매 디노이징 단계의 실제 VAE 디코딩 이미지를 Fit으로 갱신한다. 비동기 로딩 중에는 직전 이미지를 유지한다. Back은 홈으로 돌아가며 생성 중에도 `View result`로 다시 열 수 있다. 중간 이미지·실패·취소·대기열 알림은 Back 이동을 취소하지 않는다.
 
-`GenerationController.previewImage`, `previewStep`, `previewTotalSteps`는 현재 프로세스의 `IILD_PREVIEW` 이벤트를 받아 갱신한다. iiLocalDiffusion의 `--preview-dir` 콜백은 샘플러의 latent를 복사해 매 단계마다 VAE로 디코딩한다. 노이즈 이미지나 진행률을 UI에서 임의로 만들어 내지 않는다. 원자적으로 저장한 단계별 PNG가 준비된 뒤 이벤트를 전송하며, 화면에는 실제 단계 수를 표시한다. 미리보기는 긴 변 512px 이하이고 Society 밖의 앱 전용 임시 작업 위치에만 존재한다. 완료·실패·취소 후 제거하며, 완성 파일 검증에 통과한 이미지만 `Generation History/`와 `latestResult`에 남는다. 단계별 VAE 디코딩에는 추가 연산 시간이 든다.
+`GenerationController.previewImage`, `previewStep`, `previewTotalSteps`는 현재 프로세스의 `IILD_PREVIEW` 이벤트를 받아 갱신한다. iiLocalDiffusion의 `--preview-dir` 콜백은 샘플러의 latent를 복사해 매 단계마다 VAE로 디코딩한다. 노이즈 이미지나 진행률을 UI에서 임의로 만들어 내지 않는다. 원자적으로 저장한 단계별 PNG가 준비된 뒤 이벤트를 전송하며, 화면에는 실제 단계 수를 표시한다. 미리보기는 긴 변 512px 이하이고 Society의 `Models/.society-runtime/iiLocalDiffusion/` 임시 작업 위치에만 존재한다. 완료·실패·취소 후 제거하며, 완성 파일 검증에 통과한 이미지만 `Generation History/`와 `latestResult`에 남는다. 단계별 VAE 디코딩에는 추가 연산 시간이 든다.
 
 2026-09-08 macOS 실기 검증에서는 Society의 `redLilyIllu_v10.safetensors`를 MPS/FP16, 512×512, 20단계로 실행했다. 20개의 서로 다른 중간 PNG를 관찰했고 컨트롤러도 20/20단계를 수신했다. 실제 창의 즉시 전환과 디노이징 중 화면 갱신, 최종 이미지 저장 및 임시 디렉터리 제거를 확인했다. 로컬 검증 기록과 프레임은 `build/live-preview-verification/verification.json` 및 같은 디렉터리에 있다.
 
@@ -155,11 +157,14 @@ QuickGenerate의 기본 생성 크기는 iiLocalDiffusion SDXL 기본값과 같�
 
 큐, 프롬프트, 모델 참조, 실행 상태와 결과 메타데이터는 해당 앱 인스턴스의 메모리에만 둔다. Society나 다른 영구 저장소에 요청 JSON을 기록하지 않고, 다른 앱 인스턴스가 이 큐를 읽거나 재실행 시 복원하지 않는다. 앱을 종료하면 대기 요청과 세션 정보는 사라진다. `Generation History/`에 이미 저장한 완성 이미지는 유지된다.
 
-생성기 CLI가 파일 경로를 요구하는 출력·미리보기·실행 자료·캐시는 앱이 소유한 `QTemporaryDir`에서 처리한다. 앱의 시스템 임시 위치를 기본으로 사용하고 작업마다 고유한 디렉터리를 만든다. `--work-dir`, `--cache-dir`, `--preview-dir`, `--output-dir` 및 하위 프로세스 임시 경로는 이 위치를 사용한다. 완료·실패·취소·앱 정상 종료 시 임시 파일을 정리하며 실패 기록도 영구 저장하지 않는다. `DREAMSCAPES_TEMP_DIRECTORY` 또는 테스트용 `GenerationRuntime.temporaryDirectory`로 이미 존재하는 임시 상위 디렉터리를 지정할 수 있지만 Society 내부 경로는 거부한다. 시험용 경로는 `build/` 아래로 격리한다.
+생성기 CLI가 파일 경로를 요구하는 출력·미리보기·실행 자료·캐시는 Society의 `Models/.society-runtime/iiLocalDiffusion/`에서 처리한다. 작업마다 `QTemporaryDir`를 만들고 `--work-dir`, `--cache-dir`, `--preview-dir`, `--output-dir`와 하위 프로세스 임시 경로를 이곳에 둔다. 완료·실패·취소·앱 정상 종료 시 임시 파일을 정리한다. 앱 전용 임시 경로 지정 기능은 제거했다. Society 연결이 없거나 작업 경로가 외부로 리디렉션되면 생성을 시작하지 않는다. `.society-runtime`은 Society의 로컬 파생 데이터이며 동기화와 모델 목록에서 제외된다. 시험용 Society 컨테이너는 `build/` 아래로 격리한다.
 
 모델 선택을 바꾸어도 메모리에 들어간 요청의 `{containerId, path, format, fingerprint}` 참조는 유지된다. 실행 직전과 완료 시 같은 원본 모델인지 다시 확인하며 삭제·변경·리디렉션된 모델로 자동 대체하지 않는다. fingerprint는 SDK의 제한된 변경 감지 값이고 전체 가중치 스냅샷은 아니다. `.safetensor`·대문자 확장자는 원본 이름을 바꾸지 않고 임시 작업용 링크에서 정규화한다.
 
 SD1·SDXL 단일 체크포인트는 iiLocalDiffusion 설치본에 포함된 모델 설정·토크나이저를 사용한다. ComfyUI 설치·서버·노드 초기화가 필요 없으며, `--backend local`을 명시하여 독립 실행 경로를 사용한다.
+
+완성형 Anima safetensors도 같은 Mac worker와 큐를 사용한다. iiLocalDiffusion이 Anima 텐서 구조를 판별하고 worker 내부에서 네이티브 SDK 엔진을 호출한다. 내장 text encoder·VAE를 포함한 파일을 VAE 단독 파일로 분류하지 않으며 외부 VAE를 강제하지 않는다. 모델 준비는 샘플링 없이 네이티브 컨텍스트를 유지하고 실제 가중치 배치는 첫 생성 시 수행한다. 결과에는 `backend: native`, 원본 모델 해시·시드·캐시 적중 여부가 기록된다. 다른 모델의 Diffusers 경로와 앱의 짧은 변 1024px·10스텝·순차 큐는 유지한다. 이 네이티브 경로는 생성 단계 진행을 보고하며 스텝별 잠재 이미지 미리보기는 제공하지 않는다.
+데스크톱 worker는 C++ 네이티브 요청의 기본 15분 총시간 제한을 상속하지 않는다. 큰 이미지의 VAE 처리가 오래 걸려도 기존 worker처럼 완료까지 처리하며, Cancel과 앱 종료는 기존 프로세스 취소 경로를 유지한다.
 
 기본 시드는 생성 요청마다 무작위로 정한다. Dreamscapes는 고정 시드를 전달하지 않으며, 체크포인트 실행기가 선택한 실제 시드를 포함한 결과 메타데이터는 작업 검증 후 앱 메모리의 `generation` 필드에 남는다. SDK에서 시드를 명시하면 해당 값을 유지한다.
 
@@ -167,13 +172,13 @@ SD1·SDXL 단일 체크포인트는 iiLocalDiffusion 설치본에 포함된 모�
 
 `iild-generate --worker`를 앱 인스턴스당 한 번 시작하고 `--model-path <Society 원본> --prompt ...` 등의 인자 배열을 요청 ID와 함께 stdin의 JSON 한 줄로 전달한다. Python 의존성 초기화, 모델 해시 및 호환되는 로드 모델의 메모리 캐시는 iiLocalDiffusion이 담당한다. Dreamscapes는 SDK의 `IILD_RESULT`를 받은 뒤 다음 큐를 전달한다. 취소·프로세스 비정상 종료 시 다음 요청에서 실행기를 다시 시작한다. 일반 요청 실패 뒤에도 다음 요청을 처리하며 큐와 실행 진단은 앱 메모리에만 남긴다.
 
-Python/JIT가 사용하는 실행기 임시 디렉터리는 프로세스가 종료될 때까지 유지하고, 이미지·미리보기·요청 파일은 작업마다 별도 임시 디렉터리에 두어 완료·실패·취소 시 제거한다. 두 디렉터리 모두 Society 밖에 위치한다. 앱 종료 시 실행기를 종료하고 임시 디렉터리를 제거한다. `PYTHONDONTWRITEBYTECODE=1`을 유지하되 새 `PYTHONPYCACHEPREFIX`는 지정하지 않아 설치된 Python 바이트코드 캐시를 읽는다.
+Python/JIT가 사용하는 실행기 임시 디렉터리는 프로세스가 종료될 때까지 유지하고, 이미지·미리보기·요청 파일은 작업마다 별도 임시 디렉터리에 두어 완료·실패·취소 시 제거한다. 두 디렉터리 모두 Society의 `.society-runtime`에 위치한다. HF·Transformers·Torch·JIT 캐시도 이 실행기 디렉터리를 사용하며 모델 다운로드는 오프라인 설정으로 차단한다. 앱 종료 시 실행기를 종료하고 임시 디렉터리를 제거한다. `PYTHONDONTWRITEBYTECODE=1`을 유지하되 새 `PYTHONPYCACHEPREFIX`는 지정하지 않아 설치된 Python 바이트코드 캐시를 읽는다.
 
-생성 시 가중치를 내려받지 않는다. SDK 완료 이벤트·실행 기록·모든 이미지의 크기와 디코딩을 검증한 뒤 완성 이미지 파일만 `Generation History/`에 원자적으로 저장한다. 앱 임시 위치와 Society가 다른 볼륨이어도 처리하며, 이미지 확장자와 바이트를 보존한다. 여러 이미지도 같은 영역 바로 아래에 저장한다. 실패·취소·미리보기·JSON·캐시를 결과 목록에 추가하거나 기존 파일을 덮어쓰지 않는다.
+생성 시 가중치를 내려받지 않는다. SDK 완료 이벤트·실행 기록·모든 이미지의 크기와 디코딩을 검증한 뒤 완성 이미지 파일만 `Generation History/`에 원자적으로 저장한다. Society 임시 위치에서 최종 저장 위치로 이미지 확장자와 바이트를 보존하여 저장한다. 여러 이미지도 같은 영역 바로 아래에 저장한다. 실패·취소·미리보기·JSON·캐시를 결과 목록에 추가하거나 기존 파일을 덮어쓰지 않는다.
 
 이전 버전이 만들었던 Society의 `.dreamscapes/generation/` 및 `Generation History/Dreamscapes/`는 저장소 연결 시 정리한다. 이전 대기 요청은 실행하지 않는다. 유효한 완료 요청이 가리키는 예전 Asset Library 이미지가 있으면 Generation History로 옮겨 보존하고, 기존 완성 이미지·모델·그 밖의 Asset은 유지한다. 구버전 작업자가 사용 중이거나 상위 경로가 리디렉션된 경우 해당 파일을 지우지 않는다. 이때만 이전 작업자의 잠금을 확인하며 새 큐를 저장하는 용도로 사용하지 않는다.
 
-`Dreamscapes.Generation`은 인스턴스별 큐 격리, 재실행 시 큐 소멸, 완료 이미지 보존, 정상·실패·취소·종료 때 임시 자료 제거, Society 내부 임시 경로 거부, 이전 자료 정리와 모델 링크 보존을 검증한다. 모델 참조·여러 결과·이름 충돌·부분 실패·미리보기 검사도 유지한다. `Dreamscapes.Gui`는 실제 Generate 완료 이미지가 Generation History에서 로드되는지 검사한다.
+`Dreamscapes.Generation`은 인스턴스별 큐 격리, 재실행 시 큐 소멸, 완료 이미지 보존, 정상·실패·취소·종료 때 임시 자료 제거, Society 작업 경로의 외부 리디렉션 거부, 이전 자료 정리와 모델 링크 보존을 검증한다. 모델 참조·여러 결과·이름 충돌·부분 실패·미리보기 검사도 유지한다. `Dreamscapes.Gui`는 실제 Generate 완료 이미지가 Generation History에서 로드되는지 검사한다.
 
 상주 실행기 검사는 연속 작업의 PID 재사용, 일반 오류·분할 수신된 긴 한국어 오류 뒤 다음 요청 처리, 프로세스 중단 후 재시작, 작업 임시 파일과 실행기 임시 파일의 수명 분리를 포함한다. `realSocietyInference`는 설치된 SDK로 실제 두 요청을 실행해 같은 PID와 최초 모델 구성·장치 배치 각 1회를 확인한다. 두 번째 요청에서는 전체 모델 해시·구성 파일 읽기·모델 재구성·장치 배치가 모두 0회이고 캐시가 적중해야 한다. 구성 시 `--worker`가 없는 구버전 SDK는 거부한다.
 
@@ -210,6 +215,12 @@ iOS는 `iiSocietyContainer_configure_ios_client()`와 `SOCIETY_IOS_APP_GROUP`·`
 Dreamscapes 제품 타깃에는 iiServerHost·iiSocietySync, 호스트 입력 UI, `--society-host`, 원격 생성 클라이언트가 없다. Society도 Dreamscapes 실행기를 원격 요청으로 시작하지 않는다. Sync는 테스트 하네스에서만 두 Society 역할을 구현하기 위해 사용한다.
 
 네이티브 생성에는 iiLocalDiffusion 0.5.0의 `IILD_ENABLE_NATIVE_DIFFUSION=ON` 패키지가 필요하다. 현재 API는 단일 체크포인트 파일을 입력으로 받고, 모델 로딩과 추론은 앱 작업 스레드에서 수행한다. 임의의 모델이 iPhone 메모리에 들어간다는 보장은 없으며 실패·취소 시 완성 이미지로 게시하지 않는다. 엔진이 포함되지 않은 빌드는 로컬 생성 불가 상태를 표시한다. [SDK 계약](../../SDK/iiLocalDiffusion/docs/native-image-generation.md)을 참조한다.
+
+iOS용 iiLocalDiffusion은 VAE 렌더링과 가중치를 CPU에 배치하고 디노이징은 Metal에서 수행한다. VAE 디코딩 중 관측된 Metal 명령 버퍼 실패·GPU 복구의 영향을 피하기 위한 정책이며, 기존 VAE 타일링과 기본 짧은 변 1024px·10스텝·순차 큐를 유지한다. 9:16은 1024×1856 내부 캔버스에서 1024×1824 RGB로 완성한다. 내장 VAE와 Qwen Image RGB·SDXL·FLUX.1·FLUX.2의 자동 VAE 폴백 모두 같은 실행 배치를 사용한다. CPU 렌더 시간과 실제 기기 생성 성공은 빌드·번들 검사와 별도로 확인해야 한다.
+
+명시적 VAE 배치와 함께 텍스트 인코더·디노이저 가중치는 mmap 파일에서 구간별로 GPU에 적재하고 메모리 예산에 따라 회수할 수 있게 한다. VAE 배치만 지정하면 엔진의 자동 메모리 배치가 꺼져 디노이징 중 GPU 가중치가 누적될 수 있으므로, iOS 번들 검사는 CPU VAE와 회수 가능한 가중치 배치를 함께 요구한다.
+
+iOS GPU 예산은 Metal 권장 작업 세트의 60% 이하로 제한하고, 앱의 남은 메모리 중 최소 1.5GiB 또는 40%를 CPU 렌더링·파일 매핑·시스템용으로 남긴다. 두 제약 중 작은 값을 256MiB 단위로 내리며 기기 모델명을 하드코딩하지 않는다. 메모리를 다 채우는 실행 대신 엔진이 구간 분할을 선택할 수 있게 하며, 이미지 크기·스텝·정밀도는 변경하지 않는다.
 
 `Dreamscapes.LocalSociety`는 두 Society 역할의 실제 loopback TLS로 700,000바이트 모델을 동기화하고, 로컬 Helper 경로·컨테이너 UUID를 확인한 다음 모든 연결을 끊는다. 이어 Dreamscapes 생성 fixture에 전달된 경로가 클라이언트 `Models/`인지와 결과가 클라이언트 `Generation History/`에만 저장되는지 검증한다. 이 fixture는 프로세스·저장 계약 검증이며 실제 모델 추론이나 물리 iPhone 성공 증거가 아니다. iOS 번들 검사는 App Group·네이티브 경로·서명과 원격 클라이언트/Sync 부재를 확인한다.
 
@@ -349,19 +360,19 @@ MPS FP16 이미지를 생성하고 네이티브 결과 화면에 표시했다. C
 
 네이티브 생성은 모델 로딩, 프롬프트 준비, 노이즈 제거, 이미지 렌더링을 구분한다. 텐서 로딩 수나 VAE 타일 수는 요청한 생성 스텝에 합산하지 않는다. 결과 화면에는 경과 시간과 취소 버튼을 표시하며, 파일 게시가 끝나야 완료 처리한다.
 
-iOS는 생성 중에만 `UIApplication.idleTimerDisabled`를 설정하고 완료·실패·취소·백그라운드 전환 시 이전 값을 복원한다. 잠깐의 inactive 상태는 작업을 취소하지 않는다. 실제 백그라운드에서는 아래의 시스템 실행 권한에 따라 생성을 유지한다. 기본 제한 시간은 15분이다. 엔진은 텐서 로딩과 연산 구간 사이에서 취소 및 제한 시간을 확인하며 실행 중인 GPU 호출은 반환을 기다린다.
+iOS는 생성 중에만 `UIApplication.idleTimerDisabled`를 설정하고 완료·실패·취소·백그라운드 전환 시 이전 값을 복원한다. 잠깐의 inactive 상태는 작업을 취소하지 않는다. 실제 백그라운드에서는 아래의 시스템 실행 권한에 따라 생성을 유지한다. 기본 제한은 **실제 진행이 없는 활성 시간 15분**이다. 텐서 준비·적재, 프롬프트 인코딩, 노이즈 제거, 이미지 렌더링에서 유효한 처리량이 보고되면 제한 시간을 갱신한다. 엔진 대기나 처리량 없는 상태 알림은 제한을 연장하지 않는다. 느린 CPU에서 진행 중인 작업이 총 15분을 넘었다는 이유만으로 취소되지 않도록 SDK의 별도 총 실행 시간 제한은 최댓값으로 설정하고 앱의 무진행 감시와 취소 신호로 종료를 제어한다. 엔진은 텐서 로딩과 연산 구간 사이에서 취소를 확인하며 실행 중인 GPU 호출은 반환을 기다린다. `Dreamscapes.LocalSociety`는 여러 단계의 반복 진행이 기존 총 제한 시간을 넘어 완료되는지, 진행 없는 알림과 대기는 중단되는지 함께 검사한다.
 
 #### iOS 백그라운드 생성
 
 iOS는 Qt 창의 활성화 여부 대신 UIKit의 실제 `DidEnterBackground` / `WillEnterForeground` 알림으로 생성 수명주기를 판단한다. 제어 센터·알림 센터·시스템 대화상자에 의한 일시 비활성화는 생성 취소나 모델 캐시 해제 사유가 아니다. 실행 중 전면/후면 전환은 현재 생성 단계와 진행률을 덮어쓰지 않는다.
 
-iOS 26 이상에서 기기가 백그라운드 GPU 실행을 지원하면, 사용자가 시작한 이미지 생성에 `BGContinuedProcessingTask`를 등록한다. `Background GPU Access` entitlement, `processing` 모드와 작업 식별자를 번들에 선언하고, 실제 시스템 작업을 받은 뒤에만 백그라운드 실행이 허용되었다고 판단한다. 모델 준비·적재·생성·렌더링 진행을 시스템 Live Activity에 보고하며, Society에 최종 이미지 저장이 성공한 뒤 작업을 완료한다. 작업 등록·권한 획득과 앱의 화면 유지 기능은 분리되어 있다. OS 작업은 현재 이미지 한 장을 대상으로 하며, 남은 생성 큐는 앱으로 돌아올 때 시작한다.
+iOS 26 이상에서는 사용자가 시작한 이미지 생성에 `BGContinuedProcessingTask`를 등록한다. `BGTaskScheduler.supportedResources`가 GPU를 포함하면 기존 자동 배치를 사용하고 GPU 권한을 요청한다. GPU 미지원 기기에서는 모델 적재 전부터 `generateNativeImageWithOptions(..., options, NativeComputeBackend::Cpu, ...)`로 모든 연산·가중치를 CPU에 배치하고 기본 CPU 실행 권한을 요청한다. 이 경로는 전경에서도 CPU를 사용하므로 GPU보다 느릴 수 있으며, 작업 중 백엔드를 바꿔 처음부터 다시 생성하지 않는다. `Background GPU Access` entitlement, `processing` 모드와 작업 식별자를 번들에 선언하고, 실제 시스템 작업을 받은 뒤에만 백그라운드 실행이 허용되었다고 판단한다. 모델 준비·적재·생성·렌더링 진행을 시스템 Live Activity에 보고하며, Society에 최종 이미지 저장이 성공한 뒤 작업을 완료한다. 작업 등록·권한 획득과 앱의 화면 유지 기능은 분리되어 있다. OS 작업은 현재 이미지 한 장을 대상으로 하며, 남은 생성 큐는 앱으로 돌아올 때 시작한다.
 
-구버전 iOS, 미지원 GPU 또는 시스템의 요청 거절에서는 실제 백그라운드 진입 시 `NativeExecutionControl`로 기존 텐서/연산 구간 경계에서 작업을 일시 정지한다. 앱으로 돌아오면 같은 요청·모델·latent·seed를 그대로 재개하며 처음부터 다시 생성하지 않는다. 이미 제출한 GPU 호출은 반환을 기다린다. 앱과 SDK 양쪽의 제한 시간에서 정지 시간을 제외하며, 정지 중 사용자 취소도 처리한다. 유한한 UIKit background assertion은 인계·저장·정리 시간을 확보하고 만료되면 OS가 정지된 프로세스를 suspend하도록 해제한다. 이 assertion은 GPU 권한을 대신하지 않는다. OS의 지속 실행 작업 자체가 만료되거나 시스템 UI에서 취소되면 협력적으로 종료하고 이유를 표시한다. 강제 종료 또는 메모리 압박으로 프로세스가 제거된 이후의 복원은 제공하지 않는다.
+구버전 iOS 또는 시스템의 요청 거절에서는 실제 백그라운드 진입 시 `NativeExecutionControl`로 기존 텐서/연산 구간 경계에서 작업을 일시 정지한다. 앱으로 돌아오면 같은 요청·모델·latent·seed를 그대로 재개하며 처음부터 다시 생성하지 않는다. 이미 제출한 GPU 호출은 반환을 기다린다. 앱과 SDK 양쪽의 제한 시간에서 정지 시간을 제외하며, 정지 중 사용자 취소도 처리한다. 유한한 UIKit background assertion은 인계·저장·정리 시간을 확보하고 만료되면 OS가 정지된 프로세스를 suspend하도록 해제한다. 이 assertion은 GPU 권한을 대신하지 않는다. OS의 지속 실행 작업 자체가 만료되거나 시스템 UI에서 취소되면 협력적으로 종료하고 이유를 표시한다. 강제 종료 또는 메모리 압박으로 프로세스가 제거된 이후의 복원은 제공하지 않는다.
 
 외부 패키지를 추가하지 않고 기존 Qt/iiLocalDiffusion과 Apple 시스템 프레임워크를 사용한다. 게임의 리소스 다운로드에 쓰이는 background `URLSession`은 파일 전송을 운영체제에 맡기는 기능이며 로컬 GPU 추론의 실행 권한을 제공하지 않는다. 근거: [Apple 장시간 작업](https://developer.apple.com/documentation/backgroundtasks/performing-long-running-tasks-on-ios-and-ipados), [GPU 권한](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.background-tasks.continued-processing.gpu), [유한 백그라운드 실행](https://developer.apple.com/documentation/uikit/extending-your-app-s-background-execution-time).
 
-`Dreamscapes.LocalSociety`는 허용된 백그라운드에서 실제 컨트롤러의 진행·완료·저장, GPU 미지원 시 같은 요청의 정지·재개, 정지 중 취소·제한 시간 보존, 전면 복귀 시 진행률 보존, 만료 취소와 작업 해제를 검사한다. `verify_ios_bundle.py`는 프레임워크 링크, Info.plist, 서명과 프로비저닝 프로필의 GPU 권한, 앱과 포함 SDK의 재개 API를 확인한다. opt-in 기기 probe는 `backgroundExecution`과 시계열 `Documents/local-generation-lifecycle.jsonl`을 기록하며, 백그라운드에서는 Qt 화면 캡처를 시도하지 않는다. `python3 tests/verify_ios_lifecycle.py <timeline.jsonl> --mode paused`는 실제 UIKit background 상태·30초 이상 전환·엔진 대기 확인·동일 요청 재개·완료 이미지를 검증한다. `--mode continued`는 OS 허가와 후면 생성 스텝 증가를 별도로 요구한다. 검증기 회귀는 `python3 -m unittest discover -s tests -p test_ios_lifecycle.py`로 실행한다. 호스트 회귀 테스트는 실제 기기의 OS 실행 허용 증거와 구분한다.
+`Dreamscapes.LocalSociety`는 허용된 백그라운드에서 실제 컨트롤러의 진행·완료·저장, GPU·CPU 각각의 허용된 실행과 요청 거절 시 같은 요청의 정지·재개, 정지 중 취소·제한 시간 보존, 전면 복귀 시 진행률 보존, 만료 취소와 작업 해제를 검사한다. `verify_ios_bundle.py`는 프레임워크 링크, Info.plist, 서명과 프로비저닝 프로필의 GPU 권한, 앱과 포함 SDK의 재개 API를 확인한다. opt-in 기기 probe는 `backgroundExecution`과 시계열 `Documents/local-generation-lifecycle.jsonl`을 기록하며, 백그라운드에서는 Qt 화면 캡처를 시도하지 않는다. `python3 tests/verify_ios_lifecycle.py <timeline.jsonl> --mode paused`는 실제 UIKit background 상태·30초 이상 전환·엔진 대기 확인·동일 요청 재개·완료 이미지를 검증한다. `--mode continued`는 OS 허가와 후면 생성 스텝 증가를 별도로 요구한다. 검증기 회귀는 `python3 -m unittest discover -s tests -p test_ios_lifecycle.py`로 실행한다. 호스트 회귀 테스트는 실제 기기의 OS 실행 허용 증거와 구분한다.
 
 `DreamscapesLocalSocietyTests`는 단계 혼동, 로딩 중 취소/백그라운드/제한 시간/예외, 다음 요청 재시도, 화면 유지 해제를 검사한다. 실제 기기 검증은 `DREAMSCAPES_LOCAL_RUNTIME_PROBE=ON` 빌드의 `--verify-local-generation --local-model <model> --local-prompt <prompt>`를 이용하며, Documents의 `local-generation-verification.json`에서 단계·경과 관측 시각·전경·화면 유지·최종 결과를 확인한다. 테스트용 엔진 결과와 실기기 결과는 별도 증거로 기록한다. 화면 유지 API: [Apple UIKit](https://developer.apple.com/documentation/uikit/uiapplication/isidletimerdisabled).
 
@@ -374,7 +385,7 @@ LVRS 공통 모션은 버튼의 눌림·복원과 컨텍스트 메뉴의 진입�
 2026-09-11 수정 후 iPhone 15 Pro Max에서 `redLilyIllu_v10.safetensors`의 512×512·20스텝 생성·화면 표시·Society 저장을 294.647초에 완료했다. 로딩 중 3초 후 취소 요청은 시작부터 3.162초에 정상 취소되었다. 앱 CTest 5/5, 네이티브 SDK 79/79, iOS LVRS 설치 QML 62/62 해시와 기기 입력 높이 22px을 확인했다. 상세 재현·로그·이미지는 [검증 보고서](build/iphone-generation-hang/REPORT.md)에 있다.
 
 
-QuickGenerate의 기본 출력은 짧은 변 1024px·10스텝이다. 공통 `GenerationRuntime`의 기본 스텝을 20에서 10으로 낮췄으며 네이티브 엔진과 데스크톱 worker에 동일하게 전달한다. `DreamscapesGenerationTests`는 5가지 종횡비에서 두 백엔드에 전달되는 기본 해상도와 10스텝을 검사하고, `DreamscapesLocalSocietyTests`는 10스텝 진행률을 검사한다. iOS 로컬 네이티브 엔진은 Society Models 원본을 보존하고 앱 CacheLocation에 Q8_0/VAE F16 GGUF 사본을 준비하며, 성공한 최근 모델의 컨텍스트와 파일 매핑을 다음 이미지에 재사용한다. iOS는 기기 메모리 여유에 따른 Metal 예산과 전체 CPU 코어를 사용한다. 백그라운드 진입·메모리 경고·컨트롤러 종료 시 유휴 캐시를 해제하고 진행 중 작업은 종료 시 해제한다. 네이티브 job의 `generation.performance`에는 캐시 적중, 예산, 스레드 수, 모델 준비 및 추론 시간이 기록된다.
+QuickGenerate의 기본 출력은 짧은 변 1024px·10스텝이다. 공통 `GenerationRuntime`의 기본 스텝을 20에서 10으로 낮췄으며 네이티브 엔진과 데스크톱 worker에 동일하게 전달한다. `DreamscapesGenerationTests`는 5가지 종횡비에서 두 백엔드에 전달되는 기본 해상도와 10스텝을 검사하고, `DreamscapesLocalSocietyTests`는 10스텝 진행률을 검사한다. iOS 로컬 네이티브 엔진은 Society Models 원본을 보존하고 Society의 `Models/.society-runtime/iiLocalDiffusion/q8/`에 Q8_0/VAE F16 GGUF 파생 파일을 준비하며, 성공한 최근 모델의 컨텍스트와 파일 매핑을 다음 이미지에 재사용한다. iOS는 기기 메모리 여유에 따른 Metal 예산과 전체 CPU 코어를 사용한다. 백그라운드 진입·메모리 경고·컨트롤러 종료 시 유휴 캐시를 해제하고 진행 중 작업은 종료 시 해제한다. 네이티브 job의 `generation.performance`에는 캐시 적중, 예산, 스레드 수, 모델 준비 및 추론 시간이 기록된다.
 
 성능 검증용 빌드에서만 `DREAMSCAPES_PROBE_EXTENT`, `DREAMSCAPES_PROBE_SEED`와 `--local-repeat 2`로 동일 조건의 첫 생성·메모리 캐시 재사용을 비교할 수 있다. 일반 앱은 이 진단 입력을 포함하지 않는다. 빌드·테스트·실기기 결과와 한계는 `build/quickgenerate-acceleration/REPORT.md`에 기록한다.
 
@@ -385,7 +396,7 @@ iOS 네이티브 추론은 `Platform/iOS/Dreamscapes.entitlements.in`의 Extende
 
 `IILD_NATIVE_DIAGNOSTICS=1`인 기기 검증에서는 UIKit 메모리 경고에 의한 캐시 해제를 기록한다. 사용 가능 메모리가 부족한 모델은 컨텍스트 캐시가 해제될 수 있으므로 연속 생성의 `modelCacheHit`를 실제 결과로 확인한다.
 
-QuickGenerate는 iOS에서 iiLocalDiffusion 0.6의 Q8 캐시를 기본 사용한다. 첫 요청에만 모델 변환 시간이 추가되며 화면에 준비 단계를 표시한다. 원본 변경·변환 결과 손상은 캐시를 무효화하고 취소·실패한 부분 파일은 재사용하지 않는다. Q8은 같은 seed의 원본 FP16 결과와 픽셀이 달라질 수 있다. 기본 해상도와 스텝 수는 위 공통 설정을 따른다. `generation.performance`의 `q8CacheUsed`, `diskCacheHit`, `modelBytes`, `preparationMilliseconds`로 디스크 준비·재사용을, `modelCacheHit`로 메모리 재사용을 별도로 검증한다.
+QuickGenerate는 iOS에서 iiLocalDiffusion 0.6.1의 Q8 캐시를 기본 사용한다. 기존 앱 CacheLocation의 `iiLocalDiffusion/q8`는 Society 연결 시 작업 스레드에서 Society Q8 경로로 이전한다. 생성 요청은 이전 완료 후 실행하고, 이전에 실패했다면 생성 직전에 다시 확인한다. 원본 모델은 복사하지 않는다. 같은 이름의 캐시는 SHA-256이 같을 때만 중복을 정리하며, 내용 충돌·외부 링크·취소 시 남은 파일을 보존하고 오류를 보고한다. 기존 앱 캐시에는 새 파일을 쓰지 않는다. 첫 요청에만 모델 변환 시간이 추가되며 화면에 준비 단계를 표시한다. 원본 변경·변환 결과 손상은 캐시를 무효화하고 취소·실패한 부분 파일은 재사용하지 않는다. Q8은 같은 seed의 원본 FP16 결과와 픽셀이 달라질 수 있다. 기본 해상도와 스텝 수는 위 공통 설정을 따른다. `generation.performance`의 `q8CacheUsed`, `diskCacheHit`, `modelBytes`, `preparationMilliseconds`로 디스크 준비·재사용을, `modelCacheHit`로 메모리 재사용을 별도로 검증한다.
 
 2026-09-11 Q8 실기기 측정: iPhone 15 Pro Max의 동일 512×512·20스텝은 원본 FP16 기준 294.647초에서 첫 변환 포함 140.366초로 약 52.4% 줄었다. 연속 생성은 149.795초이고 디스크/메모리 캐시가 모두 적중했다. 당시 기본값인 1024×1024·20스텝은 643.309초에 완료했다. 이 측정은 기본값을 10스텝으로 낮추기 전 결과이며 10스텝의 생성 시간은 별도로 측정해야 한다. 재시작 후 디스크 캐시 준비는 1.287ms로 확인했다. 원본 보존·실제 결과·캐시 해제와 기기 측정 한계는 [검증 보고서](build/quickgenerate-acceleration/REPORT.md)에 있다.
 
@@ -399,9 +410,29 @@ iOS 진단 probe는 앱의 논리적 화면 유지 상태와 별도로 실제 UI
 
 선택 진단 빌드의 `--verify-local-generation --local-aspect-ratio 3:4`는 실제 컨트롤러에 해당 비율을 전달한다. 비율을 생략하면 기존 1:1이고, 반복 실행에도 같은 비율을 적용한다. `DREAMSCAPES_PROBE_EXTENT`를 지정하지 않으면 제품 기본 크기·스텝을 사용한다. 일반 설치본은 `DREAMSCAPES_LOCAL_RUNTIME_PROBE=OFF`로 다시 빌드하고 `tests/verify_ios_bundle.py`로 진단 코드 제외·포함 SDK·서명·기기 프로필을 검증한다. 수정 전후 회귀와 실기 결과는 `build/iphone-result-fix/`에 기록한다.
 
+## Society 생성 리소스와 앱 패키징
+
+Dreamscapes 번들은 실행 코드·UI·아이콘만 포함한다. 체크포인트·VAE·LoRA·임베딩과 `generation-defaults.json`을 앱에 복사하지 않는다. 증분 빌드도 이전 버전의 `iiLocalDiffusion/resources` 디렉터리를 서명 전에 제거한다. `Dreamscapes.GenerationResources`와 iOS·Android 패키지 검사는 모델 확장자 또는 생성 리소스 명세가 발견되면 실패한다. Android의 압축된 APK에서도 같은 규칙을 적용한다. `Dreamscapes.GenerationResourceVerifier`는 중첩 모델, 잘못 포함한 명세, 정상 실행 코드·아이콘과 없는 번들을 검사한다.
+
+Society가 생성 리소스를 소유한다. SDK에서 준비한 `share/iiLocalDiffusion/resources/`의 내용은 Society 컨테이너의 `Models/.generation-resources/iiLocalDiffusion/`에 같은 상대 경로로 보관한다. 이 디렉터리의 `generation-defaults.json`이 참조하는 VAE·LoRA·임베딩·설정 파일은 Society가 다른 기기로 동기화한다. 숨김 리소스는 생성 모델 선택 목록에서 제외되며, 로컬 파생 파일을 두는 `.society-runtime`과 달리 동기화 대상이다. 앱 빌드는 실제 Society 컨테이너를 변경하지 않는다.
+
+모바일은 `NativeGenerationOptions.resourceDirectory`, 데스크톱은 `--generation-resources`로 선택한 Society 경로를 명시한다. CPU 백그라운드 실행에도 이 옵션을 유지한다. SDK 설치본·앱 번들·환경 변수의 다른 리소스로 우회하지 않는다. 리소스 명세가 없으면 선택적인 기본 스타일 어댑터를 사용하지 않으며 정상 내장 VAE가 있는 모델은 계속 생성할 수 있다. 외부 VAE가 필요한 모델은 Society에서 같은 계열의 VAE를 찾고 기존 텐서·설정 검증 후 자동 마운트한다. 필수 VAE가 없으면 오류를 반환한다.
+
+`Dreamscapes.Generation`은 CLI·환경 변수·임시 출력·캐시 경로가 Society를 가리키는지 검사한다. `Dreamscapes.LocalSociety`는 네이티브 리소스 옵션·Q8 캐시·이전 앱 캐시 이동·파일 충돌 보존·숨김 데이터 제외·완성 이미지 저장을 검증한다. 실제 기기 저장량은 빌드 검증과 별도로 측정해야 한다.
+
 ## 앱 아이콘
 
 `resources/Appicon/Artboard 1.png`를 원본으로 macOS, iPhone/iPad, Android, Windows, Linux, WebAssembly용 아이콘을 생성하고 CMake와 Qt 런타임에 연결한다. 원본 Illustrator 파일은 `resources/Appicon/Appicon.ai`이다. 재생성 방법, 플랫폼별 마스크·크기와 패키징 설명은 [앱 아이콘 문서](resources/Appicon/README.md)를 참조한다. `Dreamscapes.AppIcons`는 원본 해시, 자산 규격, Android의 Activity·FileProvider 보존과 웹의 반복 패키징을 검사한다.
+
+현재 Qt iOS 배포에는 FFmpeg 네이티브 의존성이 없으므로 번들에는 AVFoundation 기반 `QDarwinMediaPlugin`을 선택한다. `verify_ios_bundle.py`는 미포함 FFmpeg 플러그인의 링크를 거부한다. SDK 경로를 지정해 검증할 때는 셸의 `CPATH`가 이전 설치 헤더를 우선하지 않도록 `env -u CPATH -u CPLUS_INCLUDE_PATH -u C_INCLUDE_PATH`로 빌드한다.
+
+### iPhone VAE 마운트와 디코딩 품질
+
+네이티브 SDK는 redLilyIllu 같은 SDXL 체크포인트의 VAE 전체 텐서 구조를 검사한다. 정상 내장 VAE를 사용하고 누락·불완전·형상 불일치는 Society에 보관한 동일 계열의 VAE로 교체한다. `adaptive-sdxl-v1`은 메모리 예산에 따라 타일을 조절하고, 작은 캔버스는 분할 없이 디코딩한다. SDXL 내장·외부 VAE에 fp16 활성값 보호를 적용하며 NaN/Inf 잠재값과 픽셀은 저장 전에 오류로 처리한다. iOS 번들 검사는 이 마운트 검증·정책·오류 차단이 실제 내장 라이브러리에 포함됐는지도 확인한다.
+
+`auto-mount-v2`는 선택한 모델의 실제 safetensors/GGUF 내용을 읽어 모델 계열과 VAE 계열을 판별한다. 사용자가 VAE를 따로 고를 필요가 없으며 Q8 캐시를 쓰면 실제 로딩할 캐시도 검사한다. SDXL·Qwen Image RGB·FLUX.1·FLUX.2와 함께 Anima는 Qwen VAE, Z-Image는 FLUX.1 VAE를 자동 연결한다. 외부 VAE도 전체 텐서·RGB/잠재 채널·스케일·시프트·정규화 설정을 통과해야 마운트하며, 설정 변경은 생성 컨텍스트 캐시를 무효화한다. 정상 내장 VAE, 누락, 구조 불일치, 지원 범위 밖을 구별한다. SD1/2/SD3의 정상 내장 VAE는 사용할 수 있지만 해당 계열의 기본 VAE는 현재 SDK 리소스 명세에 없으므로 내장 VAE 누락 시 명확한 오류를 반환한다. 별도 텍스트 인코더 등 다른 필수 구성요소까지 제공하는 기능은 아니다.
+
+원본 모델과 기존 생성 기록을 수정하지 않는다. VAE 수치 정확도 검증은 디노이저의 인물 형태·스텝·LoRA 품질 검증과 별개이다. 검증 절차는 [SDK 문서](../../SDK/iiLocalDiffusion/docs/native-image-generation.md#vae-마운트-검증과-자동-최적화)에 있다.
 
 ## 로컬 MCP 제어
 

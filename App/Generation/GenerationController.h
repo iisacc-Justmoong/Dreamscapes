@@ -23,12 +23,12 @@ struct GenerationRuntime {
     int steps = 10;
     int imageExtent = 1024; // Shorter output side, aligned to the 8px latent grid.
     QString pythonExecutable;
-    QString temporaryDirectory;
     bool nativeInference = false;
-    int nativeTimeoutMilliseconds = 900000;
-    QString nativeQ8CacheDirectory;
+    int nativeTimeoutMilliseconds = 900000; // Maximum active time without measurable progress.
+    QString legacyQ8CacheDirectory; // Read/move-only upgrade source; never used by inference.
     std::function<iiLocalDiffusion::NativeGenerationResult(const iiLocalDiffusion::NativeGenerationRequest &,
-        const std::atomic_bool &, const iiLocalDiffusion::NativeProgressCallback &)> nativeGenerate;
+        const iiLocalDiffusion::NativeGenerationOptions &, const std::atomic_bool &,
+        const iiLocalDiffusion::NativeProgressCallback &)> nativeGenerate;
     std::function<void(bool)> screenActivity;
     std::shared_ptr<GenerationBackgroundActivity> backgroundActivity;
     std::shared_ptr<iiLocalDiffusion::NativeExecutionControl> nativeExecutionControl;
@@ -104,6 +104,7 @@ private:
     void finishNative();
     bool discardLegacyStorage();
     bool createWorkingFiles(QString *error);
+    QStringList resourceArguments(QString *error);
     void clearWorkingFiles();
     bool publishImages(const QStringList &sources, QJsonObject &job, QString *error);
     void updateJob(QJsonObject job);
@@ -114,6 +115,7 @@ private:
     void readProcessOutput();
     void sendWorkerRequest();
     void acceptWorkerResult(const QByteArray &line);
+    void acceptNativeWorkerProgress(const QByteArray &line);
     void acceptPreview(const QByteArray &line);
     void clearPreview();
     bool startWorker(QString *error);
@@ -122,12 +124,16 @@ private:
     void updateScreenActivity();
     void interruptNative();
     void setNativePaused(bool paused);
+    void startLegacyCacheMigration();
 
     GenerationRuntime m_runtime;
     iiSocietyHelper::FileSystem m_fileSystem;
     QString m_storageSelection;
     QTimer m_storagePoll;
     QFutureWatcher<iiLocalDiffusion::NativeGenerationResult> m_nativeWatcher;
+    QFutureWatcher<QString> m_cacheMigrationWatcher;
+    std::atomic_bool m_cacheMigrationCancelled{false};
+    bool m_cacheMigrationActive = false;
     std::atomic_bool m_nativeCancelled{false};
     QTimer m_nativeDeadline;
     bool m_nativeTimedOut = false;

@@ -36,5 +36,22 @@ class LifecycleEvidenceTests(unittest.TestCase):
     def test_pause_is_not_background_inference(self):
         with self.assertRaises(AssertionError): verify(sample(), 'continued')
 
+    def test_accepts_cpu_and_gpu_progress_under_a_real_background_grant(self):
+        for backend in ('cpu', 'automatic'):
+            with self.subTest(backend=backend):
+                rows = sample()
+                rows[1]['step'] = 2
+                rows[1]['backgroundExecution'] = {'allowsBackgroundExecution': True}
+                rows[-1]['jobs'][0]['generation'] = {'computeBackend': backend}
+                self.assertEqual(verify(rows, 'continued')['computeBackend'], backend)
+
+    def test_rejects_progress_only_during_an_inactive_overlay(self):
+        rows = sample()
+        rows[2]['foreground'] = False
+        rows[2]['nativeRuntime']['applicationState'] = 1
+        rows[2]['step'] = 3
+        rows[2]['backgroundExecution'] = {'allowsBackgroundExecution': True}
+        with self.assertRaises(AssertionError): verify(rows, 'continued')
+
 
 if __name__ == '__main__': unittest.main()

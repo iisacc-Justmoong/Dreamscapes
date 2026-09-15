@@ -11,7 +11,7 @@ find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Core Gui Qml Quick QuickControl
 # Future packages are expected to export <Package>::<Package> targets.
 find_package(iiCSMIDI CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiCSMIDI")
 find_package(iiLicenseManager CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLicenseManager")
-find_package(iiLocalDiffusion 0.6.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLocalDiffusion")
+find_package(iiLocalDiffusion 0.6.1 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLocalDiffusion")
 find_package(iiPaintEngine CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiPaintEngine")
 find_package(iiSocietyContainer 0.10.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietyContainer")
 find_package(iiSocietyHelper 0.5.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietyHelper")
@@ -52,6 +52,7 @@ qt_add_qml_module(DreamscapesGeneration
     URI Dreamscapes.Storage VERSION 1.0 NO_PLUGIN
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Dreamscapes/Storage"
     SOURCES App/Generation/GenerationController.h App/Generation/GenerationController.cpp
+        App/Generation/SocietyGenerationStorage.h App/Generation/SocietyGenerationStorage.cpp
         App/Views/Result/ImageFileExporter.h App/Views/Result/ImageFileExporter.cpp
         App/Views/Result/PhotoLibraryExporter.h App/Views/Result/PhotoLibraryExporter.cpp)
 if(APPLE)
@@ -147,8 +148,20 @@ set_target_properties(Dreamscapes PROPERTIES
     MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
     QT_ANDROID_PACKAGE_NAME "com.iisacc.dreamscapes"
 )
+if(APPLE)
+    # Upgrade existing build bundles too: weights are owned by Society, and
+    # must not survive an incremental build after removing their copy phase.
+    add_custom_command(TARGET Dreamscapes POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E rm -rf
+            "$<TARGET_BUNDLE_DIR:Dreamscapes>/iiLocalDiffusion/resources"
+            "$<TARGET_BUNDLE_DIR:Dreamscapes>/Contents/Resources/iiLocalDiffusion/resources"
+        VERBATIM)
+endif()
 if(IOS)
-    qt_import_plugins(Dreamscapes INCLUDE Qt6::QSQLiteDriverPlugin)
+    # The iOS Qt package has no FFmpeg native libraries. Use Apple's media
+    # plugin when transitive QML dependencies bring in QtMultimedia.
+    qt_import_plugins(Dreamscapes INCLUDE Qt6::QSQLiteDriverPlugin Qt6::QDarwinMediaPlugin
+        EXCLUDE Qt6::QFFmpegMediaPlugin)
     set_property(TARGET Dreamscapes APPEND PROPERTY BUILD_RPATH "@executable_path/Frameworks")
     # iOS cannot load the development machine's SDK libraries. Embed and sign
     # every dynamic product library, including iiCSMIDI's FileProvider dependency.
@@ -229,6 +242,15 @@ if(ANDROID AND DREAMSCAPES_BUILD_ANDROID_PHOTO_TESTS)
 endif()
 if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME Dreamscapes.GenerationResourceVerifier
+        COMMAND "${Python3_EXECUTABLE}" -B -m unittest discover
+            -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p test_generation_resources.py -v)
+    if(APPLE)
+        add_test(NAME Dreamscapes.GenerationResources
+            COMMAND "${Python3_EXECUTABLE}" -B
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/verify_generation_resources.py"
+                "$<TARGET_BUNDLE_DIR:Dreamscapes>")
+    endif()
     add_test(NAME Dreamscapes.AppIcons
         COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_app_icons.py")
     # Only the integration harness acts as Society peers; the app has no Sync transport.

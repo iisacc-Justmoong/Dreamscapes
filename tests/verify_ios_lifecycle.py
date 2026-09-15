@@ -36,12 +36,14 @@ def verify(rows, mode='paused', minimum_seconds=30):
                    for row in rows[end:]), 'No further denoising after foreground resumption'
     else:
         granted = [row for row in interval if not row['foreground']
+                   and row.get('nativeRuntime', {}).get('applicationState') == 2
                    and row.get('backgroundExecution', {}).get('allowsBackgroundExecution')]
         assert granted, 'No OS background execution grant'
         assert max(row.get('step', 0) for row in granted) > max(row.get('step', 0) for row in before), \
             'No background denoising progress'
     job = completed[-1]['jobs'][0]
     return {'mode': mode, 'job': job['id'], 'backgroundSeconds': seconds,
+            'computeBackend': job.get('generation', {}).get('computeBackend', 'unknown'),
             'startedAt': job['startedAt'], 'finishedAt': job['finishedAt'], 'image': job['image'],
             'width': job.get('width'), 'height': job.get('height')}
 

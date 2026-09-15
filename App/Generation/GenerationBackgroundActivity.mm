@@ -42,12 +42,16 @@ public:
         m_state = "foreground-only";
         m_error.clear();
         m_progress = 0;
+        m_cpuOnly = false;
         const auto weak = weak_from_this();
         NSString *identifier = m_identifier;
         ensureCleanup();
         if (@available(iOS 26.0, *)) {
             m_gpuSupported = (BGTaskScheduler.supportedResources & BGContinuedProcessingTaskRequestResourcesGPU) != 0;
-            if (!m_gpuSupported) { m_state = "gpu-unavailable"; return; }
+            // The default resource class permits CPU and network work. Select
+            // CPU before loading the model when background GPU is unavailable;
+            // never submit Metal work under a CPU-only grant.
+            m_cpuOnly = !m_gpuSupported;
             // Register the concrete UUID, authorized by the plist's wildcard.
             // Each identifier is registered only once, including after retries.
             const BOOL registered = [BGTaskScheduler.sharedScheduler registerForTaskWithIdentifier:identifier
@@ -68,14 +72,15 @@ public:
                     auto *continued = (BGContinuedProcessingTask *)task;
                     continued.progress.totalUnitCount = 10000;
                     continued.progress.completedUnitCount = self->m_progress;
-                    qInfo("Dreamscapes: background GPU generation granted");
+                    qInfo("Dreamscapes: background %s generation granted", self->m_cpuOnly ? "CPU" : "GPU");
                     self->m_foregroundChanged(UIApplication.sharedApplication.applicationState != UIApplicationStateBackground);
                 }];
             if (!registered) { m_state = "registration-failed"; return; }
             auto *request = [[BGContinuedProcessingTaskRequest alloc] initWithIdentifier:identifier
                 title:NSLocalizedString(@"Generating image", nil)
                 subtitle:NSLocalizedString(@"Preparing model…", nil)];
-            request.requiredResources = BGContinuedProcessingTaskRequestResourcesGPU;
+            request.requiredResources = m_cpuOnly ? BGContinuedProcessingTaskRequestResourcesDefault
+                                                 : BGContinuedProcessingTaskRequestResourcesGPU;
             // Foreground inference starts immediately. Never enqueue a second,
             // delayed system task for work that may already have finished.
             request.strategy = BGContinuedProcessingTaskRequestSubmissionStrategyFail;
@@ -108,6 +113,7 @@ public:
     }
 
     bool allowsBackgroundExecution() const override { return m_task && m_state == "running"; }
+    bool requiresCpuExecution() const override { return m_cpuOnly; }
 
     void update(const iiLocalDiffusion::NativeGenerationProgress &event) override {
         using Stage = iiLocalDiffusion::NativeGenerationStage;
@@ -156,6 +162,7 @@ public:
 
     QVariantMap status() const override {
         return {{"state", m_state}, {"gpuSupported", m_gpuSupported},
+                {"computeBackend", m_cpuOnly ? "cpu" : "automatic"},
                 {"allowsBackgroundExecution", allowsBackgroundExecution()},
                 {"cleanupAssertion", m_cleanupTask != UIBackgroundTaskInvalid},
                 {"progress", m_progress}, {"error", m_error}};
@@ -202,6 +209,7 @@ private:
     QString m_state = "idle";
     QString m_error;
     bool m_gpuSupported = false;
+    bool m_cpuOnly = false;
     int m_progress = 0;
 };
 }
