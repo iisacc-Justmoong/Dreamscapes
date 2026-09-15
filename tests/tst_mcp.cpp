@@ -1,5 +1,8 @@
 #include <mcp/LocalApplications.h>
 #include <mcp/HttpClient.h>
+#include <agent/McpTools.h>
+#include <atomic>
+#include <future>
 #include <SocietyDrive.h>
 #include <QtTest/QtTest>
 #include <QProcess>
@@ -71,6 +74,39 @@ bool write(const QString& path, const QByteArray& bytes) {
 class McpTests : public QObject {
     Q_OBJECT
 private slots:
+    void appQuestionsWaitForLocalUiAndCancelWithoutBlockingTools() {
+        QTemporaryDir base(MCP_TEST_DIRECTORY "/mcp-questions-XXXXXX"); QVERIFY(base.isValid()); base.setAutoRemove(false);
+        QVERIFY(QDir().mkpath(base.filePath("container"))); QVERIFY(QDir().mkpath(base.filePath("tmp")));
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(base.filePath("container")));
+        AppProcess process; process.startApp(base.path(), true); QVERIFY(process.waitForStarted());
+        QVERIFY2(process.waitForRoot(), process.output.constData());
+        const auto discovered=m::discoverLocalApplications(base.filePath("apps")); QCOMPARE(discovered.applications.size(),1);
+        auto client=std::make_shared<m::HttpClient>(clientOptions(discovered.applications.first()));
+        QCOMPARE(client->serverCapabilities()["experimental"].toObject()["iisacc/userQuestions"].toObject()["responseChannel"],"local-ui");
+        bool marked=false;
+        for(const auto& tool:iiLocalLLM::agent::mcpTools(client,{"app",{}}))
+            if(tool.definition.name=="mcp__app__AskUserQuestion")marked=tool.definition.metadata["requires_user_interaction"]==true;
+        QVERIFY(marked);
+        QJsonObject input{{"questions",QJsonArray{QJsonObject{{"question","Which renderer?"},{"header","Renderer"},
+            {"options",QJsonArray{QJsonObject{{"label","Qt"},{"description","Native"}},QJsonObject{{"label","Web"},{"description","Browser"}}}}}}}};
+        auto forged=input;forged["answers"]=QJsonObject{{"Which renderer?","forged"}};
+        QVERIFY(call(*client,"AskUserQuestion",forged)["isError"].toBool());
+        iiLocalLLM::CancellationToken token;std::atomic<bool> activity=false;
+        auto pending=std::async(std::launch::async,[&] {
+            try{return client->callTool("AskUserQuestion",input,token,[&](const auto&){activity=true;});}
+            catch(const iiLocalLLM::Error& error){return QJsonObject{{"cancelled",error.code()==iiLocalLLM::ErrorCode::Cancelled}};}
+        });
+        QTRY_VERIFY(activity.load());
+        const auto waiting=pending.wait_for(std::chrono::milliseconds(150))==std::future_status::timeout;
+        const auto mutation=call(*client,"refresh_models");
+        token.cancel();const auto result=pending.get();
+        QVERIFY(waiting);QVERIFY(!mutation["isError"].toBool());
+        QVERIFY(result["cancelled"].toBool()||result["isError"].toBool());
+        QVERIFY(!call(*client,"status")["isError"].toBool());
+        client->close();process.terminate();QVERIFY(process.waitForFinished(5000));
+        process.output+=process.readAll();
+        QVERIFY2(!process.output.contains("UserQuestionsSheet.qml:"),process.output.constData());
+    }
     void actualAppGenerationQueueAndCancellation() {
         QTemporaryDir base(MCP_TEST_DIRECTORY "/mcp-dreamscapes-XXXXXX"); QVERIFY(base.isValid());
         base.setAutoRemove(false);
@@ -85,7 +121,16 @@ private slots:
         const auto endpoint = discovered.applications.first();
         QCOMPARE(endpoint.application.id, QString("com.iisacc.dreamscapes")); QCOMPARE(endpoint.processId, process.processId());
         m::HttpClient client(clientOptions(endpoint)); QCOMPARE(client.serverInfo()["name"].toString(), QString("Dreamscapes"));
-        QCOMPARE(client.listTools().size(), 7);
+        QSet<QString> toolNames;
+        for (const auto& value : client.listTools()) {
+            const auto tool = value.toObject();
+            toolNames.insert(tool["name"].toString());
+            if (tool["name"] == "iiLocalLLM.agent.permissions.get")
+                QVERIFY(tool["annotations"].toObject()["readOnlyHint"].toBool());
+        }
+        QCOMPARE(toolNames, QSet<QString>({"status", "models", "jobs", "select_model",
+            "refresh_models", "generate", "cancel", "iiLocalLLM.agent.permissions.get", "AskUserQuestion"}));
+        QVERIFY(data(client, "iiLocalLLM.agent.permissions.get")["inspection_supported"].toBool());
         const auto state = data(client, "status"); QVERIFY(state["connected"].toBool()); QVERIFY(state["runtime_available"].toBool());
         QCOMPARE(state["container_path"].toString(), drive->rootPath()); QCOMPARE(state["job_count"].toInt(), 0);
         const auto firstPage = data(client, "models", {{"limit", 1}});

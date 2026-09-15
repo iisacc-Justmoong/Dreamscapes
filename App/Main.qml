@@ -11,6 +11,12 @@ LV.ApplicationWindow {
     id: window
     objectName: "mainWindow"
     property string initialContainerPath: ""
+    property var agentQuestionInbox: null
+    onAgentQuestionInboxChanged: {
+        if (agentQuestionInbox) agentQuestions.setSource("qrc:/iiLocalLLM/UserQuestionsSheet.qml", {inbox: agentQuestionInbox})
+        else agentQuestions.source = ""
+    }
+    Loader { id: agentQuestions }
     property bool resultVisible: false
     property var currentResult: ({})
     property string lastPresentedImage: ""

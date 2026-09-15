@@ -2,6 +2,8 @@
 #include "App/Generation/GenerationController.h"
 #include <agent/ObjectTools.h>
 #include <agent/McpServer.h>
+#include <agent/QuestionInbox.h>
+#include <agent/UserQuestions.h>
 #include <mcp/LocalApplications.h>
 #include <QCoreApplication>
 #include <QDebug>
@@ -83,15 +85,24 @@ void installDreamscapesMcp(QObject* root, QObject* lifetime) {
                 return a::ToolResult{cancelled ? "Dreamscapes cancellation requested" : "No cancellable job with that ID",
                     {{"job_id", id}, {"cancelled", cancelled}}, !cancelled};
             });
-        auto policy = std::make_shared<a::RulePolicy>(a::PermissionMode::DontAsk,
+        auto policy = std::make_shared<a::RulePolicy>(a::PermissionMode::Default,
             QList<a::PermissionRule>{{"select_model", a::PermissionBehavior::Allow}, {"refresh_models", a::PermissionBehavior::Allow},
                 {"generate", a::PermissionBehavior::Allow}, {"cancel", a::PermissionBehavior::Allow}});
         a::McpServerOptions bridge; bridge.workingDirectory = QDir::currentPath(); bridge.appId = "com.iisacc.dreamscapes";
+        auto* questions = new a::QuestionInbox(a::PermissionRequestsOptions{}, lifetime);
+        registry->add(a::userQuestionTool({false, "markdown"}));
+        bridge.tools.hooks.append(questions->hook());
+        auto protocol = a::mcpServerOptions(registry, policy, std::move(bridge));
+        protocol.experimentalCapabilities["iisacc/userQuestions"] = QJsonObject{
+            {"schema", "iisacc.user-question/1"}, {"tool", "AskUserQuestion"},
+            {"responseChannel", "local-ui"}, {"permissionRequests", false},
+            {"previewFormat", "markdown"}, {"previewRendering", "plain-text"}};
         auto server = std::make_shared<m::LocalApplicationServer>(
             m::LocalApplicationIdentity{"com.iisacc.dreamscapes", "Dreamscapes", DREAMSCAPES_APP_VERSION},
-            a::mcpServerOptions(registry, policy, std::move(bridge)));
+            std::move(protocol));
         if (!server->listen()) { qWarning() << "Dreamscapes MCP:" << server->errorString(); return; }
-        QObject::connect(qApp, &QCoreApplication::aboutToQuit, lifetime, [server] { server->close(); });
-        QObject::connect(controller, &QObject::destroyed, lifetime, [server] { server->close(); });
+        root->setProperty("agentQuestionInbox", QVariant::fromValue(questions));
+        QObject::connect(qApp, &QCoreApplication::aboutToQuit, lifetime, [questions, server] { questions->close(); server->close(); });
+        QObject::connect(controller, &QObject::destroyed, lifetime, [questions, server] { questions->close(); server->close(); });
     } catch (const std::exception& error) { qWarning() << "Dreamscapes MCP:" << error.what(); }
 }
