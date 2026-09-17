@@ -94,6 +94,10 @@ def generate(arguments, request_count=1):
                 print(event, end='', flush=True)  # Duplicate/out-of-order events are ignored.
             if args.prompt == 'live-hold':
                 time.sleep(20)
+            if args.prompt == 'live-gui':
+                deadline = time.monotonic() + 10
+                while not (args.preview_dir / f'continue-{step}').exists() and time.monotonic() < deadline:
+                    time.sleep(0.01)
             time.sleep(0.3)
         if args.prompt == 'live-fail':
             sys.exit('inference failed after preview')
@@ -135,6 +139,8 @@ if sys.argv[1:] == ['--worker']:
                 if action == 'foreground':
                     if model.read_bytes().startswith(b'prepare-fail'):
                         raise SystemExit('fixture model preparation failed')
+                    if model.read_bytes().startswith(b'prepare-hold'):
+                        time.sleep(20)
                     time.sleep(0.2)
             if action == 'generate':
                 request_count += 1

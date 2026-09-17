@@ -54,6 +54,48 @@ class GenerationTests : public QObject
 {
     Q_OBJECT
 private slots:
+    void unifiedModelReachesTheNativeRuntimeAsOnePackage()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/unified-generation-XXXXXX");
+        QVERIFY(prepare(root));
+        const auto package = root.filePath("Models/cascade.iildmodel");
+        QVERIFY(QDir().mkpath(package + "/members"));
+        QVERIFY(write(package + "/model_index.json",
+            "{\"schema\":\"iild-unified-model-v1\",\"_class_name\":\"IILDUnifiedCascade\"}"));
+        QVERIFY(write(package + "/members/a.safetensors", "test member"));
+        auto runtime = fakeRuntime();
+        runtime.nativeInference = true;
+        QString received;
+        runtime.nativeGenerate = [&received](const auto &request, const auto &, const auto &, const auto &, const auto &) {
+            received = QString::fromStdString(request.modelPath.string());
+            return iiLocalDiffusion::NativeGenerationResult{
+                std::vector<std::uint8_t>(request.width * request.height * 3, 127), request.width, request.height};
+        };
+        GenerationController controller(runtime);
+        QVERIFY(controller.connectStorage(root.path()));
+        controller.setSelectedModel("cascade.iildmodel");
+        controller.setForeground(true);
+        const auto id = controller.enqueue("unified fixture");
+        QVERIFY2(!id.isEmpty(), qPrintable(controller.errorString()));
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 10000);
+        QCOMPARE(received, package);
+    }
+    void obsoletePreparationCannotBlockTheSelectedModelsQueue()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/obsolete-preparation-XXXXXX");
+        QVERIFY(prepare(root));
+        QVERIFY(write(root.filePath("Models/first model.safetensor"), "prepare-hold"));
+        GenerationController controller(fakeRuntime());
+        QVERIFY(controller.connectStorage(root.path()));
+        controller.setForeground(true);
+        QTRY_VERIFY(controller.inferenceStatus().contains("requestId"));
+        QTest::qWait(100); // Let the fixture enter the deliberately slow preparation.
+        controller.setSelectedModel(controller.models().last().toMap().value("id").toString());
+        const auto id = controller.enqueue("the newly selected model must run");
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 5000);
+        QVERIFY(recordedJob(controller, id).value("generation").toObject()
+                    .value("model_path").toString().endsWith("second.SAFETENSORS"));
+    }
     void nativeWorkerReportsStagesWithoutInventingPreviewImages()
     {
         QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/native-worker-progress-XXXXXX");
@@ -106,7 +148,7 @@ private slots:
 
         runtime.nativeInference = native;
         iiLocalDiffusion::NativeGenerationRequest nativeRequest;
-        runtime.nativeGenerate = [&nativeRequest](const auto &request, const auto &, const auto &, const auto &) {
+        runtime.nativeGenerate = [&nativeRequest](const auto &request, const auto &, const auto &, const auto &, const auto &) {
             nativeRequest = request;
             return iiLocalDiffusion::NativeGenerationResult{
                 std::vector<std::uint8_t>(request.width * request.height * 3, 127), request.width, request.height};

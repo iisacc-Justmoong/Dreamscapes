@@ -1,4 +1,6 @@
 #include "GenerationBackgroundActivity.h"
+#include "GenerationWorkProgress.h"
+#include <TaskActivityBridge.h>
 #include <QDebug>
 #include <algorithm>
 #import <BackgroundTasks/BackgroundTasks.h>
@@ -8,6 +10,7 @@ namespace {
 class BackgroundActivity final : public GenerationBackgroundActivity,
                                  public std::enable_shared_from_this<BackgroundActivity> {
 public:
+    BackgroundActivity() { society_activity_restore(); }
     ~BackgroundActivity() override {
         [NSNotificationCenter.defaultCenter removeObserver:m_backgroundObserver];
         [NSNotificationCenter.defaultCenter removeObserver:m_foregroundObserver];
@@ -26,6 +29,7 @@ public:
             addObserverForName:UIApplicationWillEnterForegroundNotification object:nil
             queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *) {
                 if (auto self = weak.lock()) {
+                    if (!self->m_identifier) self->endCleanup();
                     self->ensureCleanup();
                     self->m_foregroundChanged(true);
                 }
@@ -37,21 +41,25 @@ public:
 
     void begin(const QString &job, std::function<void()> expired) override {
         end(false);
+        m_activityJob = job;
+        m_presentationPaused = false;
+        society_activity_begin(job.toUtf8().constData(), "Dreamscapes", "sparkles", "Preparing model…");
         m_identifier = [@"com.iisacc.dreamscapes.generation." stringByAppendingString:job.toNSString()];
         m_expired = std::move(expired);
         m_state = "foreground-only";
         m_error.clear();
-        m_progress = 0;
+        m_progress = {};
+        m_subtitle = QStringLiteral("Preparing model…");
         m_cpuOnly = false;
         const auto weak = weak_from_this();
         NSString *identifier = m_identifier;
         ensureCleanup();
         if (@available(iOS 26.0, *)) {
             m_gpuSupported = (BGTaskScheduler.supportedResources & BGContinuedProcessingTaskRequestResourcesGPU) != 0;
-            // The default resource class permits CPU and network work. Select
-            // CPU before loading the model when background GPU is unavailable;
-            // never submit Metal work under a CPU-only grant.
-            m_cpuOnly = !m_gpuSupported;
+            // Background GPU support is separate from foreground Metal support.
+            // Keep interactive inference accelerated; unsupported background
+            // execution pauses the existing tensors instead of forcing CPU.
+            if (!m_gpuSupported) { m_state = "foreground-gpu"; return; }
             // Register the concrete UUID, authorized by the plist's wildcard.
             // Each identifier is registered only once, including after retries.
             const BOOL registered = [BGTaskScheduler.sharedScheduler registerForTaskWithIdentifier:identifier
@@ -70,8 +78,9 @@ public:
                         });
                     };
                     auto *continued = (BGContinuedProcessingTask *)task;
-                    continued.progress.totalUnitCount = 10000;
-                    continued.progress.completedUnitCount = self->m_progress;
+                    continued.progress.totalUnitCount = self->m_progress.total();
+                    continued.progress.completedUnitCount = self->m_progress.completed();
+                    self->endCleanup();
                     qInfo("Dreamscapes: background %s generation granted", self->m_cpuOnly ? "CPU" : "GPU");
                     self->m_foregroundChanged(UIApplication.sharedApplication.applicationState != UIApplicationStateBackground);
                 }];
@@ -117,30 +126,41 @@ public:
 
     void update(const iiLocalDiffusion::NativeGenerationProgress &event) override {
         using Stage = iiLocalDiffusion::NativeGenerationStage;
-        const int fraction = event.total > 0 ? std::clamp(event.step * 1000 / event.total, 0, 1000) : 0;
-        QString subtitle;
-        int units = 0;
+        QString subtitle = m_subtitle;
         switch (event.stage) {
         case Stage::Waiting: subtitle = QStringLiteral("Waiting for image engine…"); break;
-        case Stage::Preparing: units = fraction * 2; subtitle = QStringLiteral("Preparing model…"); break;
-        case Stage::Loading: units = 2000 + fraction; subtitle = QStringLiteral("Loading model…"); break;
-        case Stage::Encoding: units = 3000; subtitle = QStringLiteral("Reading prompt…"); break;
+        case Stage::Preparing: subtitle = QStringLiteral("Preparing model…"); break;
+        case Stage::Loading: subtitle = QStringLiteral("Loading model…"); break;
+        case Stage::Encoding: subtitle = QStringLiteral("Reading prompt…"); break;
         case Stage::Denoising:
-            units = 3500 + fraction * 5;
             subtitle = QStringLiteral("Step %1 of %2").arg(event.step).arg(event.total);
             break;
-        case Stage::Decoding: units = 8500 + fraction; subtitle = QStringLiteral("Rendering image…"); break;
+        case Stage::Decoding: subtitle = QStringLiteral("Rendering image…"); break;
+        case Stage::Computing: break;
         }
         // Model loading/VAE callbacks may revisit a phase. Never move system
         // progress backwards or report success before the image is saved.
-        m_progress = std::max(m_progress, units);
+        m_progress.update(event);
+        publish(subtitle);
         if (@available(iOS 26.0, *)) {
             if (m_task) {
                 auto *continued = (BGContinuedProcessingTask *)m_task;
-                continued.progress.completedUnitCount = m_progress;
-                [continued updateTitle:NSLocalizedString(@"Generating image", nil) subtitle:subtitle.toNSString()];
+                continued.progress.totalUnitCount = m_progress.total();
+                continued.progress.completedUnitCount = m_progress.completed();
+                if (subtitle != m_subtitle)
+                    [continued updateTitle:NSLocalizedString(@"Generating image", nil) subtitle:subtitle.toNSString()];
             }
         }
+        m_subtitle = subtitle;
+    }
+
+    void finishPresentation(const QString &job, const QString &state) override {
+        society_activity_finish(job.toUtf8().constData(), state.toUtf8().constData());
+        if (m_activityJob == job) m_activityJob.clear();
+    }
+    void setPresentationPaused(bool paused) override {
+        m_presentationPaused = paused;
+        publish(m_subtitle);
     }
 
     void end(bool success) override {
@@ -156,7 +176,7 @@ public:
         if (m_identifier) [BGTaskScheduler.sharedScheduler cancelTaskRequestWithIdentifier:m_identifier];
         m_identifier = nil;
         m_expired = {};
-        endCleanup();
+        if (m_state != "expired") endCleanup();
         m_state = "idle";
     }
 
@@ -165,24 +185,31 @@ public:
                 {"computeBackend", m_cpuOnly ? "cpu" : "automatic"},
                 {"allowsBackgroundExecution", allowsBackgroundExecution()},
                 {"cleanupAssertion", m_cleanupTask != UIBackgroundTaskInvalid},
-                {"progress", m_progress}, {"error", m_error}};
+                {"progress", m_progress.completed()}, {"total", m_progress.total()}, {"error", m_error}};
     }
 
 private:
+    void publish(const QString &subtitle) {
+        if (m_activityJob.isEmpty()) return;
+        const auto detail = m_presentationPaused ? QStringLiteral("Paused. Open Dreamscapes to continue.") : subtitle;
+        society_activity_update(m_activityJob.toUtf8().constData(), detail.toUtf8().constData(),
+            m_progress.completed(), m_progress.total(), m_presentationPaused ? "paused" : "running");
+    }
     void ensureCleanup() {
-        if (!m_identifier || m_cleanupTask != UIBackgroundTaskInvalid) return;
+        if (!m_identifier || m_cleanupTask != UIBackgroundTaskInvalid || allowsBackgroundExecution()) return;
         const auto weak = weak_from_this();
-        NSString *identifier = m_identifier;
+        const auto identity = std::make_shared<UIBackgroundTaskIdentifier>(UIBackgroundTaskInvalid);
         // Renew on foreground resumption, so another app switch can drain the
         // current compute segment even after the previous assertion expired.
         m_cleanupTask = [UIApplication.sharedApplication
             beginBackgroundTaskWithName:@"Finish Dreamscapes generation" expirationHandler:^{
-                if (auto self = weak.lock(); self && [self->m_identifier isEqualToString:identifier]) {
+                if (auto self = weak.lock(); self && self->m_cleanupTask == *identity) {
                     self->endCleanup();
                     // A denied GPU job is parked already. Allow suspension and
                     // keep its in-memory request, without reporting cancellation.
                 }
             }];
+        *identity = m_cleanupTask;
     }
     void endCleanup() {
         if (m_cleanupTask == UIBackgroundTaskInvalid) return;
@@ -193,10 +220,11 @@ private:
     void expire() {
         if (!m_expired) return;
         m_state = "expired";
+        ensureCleanup();
         auto callback = std::move(m_expired);
         callback();
-        // The worker acknowledges cooperative cancellation through end(false).
-        // The finite UIKit assertion permits it to unwind and release resources.
+        // The controller returns the system task and parks hidden CPU work at
+        // an engine boundary. Keep its finite cleanup grant until expiration.
     }
 
     id m_backgroundObserver = nil;
@@ -210,7 +238,10 @@ private:
     QString m_error;
     bool m_gpuSupported = false;
     bool m_cpuOnly = false;
-    int m_progress = 0;
+    GenerationWorkProgress m_progress;
+    QString m_subtitle;
+    QString m_activityJob;
+    bool m_presentationPaused = false;
 };
 }
 

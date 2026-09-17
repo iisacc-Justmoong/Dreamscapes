@@ -409,7 +409,7 @@ void GuiTests::generateOpensResultImmediatelyAndDisplaysEveryPreview()
     auto *quick = item(window, "quickGenerate");
     auto *preview = item(window, "generatedImage");
     auto *project = item(window, "newProjectButton");
-    QVERIFY(quick->setProperty("prompt", "live"));
+    QVERIFY(quick->setProperty("prompt", "live-gui"));
     click(window, item(window, "generateButton"));
     // Transition on accepted submission, before a process starts or produces a file.
     QVERIFY(window->property("resultVisible").toBool());
@@ -439,6 +439,9 @@ void GuiTests::generateOpensResultImmediatelyAndDisplaysEveryPreview()
             click(window, reopen);
             QVERIFY(window->property("resultVisible").toBool());
         }
+        QFile nextFrame(QFileInfo(controller->previewImage().toLocalFile()).dir().filePath(QString("continue-%1").arg(step)));
+        QVERIFY(nextFrame.open(QIODevice::WriteOnly));
+        nextFrame.close();
     }
     QTRY_VERIFY_WITH_TIMEOUT(!controller->latestImage().isEmpty(), 10000);
     QTRY_COMPARE(preview->property("source").toUrl(), controller->latestImage());

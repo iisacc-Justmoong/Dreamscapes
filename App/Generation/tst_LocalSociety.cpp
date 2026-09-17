@@ -1,7 +1,9 @@
 #include "GenerationController.h"
 #include "SocietyGenerationStorage.h"
+#include "GenerationWorkProgress.h"
 #include <iiSocietyHelper.h>
 #include <iiSocietySync.h>
+#include <StorageMap.h>
 #include <QFile>
 #include <QImage>
 #include <QJsonDocument>
@@ -19,6 +21,8 @@ public:
     bool cpuOnly = false;
     int starts = 0;
     QList<bool> completions;
+    QList<QPair<QString, QString>> presentations;
+    bool presentationPaused = false;
     int updates = 0;
     std::function<void(bool)> foregroundChanged;
     std::function<void()> expiration;
@@ -28,6 +32,8 @@ public:
     bool requiresCpuExecution() const override { return cpuOnly; }
     void update(const iiLocalDiffusion::NativeGenerationProgress &) override { ++updates; }
     void end(bool success) override { completions.append(success); }
+    void finishPresentation(const QString &job, const QString &state) override { presentations.append({job, state}); }
+    void setPresentationPaused(bool paused) override { presentationPaused = paused; }
     QVariantMap status() const override { return {}; }
 };
 
@@ -46,6 +52,63 @@ void waitForCancellation(const std::atomic_bool &cancelled)
 class LocalSocietyTests : public QObject {
     Q_OBJECT
 private slots:
+    void nativePreviewsPublishRealPixelsAcrossPassesAndCleanUp() {
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-preview-XXXXXX");
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+        QFile model(storage.filePath("Models/model.safetensors"));
+        QVERIFY(model.open(QIODevice::WriteOnly)); model.write("test model"); model.close();
+        GenerationRuntime runtime;
+        runtime.nativeInference = true; runtime.imageExtent = 64;
+        runtime.nativeGenerate = [](const auto &request, const auto &, const auto &, const auto &progress, const auto &preview) {
+            using Stage = iiLocalDiffusion::NativeGenerationStage;
+            for (int sequence = 1; sequence <= 2; ++sequence) {
+                const auto step = sequence == 1 ? 10 : 1, total = sequence == 1 ? 10 : 3;
+                // A progress event may arrive before the pixels for the same step.
+                progress({Stage::Denoising, step, total});
+                preview({std::vector<std::uint8_t>(2 * 2 * 3, sequence * 40), 2, 2, sequence, step, total});
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            }
+            return imageResult(request);
+        };
+        GenerationController app(runtime);
+        QVERIFY(app.connectStorage(storage.path())); app.setForeground(true);
+        QList<QUrl> frames; QList<int> totals;
+        connect(&app, &GenerationController::previewChanged, &app, [&] {
+            if (app.previewImage().isEmpty() || frames.contains(app.previewImage())) return;
+            frames.append(app.previewImage()); totals.append(app.previewTotalSteps());
+            QCOMPARE(QImage(app.previewImage().toLocalFile()).pixelColor(0, 0).red(), frames.size() * 40);
+            QVERIFY(app.latestImage().isEmpty());
+        });
+        QVERIFY(!app.enqueue("show the image as it develops").isEmpty());
+        QTRY_VERIFY(!app.latestImage().isEmpty());
+        QCOMPARE(frames.size(), 2); QCOMPARE(totals, QList<int>({10, 3}));
+        QVERIFY(app.previewImage().isEmpty());
+        for (const auto &frame : frames) QVERIFY(!QFileInfo::exists(frame.toLocalFile()));
+        QCOMPARE(QImage(app.latestImage().toLocalFile()).size(), QSize(64, 64));
+    }
+    void repeatedEnginePassesKeepReportingActualWork() {
+        using Stage = iiLocalDiffusion::NativeGenerationStage;
+        GenerationWorkProgress work;
+        work.update({Stage::Loading, 220, 220});
+        QCOMPARE(work.completed(), 220);
+        work.update({Stage::Loading, 220, 220});
+        QCOMPARE(work.completed(), 220); // Replayed event.
+        work.update({Stage::Loading, 0, 220});
+        work.update({Stage::Loading, 10, 220});
+        QCOMPARE(work.completed(), 230);
+        work.update({Stage::Denoising, 10, 10});
+        work.update({Stage::Decoding, 1, 1});
+        const auto beforeRefinement = work.completed();
+        work.update({Stage::Denoising, 0, 4});
+        work.update({Stage::Computing, 1, 0});
+        work.update({Stage::Computing, 1, 0});
+        work.update({Stage::Denoising, 1, 4});
+        QCOMPARE(work.completed(), beforeRefinement + 2);
+        work.update({Stage::Waiting});
+        work.update({Stage::Loading, -1, 220});
+        QCOMPARE(work.completed(), beforeRefinement + 2);
+        QVERIFY(work.total() > work.completed()); // Success belongs to image publication.
+    }
     void legacyCacheMovesOnConnectionWithoutGeneration() {
         QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/society-cache-upgrade-XXXXXX");
         QTemporaryDir previous(DREAMSCAPES_TEST_DIRECTORY "/private-cache-upgrade-XXXXXX");
@@ -87,7 +150,7 @@ private slots:
         runtime.legacyQ8CacheDirectory = previous.filePath("q8");
         QString observedResources, observedCache;
         bool modifiers = true;
-        runtime.nativeGenerate = [&](const auto &request, const auto &options, const auto &, const auto &) {
+        runtime.nativeGenerate = [&](const auto &request, const auto &options, const auto &, const auto &, const auto &) {
             observedResources = QString::fromStdString(options.resourceDirectory.string());
             observedCache = QString::fromStdString(request.q8CacheDirectory.string());
             modifiers = options.defaultModifiers;
@@ -158,7 +221,7 @@ private slots:
         runtime.imageExtent = 64;
 
         runtime.nativeTimeoutMilliseconds = 200;
-        runtime.nativeGenerate = [stage, hasProgress](const auto &request, const auto &, const auto &cancelled, const auto &progress) {
+        runtime.nativeGenerate = [stage, hasProgress](const auto &request, const auto &, const auto &cancelled, const auto &progress, const auto &) {
             const auto started = std::chrono::steady_clock::now();
             for (int index = 0; index < 20 && !cancelled; ++index) {
                 progress({static_cast<iiLocalDiffusion::NativeGenerationStage>(stage),
@@ -212,7 +275,7 @@ private slots:
         runtime.backgroundActivity = activity;
         runtime.nativeExecutionControl = control;
         std::atomic_int calls{0};
-        runtime.nativeGenerate = [&](const auto &request, const auto &, const auto &cancelled, const auto &progress) {
+        runtime.nativeGenerate = [&](const auto &request, const auto &, const auto &cancelled, const auto &progress, const auto &) {
             ++calls;
             progress({iiLocalDiffusion::NativeGenerationStage::Denoising, 3, 10});
             const auto limit = std::chrono::steady_clock::now() + std::chrono::seconds(2);
@@ -230,6 +293,7 @@ private slots:
         QTRY_COMPARE(app.previewStep(), 3);
         app.setForeground(false);
         QTRY_VERIFY(control->isWaiting());
+        QVERIFY(activity->presentationPaused);
         QTest::qWait(400); // Longer than the inference timeout, without using it.
         QVERIFY(app.busy());
         QCOMPARE(app.previewStep(), 3);
@@ -242,6 +306,7 @@ private slots:
         QCOMPARE(app.jobs().first().toMap().value("id").toString(), id);
         QCOMPARE(calls.load(), 1);
         QCOMPARE(activity->completions, QList<bool>({!cancelPaused}));
+        QCOMPARE(activity->presentations, (QList<QPair<QString, QString>>{{id, cancelPaused ? "cancelled" : "completed"}}));
         QVERIFY(!control->isPaused());
     }
     void nativeBackgroundPermissionPreservesGeneration_data() {
@@ -263,7 +328,7 @@ private slots:
 
         runtime.backgroundActivity = activity;
         std::atomic_int phase{0};
-        runtime.nativeGenerate = [&](const auto &request, const auto &, const auto &cancelled, const auto &progress) {
+        runtime.nativeGenerate = [&](const auto &request, const auto &, const auto &cancelled, const auto &progress, const auto &) {
             progress({iiLocalDiffusion::NativeGenerationStage::Denoising, 1, 10});
             while (phase == 0 && !cancelled) std::this_thread::sleep_for(std::chrono::milliseconds(2));
             if (cancelled) { iiLocalDiffusion::NativeGenerationResult result; result.cancelled = true; return result; }
@@ -296,7 +361,13 @@ private slots:
         QVERIFY(activity->updates >= 2);
         QVERIFY(!app.foreground() && !app.keepsScreenAwake());
     }
-    void nativeBackgroundExpirationCancelsAndReleasesActivity() {
+    void nativeBackgroundExpirationPreservesTheRequest_data() {
+        QTest::addColumn<bool>("background");
+        QTest::newRow("foreground") << false;
+        QTest::newRow("background") << true;
+    }
+    void nativeBackgroundExpirationPreservesTheRequest() {
+        QFETCH(bool, background);
         QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-background-expired-XXXXXX");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
         QFile model(storage.filePath("Models/model.safetensors"));
@@ -304,26 +375,54 @@ private slots:
         auto activity = std::make_shared<BackgroundActivity>();
         GenerationRuntime runtime;
         runtime.nativeInference = true;
-
+        runtime.imageExtent = 64;
+        runtime.nativeTimeoutMilliseconds = 300;
         runtime.backgroundActivity = activity;
-        runtime.nativeGenerate = [](const auto &, const auto &, const auto &cancelled, const auto &progress) {
+        const auto control = std::make_shared<iiLocalDiffusion::NativeExecutionControl>();
+        runtime.nativeExecutionControl = control;
+        std::atomic_bool finish{false};
+        int calls = 0;
+        runtime.nativeGenerate = [&](const auto &request, const auto &, const auto &cancelled, const auto &progress, const auto &) {
+            ++calls;
             progress({iiLocalDiffusion::NativeGenerationStage::Loading, 1, 220});
-            waitForCancellation(cancelled);
-            iiLocalDiffusion::NativeGenerationResult result;
-            result.cancelled = cancelled;
-            return result;
+            while (!finish && !cancelled) {
+                if (!control->waitUntilRunnable(cancelled)) break;
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            }
+            progress({iiLocalDiffusion::NativeGenerationStage::Denoising, 2, 10});
+            return imageResult(request);
         };
         GenerationController app(runtime);
         QVERIFY(app.connectStorage(storage.path())); app.setForeground(true);
-        QVERIFY(!app.enqueue("expire a running background task").isEmpty());
+        const auto id = app.enqueue("preserve work after expiration");
+        QVERIFY(!id.isEmpty());
         QTRY_COMPARE(app.inferenceStatus().value("total").toInt(), 220);
         QVERIFY(activity->expiration);
-        app.setForeground(false);
+        if (background) app.setForeground(false);
+        activity->permitted = false;
         activity->expiration();
-        QTRY_COMPARE(app.jobs().first().toMap().value("state").toString(), "interrupted");
         QCOMPARE(activity->completions, QList<bool>({false}));
-        QVERIFY(!app.busy() && !app.keepsScreenAwake());
-        QVERIFY(!app.errorString().isEmpty());
+        QVERIFY(activity->presentations.isEmpty()); // Expiration cannot finish the card.
+        QVERIFY(app.busy() && app.errorString().isEmpty());
+        if (background) {
+            QTRY_VERIFY(control->isWaiting());
+            QTest::qWait(400);
+            QVERIFY(app.busy());
+            QCOMPARE(app.inferenceStatus().value("state").toString(), "paused");
+            app.setForeground(true);
+        } else {
+            QVERIFY(!control->isPaused());
+            QCOMPARE(app.inferenceStatus().value("state").toString(), "loading");
+        }
+        finish = true;
+        QTRY_VERIFY(!app.busy());
+        QCOMPARE(app.jobs().first().toMap().value("state").toString(), "completed");
+        QCOMPARE(app.jobs().first().toMap().value("id").toString(), id);
+        QCOMPARE(calls, 1);
+        QCOMPARE(activity->completions, QList<bool>({false}));
+        QCOMPARE(activity->presentations, (QList<QPair<QString, QString>>{{id, "completed"}}));
+        QVERIFY(!activity->presentationPaused);
+        QVERIFY(activity->updates >= 2); // Updates continue after the grant ended.
     }
     void nativeProgressAndScreenActivityFollowTheWholeImage() {
         QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-progress-XXXXXX");
@@ -336,7 +435,7 @@ private slots:
 
         QList<bool> screen;
         runtime.screenActivity = [&](bool active) { screen.append(active); };
-        runtime.nativeGenerate = [](const auto &request, const auto &, const auto &, const auto &progress) {
+        runtime.nativeGenerate = [](const auto &request, const auto &, const auto &, const auto &progress, const auto &) {
             using Stage = iiLocalDiffusion::NativeGenerationStage;
             if (request.q8CacheDirectory.string().find("Models/.society-runtime/iiLocalDiffusion/q8") == std::string::npos)
                 throw std::runtime_error("Missing Q8 cache request");
@@ -412,7 +511,7 @@ private slots:
         runtime.nativeTimeoutMilliseconds = reason == "timeout" ? 30 : 3000;
 
         std::atomic_int calls{0};
-        runtime.nativeGenerate = [&](const auto &request, const auto &, const auto &cancelled, const auto &progress) {
+        runtime.nativeGenerate = [&](const auto &request, const auto &, const auto &cancelled, const auto &progress, const auto &) {
             if (++calls > 1) return imageResult(request);
             if (reason == "exception") throw std::runtime_error("fixture engine exception");
             if (reason == "unknown-exception") throw 42;
@@ -452,7 +551,7 @@ private slots:
         runtime.nativeInference = true;
 
         std::atomic_int calls{0};
-        runtime.nativeGenerate = [&](const auto &request, const auto &, const auto &, const auto &) { ++calls; return imageResult(request); };
+        runtime.nativeGenerate = [&](const auto &request, const auto &, const auto &, const auto &, const auto &) { ++calls; return imageResult(request); };
         GenerationController app(runtime);
         QVERIFY(app.connectStorage(storage.path())); app.setForeground(true);
         connect(&app, &GenerationController::jobsChanged, &app, [&] {
@@ -550,7 +649,7 @@ private slots:
         QVERIFY(record.open(QIODevice::WriteOnly));
         record.write(QJsonDocument(QJsonObject::fromVariantMap(app.latestResult())).toJson());
     }
-    void societySyncsTheModelAndDreamscapesGeneratesOfflineFromItsLocalContainer() {
+    void selectsModelDownloadsOnDemandGeneratesLocallyAndPushesCompletedImage() {
         QTemporaryDir desktop(DREAMSCAPES_TEST_DIRECTORY "/society-host-XXXXXX");
         QTemporaryDir phone(DREAMSCAPES_TEST_DIRECTORY "/society-phone-XXXXXX");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(desktop.path()));
@@ -600,6 +699,12 @@ private slots:
         QVERIFY(local.open(phone.path()));
         QCOMPARE(local.containerId(), iiSocietyContainer::SocietyDrive::open(desktop.path())->identifier());
         QCOMPARE(local.path("models", "synced.safetensors"), phone.filePath("Models/synced.safetensors"));
+        QVERIFY(!QFileInfo::exists(local.path("models", "synced.safetensors")));
+        QVERIFY(!app.models().first().toMap().value("available").toBool());
+        const auto id = app.enqueue("on-demand local generation");
+        QVERIFY2(!id.isEmpty(), qPrintable(app.errorString()));
+        QTRY_VERIFY_WITH_TIMEOUT(app.inferenceStatus().value("state") == "downloading-model", 3000);
+        QTRY_VERIFY2_WITH_TIMEOUT(!app.latestImage().isEmpty(), qPrintable(app.errorString()), 30000);
         QFile copied(local.path("models", "synced.safetensors"));
         QVERIFY(copied.open(QIODevice::ReadOnly)); QCOMPARE(copied.readAll(), modelBytes); copied.close();
         for (const auto &relative : {resources + "generation-defaults.json", resources + "vae.safetensors"}) {
@@ -607,18 +712,21 @@ private slots:
             QVERIFY(resource.open(QIODevice::ReadOnly)); QCOMPARE(resource.readAll(), "fixture");
         }
         QVERIFY(!QFileInfo::exists(phone.filePath(runtimeCache + "model.gguf")));
-
-        syncing.close(); hosting.close(); client.stop(); host.stop();
-        const auto id = app.enqueue("offline local generation");
-        QVERIFY2(!id.isEmpty(), qPrintable(app.errorString()));
-        QTRY_VERIFY2_WITH_TIMEOUT(!app.latestImage().isEmpty(), qPrintable(app.errorString()), 10000);
         const auto result = app.latestResult();
         QCOMPARE(result.value("generation").toMap().value("model_path").toString(),
                  phone.filePath("Models/synced.safetensors"));
-        QVERIFY(app.latestImage().toLocalFile().startsWith(phone.filePath("Generation History/")));
-        QVERIFY(QDir(desktop.filePath("Generation History")).entryList(QDir::Files).isEmpty());
-        QVERIFY(!client.connected());
-        QVERIFY(!client.hosting());
+        const auto image = app.latestImage().toLocalFile();
+        QVERIFY(image.startsWith(phone.filePath("Generation History/")));
+        const auto remote = desktop.filePath("Generation History/" + QFileInfo(image).fileName());
+        QTRY_VERIFY_WITH_TIMEOUT(QFileInfo::exists(remote), 15000);
+        QFile original(image), published(remote); QVERIFY(original.open(QIODevice::ReadOnly)); QVERIFY(published.open(QIODevice::ReadOnly));
+        QCOMPARE(published.readAll(), original.readAll());
+        syncing.closeAndWait(); hosting.closeAndWait(); client.stop(); host.stop();
+        // The downloaded cache is usable without any host connection.
+        const auto completedBeforeOffline = app.completedResults().size();
+        QVERIFY(!app.enqueue("offline cached generation").isEmpty());
+        QTRY_COMPARE_WITH_TIMEOUT(app.completedResults().size(), completedBeforeOffline + 1, 10000);
+
     }
 };
 QTEST_GUILESS_MAIN(LocalSocietyTests)

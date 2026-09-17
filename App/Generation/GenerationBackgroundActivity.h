@@ -17,6 +17,9 @@ public:
     virtual bool requiresCpuExecution() const { return false; }
     virtual void update(const iiLocalDiffusion::NativeGenerationProgress &progress) = 0;
     virtual void end(bool success) = 0;
+    virtual void setPresentationPaused(bool paused) = 0;
+    // A job result is distinct from returning an expired execution grant.
+    virtual void finishPresentation(const QString &job, const QString &state) = 0;
     virtual QVariantMap status() const = 0;
 };
 

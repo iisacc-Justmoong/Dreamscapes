@@ -1,5 +1,6 @@
 #include "GenerationController.h"
 #include "SocietyGenerationStorage.h"
+#include <StorageMap.h>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QRandomGenerator>
 #include <QPointer>
@@ -86,6 +87,12 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
         m_runtime.nativeExecutionControl = std::make_shared<iiLocalDiffusion::NativeExecutionControl>();
     m_storagePoll.setInterval(2000);
     connect(&m_storagePoll, &QTimer::timeout, this, &GenerationController::pollStorage);
+    connect(&m_storagePoll, &QTimer::timeout, this, &GenerationController::pollDownload);
+    connect(&m_societyClient, &iiSocietyClient::Client::synchronized, this, [this] { pollDownload(); if (!busy()) refreshModels(); });
+    connect(&m_societyClient, &iiSocietyClient::Client::progress, this, [this](const QString &path, qint64 done, qint64 total) {
+        if (!m_downloadRequest.isEmpty()) setInferenceStatus({{"state", "downloading-model"}, {"ready", false},
+            {"path", path}, {"completedBytes", double(done)}, {"totalBytes", double(total)}});
+    });
     connect(&m_nativeWatcher, &QFutureWatcher<iiLocalDiffusion::NativeGenerationResult>::finished,
             this, &GenerationController::finishNative);
     connect(&m_cacheMigrationWatcher, &QFutureWatcher<QString>::finished, this, [this] {
@@ -121,6 +128,7 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
     m_process.setProcessChannelMode(QProcess::MergedChannels);
     auto environment = QProcessEnvironment::systemEnvironment();
+    environment.insert("IILD_WORKER_PROGRESS", "1");
     if (!environment.contains("IILD_PYTHON_EXECUTABLE") && !m_runtime.pythonExecutable.isEmpty())
         environment.insert("IILD_PYTHON_EXECUTABLE", m_runtime.pythonExecutable);
     m_process.setProcessEnvironment(environment);
@@ -149,7 +157,7 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
         m_workerDirectory.reset();
         m_controlId.clear();
         setInferenceStatus({{"state", "stopped"}, {"ready", false}});
-        if (!busy()) return;
+        if (!busy()) { QTimer::singleShot(0, this, &GenerationController::pump); return; }
         if (m_cancelled) { finish("cancelled"); return; }
         finish("failed", tr("The inference worker exited before completing the request (exit %1). %2").arg(code)
             .arg(QString::fromUtf8(m_log).right(4000)));
@@ -220,6 +228,8 @@ void GenerationController::setForeground(bool foreground)
         return;
     }
     m_foreground = foreground;
+    if (foreground && m_storage) m_societyClient.start(m_storage->drive().rootPath());
+    else if (!foreground) m_societyClient.stop();
     if (!foreground && m_runtime.nativeInference) {
         if (!busy()) iiLocalDiffusion::releaseNativeDiffusionCache();
         else if (m_runtime.backgroundActivity)
@@ -239,6 +249,7 @@ void GenerationController::setNativePaused(bool paused)
 {
     if (m_nativePaused == paused || m_cancelled) return;
     m_nativePaused = paused;
+    if (m_runtime.backgroundActivity) m_runtime.backgroundActivity->setPresentationPaused(paused);
     m_runtime.nativeExecutionControl->setPaused(paused);
     if (paused) {
         m_resumeInferenceStatus = m_inferenceStatus;
@@ -272,7 +283,8 @@ QVariantList GenerationController::models() const
 {
     QVariantList result;
     for (const auto &model : m_models)
-        result.append(QVariantMap{{"id", model.id}, {"name", model.name}, {"format", model.format}});
+        result.append(QVariantMap{{"id", model.id}, {"name", model.name}, {"format", model.format},
+            {"available", model.available}, {"bytes", model.bytes}});
     return result;
 }
 void GenerationController::setSelectedModel(const QString &id)
@@ -280,6 +292,14 @@ void GenerationController::setSelectedModel(const QString &id)
     if (m_selected == id) return;
     if (std::none_of(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == id; })) return;
     m_selected = id;
+    if (!busy() && !m_controlId.isEmpty() && m_preparingModel != id) {
+        // A newly selected model must not wait for obsolete eager preparation.
+        const auto controlId = m_controlId;
+        stopProcess(false);
+        QTimer::singleShot(2000, this, [this, controlId] {
+            if (!busy() && m_controlId == controlId) stopProcess(true);
+        });
+    }
     m_residencyPending = true;
     setInferenceStatus({{"state", "waiting-model"}, {"ready", false}});
     emit modelsChanged();
@@ -383,8 +403,9 @@ void GenerationController::refreshModels()
     auto models = storage->models(&error);
     const bool changed = storageChangedNow || models.size() != m_models.size()
         || !std::equal(models.cbegin(), models.cend(), m_models.cbegin(), m_models.cend(),
-            [](const StoredModel &a, const StoredModel &b) { return a.id == b.id && a.fingerprint == b.fingerprint; });
+            [](const StoredModel &a, const StoredModel &b) { return a.id == b.id && a.fingerprint == b.fingerprint && a.available == b.available; });
     m_storage = std::move(storage);
+    if (m_foreground) m_societyClient.start(m_storage->drive().rootPath());
     m_models = std::move(models);
     if (std::none_of(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == m_selected; }))
         m_selected = m_models.isEmpty() ? QString() : m_models.first().id;
@@ -542,19 +563,19 @@ QString GenerationController::enqueue(const QString &prompt, const QString &aspe
     if (!runtimeAvailable()) { fail(tr("Local image generation is unavailable in this build.")); return {}; }
 #endif
     if (count < 1 || count > 1000) { fail(tr("Choose an image count from 1 to 1000.")); return {}; }
-    if (!connected()) { fail(tr("Open Society on this device and wait for its models to finish syncing.")); return {}; }
+    if (!connected()) { fail(tr("Open Society on this device to load its storage map.")); return {}; }
     const auto trimmed = prompt.trimmed();
     const auto size = imageSize(aspectRatio, m_runtime.imageExtent);
     if (trimmed.isEmpty() || trimmed.size() > 32000 || size.isEmpty() || size.width() > 4096 || size.height() > 4096
         || m_runtime.steps < 1 || m_runtime.steps > 1000) { fail(tr("Enter a prompt and a supported image size.")); return {}; }
     auto selected = std::find_if(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == m_selected; });
     if (selected == m_models.cend()) { fail(tr("Add a Diffusion model to Society, then refresh the model list.")); return {}; }
-    if (m_runtime.nativeInference && selected->format != "safetensors") {
-        fail(tr("Choose a single checkpoint model for on-device generation.")); return {};
+    if (m_runtime.nativeInference && selected->format != "safetensors" && selected->format != "unified") {
+        fail(tr("Choose a checkpoint or unified model for on-device generation.")); return {};
     }
     const auto reference = selected->reference(m_storage->drive().identifier());
     QString error;
-    if (m_storage->resolveModel(reference, &error).isEmpty()) { fail(error); return {}; }
+    if (selected->available && m_storage->resolveModel(reference, &error).isEmpty()) { fail(error); return {}; }
     // Preserve submission order even when multiple requests share a millisecond.
     auto created = QDateTime::currentDateTimeUtc();
     if (!m_jobs.isEmpty()) {
@@ -594,6 +615,18 @@ void GenerationController::pump()
     m_cancelled = false;
     m_interrupted = false;
     m_nativeTimedOut = false;
+    iiSocietyContainer::StorageMap map(m_storage->drive());
+    auto required = map.files("models/" + m_active.value("model").toObject().value("path").toString());
+    const auto resources = map.files("models/.generation-resources/iiLocalDiffusion");
+    required.append(resources); required.removeDuplicates();
+    if (!required.isEmpty() && !map.available(required)) {
+        m_downloadRequest = map.request(required, &error);
+        if (m_downloadRequest.isEmpty()) { finish("failed", error); return; }
+        m_active["state"] = "downloading"; updateJob(m_active);
+        setInferenceStatus({{"state", "downloading-model"}, {"ready", false}});
+        m_societyClient.start(m_storage->drive().rootPath()); m_societyClient.synchronizeNow();
+        return;
+    }
     const auto model = m_storage->resolveModel(m_active.value("model").toObject(), &error);
     if (model.isEmpty()) { finish("failed", error); return; }
     if (!createWorkingFiles(&error)) { finish("failed", error); return; }
@@ -603,6 +636,7 @@ void GenerationController::pump()
     updateJob(m_active);
     if (m_runtime.nativeInference) { startNative(model); return; }
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
+    setInferenceStatus({{"state", "loading"}, {"ready", false}, {"model", model}});
     if (m_cancelled) { finish("cancelled"); return; }
     QStringList arguments{"--model-path", model, "--prompt", m_active.value("prompt").toString(),
         "--width", QString::number(m_active.value("width").toInt()), "--height", QString::number(m_active.value("height").toInt()),
@@ -618,6 +652,23 @@ void GenerationController::pump()
         {"id", m_active.value("id")}, {"arguments", QJsonArray::fromStringList(arguments)}}).toJson(QJsonDocument::Compact) + '\n';
     if (!startWorker(&error)) finish("failed", error);
 #endif
+}
+
+void GenerationController::pollDownload()
+{
+    if (m_downloadRequest.isEmpty() || !m_storage) return;
+    iiSocietyContainer::StorageMap map(m_storage->drive());
+    const auto state = map.requestState(m_downloadRequest);
+    if (state.value("state") == "ready") {
+        m_downloadRequest.clear();
+        // The model reference is validated again by pump before inference.
+        m_active["state"] = "queued"; updateJob(m_active); m_active = {};
+        QTimer::singleShot(0, this, &GenerationController::pump);
+    } else if (state.value("state") == "failed" || state.value("state") == "cancelled") {
+        m_downloadRequest.clear(); finish(state.value("state").toString(), state.value("error").toString());
+    } else {
+        auto status = m_inferenceStatus; status["message"] = m_societyClient.status(); setInferenceStatus(status);
+    }
 }
 
 void GenerationController::startNative(const QString &model)
@@ -657,7 +708,13 @@ void GenerationController::startNative(const QString &model)
         const QPointer<GenerationController> self(this);
         m_backgroundActivityActive = true;
         m_runtime.backgroundActivity->begin(id, [self, id] {
-            if (self && self->m_active.value("id") == id) self->interruptNative();
+            if (!self || self->m_active.value("id") != id || !self->m_backgroundActivityActive) return;
+            // Losing a system execution grant does not discard the image.
+            // Foreground work can continue; hidden work parks at an engine
+            // boundary and resumes with the same request, seed and tensors.
+            self->m_backgroundActivityActive = false;
+            self->setNativePaused(!self->m_foreground);
+            self->m_runtime.backgroundActivity->end(false);
         });
     }
     const QJsonObject loading{{"state", "loading"}, {"ready", false}, {"backend", "native"}};
@@ -670,8 +727,8 @@ void GenerationController::startNative(const QString &model)
     generation["computeBackend"] = backend == iiLocalDiffusion::NativeComputeBackend::Cpu ? "cpu" : "automatic";
     m_active["generation"] = generation;
     const auto generate = m_runtime.nativeGenerate ? m_runtime.nativeGenerate
-        : [control, backend](const auto &request, const auto &options, const auto &cancelled, const auto &progress) {
-            return iiLocalDiffusion::generateNativeImageWithOptions(request, options, backend, cancelled, progress, control);
+        : [control, backend](const auto &request, const auto &options, const auto &cancelled, const auto &progress, const auto &preview) {
+            return iiLocalDiffusion::generateNativeImageWithPreview(request, options, backend, cancelled, progress, preview, control);
         };
     const auto legacyCache = m_runtime.legacyQ8CacheDirectory;
     m_nativeWatcher.setFuture(QtConcurrent::run([this, request, options, id, generate, legacyCache, cache] {
@@ -682,13 +739,14 @@ void GenerationController::startNative(const QString &model)
             return generate(request, options, m_nativeCancelled, [this, id](const iiLocalDiffusion::NativeGenerationProgress &event) {
                 QMetaObject::invokeMethod(this, [this, id, event] {
                     if (m_active.value("id") != id || m_cancelled || m_nativeTimedOut) return;
-                    if (m_backgroundActivityActive) m_runtime.backgroundActivity->update(event);
+                    if (m_runtime.backgroundActivity) m_runtime.backgroundActivity->update(event);
                     using Stage = iiLocalDiffusion::NativeGenerationStage;
                     if (!m_nativePaused && event.stage != Stage::Waiting
-                        && event.step > 0 && event.total >= event.step) {
+                        && event.step > 0 && (event.total >= event.step || event.stage == Stage::Computing)) {
                         m_nativeTimeRemaining = std::max(1, m_runtime.nativeTimeoutMilliseconds);
                         m_nativeDeadline.start(m_nativeTimeRemaining);
                     }
+                    if (event.stage == Stage::Computing) return;
                     const char *state = event.stage == Stage::Waiting ? "waiting-engine"
                         : event.stage == Stage::Preparing ? "preparing-model"
                         : event.stage == Stage::Loading ? "loading" : event.stage == Stage::Encoding ? "encoding"
@@ -697,12 +755,19 @@ void GenerationController::startNative(const QString &model)
                         {"step", event.step}, {"total", event.total}};
                     if (m_nativePaused) m_resumeInferenceStatus = status;
                     else setInferenceStatus(status);
-                    if (event.stage == Stage::Denoising && event.total == m_active.value("steps").toInt()
-                        && event.step >= m_previewStep && event.step <= event.total) {
+                    const auto steps = m_active.value("steps").toInt();
+                    if (event.stage == Stage::Denoising
+                        && (event.total == steps || event.total == std::max(1, int(steps * 0.35f)))
+                        && event.step >= 0 && event.step <= event.total
+                        && (event.total != m_previewTotalSteps || event.step >= m_previewStep)) {
                         m_previewStep = event.step;
                         m_previewTotalSteps = event.total;
                         emit previewChanged();
                     }
+                }, Qt::QueuedConnection);
+            }, [this, id](const iiLocalDiffusion::NativeGenerationPreview &preview) {
+                QMetaObject::invokeMethod(this, [this, id, preview] {
+                    if (m_active.value("id") == id && !m_cancelled && !m_nativeTimedOut) acceptNativePreview(preview);
                 }, Qt::QueuedConnection);
             });
         } catch (const std::exception &error) {
@@ -814,6 +879,10 @@ void GenerationController::prepareForeground()
             return model.id == m_selected;
         });
         if (selected == m_models.cend()) return;
+        if (!selected->available) {
+            setInferenceStatus({{"state", "model-on-host"}, {"ready", false}});
+            return;
+        }
         const auto model = m_storage->resolveModel(selected->reference(m_storage->drive().identifier()), &error);
         if (model.isEmpty()) { setInferenceStatus({{"state", "error"}, {"ready", false}, {"error", error}}); return; }
         arguments = {"--model-path", model, "--device", m_runtime.device,
@@ -824,6 +893,7 @@ void GenerationController::prepareForeground()
         if (selected->format == "safetensors") arguments.append({"--backend", "local"});
     }
     m_controlId = "foreground-" + QUuid::createUuid().toString(QUuid::WithoutBraces);
+    m_preparingModel = m_selected;
     m_cancelled = false;
     setInferenceStatus({{"state", arguments.isEmpty() ? "waiting-model" : "preparing"},
                         {"foreground", m_foreground}, {"ready", false}, {"requestId", m_controlId}});
@@ -922,10 +992,15 @@ bool GenerationController::publishImages(const QStringList &sources, QJsonObject
 
 void GenerationController::finish(const QString &state, const QString &error)
 {
+    if (!m_downloadRequest.isEmpty() && m_storage) iiSocietyContainer::StorageMap(m_storage->drive()).cancel(m_downloadRequest);
+    m_downloadRequest.clear();
     m_active["state"] = state;
     m_active["finishedAt"] = now();
     m_active["error"] = error;
     updateJob(m_active);
+    if (state == "completed") m_societyClient.synchronizeNow();
+    if (m_runtime.nativeInference && m_runtime.backgroundActivity)
+        m_runtime.backgroundActivity->finishPresentation(m_active.value("id").toString(), state);
     fail(error);
     m_active = {};
     m_runtime.nativeExecutionControl->setPaused(false);
@@ -959,6 +1034,14 @@ void GenerationController::readProcessOutput()
         const auto nativeProgress = line.indexOf("IILD_NATIVE_PROGRESS ");
         if (nativeProgress >= 0 && line.size() - nativeProgress <= 4096)
             acceptNativeWorkerProgress(line.mid(nativeProgress + 21));
+        const auto modelProgress = line.indexOf("IILD_MODEL_PROGRESS ");
+        if (modelProgress >= 0 && line.size() - modelProgress <= 4096 && (busy() || !m_controlId.isEmpty()) && !m_cancelled) {
+            const auto event = QJsonDocument::fromJson(line.mid(modelProgress + 20)).object();
+            const auto completed = event.value("completed_bytes").toDouble(-1), total = event.value("total_bytes").toDouble(-1);
+            if (event.value("schema") == "iild-model-progress-v1" && completed >= 0 && total >= completed)
+                setInferenceStatus({{"state", "checking-model"}, {"ready", false},
+                    {"completedBytes", completed}, {"totalBytes", total}});
+        }
         const auto ready = line.indexOf("IILD_READY ");
         if (ready >= 0 && line.size() - ready <= 4096
             && QJsonDocument::fromJson(line.mid(ready + 11)).object().value("schema") == "iild-worker-v1") {
@@ -985,7 +1068,9 @@ void GenerationController::acceptNativeWorkerProgress(const QByteArray &line)
     const int step = event.value("step").toInt(-1), total = event.value("total").toInt(-1);
     if (step < 0 || total < 0 || step > total || total > 1000000) return;
     if (stage == "denoising") {
-        if (total != m_active.value("steps").toInt() || step <= m_previewStep) return;
+        const auto steps = m_active.value("steps").toInt();
+        if ((total != steps && total != std::max(1, int(steps * 0.35f)))
+            || (total == m_previewTotalSteps && step <= m_previewStep)) return;
         m_previewStep = step;
         m_previewTotalSteps = total;
         emit previewChanged();
@@ -1061,9 +1146,10 @@ void GenerationController::acceptPreview(const QByteArray &line)
     const auto step = event.value("step").toInt();
     const auto total = event.value("total_steps").toInt();
     const auto name = event.value("image").toString();
-    if (event.value("schema") != "iild-preview-v1" || step <= m_previewStep || total < step || total > 10000
-        || (m_previewTotalSteps && total != m_previewTotalSteps)
-        || name != QString("step-%1.png").arg(step, 6, 10, QLatin1Char('0'))) return;
+    const auto sequence = event.value("sequence").toInt(step);
+    if (event.value("schema") != "iild-preview-v1" || step < 1 || sequence <= m_previewSequence || total < step || total > 10000
+        || (m_previewTotalSteps == total && step < m_previewStep)
+        || name != QString("step-%1.png").arg(sequence, 6, 10, QLatin1Char('0'))) return;
     const auto path = m_previewDirectory->filePath(name);
     const QFileInfo info(path);
     if (!info.isFile() || info.isSymLink() || info.canonicalFilePath() != path || info.size() > 4 * 1024 * 1024) return;
@@ -1071,6 +1157,7 @@ void GenerationController::acceptPreview(const QByteArray &line)
     const auto size = reader.size();
     if (size.isEmpty() || size.width() > 512 || size.height() > 512 || reader.read().isNull()) return;
     m_previewImage = QUrl::fromLocalFile(path);
+    m_previewSequence = sequence;
     m_previewStep = step;
     m_previewTotalSteps = total;
     m_active["previewSteps"] = step;
@@ -1078,10 +1165,25 @@ void GenerationController::acceptPreview(const QByteArray &line)
     emit previewChanged();
 }
 
+void GenerationController::acceptNativePreview(const iiLocalDiffusion::NativeGenerationPreview &preview)
+{
+    if (!busy() || !m_previewDirectory || preview.sequence <= m_previewSequence
+        || preview.width < 1 || preview.height < 1 || preview.width > 512 || preview.height > 512
+        || preview.step < 1 || preview.total < preview.step
+        || preview.rgb.size() != static_cast<std::size_t>(preview.width) * preview.height * 3) return;
+    const QImage image(preview.rgb.data(), preview.width, preview.height, preview.width * 3, QImage::Format_RGB888);
+    const auto name = QString("step-%1.png").arg(preview.sequence, 6, 10, QLatin1Char('0'));
+    QSaveFile file(m_previewDirectory->filePath(name));
+    if (!file.open(QIODevice::WriteOnly) || !image.save(&file, "PNG") || !file.commit()) return;
+    acceptPreview(QJsonDocument(QJsonObject{{"schema", "iild-preview-v1"}, {"step", preview.step},
+        {"total_steps", preview.total}, {"sequence", preview.sequence}, {"image", name}}).toJson(QJsonDocument::Compact));
+}
+
 void GenerationController::clearPreview()
 {
     m_previewImage.clear();
     m_previewStep = m_previewTotalSteps = 0;
+    m_previewSequence = 0;
     emit previewChanged();
     m_previewDirectory.reset();
 }
@@ -1102,6 +1204,7 @@ void GenerationController::stopProcess(bool force)
 bool GenerationController::cancel(const QString &id)
 {
     if (busy() && m_active.value("id") == id) {
+        if (!m_downloadRequest.isEmpty()) { finish("cancelled"); return true; }
         m_cancelled = true;
         m_nativeCancelled = true;
         if (m_runtime.nativeInference)

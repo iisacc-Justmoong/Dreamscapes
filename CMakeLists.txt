@@ -13,7 +13,8 @@ find_package(iiCSMIDI CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiCSMIDI")
 find_package(iiLicenseManager CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLicenseManager")
 find_package(iiLocalDiffusion 0.6.1 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLocalDiffusion")
 find_package(iiPaintEngine CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiPaintEngine")
-find_package(iiSocietyContainer 0.10.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietyContainer")
+find_package(iiSocietyContainer 0.14.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietyContainer")
+find_package(iiSocietyClient 0.1.0 CONFIG REQUIRED)
 find_package(iiSocietyHelper 0.5.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietyHelper")
 find_package(iiUpdateManager CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiUpdateManager")
 find_package(LVRS CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/LVRS")
@@ -65,11 +66,12 @@ elseif(ANDROID)
 else()
     target_sources(DreamscapesGeneration PRIVATE App/Views/Result/PhotoLibraryUnsupported.cpp)
 endif()
-target_link_libraries(DreamscapesGeneration PUBLIC Qt6::Gui Qt6::Qml iiSocietyContainer::iiSocietyContainer iiSocietyHelper::iiSocietyHelper iiLocalDiffusion::iiLocalDiffusion Qt6::Concurrent)
+target_link_libraries(DreamscapesGeneration PUBLIC iiSocietyClient::iiSocietyClient Qt6::Gui Qt6::Qml iiSocietyContainer::iiSocietyContainer iiSocietyHelper::iiSocietyHelper iiLocalDiffusion::iiLocalDiffusion Qt6::Concurrent)
 target_include_directories(DreamscapesGeneration PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(DreamscapesGeneration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/App/Generation")
 target_include_directories(DreamscapesGeneration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/App/Views/Result")
 if(IOS)
+    enable_language(Swift)
     target_sources(DreamscapesGeneration PRIVATE App/Generation/GenerationScreenActivity.mm
         App/Generation/GenerationBackgroundActivity.mm)
     set_source_files_properties(App/Generation/GenerationBackgroundActivity.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
@@ -214,7 +216,7 @@ if(APPLE)
             dreamscapes_plist_content "${dreamscapes_plist_content}")
     endif()
     string(REGEX REPLACE "</dict>[ \t\r\n]*</plist>"
-        "<key>NSPhotoLibraryAddUsageDescription</key><string>Save generated images to Photos. iCloud Photos syncs them when enabled for your photo library.</string>\n</dict></plist>"
+        "<key>NSLocalNetworkUsageDescription</key><string>Connect to your Society host to download selected models and upload completed images.</string>\n<key>NSBonjourServices</key><array><string>_society-pair._udp</string></array>\n<key>NSBluetoothAlwaysUsageDescription</key><string>Discover your nearby Society host. Files transfer over Wi-Fi or LAN.</string>\n<key>NSPhotoLibraryAddUsageDescription</key><string>Save generated images to Photos. iCloud Photos syncs them when enabled for your photo library.</string>\n</dict></plist>"
         dreamscapes_plist_content "${dreamscapes_plist_content}")
     file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/photo-library")
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/photo-library/Dreamscapes.Info.plist.in" "${dreamscapes_plist_content}")
@@ -223,6 +225,10 @@ if(APPLE)
 endif()
 
 include(cmake/AppIcons.cmake)
+if(IOS)
+    iiSocietyContainer_add_ios_live_activity(Dreamscapes TEAM "${SOCIETY_IOS_TEAM}"
+        BRIDGE_TARGET DreamscapesGeneration)
+endif()
 dreamscapes_add_app_icons(Dreamscapes)
 
 include(CTest)
@@ -245,6 +251,9 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_test(NAME Dreamscapes.GenerationResourceVerifier
         COMMAND "${Python3_EXECUTABLE}" -B -m unittest discover
             -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p test_generation_resources.py -v)
+    add_test(NAME Dreamscapes.GenerationResourceProvisioning
+        COMMAND "${Python3_EXECUTABLE}" -B -m unittest discover
+            -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p test_provision_generation_resources.py -v)
     if(APPLE)
         add_test(NAME Dreamscapes.GenerationResources
             COMMAND "${Python3_EXECUTABLE}" -B
@@ -254,7 +263,7 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_test(NAME Dreamscapes.AppIcons
         COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_app_icons.py")
     # Only the integration harness acts as Society peers; the app has no Sync transport.
-    find_package(iiSocietySync 0.3.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietySync")
+    find_package(iiSocietySync 0.8.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietySync")
     find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Test)
     qt_add_executable(DreamscapesLocalSocietyTests App/Generation/tst_LocalSociety.cpp)
     target_link_libraries(DreamscapesLocalSocietyTests PRIVATE DreamscapesGeneration

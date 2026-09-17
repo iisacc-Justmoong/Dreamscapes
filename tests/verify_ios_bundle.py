@@ -2,6 +2,7 @@
 """Verify a real signed iOS bundle before device installation."""
 import argparse
 from datetime import datetime, timezone
+from fnmatch import fnmatchcase
 import json
 from pathlib import Path
 import plistlib
@@ -18,15 +19,29 @@ def verify(bundle, device, allow_runtime_probe=False):
     info = plistlib.loads((bundle / 'Info.plist').read_bytes())
     assert info['CFBundleSupportedPlatforms'] == ['iPhoneOS'], 'Expected a device bundle'
     assert info['CFBundleIdentifier'] == 'com.iisacc.dreamscapes'
+    assert info.get('NSSupportsLiveActivities') is True
     assert info.get('NSPhotoLibraryAddUsageDescription'), 'Missing add-only Photos permission purpose'
     assert info.get('UIBackgroundModes') == ['processing'], 'Missing continued background processing mode'
     assert info.get('BGTaskSchedulerPermittedIdentifiers') == ['com.iisacc.dreamscapes.generation.*']
-    assert not info.get('NSLocalNetworkUsageDescription'), 'Dreamscapes must not request host network access'
+    assert info.get('NSLocalNetworkUsageDescription'), 'Society SDK requires local-network usage description'
+    assert '_society-pair._udp' in info.get('NSBonjourServices', [])
+    assert info.get('NSBluetoothAlwaysUsageDescription')
     assert set(info['UIDeviceFamily']) == {1, 2}
     group = info['SocietyAppGroup']
     assert group == 'group.com.iisacc.society'
     executable = bundle / info['CFBundleExecutable']
     assert executable.is_file()
+    assert '/ActivityKit.framework/' in output('otool', '-L', str(executable)).decode()
+    widget = bundle / 'PlugIns/DreamscapesLiveActivity.appex'
+    widget_info = plistlib.loads((widget / 'Info.plist').read_bytes())
+    assert widget_info['CFBundleIdentifier'] == 'com.iisacc.dreamscapes.liveactivity'
+    assert widget_info['NSExtension']['NSExtensionPointIdentifier'] == 'com.apple.widgetkit-extension'
+    widget_profile = plistlib.loads(output('security', 'cms', '-D', '-i', str(widget / 'embedded.mobileprovision')))
+    assert widget_profile['ExpirationDate'].replace(tzinfo=timezone.utc) > datetime.now(timezone.utc)
+    assert device in widget_profile['ProvisionedDevices']
+    widget_rights = plistlib.loads(output('codesign', '-d', '--entitlements', ':-', str(widget)))
+    assert widget_rights['application-identifier'].endswith('.' + widget_info['CFBundleIdentifier'])
+    assert fnmatchcase(widget_rights['application-identifier'], widget_profile['Entitlements']['application-identifier'])
     assert '/Photos.framework/' in output('otool', '-L', str(executable)).decode(), 'Missing PhotoKit backend'
     assert '/BackgroundTasks.framework/' in output('otool', '-L', str(executable)).decode(), 'Missing BackgroundTasks backend'
     # Release LTO can keep Qt's registration and qrc constructors as local symbols.
@@ -37,7 +52,7 @@ def verify(bundle, device, allow_runtime_probe=False):
         assert b'DREAMSCAPES_PROBE_EXTENT' not in executable.read_bytes(), 'Remove diagnostic generation overrides from the final app'
     assert 'RemoteGenerationClient' not in symbols, 'Dreamscapes must not contain the remote generation client'
     assert 'startNative' in symbols, 'Missing in-process image generation path'
-    assert 'generateNativeImageWithOptions' in symbols, 'Missing Society resources with CPU background inference selection'
+    assert 'generateNativeImageWithPreview' in symbols, 'Missing native live image preview entry point'
     assert 'qml_register_types_LVRS' in symbols, 'Missing LVRS QML registration'
     assert 'qt_static_plugin_QFFmpegMediaPlugin' not in symbols, 'Unpackaged FFmpeg media backend must not be imported'
     assert ('qInitResources_qmake_LVRS' in symbols
@@ -62,7 +77,7 @@ def verify(bundle, device, allow_runtime_probe=False):
     libraries = sorted((bundle / 'Frameworks').glob('*.dylib'))
     expected = {'libiiCSMIDI', 'libiiFileProvider', 'libiiLicenseManager',
                 'libiiLocalDiffusion', 'libiiPaintEngine', 'libiiUpdateManager'}
-    assert not any(lib.name.startswith(('libiiSocietySync.', 'libiiServerHost.')) for lib in libraries), 'Only Society owns network synchronization'
+    assert 'iiSocietyClient' in symbols, 'Missing in-process Society storage client'
     for name in expected:
         assert any(lib.name.startswith(name + '.') for lib in libraries), f'Missing embedded {name}'
     diffusion = next(lib for lib in libraries if lib.name.startswith('libiiLocalDiffusion.'))

@@ -2,6 +2,7 @@
 
 #include <SharedStorage.h>
 #include <iiSocietyHelper.h>
+#include <iiSocietyClient/Client.h>
 #include <Generation/NativeDiffusion.hpp>
 #include <QFutureWatcher>
 #include <QObject>
@@ -28,7 +29,7 @@ struct GenerationRuntime {
     QString legacyQ8CacheDirectory; // Read/move-only upgrade source; never used by inference.
     std::function<iiLocalDiffusion::NativeGenerationResult(const iiLocalDiffusion::NativeGenerationRequest &,
         const iiLocalDiffusion::NativeGenerationOptions &, const std::atomic_bool &,
-        const iiLocalDiffusion::NativeProgressCallback &)> nativeGenerate;
+        const iiLocalDiffusion::NativeProgressCallback &, const iiLocalDiffusion::NativePreviewCallback &)> nativeGenerate;
     std::function<void(bool)> screenActivity;
     std::shared_ptr<GenerationBackgroundActivity> backgroundActivity;
     std::shared_ptr<iiLocalDiffusion::NativeExecutionControl> nativeExecutionControl;
@@ -109,6 +110,7 @@ private:
     bool publishImages(const QStringList &sources, QJsonObject &job, QString *error);
     void updateJob(QJsonObject job);
     void pump();
+    void pollDownload();
     void finish(const QString &state, const QString &error = {});
     bool collectResult(QString *error);
     void stopProcess(bool force);
@@ -117,6 +119,7 @@ private:
     void acceptWorkerResult(const QByteArray &line);
     void acceptNativeWorkerProgress(const QByteArray &line);
     void acceptPreview(const QByteArray &line);
+    void acceptNativePreview(const iiLocalDiffusion::NativeGenerationPreview &preview);
     void clearPreview();
     bool startWorker(QString *error);
     void prepareForeground();
@@ -128,6 +131,8 @@ private:
 
     GenerationRuntime m_runtime;
     iiSocietyHelper::FileSystem m_fileSystem;
+    iiSocietyClient::Client m_societyClient;
+    QString m_downloadRequest;
     QString m_storageSelection;
     QTimer m_storagePoll;
     QFutureWatcher<iiLocalDiffusion::NativeGenerationResult> m_nativeWatcher;
@@ -158,12 +163,14 @@ private:
     QUrl m_previewImage;
     int m_previewStep = 0;
     int m_previewTotalSteps = 0;
+    int m_previewSequence = 0;
     bool m_cancelled = false;
     bool m_workerReady = false;
     bool m_workerForegroundSupported = false;
     bool m_foreground = false;
     bool m_residencyPending = false;
     QString m_controlId;
+    QString m_preparingModel;
     QJsonObject m_inferenceStatus{{"state", "idle"}, {"ready", false}};
     QByteArray m_workerRequest;
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)

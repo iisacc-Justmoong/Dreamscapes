@@ -21,16 +21,22 @@ LV.ApplicationWindow {
     property var currentResult: ({})
     property string lastPresentedImage: ""
     readonly property bool generationPending: generation.busy || generation.jobs.some(function(job) { return job.state === "queued" })
-    readonly property var activeGeneration: generation.jobs.find(function(job) { return job.state === "running" }) || ({})
+    readonly property var activeGeneration: generation.jobs.find(function(job) { return job.state === "running" || job.state === "downloading" }) || ({})
     property int generationElapsedSeconds: 0
     readonly property string generationStatusText: {
         if (!generation.busy) {
-            if (generationPending) return qsTr("Queued")
+            if (generationPending) return generation.inferenceStatus.state === "checking-model" ? qsTr("Checking model…")
+                : generation.inferenceStatus.state === "preparing" || generation.inferenceStatus.state === "loading"
+                    ? qsTr("Preparing model…") : qsTr("Queued")
             const last = generation.jobs[0]
             return last && (last.state === "cancelled" || last.state === "interrupted") ? stateLabel(last.state) : ""
         }
         const phase = generation.inferenceStatus.state
         const labels = { "preparing-model": qsTr("Preparing model for faster generation…"),
+            "downloading-model": qsTr("Downloading model… %1%").arg(Math.floor(100 * (generation.inferenceStatus.completedBytes || 0)
+                / Math.max(1, generation.inferenceStatus.totalBytes || 1))),
+            "checking-model": qsTr("Checking model… %1%").arg(Math.floor(100 * (generation.inferenceStatus.completedBytes || 0)
+                / Math.max(1, generation.inferenceStatus.totalBytes || 1))),
             "loading": qsTr("Loading model…"), "encoding": qsTr("Preparing prompt…"),
             "decoding": qsTr("Rendering image…"), "cancelling": qsTr("Stopping generation…"),
             "paused": qsTr("Paused — return to Dreamscapes to continue"),
@@ -40,7 +46,9 @@ LV.ApplicationWindow {
             : phase === "decoding" || (finishedSteps && generation.inferenceStatus.backend === "native")
                 ? qsTr("Rendering image…")
             : generation.previewTotalSteps > 0
-                ? qsTr("Denoising %1 / %2").arg(generation.previewStep).arg(generation.previewTotalSteps)
+                ? (generation.inferenceStatus.total > 0 && generation.inferenceStatus.total < (window.activeGeneration.steps || 0)
+                    ? qsTr("Refining %1 / %2") : qsTr("Denoising %1 / %2"))
+                    .arg(generation.previewStep).arg(generation.previewTotalSteps)
             : labels[phase] || (generation.previewStep > 0
             ? qsTr("Denoising %1 / %2").arg(generation.previewStep).arg(generation.previewTotalSteps)
             : qsTr("Preparing generation…"))
@@ -100,7 +108,7 @@ LV.ApplicationWindow {
     }
     function stateLabel(state) {
         const labels = { "queued": qsTr("Queued"), "running": qsTr("Generating"), "completed": qsTr("Completed"),
-            "failed": qsTr("Failed"), "cancelled": qsTr("Cancelled"), "interrupted": qsTr("Interrupted"), "downloading": qsTr("Receiving image") }
+            "failed": qsTr("Failed"), "cancelled": qsTr("Cancelled"), "interrupted": qsTr("Interrupted"), "downloading": qsTr("Downloading model") }
         return labels[state] || state
     }
     Component.onCompleted: {
@@ -267,7 +275,7 @@ LV.ApplicationWindow {
                             LV.LabelButton {
                                 text: qsTr("Cancel")
                                 tone: LV.AbstractButton.Default
-                                visible: queueRow.modelData.state === "queued" || queueRow.modelData.state === "running"
+                                visible: queueRow.modelData.state === "queued" || queueRow.modelData.state === "running" || queueRow.modelData.state === "downloading"
                                 onClicked: generation.cancel(queueRow.modelData.id)
                             }
                         }
