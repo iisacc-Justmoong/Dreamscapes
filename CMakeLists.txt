@@ -13,8 +13,9 @@ find_package(iiCSMIDI CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiCSMIDI")
 find_package(iiLicenseManager CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLicenseManager")
 find_package(iiLocalDiffusion 0.6.1 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLocalDiffusion")
 find_package(iiPaintEngine CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiPaintEngine")
-find_package(iiSocietyContainer 0.14.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietyContainer")
+find_package(iiSocietyContainer 0.14.0 CONFIG REQUIRED COMPONENTS Gui HINTS "$ENV{HOME}/.local/SDK/iiSocietyContainer")
 find_package(iiSocietyClient 0.1.0 CONFIG REQUIRED)
+find_package(iiSocietyGeneration 0.1.0 CONFIG REQUIRED)
 find_package(iiSocietyHelper 0.5.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietyHelper")
 find_package(iiUpdateManager CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiUpdateManager")
 find_package(LVRS CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/LVRS")
@@ -52,29 +53,31 @@ add_library(DreamscapesGeneration STATIC)
 qt_add_qml_module(DreamscapesGeneration
     URI Dreamscapes.Storage VERSION 1.0 NO_PLUGIN
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Dreamscapes/Storage"
-    SOURCES App/Generation/GenerationController.h App/Generation/GenerationController.cpp
-        App/Generation/SocietyGenerationStorage.h App/Generation/SocietyGenerationStorage.cpp
-        App/Views/Result/ImageFileExporter.h App/Views/Result/ImageFileExporter.cpp
-        App/Views/Result/PhotoLibraryExporter.h App/Views/Result/PhotoLibraryExporter.cpp)
+    SOURCES src/App/Views/Home/SocietyTypes.h
+        src/App/Generation/GenerationController.h src/App/Generation/GenerationController.cpp
+        src/App/Generation/SocietyGenerationStorage.h src/App/Generation/SocietyGenerationStorage.cpp
+        src/App/Views/Result/ImageFileExporter.h src/App/Views/Result/ImageFileExporter.cpp
+        src/App/Views/Result/PhotoLibraryExporter.h src/App/Views/Result/PhotoLibraryExporter.cpp)
 if(APPLE)
     enable_language(OBJCXX)
-    target_sources(DreamscapesGeneration PRIVATE App/Views/Result/PhotoLibraryApple.mm)
-    set_source_files_properties(App/Views/Result/PhotoLibraryApple.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+    target_sources(DreamscapesGeneration PRIVATE src/App/Views/Result/PhotoLibraryApple.mm)
+    set_source_files_properties(src/App/Views/Result/PhotoLibraryApple.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
     target_link_libraries(DreamscapesGeneration PRIVATE "-framework Photos" "-framework Foundation")
 elseif(ANDROID)
-    target_sources(DreamscapesGeneration PRIVATE App/Views/Result/PhotoLibraryAndroid.cpp)
+    target_sources(DreamscapesGeneration PRIVATE src/App/Views/Result/PhotoLibraryAndroid.cpp)
 else()
-    target_sources(DreamscapesGeneration PRIVATE App/Views/Result/PhotoLibraryUnsupported.cpp)
+    target_sources(DreamscapesGeneration PRIVATE src/App/Views/Result/PhotoLibraryUnsupported.cpp)
 endif()
-target_link_libraries(DreamscapesGeneration PUBLIC iiSocietyClient::iiSocietyClient Qt6::Gui Qt6::Qml iiSocietyContainer::iiSocietyContainer iiSocietyHelper::iiSocietyHelper iiLocalDiffusion::iiLocalDiffusion Qt6::Concurrent)
-target_include_directories(DreamscapesGeneration PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-target_include_directories(DreamscapesGeneration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/App/Generation")
-target_include_directories(DreamscapesGeneration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/App/Views/Result")
+target_link_libraries(DreamscapesGeneration PUBLIC iiSocietyGeneration::iiSocietyGeneration iiSocietyClient::iiSocietyClient Qt6::Gui Qt6::Qml iiSocietyContainer::Gui iiSocietyHelper::iiSocietyHelper iiLocalDiffusion::iiLocalDiffusion Qt6::Concurrent)
+target_include_directories(DreamscapesGeneration PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_include_directories(DreamscapesGeneration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Generation")
+target_include_directories(DreamscapesGeneration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Result")
+target_include_directories(DreamscapesGeneration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Home")
 if(IOS)
     enable_language(Swift)
-    target_sources(DreamscapesGeneration PRIVATE App/Generation/GenerationScreenActivity.mm
-        App/Generation/GenerationBackgroundActivity.mm)
-    set_source_files_properties(App/Generation/GenerationBackgroundActivity.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+    target_sources(DreamscapesGeneration PRIVATE src/App/Generation/GenerationScreenActivity.mm
+        src/App/Generation/GenerationBackgroundActivity.mm)
+    set_source_files_properties(src/App/Generation/GenerationBackgroundActivity.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
     target_link_libraries(DreamscapesGeneration PRIVATE "-framework UIKit" "-framework BackgroundTasks")
 endif()
 target_compile_definitions(DreamscapesGeneration PRIVATE
@@ -86,20 +89,31 @@ if(APPLE AND NOT IOS)
     list(APPEND CMAKE_BUILD_RPATH "$<TARGET_FILE_DIR:LVRS::LVRS>")
 endif()
 
+# Source location must not change the QML module's existing resource URLs.
+file(GLOB_RECURSE _app_source_resources CONFIGURE_DEPENDS
+    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/src/App/*.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/App/*.svg")
+foreach(_app_resource IN LISTS _app_source_resources)
+    string(REGEX REPLACE "^src/" "" _app_resource_alias "${_app_resource}")
+    set_source_files_properties("${_app_resource}" PROPERTIES QT_RESOURCE_ALIAS "${_app_resource_alias}")
+endforeach()
+
 lvrs_add_qml_app(
     TARGET Dreamscapes
     URI Dreamscapes
     VERSION 1.0
-    SOURCES main.cpp
+    SOURCES src/main.cpp
     QML_FILES
-        App/Main.qml
-        App/Views/Home/QuickGenerate.qml
-        App/Views/Result/GenerationResult.qml
+        src/App/Main.qml
+        src/App/Views/Home/QuickGenerate.qml
+        src/App/Views/Home/AdvancedGenerate.qml
+        src/App/Views/Home/GenerationHistory.qml
+        src/App/Views/Result/GenerationResult.qml
     NO_PLATFORM_RUNTIME_TARGETS
 )
 qt_add_resources(Dreamscapes result_assets
     PREFIX "/qt/qml/Dreamscapes"
-    FILES App/Views/Result/Assets/right.svg)
+    FILES src/App/Views/Result/Assets/right.svg)
 option(DREAMSCAPES_LOCAL_RUNTIME_PROBE "Enable opt-in local device inference verification" OFF)
 if(DREAMSCAPES_LOCAL_RUNTIME_PROBE)
     target_compile_definitions(DreamscapesGeneration PRIVATE DREAMSCAPES_LOCAL_RUNTIME_PROBE)
@@ -120,6 +134,7 @@ set(dreamscapes_product_dependencies
     iiLocalDiffusion::iiLocalDiffusion
     iiPaintEngine::iiPaintEngine
     iiSocietyContainer::iiSocietyContainer
+    iiSocietyContainer::Gui
     iiSocietyHelper::iiSocietyHelper
     iiUpdateManager::iiUpdateManager
     LVRS::LVRS
@@ -128,7 +143,7 @@ target_link_libraries(Dreamscapes PRIVATE DreamscapesGeneration Qt6::QuickDialog
 target_compile_definitions(Dreamscapes PRIVATE DREAMSCAPES_APP_VERSION="${PROJECT_VERSION}")
 
 if(ANDROID)
-    set_property(TARGET Dreamscapes PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/platform/android")
+    set_property(TARGET Dreamscapes PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/android")
     foreach(dependency IN ITEMS ${dreamscapes_product_dependencies} iiFileProvider::iiFileProvider)
         set_property(TARGET Dreamscapes APPEND PROPERTY QT_ANDROID_EXTRA_LIBS
             "$<TARGET_FILE:${dependency}>")
@@ -196,7 +211,7 @@ if(IOS)
         TEAM "${SOCIETY_IOS_TEAM}" DISPLAY_NAME Dreamscapes)
     # Large checkpoint mappings need virtual address space as well as RAM.
     # The runtime still sizes its working set from the actual process limit.
-    configure_file(Platform/iOS/Dreamscapes.entitlements.in
+    configure_file(src/platform/iOS/Dreamscapes.entitlements.in
         "${CMAKE_CURRENT_BINARY_DIR}/Dreamscapes.entitlements" @ONLY)
     set_property(TARGET Dreamscapes PROPERTY XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS
         "${CMAKE_CURRENT_BINARY_DIR}/Dreamscapes.entitlements")
@@ -212,7 +227,7 @@ if(APPLE)
     file(READ "${dreamscapes_plist}" dreamscapes_plist_content)
     if(IOS)
         string(REGEX REPLACE "</dict>[ \t\r\n]*</plist>"
-            "<key>UIBackgroundModes</key><array><string>processing</string></array>\n<key>BGTaskSchedulerPermittedIdentifiers</key><array><string>com.iisacc.dreamscapes.generation.*</string></array>\n</dict></plist>"
+            "<key>LSApplicationQueriesSchemes</key><array><string>society</string></array>\n<key>UIBackgroundModes</key><array><string>processing</string></array>\n<key>BGTaskSchedulerPermittedIdentifiers</key><array><string>com.iisacc.dreamscapes.generation.*</string></array>\n</dict></plist>"
             dreamscapes_plist_content "${dreamscapes_plist_content}")
     endif()
     string(REGEX REPLACE "</dict>[ \t\r\n]*</plist>"
@@ -236,7 +251,7 @@ option(DREAMSCAPES_BUILD_ANDROID_PHOTO_TESTS "Build the native MediaStore integr
 if(ANDROID AND DREAMSCAPES_BUILD_ANDROID_PHOTO_TESTS)
     set(QT_USE_TARGET_ANDROID_BUILD_DIR TRUE CACHE BOOL "Keep Android test and app packages separate" FORCE)
     find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Test)
-    qt_add_executable(DreamscapesPhotoNativeTests App/Views/Result/tst_PhotoLibraryAndroid.cpp)
+    qt_add_executable(DreamscapesPhotoNativeTests src/App/Views/Result/tst_PhotoLibraryAndroid.cpp)
     target_link_libraries(DreamscapesPhotoNativeTests PRIVATE DreamscapesGeneration Qt6::Test)
     get_target_property(dreamscapes_android_package Dreamscapes QT_ANDROID_PACKAGE_SOURCE_DIR)
     set_target_properties(DreamscapesPhotoNativeTests PROPERTIES
@@ -265,24 +280,25 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     # Only the integration harness acts as Society peers; the app has no Sync transport.
     find_package(iiSocietySync 0.8.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietySync")
     find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Test)
-    qt_add_executable(DreamscapesLocalSocietyTests App/Generation/tst_LocalSociety.cpp)
+    qt_add_executable(DreamscapesLocalSocietyTests src/App/Generation/tst_LocalSociety.cpp)
+    target_link_libraries(DreamscapesLocalSocietyTests PRIVATE iiSocietyGeneration::Host)
     target_link_libraries(DreamscapesLocalSocietyTests PRIVATE DreamscapesGeneration
         iiSocietyHelper::iiSocietyHelper iiSocietySync::iiSocietySync Qt6::Test)
     target_compile_definitions(DreamscapesLocalSocietyTests PRIVATE
         DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}"
-        DREAMSCAPES_FAKE_GENERATOR="${CMAKE_CURRENT_SOURCE_DIR}/App/Generation/fixtures/generate.py")
+        DREAMSCAPES_FAKE_GENERATOR="${CMAKE_CURRENT_SOURCE_DIR}/src/App/Generation/fixtures/generate.py")
     add_test(NAME Dreamscapes.LocalSociety COMMAND DreamscapesLocalSocietyTests)
     set_tests_properties(Dreamscapes.LocalSociety PROPERTIES TIMEOUT 60)
     # Keep this GUI target limited to sources present in Dreamscapes.
-    qt_add_executable(DreamscapesGuiTests App/tst_Gui.cpp)
+    qt_add_executable(DreamscapesGuiTests src/App/tst_Gui.cpp)
     target_link_libraries(DreamscapesGuiTests PRIVATE Qt6::Test Qt6::Quick Qt6::QuickControls2 Qt6::QuickDialogs2)
     target_link_libraries(DreamscapesGuiTests PRIVATE DreamscapesGeneration)
     target_link_libraries(DreamscapesGuiTests PRIVATE iiSocietyHelper::iiSocietyHelper)
     target_compile_definitions(DreamscapesGuiTests PRIVATE
-        DREAMSCAPES_QML_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/App"
+        DREAMSCAPES_QML_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/src/App"
         DREAMSCAPES_EXECUTABLE_PATH="$<TARGET_FILE:Dreamscapes>"
         DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}"
-        DREAMSCAPES_FAKE_GENERATOR="${CMAKE_CURRENT_SOURCE_DIR}/App/Generation/fixtures/generate.py"
+        DREAMSCAPES_FAKE_GENERATOR="${CMAKE_CURRENT_SOURCE_DIR}/src/App/Generation/fixtures/generate.py"
     )
     add_dependencies(DreamscapesGuiTests Dreamscapes)
     lvrs_configure_qml_app(DreamscapesGuiTests NO_PLATFORM_RUNTIME_TARGETS)
@@ -291,19 +307,19 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1"
         TIMEOUT 120
     )
-    qt_add_executable(DreamscapesGenerationTests App/Generation/tst_Generation.cpp)
+    qt_add_executable(DreamscapesGenerationTests src/App/Generation/tst_Generation.cpp)
     target_link_libraries(DreamscapesGenerationTests PRIVATE DreamscapesGeneration Qt6::Test)
     target_compile_definitions(DreamscapesGenerationTests PRIVATE
         DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}"
-        DREAMSCAPES_FAKE_GENERATOR="${CMAKE_CURRENT_SOURCE_DIR}/App/Generation/fixtures/generate.py")
+        DREAMSCAPES_FAKE_GENERATOR="${CMAKE_CURRENT_SOURCE_DIR}/src/App/Generation/fixtures/generate.py")
     add_test(NAME Dreamscapes.Generation COMMAND DreamscapesGenerationTests)
     set_tests_properties(Dreamscapes.Generation PROPERTIES TIMEOUT 45)
-    qt_add_executable(DreamscapesImageExportTests App/Views/Result/tst_ImageFileExporter.cpp)
+    qt_add_executable(DreamscapesImageExportTests src/App/Views/Result/tst_ImageFileExporter.cpp)
     target_link_libraries(DreamscapesImageExportTests PRIVATE DreamscapesGeneration Qt6::Test)
     target_compile_definitions(DreamscapesImageExportTests PRIVATE
         DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
     add_test(NAME Dreamscapes.ImageExport COMMAND DreamscapesImageExportTests)
-    qt_add_executable(DreamscapesPhotoLibraryTests App/Views/Result/tst_PhotoLibraryExporter.cpp)
+    qt_add_executable(DreamscapesPhotoLibraryTests src/App/Views/Result/tst_PhotoLibraryExporter.cpp)
     target_link_libraries(DreamscapesPhotoLibraryTests PRIVATE DreamscapesGeneration Qt6::Test)
     target_compile_definitions(DreamscapesPhotoLibraryTests PRIVATE
         DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
@@ -313,7 +329,7 @@ endif()
 # Running desktop apps publish authenticated same-user MCP endpoints.
 if(UNIX AND NOT IOS AND NOT ANDROID AND NOT EMSCRIPTEN)
     find_package(iiLocalLLM 0.36.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLocalLLM")
-    target_sources(Dreamscapes PRIVATE App/Mcp/DreamscapesMcp.cpp App/Mcp/DreamscapesMcp.h)
+    target_sources(Dreamscapes PRIVATE src/App/Mcp/DreamscapesMcp.cpp src/App/Mcp/DreamscapesMcp.h)
     target_link_libraries(Dreamscapes PRIVATE iiLocalLLM::iiLocalLLM)
     set_source_files_properties("${IILOCALLLM_QML_DIR}/UserQuestionsSheet.qml" PROPERTIES QT_RESOURCE_ALIAS "UserQuestionsSheet.qml")
     qt_add_resources(Dreamscapes AgentQuestionUi PREFIX "/iiLocalLLM"
@@ -329,7 +345,7 @@ if(UNIX AND NOT IOS AND NOT ANDROID AND NOT EMSCRIPTEN)
             MCP_APP_EXECUTABLE="$<TARGET_FILE:Dreamscapes>"
             MCP_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
         target_compile_definitions(DreamscapesMcpTests PRIVATE
-            MCP_GENERATOR_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/App/Generation/fixtures/generate.py")
+            MCP_GENERATOR_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/src/App/Generation/fixtures/generate.py")
         target_link_libraries(DreamscapesMcpTests PRIVATE Qt6::Gui)
         add_dependencies(DreamscapesMcpTests Dreamscapes)
         add_test(NAME Dreamscapes.Mcp COMMAND DreamscapesMcpTests)

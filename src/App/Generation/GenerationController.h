@@ -3,10 +3,12 @@
 #include <SharedStorage.h>
 #include <iiSocietyHelper.h>
 #include <iiSocietyClient/Client.h>
+#include <iiSocietyGeneration/Remote.h>
 #include <Generation/NativeDiffusion.hpp>
 #include <QFutureWatcher>
 #include <QObject>
 #include <QJsonObject>
+#include <QStringList>
 #include <QTimer>
 #include <QTemporaryDir>
 #include <QUrl>
@@ -33,6 +35,9 @@ struct GenerationRuntime {
     std::function<void(bool)> screenActivity;
     std::shared_ptr<GenerationBackgroundActivity> backgroundActivity;
     std::shared_ptr<iiLocalDiffusion::NativeExecutionControl> nativeExecutionControl;
+    // Optional transport injection for integration tests; production uses the
+    // authenticated Society client and never accepts a model URL.
+    std::shared_ptr<iiSocietyGeneration::Remote> remoteGeneration;
 };
 
 class GenerationController : public QObject
@@ -91,6 +96,7 @@ signals:
     void storageChanged();
     void modelsChanged();
     void jobsChanged();
+    void submissionQueued(const QStringList &jobIds);
     void errorChanged();
     void previewChanged();
     void foregroundChanged();
@@ -111,6 +117,8 @@ private:
     void updateJob(QJsonObject job);
     void pump();
     void pollDownload();
+    void downloadModelInBackground();
+    void beginSocietyBackgroundActivity();
     void finish(const QString &state, const QString &error = {});
     bool collectResult(QString *error);
     void stopProcess(bool force);
@@ -132,7 +140,11 @@ private:
     GenerationRuntime m_runtime;
     iiSocietyHelper::FileSystem m_fileSystem;
     iiSocietyClient::Client m_societyClient;
-    QString m_downloadRequest;
+    std::shared_ptr<iiSocietyGeneration::Remote> m_remoteGeneration;
+    QMap<QString, QString> m_modelDownloads;
+    QStringList m_requiredModelFiles;
+    bool m_remoteActive = false;
+    bool m_societyBackgroundActivity = false;
     QString m_storageSelection;
     QTimer m_storagePoll;
     QFutureWatcher<iiLocalDiffusion::NativeGenerationResult> m_nativeWatcher;

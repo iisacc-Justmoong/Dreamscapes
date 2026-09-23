@@ -4,6 +4,8 @@
 #include "App/Views/Result/PhotoLibraryExporter.h"
 #include <QtQml/qqml.h>
 #include <iiSocietyHelper.h>
+#include <iiSocietyContainer/DashboardFiles.h>
+#include <iiSocietyContainer/SocietyApplication.h>
 #include <QGuiApplication>
 #include <QIcon>
 #include <QQmlApplicationEngine>
@@ -34,6 +36,8 @@ int main(int argc, char *argv[])
             [](QObject *root, const QUrl &) { if (root) dreamscapesLocalRuntimeProbe(root); });
 #endif
         qmlRegisterType<GenerationController>("Dreamscapes.Storage", 1, 0, "GenerationController");
+        qmlRegisterType<iiSocietyContainer::DashboardFiles>("Dreamscapes.Storage", 1, 0, "DashboardFiles");
+        qmlRegisterType<iiSocietyContainer::SocietyApplication>("Dreamscapes.Storage", 1, 0, "SocietyApplication");
         qmlRegisterType<ImageFileExporter>("Dreamscapes.Storage", 1, 0, "ImageFileExporter");
         qmlRegisterType<PhotoLibraryExporter>("Dreamscapes.Storage", 1, 0, "PhotoLibraryExporter");
         auto *helper = new iiSocietyHelper::Helper(&engine);

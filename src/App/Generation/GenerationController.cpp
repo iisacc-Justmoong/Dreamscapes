@@ -89,9 +89,48 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
     connect(&m_storagePoll, &QTimer::timeout, this, &GenerationController::pollStorage);
     connect(&m_storagePoll, &QTimer::timeout, this, &GenerationController::pollDownload);
     connect(&m_societyClient, &iiSocietyClient::Client::synchronized, this, [this] { pollDownload(); if (!busy()) refreshModels(); });
-    connect(&m_societyClient, &iiSocietyClient::Client::progress, this, [this](const QString &path, qint64 done, qint64 total) {
-        if (!m_downloadRequest.isEmpty()) setInferenceStatus({{"state", "downloading-model"}, {"ready", false},
-            {"path", path}, {"completedBytes", double(done)}, {"totalBytes", double(total)}});
+    m_remoteGeneration = m_runtime.remoteGeneration ? m_runtime.remoteGeneration
+        : std::make_shared<iiSocietyGeneration::Remote>([this](const QJsonObject &request) { return m_societyClient.requestHost(request); });
+    connect(&m_societyClient, &iiSocietyClient::Client::hostResponse, m_remoteGeneration.get(), &iiSocietyGeneration::Remote::receive);
+    connect(m_remoteGeneration.get(), &iiSocietyGeneration::Remote::accepted, this, [this] {
+        if (!m_remoteActive || !busy()) return;
+        m_active["state"] = "running"; m_active["execution"] = "host"; m_active["startedAt"] = now();
+        updateJob(m_active);
+        beginSocietyBackgroundActivity();
+        downloadModelInBackground();
+    });
+    connect(m_remoteGeneration.get(), &iiSocietyGeneration::Remote::progress, this, [this](const QJsonObject &status) {
+        if (m_remoteActive && busy()) {
+            setInferenceStatus(status);
+            if (m_societyBackgroundActivity && m_runtime.backgroundActivity && !status.value("phase").toString().isEmpty()) {
+                using Stage = iiLocalDiffusion::NativeGenerationStage;
+                const auto phase = status.value("phase").toString();
+                const auto stage = phase == "loading" ? Stage::Loading : phase == "encoding" ? Stage::Encoding
+                    : phase == "denoising" ? Stage::Denoising : phase == "decoding" ? Stage::Decoding
+                    : phase == "waiting" ? Stage::Waiting : phase == "computing" ? Stage::Computing : Stage::Preparing;
+                m_runtime.backgroundActivity->update({stage, status.value("step").toInt(), status.value("total").toInt()});
+            }
+        }
+    });
+    connect(&m_societyClient, &iiSocietyClient::Client::progress, this, [this](const QString &, qint64 done, qint64 total) {
+        if (m_societyBackgroundActivity && m_runtime.backgroundActivity && total > 0)
+            m_runtime.backgroundActivity->update({iiLocalDiffusion::NativeGenerationStage::Preparing,
+                int(done * 1000 / total), 1000});
+    });
+    connect(m_remoteGeneration.get(), &iiSocietyGeneration::Remote::finished, this,
+        [this](const QString &state, const QByteArray &png, const QJsonObject &generation, const QString &remoteError) {
+        if (!m_remoteActive || !busy()) return;
+        if (state != "completed") { finish(state, remoteError); return; }
+        QString error;
+        if (!createWorkingFiles(&error)) { finish("failed", error); return; }
+        const auto path = m_workDirectory->filePath("remote.png");
+        QFile image(path);
+        if (!image.open(QIODevice::WriteOnly) || image.write(png) != png.size()) {
+            finish("failed", tr("Cannot save the image received from Society.")); return;
+        }
+        image.close(); m_active["generation"] = generation;
+        if (!publishImages({path}, m_active, &error)) { finish("failed", error); return; }
+        finish("completed");
     });
     connect(&m_nativeWatcher, &QFutureWatcher<iiLocalDiffusion::NativeGenerationResult>::finished,
             this, &GenerationController::finishNative);
@@ -129,6 +168,7 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
     m_process.setProcessChannelMode(QProcess::MergedChannels);
     auto environment = QProcessEnvironment::systemEnvironment();
     environment.insert("IILD_WORKER_PROGRESS", "1");
+    environment.insert("IILD_MODEL_VALIDATION", "metadata");
     if (!environment.contains("IILD_PYTHON_EXECUTABLE") && !m_runtime.pythonExecutable.isEmpty())
         environment.insert("IILD_PYTHON_EXECUTABLE", m_runtime.pythonExecutable);
     m_process.setProcessEnvironment(environment);
@@ -147,7 +187,7 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
             m_workerDirectory.reset();
             m_controlId.clear();
             setInferenceStatus({{"state", "error"}, {"ready", false}, {"error", m_process.errorString()}});
-            if (busy()) finish(m_cancelled ? "cancelled" : "failed", m_cancelled ? QString() : m_process.errorString());
+            if (busy() && !m_remoteActive) finish(m_cancelled ? "cancelled" : "failed", m_cancelled ? QString() : m_process.errorString());
         }
     });
     connect(&m_process, &QProcess::finished, this, [this](int code, QProcess::ExitStatus) {
@@ -157,7 +197,7 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
         m_workerDirectory.reset();
         m_controlId.clear();
         setInferenceStatus({{"state", "stopped"}, {"ready", false}});
-        if (!busy()) { QTimer::singleShot(0, this, &GenerationController::pump); return; }
+        if (!busy() || m_remoteActive) { QTimer::singleShot(0, this, &GenerationController::pump); return; }
         if (m_cancelled) { finish("cancelled"); return; }
         finish("failed", tr("The inference worker exited before completing the request (exit %1). %2").arg(code)
             .arg(QString::fromUtf8(m_log).right(4000)));
@@ -208,7 +248,7 @@ QVariantMap GenerationController::backgroundExecutionStatus() const
 }
 void GenerationController::updateScreenActivity()
 {
-    const bool active = m_runtime.nativeInference && busy() && m_foreground;
+    const bool active = m_runtime.nativeInference && !m_remoteActive && busy() && m_foreground;
     if (m_screenActive == active) return;
     m_screenActive = active;
     if (m_runtime.screenActivity) m_runtime.screenActivity(active);
@@ -223,14 +263,21 @@ void GenerationController::setInferenceStatus(QJsonObject status)
 void GenerationController::setForeground(bool foreground)
 {
     if (m_foreground == foreground) {
-        if (busy() && m_runtime.backgroundActivity && !foreground)
+        if (!foreground && m_societyBackgroundActivity && m_storage && m_runtime.backgroundActivity->allowsBackgroundExecution()) {
+            m_societyClient.start(m_storage->drive().rootPath());
+            m_remoteGeneration->setPaused(false);
+            QTimer::singleShot(0, this, &GenerationController::pump);
+        }
+        if (busy() && !m_remoteActive && m_runtime.backgroundActivity && !foreground)
             setNativePaused(!m_runtime.backgroundActivity->allowsBackgroundExecution());
         return;
     }
     m_foreground = foreground;
     if (foreground && m_storage) m_societyClient.start(m_storage->drive().rootPath());
-    else if (!foreground) m_societyClient.stop();
-    if (!foreground && m_runtime.nativeInference) {
+    const bool canTransfer = foreground || (m_runtime.backgroundActivity && m_runtime.backgroundActivity->allowsBackgroundExecution());
+    if (!canTransfer) m_societyClient.stop();
+    if (m_remoteGeneration) m_remoteGeneration->setPaused(!canTransfer);
+    if (!foreground && m_runtime.nativeInference && !m_remoteActive) {
         if (!busy()) iiLocalDiffusion::releaseNativeDiffusionCache();
         else if (m_runtime.backgroundActivity)
             setNativePaused(!m_runtime.backgroundActivity->allowsBackgroundExecution());
@@ -411,6 +458,13 @@ void GenerationController::refreshModels()
         m_selected = m_models.isEmpty() ? QString() : m_models.first().id;
     fail(error);
     if (storageChangedNow) {
+        // Requests remain durable in the old Society replica; tracking is local
+        // to the currently opened container.
+        m_modelDownloads.clear();
+        if (m_societyBackgroundActivity) {
+            m_societyBackgroundActivity = m_backgroundActivityActive = false;
+            m_runtime.backgroundActivity->end(true);
+        }
         emit storageChanged();
         startLegacyCacheMigration();
     }
@@ -570,41 +624,49 @@ QString GenerationController::enqueue(const QString &prompt, const QString &aspe
         || m_runtime.steps < 1 || m_runtime.steps > 1000) { fail(tr("Enter a prompt and a supported image size.")); return {}; }
     auto selected = std::find_if(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == m_selected; });
     if (selected == m_models.cend()) { fail(tr("Add a Diffusion model to Society, then refresh the model list.")); return {}; }
-    if (m_runtime.nativeInference && selected->format != "safetensors" && selected->format != "unified") {
+    const StorageMap map(m_storage->drive());
+    auto required = map.files("models/" + selected->id);
+    required.append(map.files("models/.generation-resources/iiLocalDiffusion")); required.removeDuplicates();
+    const bool localReady = required.isEmpty() ? selected->available : map.available(required);
+    if (localReady && m_runtime.nativeInference && selected->format != "safetensors" && selected->format != "unified") {
         fail(tr("Choose a checkpoint or unified model for on-device generation.")); return {};
     }
     const auto reference = selected->reference(m_storage->drive().identifier());
     QString error;
-    if (selected->available && m_storage->resolveModel(reference, &error).isEmpty()) { fail(error); return {}; }
+    if (localReady && m_storage->resolveModel(reference, &error).isEmpty()) { fail(error); return {}; }
     // Preserve submission order even when multiple requests share a millisecond.
     auto created = QDateTime::currentDateTimeUtc();
     if (!m_jobs.isEmpty()) {
         const auto last = QDateTime::fromString(m_jobs.last().value("createdAt").toString(), Qt::ISODateWithMs);
         if (created <= last) created = last.addMSecs(1);
     }
-    QString firstId;
+    QStringList jobIds;
+    jobIds.reserve(count);
     const auto updated = now();
     for (int index = 0; index < count; ++index) {
         const auto id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-        if (firstId.isEmpty()) firstId = id;
+        jobIds.append(id);
         const QJsonObject job{{"schemaVersion", 1}, {"id", id}, {"appId", "com.iisacc.dreamscapes"},
             {"createdAt", created.addMSecs(index).toString(Qt::ISODateWithMs)}, {"updatedAt", updated},
-            {"state", "queued"}, {"prompt", trimmed},
+            {"state", "queued"}, {"execution", localReady ? "local" : "host"}, {"prompt", trimmed},
             {"aspectRatio", aspectRatio}, {"width", size.width()}, {"height", size.height()},
-            {"steps", m_runtime.steps}, {"device", m_runtime.device}, {"model", reference}, {"modelName", selected->name}};
+            {"steps", m_runtime.steps}, {"seed", double(QRandomGenerator::global()->generate())},
+            {"device", m_runtime.device}, {"model", reference}, {"modelName", selected->name}};
         m_jobs.append(job);
     }
     // Validate once and publish the whole submission before starting the serial worker.
     emit jobsChanged();
     fail({});
+    emit submissionQueued(jobIds);
     QTimer::singleShot(0, this, &GenerationController::pump);
-    return firstId;
+    return jobIds.first();
 }
 
 void GenerationController::pump()
 {
-    if (m_runtime.nativeInference && !m_foreground) return;
-    if (!m_storage || busy() || m_cacheMigrationActive || !m_controlId.isEmpty() || !runtimeAvailable()) return;
+    if (m_runtime.nativeInference && !m_foreground
+        && !(m_runtime.backgroundActivity && m_runtime.backgroundActivity->allowsBackgroundExecution())) return;
+    if (!m_storage || busy() || !m_controlId.isEmpty() || !runtimeAvailable()) return;
     QString error;
     const auto queued = std::find_if(m_jobs.cbegin(), m_jobs.cend(), [](const auto &job) { return job.value("state") == "queued"; });
     if (queued == m_jobs.cend()) { prepareForeground(); return; }
@@ -619,14 +681,18 @@ void GenerationController::pump()
     auto required = map.files("models/" + m_active.value("model").toObject().value("path").toString());
     const auto resources = map.files("models/.generation-resources/iiLocalDiffusion");
     required.append(resources); required.removeDuplicates();
-    if (!required.isEmpty() && !map.available(required)) {
-        m_downloadRequest = map.request(required, &error);
-        if (m_downloadRequest.isEmpty()) { finish("failed", error); return; }
-        m_active["state"] = "downloading"; updateJob(m_active);
-        setInferenceStatus({{"state", "downloading-model"}, {"ready", false}});
-        m_societyClient.start(m_storage->drive().rootPath()); m_societyClient.synchronizeNow();
+    if (m_active.value("execution") == "host" || (!required.isEmpty() && !map.available(required))) {
+        m_remoteActive = true; m_requiredModelFiles = required;
+        m_active["state"] = "connecting-host"; m_active["execution"] = "host";
+        m_societyClient.start(m_storage->drive().rootPath());
+        m_remoteGeneration->setPaused(!m_foreground
+            && !(m_runtime.backgroundActivity && m_runtime.backgroundActivity->allowsBackgroundExecution()));
+        if (!m_remoteGeneration->start(m_active)) { finish("failed", tr("The Society host queue is already busy.")); return; }
+        setInferenceStatus({{"state", "waiting-host"}, {"backend", "remote"}, {"ready", false}});
+        updateJob(m_active);
         return;
     }
+    if (m_cacheMigrationActive || (m_runtime.nativeInference && !m_foreground)) { m_active = {}; return; }
     const auto model = m_storage->resolveModel(m_active.value("model").toObject(), &error);
     if (model.isEmpty()) { finish("failed", error); return; }
     if (!createWorkingFiles(&error)) { finish("failed", error); return; }
@@ -656,19 +722,66 @@ void GenerationController::pump()
 
 void GenerationController::pollDownload()
 {
-    if (m_downloadRequest.isEmpty() || !m_storage) return;
+    if (m_modelDownloads.isEmpty() || !m_storage) return;
     iiSocietyContainer::StorageMap map(m_storage->drive());
-    const auto state = map.requestState(m_downloadRequest);
-    if (state.value("state") == "ready") {
-        m_downloadRequest.clear();
-        // The model reference is validated again by pump before inference.
-        m_active["state"] = "queued"; updateJob(m_active); m_active = {};
-        QTimer::singleShot(0, this, &GenerationController::pump);
-    } else if (state.value("state") == "failed" || state.value("state") == "cancelled") {
-        m_downloadRequest.clear(); finish(state.value("state").toString(), state.value("error").toString());
-    } else {
-        auto status = m_inferenceStatus; status["message"] = m_societyClient.status(); setInferenceStatus(status);
+    for (auto it = m_modelDownloads.begin(); it != m_modelDownloads.end();) {
+        const auto download = map.requestState(it.value());
+        const auto state = download.value("state").toString();
+        if (state == "ready" || state == "failed" || state == "cancelled") {
+            const auto jobs = m_jobs;
+            for (auto job : jobs) {
+                if (job.value("modelDownload").toObject().value("requestId").toString() != it.value()) continue;
+                job["modelDownload"] = QJsonObject{{"state", state}, {"requestId", it.value()}, {"error", download.value("error")}};
+                if (m_active.value("id") == job.value("id")) m_active["modelDownload"] = job.value("modelDownload");
+                updateJob(job);
+            }
+            it = m_modelDownloads.erase(it);
+        }
+        else ++it;
     }
+    const bool queuedOnHost = std::any_of(m_jobs.cbegin(), m_jobs.cend(), [](const auto &job) {
+        return job.value("state") == "queued" && job.value("execution") == "host";
+    });
+    if (m_modelDownloads.isEmpty() && m_societyBackgroundActivity && !m_remoteActive && !queuedOnHost) {
+        m_societyBackgroundActivity = m_backgroundActivityActive = false;
+        m_runtime.backgroundActivity->end(true);
+        if (!m_foreground) m_societyClient.stop();
+    }
+}
+
+void GenerationController::beginSocietyBackgroundActivity()
+{
+    if (!m_runtime.backgroundActivity || m_backgroundActivityActive) return;
+    m_societyBackgroundActivity = m_backgroundActivityActive = true;
+    const QPointer<GenerationController> self(this);
+    m_runtime.backgroundActivity->beginNetwork(m_active.value("id").toString(), [self] {
+        if (!self || !self->m_societyBackgroundActivity) return;
+        self->m_societyBackgroundActivity = self->m_backgroundActivityActive = false;
+        self->m_runtime.backgroundActivity->end(false);
+        if (!self->m_foreground) {
+            self->m_societyClient.stop(); self->m_remoteGeneration->setPaused(true);
+        }
+    });
+}
+
+void GenerationController::downloadModelInBackground()
+{
+    if (!m_storage || m_requiredModelFiles.isEmpty()) return;
+    const auto model = m_active.value("model").toObject().value("path").toString();
+    if (iiSocietyContainer::StorageMap(m_storage->drive()).available(m_requiredModelFiles)) {
+        m_active["modelDownload"] = QJsonObject{{"state", "ready"}};
+        updateJob(m_active); return;
+    }
+    if (m_modelDownloads.contains(model)) {
+        m_active["modelDownload"] = QJsonObject{{"state", "background"}, {"requestId", m_modelDownloads.value(model)}};
+        updateJob(m_active); return;
+    }
+    QString error;
+    const auto request = iiSocietyContainer::StorageMap(m_storage->drive()).request(m_requiredModelFiles, &error);
+    m_active["modelDownload"] = request.isEmpty() ? QJsonObject{{"state", "failed"}, {"error", error}}
+        : QJsonObject{{"state", "background"}, {"requestId", request}};
+    if (!request.isEmpty()) { m_modelDownloads.insert(model, request); m_societyClient.synchronizeNow(); }
+    updateJob(m_active);
 }
 
 void GenerationController::startNative(const QString &model)
@@ -682,7 +795,7 @@ void GenerationController::startNative(const QString &model)
     request.width = m_active.value("width").toInt();
     request.height = m_active.value("height").toInt();
     request.steps = m_active.value("steps").toInt();
-    request.seed = static_cast<qint64>(QRandomGenerator::global()->generate());
+    request.seed = m_active.value("seed").toInteger();
 #ifdef DREAMSCAPES_LOCAL_RUNTIME_PROBE
     bool validSeed = false;
     const auto probeSeed = qEnvironmentVariable("DREAMSCAPES_PROBE_SEED").toLongLong(&validSeed);
@@ -705,6 +818,10 @@ void GenerationController::startNative(const QString &model)
         {"model_path", model}, {"seed", QString::number(request.seed)}};
     const auto id = m_active.value("id").toString();
     if (m_runtime.backgroundActivity) {
+        if (m_societyBackgroundActivity) {
+            m_societyBackgroundActivity = m_backgroundActivityActive = false;
+            m_runtime.backgroundActivity->end(true);
+        }
         const QPointer<GenerationController> self(this);
         m_backgroundActivityActive = true;
         m_runtime.backgroundActivity->begin(id, [self, id] {
@@ -992,8 +1109,8 @@ bool GenerationController::publishImages(const QStringList &sources, QJsonObject
 
 void GenerationController::finish(const QString &state, const QString &error)
 {
-    if (!m_downloadRequest.isEmpty() && m_storage) iiSocietyContainer::StorageMap(m_storage->drive()).cancel(m_downloadRequest);
-    m_downloadRequest.clear();
+    // Replication outlives this generation job, including failure/cancellation.
+    m_remoteActive = false; m_requiredModelFiles.clear();
     m_active["state"] = state;
     m_active["finishedAt"] = now();
     m_active["error"] = error;
@@ -1009,7 +1126,11 @@ void GenerationController::finish(const QString &state, const QString &error)
     if (m_foreground) m_residencyPending = true;
     m_workerRequest.clear();
     clearWorkingFiles();
-    if (m_backgroundActivityActive) {
+    const bool queuedOnHost = std::any_of(m_jobs.cbegin(), m_jobs.cend(), [](const auto &job) {
+        return job.value("state") == "queued" && job.value("execution") == "host";
+    });
+    if (m_backgroundActivityActive && (!m_societyBackgroundActivity || (m_modelDownloads.isEmpty() && !queuedOnHost))) {
+        m_societyBackgroundActivity = false;
         m_backgroundActivityActive = false;
         m_runtime.backgroundActivity->end(state == "completed");
     }
@@ -1039,7 +1160,7 @@ void GenerationController::readProcessOutput()
             const auto event = QJsonDocument::fromJson(line.mid(modelProgress + 20)).object();
             const auto completed = event.value("completed_bytes").toDouble(-1), total = event.value("total_bytes").toDouble(-1);
             if (event.value("schema") == "iild-model-progress-v1" && completed >= 0 && total >= completed)
-                setInferenceStatus({{"state", "checking-model"}, {"ready", false},
+                setInferenceStatus({{"state", completed == total ? "preparing" : "checking-model"}, {"ready", false},
                     {"completedBytes", completed}, {"totalBytes", total}});
         }
         const auto ready = line.indexOf("IILD_READY ");
@@ -1204,7 +1325,7 @@ void GenerationController::stopProcess(bool force)
 bool GenerationController::cancel(const QString &id)
 {
     if (busy() && m_active.value("id") == id) {
-        if (!m_downloadRequest.isEmpty()) { finish("cancelled"); return true; }
+        if (m_remoteActive) { m_remoteGeneration->cancel(); return true; }
         m_cancelled = true;
         m_nativeCancelled = true;
         if (m_runtime.nativeInference)

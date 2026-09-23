@@ -19,20 +19,33 @@ LV.ApplicationWindow {
     Loader { id: agentQuestions }
     property bool resultVisible: false
     property var currentResult: ({})
-    property string lastPresentedImage: ""
-    readonly property bool generationPending: generation.busy || generation.jobs.some(function(job) { return job.state === "queued" })
-    readonly property var activeGeneration: generation.jobs.find(function(job) { return job.state === "running" || job.state === "downloading" }) || ({})
+    property var resultJobIds: []
+    property string generationRequestError: ""
+    readonly property var submissionJobs: generation.jobs.filter(function(job) { return resultJobIds.indexOf(job.id) >= 0 })
+    readonly property var submissionResults: generation.connected
+        ? generation.completedResults.filter(function(result) { return resultJobIds.indexOf(result.id) >= 0 }) : []
+    readonly property var activeGeneration: submissionJobs.find(function(job) { return job.state === "running" || job.state === "connecting-host" || job.state === "downloading" }) || ({})
+    readonly property bool generationPending: submissionJobs.some(function(job) {
+        return job.state === "queued" || job.state === "running" || job.state === "connecting-host" || job.state === "downloading"
+    })
+    onSubmissionResultsChanged: presentLatestResult()
     property int generationElapsedSeconds: 0
     readonly property string generationStatusText: {
-        if (!generation.busy) {
-            if (generationPending) return generation.inferenceStatus.state === "checking-model" ? qsTr("Checking model…")
+        if (!activeGeneration.id) {
+            if (generationPending) return generation.busy ? qsTr("Queued")
+                : generation.inferenceStatus.state === "checking-model" ? qsTr("Checking model…")
                 : generation.inferenceStatus.state === "preparing" || generation.inferenceStatus.state === "loading"
                     ? qsTr("Preparing model…") : qsTr("Queued")
-            const last = generation.jobs[0]
+            const last = submissionJobs[0]
             return last && (last.state === "cancelled" || last.state === "interrupted") ? stateLabel(last.state) : ""
         }
         const phase = generation.inferenceStatus.state
         const labels = { "preparing-model": qsTr("Preparing model for faster generation…"),
+            "waiting-host": qsTr("Connecting to Society host…"),
+            "remote-queued": qsTr("Queued on Society host…"),
+            "remote-running": qsTr("Generating on Society host…"),
+            "remote-cancelling": qsTr("Stopping generation on host…"),
+            "receiving-image": qsTr("Receiving generated image…"),
             "downloading-model": qsTr("Downloading model… %1%").arg(Math.floor(100 * (generation.inferenceStatus.completedBytes || 0)
                 / Math.max(1, generation.inferenceStatus.totalBytes || 1))),
             "checking-model": qsTr("Checking model… %1%").arg(Math.floor(100 * (generation.inferenceStatus.completedBytes || 0)
@@ -57,7 +70,7 @@ LV.ApplicationWindow {
     Timer {
         interval: 1000
         repeat: true
-        running: generation.busy
+        running: !!window.activeGeneration.id
         triggeredOnStart: true
         onTriggered: window.generationElapsedSeconds = Math.max(0,
             Math.floor((Date.now() - Date.parse(window.activeGeneration.startedAt || new Date().toISOString())) / 1000))
@@ -87,40 +100,56 @@ LV.ApplicationWindow {
     signal newProjectRequested(url imageSource, var generationResult)
 
     function presentLatestResult() {
-        const result = generation.latestResult
+        const result = submissionResults.length > 0 ? submissionResults[submissionResults.length - 1] : ({})
         const source = result.imageSource ? result.imageSource.toString() : ""
-        if (source === lastPresentedImage)
+        if (source === (currentResult.imageSource ? currentResult.imageSource.toString() : ""))
             return
-        const enteringResult = !resultVisible
-        lastPresentedImage = source
         currentResult = result
-        resultVisible = source.length > 0
-        if (resultVisible) {
-            if (enteringResult)
-                quickGenerate.dismissInput()
-            modelMenu.close()
-            // Reuse the current session's result without overwriting a draft.
+        if (resultVisible && source.length > 0) {
+            // A completion may fill an empty input, but never overwrite a draft.
             if (quickGenerate.prompt.trim().length === 0) {
                 quickGenerate.prompt = result.prompt || ""
                 quickGenerate.aspectRatio = result.aspectRatio || "1:1"
             }
         }
     }
+    function dismissResult() {
+        resultVisible = false
+        resultJobIds = []
+        currentResult = ({})
+        generationRequestError = ""
+        resultView.resetPresentation()
+    }
+    function showSubmission(jobIds) {
+        dismissResult()
+        resultJobIds = jobIds.slice()
+        quickGenerate.dismissInput()
+        modelMenu.close()
+        resultVisible = true
+    }
     function stateLabel(state) {
         const labels = { "queued": qsTr("Queued"), "running": qsTr("Generating"), "completed": qsTr("Completed"),
-            "failed": qsTr("Failed"), "cancelled": qsTr("Cancelled"), "interrupted": qsTr("Interrupted"), "downloading": qsTr("Downloading model") }
+            "failed": qsTr("Failed"), "cancelled": qsTr("Cancelled"), "interrupted": qsTr("Interrupted"), "downloading": qsTr("Downloading model"),
+            "connecting-host": qsTr("Connecting to Society host") }
         return labels[state] || state
     }
     Component.onCompleted: {
         generation.connectStorage(initialContainerPath)
     }
-    onActiveChanged: { if (active) generation.refreshModels() }
+    onActiveChanged: { if (active) { generation.refreshModels(); historyModel.refresh() } }
+    onResultVisibleChanged: if (!resultVisible) historyModel.refresh()
+
+    DashboardFiles {
+        id: historyModel
+        objectName: "generationHistoryModel"
+        containerPath: generation.connected ? generation.containerPath : ""
+    }
+    SocietyApplication { id: societyApplication }
 
     GenerationController {
         id: generation
         objectName: "generationController"
-        onStorageChanged: window.presentLatestResult()
-        onJobsChanged: window.presentLatestResult()
+        onSubmissionQueued: function(jobIds) { window.showSubmission(jobIds) }
     }
 
     Item {
@@ -141,17 +170,18 @@ LV.ApplicationWindow {
             anchors.right: parent.right
             visible: window.resultVisible
             result: window.currentResult
-            results: generation.connected ? generation.completedResults : []
-            previewSource: generation.previewImage
+            results: window.submissionResults
+            previewSource: window.activeGeneration.id ? generation.previewImage : ""
             previewPrompt: window.activeGeneration.prompt || ""
             generationPending: window.generationPending
             statusText: window.generationStatusText
-            generationCancellable: generation.busy && generation.inferenceStatus.state !== "cancelling"
+            generationCancellable: !!window.activeGeneration.id && generation.inferenceStatus.state !== "cancelling"
             onCancelRequested: generation.cancel(window.activeGeneration.id || "")
-            errorText: generation.errorString
+            errorText: window.generationRequestError || (window.generationPending ? ""
+                : (window.submissionJobs.find(function(job) { return job.state === "failed" }) || {}).error || "")
             onBackRequested: {
                 quickGenerate.dismissInput()
-                window.resultVisible = false
+                window.dismissResult()
             }
             onNewProjectRequested: function(imageSource, generationResult) {
                 quickGenerate.dismissInput()
@@ -171,12 +201,8 @@ LV.ApplicationWindow {
             menusOpenUpward: window.resultVisible
             onGenerateRequested: function(prompt, mediaType, aspectRatio, count) {
                 window.generateRequested(prompt, mediaType, aspectRatio, count)
-                if (generation.enqueue(prompt, aspectRatio, count).length > 0) {
-                    quickGenerate.dismissInput()
-                    modelMenu.close()
-                    resultView.detailVisible = false
-                    window.resultVisible = true
-                }
+                if (generation.enqueue(prompt, aspectRatio, count).length === 0)
+                    window.generationRequestError = generation.errorString
             }
         }
 
@@ -202,6 +228,17 @@ LV.ApplicationWindow {
                 height: implicitHeight
                 spacing: LV.Theme.gap8
 
+                GenerationHistory {
+                    Layout.fillWidth: true
+                    Layout.bottomMargin: LV.Theme.gap16
+                    files: historyModel.generationHistory
+                    loading: historyModel.loading
+                    property string navigationError: ""
+                    errorText: navigationError || historyModel.errorString
+                    onViewAllRequested: navigationError = societyApplication.openGenerationHistory()
+                        ? "" : qsTr("Could not open Society. Open Society on this device and try again.")
+                }
+
                 LV.HStack {
                     Layout.fillWidth: true
                     LV.Label { text: qsTr("Society"); Layout.fillWidth: true }
@@ -219,13 +256,6 @@ LV.ApplicationWindow {
                     text: generation.connected
                         ? qsTr("Models and generated images are stored in Society on this device.")
                         : qsTr("Open Society on this device and let it finish syncing your models.")
-                }
-                LV.LabelButton {
-                    objectName: "showGenerationResultButton"
-                    text: qsTr("View result")
-                    tone: LV.AbstractButton.Default
-                    visible: window.lastPresentedImage.length > 0 || window.generationPending
-                    onClicked: window.resultVisible = true
                 }
                 LV.LabelMenuButton {
                     id: modelButton
@@ -275,7 +305,7 @@ LV.ApplicationWindow {
                             LV.LabelButton {
                                 text: qsTr("Cancel")
                                 tone: LV.AbstractButton.Default
-                                visible: queueRow.modelData.state === "queued" || queueRow.modelData.state === "running" || queueRow.modelData.state === "downloading"
+                                visible: queueRow.modelData.state === "queued" || queueRow.modelData.state === "running" || queueRow.modelData.state === "connecting-host" || queueRow.modelData.state === "downloading"
                                 onClicked: generation.cancel(queueRow.modelData.id)
                             }
                         }

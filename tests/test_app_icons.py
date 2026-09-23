@@ -116,17 +116,17 @@ class AppIconsTest(unittest.TestCase):
             source = Path(temporary) / 'source'
             source.mkdir()
             (source / 'resources').symlink_to(ROOT / 'resources', target_is_directory=True)
-            shutil.copytree(ROOT / 'platform/android', source / 'platform/android')
-            authored = source / 'platform/android/AndroidManifest.xml'
+            shutil.copytree(ROOT / 'src/platform/android', source / 'src/platform/android')
+            authored = source / 'src/platform/android/AndroidManifest.xml'
             original = authored.read_bytes()
-            java = source / 'platform/android/src/com/iisacc/dreamscapes/DreamscapesActivity.java'
+            java = source / 'src/platform/android/src/com/iisacc/dreamscapes/DreamscapesActivity.java'
             (source / 'CMakeLists.txt').write_text(
                 'cmake_minimum_required(VERSION 3.31)\nproject(IconPackage NONE)\n'
                 'function(qt_add_resources)\nendfunction()\n'
                 'set(APPLE FALSE)\nset(IOS FALSE)\nset(ANDROID TRUE)\n'
                 'add_library(Dreamscapes INTERFACE)\n'
                 'set_property(TARGET Dreamscapes PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR '
-                '"${CMAKE_CURRENT_SOURCE_DIR}/platform/android")\n'
+                '"${CMAKE_CURRENT_SOURCE_DIR}/src/platform/android")\n'
                 f'include("{ROOT / "cmake/AppIcons.cmake"}")\n'
                 'dreamscapes_add_app_icons(Dreamscapes)\n')
             binary = Path(temporary) / 'build'
@@ -143,9 +143,9 @@ class AppIconsTest(unittest.TestCase):
                     self.assertEqual((package / 'res' / asset.relative_to(ICONS / 'android/res')).read_bytes(), asset.read_bytes())
             java.write_text(java.read_text() + '\n// Packaging dependency check.\n')
             subprocess.run(['cmake', '--build', str(binary)], check=True, capture_output=True)
-            self.assertEqual((package / java.relative_to(source / 'platform/android')).read_bytes(), java.read_bytes())
+            self.assertEqual((package / java.relative_to(source / 'src/platform/android')).read_bytes(), java.read_bytes())
             self.assertEqual(authored.read_bytes(), original)
-            self.assertFalse((source / 'platform/android/res').exists())
+            self.assertFalse((source / 'src/platform/android/res').exists())
 
 
 if __name__ == '__main__':

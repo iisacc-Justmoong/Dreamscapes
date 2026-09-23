@@ -40,6 +40,12 @@ public:
     }
 
     void begin(const QString &job, std::function<void()> expired) override {
+        beginActivity(job, std::move(expired), true);
+    }
+    void beginNetwork(const QString &job, std::function<void()> expired) override {
+        beginActivity(job, std::move(expired), false);
+    }
+    void beginActivity(const QString &job, std::function<void()> expired, bool requiresGpu) {
         end(false);
         m_activityJob = job;
         m_presentationPaused = false;
@@ -50,7 +56,7 @@ public:
         m_error.clear();
         m_progress = {};
         m_subtitle = QStringLiteral("Preparing model…");
-        m_cpuOnly = false;
+        m_cpuOnly = !requiresGpu;
         const auto weak = weak_from_this();
         NSString *identifier = m_identifier;
         ensureCleanup();
@@ -59,7 +65,7 @@ public:
             // Background GPU support is separate from foreground Metal support.
             // Keep interactive inference accelerated; unsupported background
             // execution pauses the existing tensors instead of forcing CPU.
-            if (!m_gpuSupported) { m_state = "foreground-gpu"; return; }
+            if (requiresGpu && !m_gpuSupported) { m_state = "foreground-gpu"; return; }
             // Register the concrete UUID, authorized by the plist's wildcard.
             // Each identifier is registered only once, including after retries.
             const BOOL registered = [BGTaskScheduler.sharedScheduler registerForTaskWithIdentifier:identifier

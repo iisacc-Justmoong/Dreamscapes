@@ -3,12 +3,14 @@
 #include "GenerationWorkProgress.h"
 #include <iiSocietyHelper.h>
 #include <iiSocietySync.h>
+#include <iiSocietyGeneration/Host.h>
 #include <StorageMap.h>
 #include <QFile>
 #include <QImage>
 #include <QJsonDocument>
 #include <QSignalSpy>
 #include <QTemporaryDir>
+#include <QUuid>
 #include <QtTest>
 #include <filesystem>
 #include <thread>
@@ -20,17 +22,20 @@ public:
     bool permitted = true;
     bool cpuOnly = false;
     int starts = 0;
+    int networkStarts = 0;
     QList<bool> completions;
     QList<QPair<QString, QString>> presentations;
     bool presentationPaused = false;
     int updates = 0;
+    iiLocalDiffusion::NativeGenerationStage lastStage = iiLocalDiffusion::NativeGenerationStage::Waiting;
     std::function<void(bool)> foregroundChanged;
     std::function<void()> expiration;
     void observeForeground(std::function<void(bool)> changed) override { foregroundChanged = std::move(changed); }
     void begin(const QString &, std::function<void()> expired) override { ++starts; expiration = std::move(expired); }
+    void beginNetwork(const QString &job, std::function<void()> expired) override { ++networkStarts; begin(job, std::move(expired)); }
     bool allowsBackgroundExecution() const override { return permitted && starts > completions.size(); }
     bool requiresCpuExecution() const override { return cpuOnly; }
-    void update(const iiLocalDiffusion::NativeGenerationProgress &) override { ++updates; }
+    void update(const iiLocalDiffusion::NativeGenerationProgress &progress) override { ++updates; lastStage = progress.stage; }
     void end(bool success) override { completions.append(success); }
     void finishPresentation(const QString &job, const QString &state) override { presentations.append({job, state}); }
     void setPresentationPaused(bool paused) override { presentationPaused = paused; }
@@ -649,7 +654,57 @@ private slots:
         QVERIFY(record.open(QIODevice::WriteOnly));
         record.write(QJsonDocument(QJsonObject::fromVariantMap(app.latestResult())).toJson());
     }
-    void selectsModelDownloadsOnDemandGeneratesLocallyAndPushesCompletedImage() {
+    void actualModelRunsOnHostWithoutClientWeights() {
+        const auto source = qEnvironmentVariable("DREAMSCAPES_REMOTE_TEST_MODEL");
+        if (source.isEmpty()) QSKIP("Set DREAMSCAPES_REMOTE_TEST_MODEL for actual host inference over TLS.");
+        QVERIFY(QFileInfo::exists(source));
+        QTemporaryDir desktop(DREAMSCAPES_TEST_DIRECTORY "/real-host-XXXXXX");
+        QTemporaryDir phone(DREAMSCAPES_TEST_DIRECTORY "/real-phone-XXXXXX");
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(desktop.path()));
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(phone.path()));
+        std::error_code linkError;
+        std::filesystem::create_hard_link(QFile::encodeName(source).toStdString(),
+            QFile::encodeName(desktop.filePath("Models/model.safetensors")).toStdString(), linkError);
+        QVERIFY2(!linkError, linkError.message().c_str());
+        const auto storage = iiSocietyContainer::SharedStorage::open(desktop.path());
+        QVERIFY(storage && storage->models().size() == 1);
+        iiSocietyGeneration::Host generationHost;
+        QVERIFY(generationHost.open(desktop.path()));
+        iiServerHost::LanPeer host, client;
+        iiSocietyGeneration::Remote remote([&](const auto &request) { return client.request("desktop", request); });
+        QJsonObject previousProgress;
+        connect(&remote, &iiSocietyGeneration::Remote::progress, this, [&](const QJsonObject &progress) {
+            if (progress != previousProgress) qInfo().noquote() << QJsonDocument(progress).toJson(QJsonDocument::Compact);
+            previousProgress = progress;
+        });
+        connect(&client, &iiServerHost::LanPeer::completed, &remote,
+            [&](auto id, auto result, auto) { remote.receive(id, result); });
+        const auto files = iiSocietySync::filesHandler(desktop.path());
+        QVERIFY(host.startHost("desktop", "Actual host", [&](const auto &peer, const auto &request) {
+            return request.value("op") == "society.generation" ? generationHost.handle(peer, request) : files(peer, request);
+        }, {"127.0.0.1"}, QHostAddress::LocalHost));
+        QVERIFY(client.join(host.createOffer(), "phone", "Empty model client"));
+        QTRY_VERIFY2(client.connected(), qPrintable(client.errorString()));
+        QSignalSpy finished(&remote, &iiSocietyGeneration::Remote::finished);
+        const QJsonObject job{{"id", QUuid::createUuid().toString(QUuid::WithoutBraces)},
+            {"prompt", "A white cockatoo on a flowering branch, botanical illustration"},
+            {"width", 256}, {"height", 256}, {"steps", 2}, {"seed", 42},
+            {"model", storage->models().first().reference(storage->drive().identifier())}};
+        QVERIFY(remote.start(job));
+        QTRY_COMPARE_WITH_TIMEOUT(finished.size(), 1, 1000000);
+        QVERIFY2(finished[0][3].toString().isEmpty(), qPrintable(finished[0][3].toString()));
+        QCOMPARE(finished[0][0].toString(), QString("completed"));
+        const auto png = finished[0][1].toByteArray();
+        QCOMPARE(QImage::fromData(png).size(), QSize(256, 256));
+        QVERIFY(iiSocietyContainer::SharedStorage::open(phone.path())->models().isEmpty());
+        const auto evidence = QStringLiteral(DREAMSCAPES_TEST_DIRECTORY "/society-local-generation");
+        QVERIFY(QDir().mkpath(evidence));
+        QFile image(evidence + "/remote-real.png"); QVERIFY(image.open(QIODevice::WriteOnly));
+        QCOMPARE(image.write(png), png.size());
+        QFile record(evidence + "/remote-real.json"); QVERIFY(record.open(QIODevice::WriteOnly));
+        record.write(QJsonDocument(finished[0][2].toJsonObject()).toJson());
+    }
+    void generatesOnHostBeforeBackgroundModelDownloadThenUsesLocalCache() {
         QTemporaryDir desktop(DREAMSCAPES_TEST_DIRECTORY "/society-host-XXXXXX");
         QTemporaryDir phone(DREAMSCAPES_TEST_DIRECTORY "/society-phone-XXXXXX");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(desktop.path()));
@@ -665,19 +720,39 @@ private slots:
             QVERIFY(fixture.open(QIODevice::WriteOnly)); fixture.write("fixture");
         }
 
+        iiServerHost::LanPeer host, client;
+        auto remoteGeneration = std::make_shared<iiSocietyGeneration::Remote>([&](const QJsonObject &request) {
+            return client.request("desktop", request);
+        });
+        connect(&client, &iiServerHost::LanPeer::completed, remoteGeneration.get(),
+            [remoteGeneration](auto id, auto result, auto) { remoteGeneration->receive(id, result); });
+        std::atomic_int hostRuns{0};
+        std::string hostModelPath;
+        iiSocietyGeneration::Host generationHost([&](const auto &request, const auto &, const auto &, const auto &progress) {
+            progress({iiLocalDiffusion::NativeGenerationStage::Loading, 25, 100});
+            hostModelPath = request.modelPath.string(); ++hostRuns; return imageResult(request);
+        });
+        QVERIFY(generationHost.open(desktop.path()));
         GenerationRuntime runtime{DREAMSCAPES_FAKE_GENERATOR, "cpu", 1, 64, {}};
+        runtime.remoteGeneration = remoteGeneration;
+        runtime.nativeInference = true;
+        runtime.nativeGenerate = [](const auto &request, const auto &, const auto &, const auto &, const auto &) {
+            return imageResult(request);
+        };
+        auto background = std::make_shared<BackgroundActivity>();
+        runtime.backgroundActivity = background;
         GenerationController app(runtime);
         QVERIFY(app.connectStorage(phone.path()));
         QVERIFY(app.models().isEmpty());
         app.setForeground(true);
 
         // Only the two Society roles own transports and synchronization.
-        iiServerHost::LanPeer host, client;
         iiSocietySync::Controller hosting({}), syncing([&](const auto &peer, const auto &request) {
             return client.request(peer, request);
         });
         const auto files = iiSocietySync::filesHandler(desktop.path());
         QVERIFY(host.startHost("desktop", "Desktop Society", [&](const auto &peer, const auto &request) {
+            if (request.value("op") == "society.generation") return generationHost.handle(peer, request);
             return request.value("op") == "society.sync" ? hosting.handle(peer, request) : files(peer, request);
         }, {"127.0.0.1"}, QHostAddress::LocalHost));
         QVERIFY(client.join(host.createOffer(), "phone", "iPhone Society"));
@@ -701,10 +776,37 @@ private slots:
         QCOMPARE(local.path("models", "synced.safetensors"), phone.filePath("Models/synced.safetensors"));
         QVERIFY(!QFileInfo::exists(local.path("models", "synced.safetensors")));
         QVERIFY(!app.models().first().toMap().value("available").toBool());
-        const auto id = app.enqueue("on-demand local generation");
+        // Hold model replication while leaving the authenticated transport live.
+        // The result must arrive even when no model byte can be downloaded.
+        syncing.setPeers({}, {});
+        const auto id = app.enqueue("host first generation", "1:1", 2);
         QVERIFY2(!id.isEmpty(), qPrintable(app.errorString()));
-        QTRY_VERIFY_WITH_TIMEOUT(app.inferenceStatus().value("state") == "downloading-model", 3000);
-        QTRY_VERIFY2_WITH_TIMEOUT(!app.latestImage().isEmpty(), qPrintable(app.errorString()), 30000);
+        QTRY_COMPARE(background->starts, 1);
+        background->permitted = false;
+        app.setForeground(false);
+        QTest::qWait(300);
+        background->permitted = true;
+        // The OS may grant execution after UIKit has already entered background.
+        app.setForeground(false);
+        QTRY_COMPARE_WITH_TIMEOUT(app.completedResults().size(), 2, 30000);
+        QCOMPARE(hostRuns.load(), 2);
+        QCOMPARE(background->lastStage, iiLocalDiffusion::NativeGenerationStage::Loading);
+        QCOMPARE(QString::fromStdString(hostModelPath), desktop.filePath("Models/synced.safetensors"));
+        QVERIFY(!QFileInfo::exists(local.path("models", "synced.safetensors")));
+        QCOMPARE(app.latestResult().value("execution").toString(), QString("host"));
+        const auto download = app.latestResult().value("modelDownload").toMap().value("requestId").toString();
+        QVERIFY(!download.isEmpty());
+        iiSocietyContainer::StorageMap map(*iiSocietyContainer::SocietyDrive::open(phone.path()));
+        QVERIFY(map.requestState(download).value("state") != "ready");
+        QCOMPARE(background->starts, 1); QCOMPARE(background->networkStarts, 1); QVERIFY(background->completions.isEmpty());
+        app.setForeground(false);
+        QVERIFY(background->allowsBackgroundExecution());
+        background->expiration();
+        QCOMPARE(background->completions, QList<bool>{false});
+        QVERIFY(map.requestState(download).value("state") != "cancelled");
+        app.setForeground(true);
+        syncing.setPeers({"desktop"}, {"desktop"}); syncing.synchronizeNow();
+        QTRY_COMPARE_WITH_TIMEOUT(map.requestState(download).value("state").toString(), QString("ready"), 30000);
         QFile copied(local.path("models", "synced.safetensors"));
         QVERIFY(copied.open(QIODevice::ReadOnly)); QCOMPARE(copied.readAll(), modelBytes); copied.close();
         for (const auto &relative : {resources + "generation-defaults.json", resources + "vae.safetensors"}) {
@@ -713,8 +815,7 @@ private slots:
         }
         QVERIFY(!QFileInfo::exists(phone.filePath(runtimeCache + "model.gguf")));
         const auto result = app.latestResult();
-        QCOMPARE(result.value("generation").toMap().value("model_path").toString(),
-                 phone.filePath("Models/synced.safetensors"));
+        QCOMPARE(result.value("generation").toMap().value("backend").toString(), QString("society-host"));
         const auto image = app.latestImage().toLocalFile();
         QVERIFY(image.startsWith(phone.filePath("Generation History/")));
         const auto remote = desktop.filePath("Generation History/" + QFileInfo(image).fileName());
@@ -726,6 +827,7 @@ private slots:
         const auto completedBeforeOffline = app.completedResults().size();
         QVERIFY(!app.enqueue("offline cached generation").isEmpty());
         QTRY_COMPARE_WITH_TIMEOUT(app.completedResults().size(), completedBeforeOffline + 1, 10000);
+        QCOMPARE(hostRuns.load(), 2);
 
     }
 };

@@ -226,10 +226,19 @@ private slots:
         QVERIFY(controller.connectStorage(root.path()));
         const auto model = controller.selectedModel();
         QSignalSpy changes(&controller, &GenerationController::jobsChanged);
+        QSignalSpy submissions(&controller, &GenerationController::submissionQueued);
+        connect(&controller, &GenerationController::submissionQueued, this, [&](const QStringList &jobIds) {
+            // Subscribers receive the complete, queued batch before the worker starts.
+            for (const auto &id : jobIds) QCOMPARE(state(controller, id), QString("queued"));
+        });
         const auto first = controller.enqueue("  a forest  ", "16:9", 1000);
         QVERIFY(!first.isEmpty());
         QCOMPARE(controller.jobs().size(), 1000);
         QCOMPARE(changes.size(), 1);
+        QCOMPARE(submissions.size(), 1);
+        const auto submittedIds = submissions.first().first().toStringList();
+        QCOMPARE(submittedIds.size(), 1000);
+        QCOMPARE(submittedIds.first(), first);
         controller.setSelectedModel(controller.models().last().toMap().value("id").toString());
         QSet<QString> ids;
         QSet<QString> creationTimes;
@@ -245,11 +254,20 @@ private slots:
         QCOMPARE(ids.size(), 1000);
         QCOMPARE(creationTimes.size(), 1000);
         QVERIFY(ids.contains(first));
+        QCOMPARE(QSet<QString>(submittedIds.begin(), submittedIds.end()), ids);
         for (int invalid : {-1, 0, 1001})
             QVERIFY(controller.enqueue("invalid count", "1:1", invalid).isEmpty());
         QVERIFY(controller.enqueue(" ", "1:1", 3).isEmpty());
         QVERIFY(controller.enqueue("invalid ratio", "bad", 3).isEmpty());
         QCOMPARE(controller.jobs().size(), 1000);
+        QCOMPARE(submissions.size(), 1);
+        const auto next = controller.enqueue("next submission", "1:1", 3);
+        QVERIFY(!next.isEmpty());
+        QCOMPARE(submissions.size(), 2);
+        const auto nextIds = submissions.last().first().toStringList();
+        QCOMPARE(nextIds.size(), 3);
+        QCOMPARE(nextIds.first(), next);
+        for (const auto &id : nextIds) QVERIFY(!ids.contains(id));
         QVERIFY(controller.cancel(first));
         QCOMPARE(state(controller, first), QString("cancelled"));
         QVERIFY(QDir(root.filePath("Generation History")).isEmpty());
@@ -322,6 +340,37 @@ private slots:
         QVERIFY(controller.inferenceStatus().value("error").toString().contains("iiLocalDiffusion"));
         QVERIFY(controller.jobs().isEmpty());
         QVERIFY(QDir(root.filePath("Generation History")).isEmpty());
+    }
+
+    void foregroundAndGenerationUseMetadataOnlyModelValidation()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/metadata-model-XXXXXX");
+        QVERIFY(prepare(root));
+        QVERIFY(write(root.filePath("Models/first model.safetensor"), "prepare-metadata"));
+        GenerationController controller(fakeRuntime());
+        QVERIFY(controller.connectStorage(root.path()));
+        controller.setForeground(true);
+        QTRY_VERIFY(controller.inferenceStatus().value("ready").toBool());
+        const auto id = controller.enqueue("metadata-only generation");
+        QVERIFY(!id.isEmpty());
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 10000);
+    }
+
+    void completedModelCheckDoesNotRemainCheckingDuringPreparation()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-check-XXXXXX");
+        QVERIFY(prepare(root));
+        QVERIFY(write(root.filePath("Models/first model.safetensor"), "prepare-check"));
+        GenerationController controller(fakeRuntime());
+        QStringList phases;
+        connect(&controller, &GenerationController::inferenceStatusChanged, this, [&] {
+            const auto status = controller.inferenceStatus();
+            if (status.contains("completedBytes")) phases.append(status.value("state").toString());
+        });
+        QVERIFY(controller.connectStorage(root.path()));
+        controller.setForeground(true);
+        QTRY_VERIFY(controller.inferenceStatus().value("ready").toBool());
+        QCOMPARE(phases, QStringList({"checking-model", "preparing"}));
     }
 
     void foregroundPreparesWithoutAQueueAndReusesTheWorker()

@@ -70,6 +70,17 @@ Item {
         }
     }
 
+    function resetPresentation() {
+        selectedImageSource = ""
+        detailVisible = false
+        saveFeedback = ""
+        imageMenu.close()
+        saveDialog.close()
+        gallery.cancelFlick()
+        gallery.forceLayout()
+        gallery.positionViewAtBeginning()
+    }
+
     function syncGallery() {
         // Update the appended tail without resetting scroll position on each completion.
         const entries = galleryResults.map(function(entry) {

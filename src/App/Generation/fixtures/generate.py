@@ -133,10 +133,17 @@ if sys.argv[1:] == ['--worker']:
                 def option(name):
                     return arguments[arguments.index(name) + 1]
                 model = pathlib.Path(option('--model-path'))
+                if model.read_bytes().startswith(b'prepare-metadata') and os.environ.get('IILD_MODEL_VALIDATION') != 'metadata':
+                    raise SystemExit('worker did not receive metadata-only model validation')
                 signature = (str(model), model.stat().st_size, model.stat().st_mtime_ns)
                 loads = int(resident is None or resident[0] != signature)
                 resident = (signature, option('--device'))
                 if action == 'foreground':
+                    if model.read_bytes().startswith(b'prepare-check'):
+                        for completed in (4, 8):
+                            print('IILD_MODEL_PROGRESS ' + json.dumps({'schema': 'iild-model-progress-v1',
+                                'completed_bytes': completed, 'total_bytes': 8}), flush=True)
+                            time.sleep(0.1)
                     if model.read_bytes().startswith(b'prepare-fail'):
                         raise SystemExit('fixture model preparation failed')
                     if model.read_bytes().startswith(b'prepare-hold'):

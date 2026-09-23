@@ -26,6 +26,7 @@ def verify(bundle, device, allow_runtime_probe=False):
     assert info.get('NSLocalNetworkUsageDescription'), 'Society SDK requires local-network usage description'
     assert '_society-pair._udp' in info.get('NSBonjourServices', [])
     assert info.get('NSBluetoothAlwaysUsageDescription')
+    assert 'society' in info.get('LSApplicationQueriesSchemes', []), 'View all must be able to open Society'
     assert set(info['UIDeviceFamily']) == {1, 2}
     group = info['SocietyAppGroup']
     assert group == 'group.com.iisacc.society'
@@ -50,7 +51,9 @@ def verify(bundle, device, allow_runtime_probe=False):
         assert 'dreamscapesLocalRuntimeProbe' not in symbols, 'Disable DREAMSCAPES_LOCAL_RUNTIME_PROBE for the final app'
         assert 'nativeGenerationScreenStatus' not in symbols, 'Remove diagnostic UIKit state inspection from the final app'
         assert b'DREAMSCAPES_PROBE_EXTENT' not in executable.read_bytes(), 'Remove diagnostic generation overrides from the final app'
-    assert 'RemoteGenerationClient' not in symbols, 'Dreamscapes must not contain the remote generation client'
+    assert 'RemoteGenerationClient' not in symbols, 'Remove the obsolete app-owned remote generation client'
+    assert 'iiSocietyGeneration6Remote' in symbols, 'Missing Society SDK host-first generation client'
+    assert 'iiSocietyGeneration4Host' not in symbols, 'The mobile bundle must not host peer inference jobs'
     assert 'startNative' in symbols, 'Missing in-process image generation path'
     assert 'generateNativeImageWithPreview' in symbols, 'Missing native live image preview entry point'
     assert 'qml_register_types_LVRS' in symbols, 'Missing LVRS QML registration'
