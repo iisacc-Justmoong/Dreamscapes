@@ -130,7 +130,11 @@ private slots:
         }
         QCOMPARE(toolNames, QSet<QString>({"status", "models", "jobs", "select_model",
             "refresh_models", "generate", "cancel", "iiLocalLLM.agent.permissions.get", "AskUserQuestion"}));
-        QVERIFY(data(client, "iiLocalLLM.agent.permissions.get")["inspection_supported"].toBool());
+        const auto policy = data(client, "iiLocalLLM.agent.permissions.get");
+        QVERIFY(policy["inspection_supported"].toBool());
+        QCOMPARE(policy["provider"].toString(), QString("rules"));
+        QCOMPARE(policy["mode"].toString(), QString("default"));
+        QVERIFY(policy["rules"].isArray());
         const auto state = data(client, "status"); QVERIFY(state["connected"].toBool()); QVERIFY(state["runtime_available"].toBool());
         QCOMPARE(state["container_path"].toString(), drive->rootPath()); QCOMPARE(state["job_count"].toInt(), 0);
         const auto firstPage = data(client, "models", {{"limit", 1}});

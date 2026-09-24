@@ -14,11 +14,12 @@ Item {
     readonly property var generationCounts: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
         15, 20, 25, 30, 40, 50, 100, 200, 500, 1000]
     property bool menusOpenUpward: false
+    property real contentInset: LV.Theme.gap10
     readonly property var platformInputMethod: Qt.inputMethod
     signal generateRequested(string prompt, string mediaType, string aspectRatio, int count)
 
     implicitWidth: 402
-    implicitHeight: content.implicitHeight + LV.Theme.gap10 * 2
+    implicitHeight: content.implicitHeight + contentInset * 2
 
     function openMenu(menu, button) {
         const offset = menusOpenUpward
@@ -49,7 +50,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.margins: LV.Theme.gap10
+        anchors.margins: root.contentInset
         height: implicitHeight
         spacing: LV.Theme.gap8
         alignment: Qt.AlignLeft

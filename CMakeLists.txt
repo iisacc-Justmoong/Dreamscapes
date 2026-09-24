@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.31)
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/single-app/Defaults.cmake")
 project(Dreamscapes VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -106,6 +107,10 @@ lvrs_add_qml_app(
     QML_FILES
         src/App/Main.qml
         src/App/Views/Home/QuickGenerate.qml
+        src/App/Views/Home/QuickActionCard.qml
+        src/App/Views/Home/FileCarousel.qml
+        src/App/Views/Home/PublishedList.qml
+        src/App/Views/Home/MobileHome.qml
         src/App/Views/Home/AdvancedGenerate.qml
         src/App/Views/Home/GenerationHistory.qml
         src/App/Views/Result/GenerationResult.qml
@@ -262,6 +267,12 @@ if(ANDROID AND DREAMSCAPES_BUILD_ANDROID_PHOTO_TESTS)
         "$<TARGET_FILE:iiSocietyContainer::iiSocietyContainer>")
 endif()
 if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+    add_executable(DreamscapesApplicationLifetimeTests tests/tst_applicationlifetime.cpp)
+    set_target_properties(DreamscapesApplicationLifetimeTests PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(DreamscapesApplicationLifetimeTests PRIVATE Qt6::Gui Qt6::Qml Qt6::Quick)
+    add_test(NAME Dreamscapes.ApplicationLifetime COMMAND DreamscapesApplicationLifetimeTests)
+    set_tests_properties(Dreamscapes.ApplicationLifetime PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 10)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     add_test(NAME Dreamscapes.GenerationResourceVerifier
         COMMAND "${Python3_EXECUTABLE}" -B -m unittest discover
@@ -328,7 +339,7 @@ endif()
 
 # Running desktop apps publish authenticated same-user MCP endpoints.
 if(UNIX AND NOT IOS AND NOT ANDROID AND NOT EMSCRIPTEN)
-    find_package(iiLocalLLM 0.36.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLocalLLM")
+    find_package(iiLocalLLM 0.52.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLocalLLM")
     target_sources(Dreamscapes PRIVATE src/App/Mcp/DreamscapesMcp.cpp src/App/Mcp/DreamscapesMcp.h)
     target_link_libraries(Dreamscapes PRIVATE iiLocalLLM::iiLocalLLM)
     set_source_files_properties("${IILOCALLLM_QML_DIR}/UserQuestionsSheet.qml" PROPERTIES QT_RESOURCE_ALIAS "UserQuestionsSheet.qml")
@@ -352,3 +363,10 @@ if(UNIX AND NOT IOS AND NOT ANDROID AND NOT EMSCRIPTEN)
         set_tests_properties(Dreamscapes.Mcp PROPERTIES TIMEOUT 90)
     endif()
 endif()
+
+# Apply after Qt/LVRS finalizers, which may enable bundles for test targets.
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/single-app/SingleApp.cmake")
+product_plain_executables("${CMAKE_SOURCE_DIR}" Dreamscapes)
+cmake_language(DEFER CALL product_single_app Dreamscapes "bin")
+
+product_deploy_app(Dreamscapes "src/App")

@@ -79,6 +79,7 @@ private slots:
     void historyAppearsBelowQuickGenerateAndScrolls_data();
     void historyAppearsBelowQuickGenerateAndScrolls();
     void historyShowsAnEmptyState();
+    void mobileHomeUsesFigmaSectionsLimitsAndLvrsNavigation();
     void captureSocietyUrl(const QUrl &url) { m_societyUrl = url; }
     void foregroundApplicationPreparesBeforeGenerate();
     void generateOpensResultImmediatelyAndDisplaysEveryPreview();
@@ -305,6 +306,75 @@ void GuiTests::historyShowsAnEmptyState()
     QCOMPARE(empty->property("label").toString(), "No generated images yet");
     QVERIFY(!item(window, "generationHistoryCards")->isVisible());
     QVERIFY(item(window, "viewAllGenerationHistory")->isEnabled());
+}
+
+void GuiTests::mobileHomeUsesFigmaSectionsLimitsAndLvrsNavigation()
+{
+    QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/mobile-home-gui-XXXXXX");
+    QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+    QImage image(64, 64, QImage::Format_RGB32);
+    image.fill(QColor("#8f6ec7"));
+    const auto writeFiles = [&](const QString &section, const QString &prefix, int count) {
+        for (int index = 0; index < count; ++index) {
+            const auto path = storage.filePath(QString("%1/%2-%3.png").arg(section, prefix)
+                .arg(index, 2, 10, QChar('0')));
+            QVERIFY(image.save(path));
+            QFile file(path);
+            QVERIFY(file.open(QIODevice::ReadWrite));
+            QVERIFY(file.setFileTime(QDateTime::currentDateTimeUtc().addSecs(-index - 60),
+                                     QFileDevice::FileModificationTime));
+        }
+    };
+    writeFiles("Files", "file", 25);
+    writeFiles("Published", "published", 6);
+    writeFiles("Generation History", "history", 25);
+
+    QQmlApplicationEngine engine;
+    auto *theme = engine.singletonInstance<QObject *>("LVRS", "Theme");
+    QVERIFY(theme);
+    QVERIFY(theme->setProperty("targetOverride", "ios"));
+    engine.setInitialProperties({{"initialContainerPath", storage.path()}});
+    engine.load(sourceUrl("Main.qml"));
+    QCOMPARE(engine.rootObjects().size(), 1);
+    auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().constFirst());
+    QVERIFY(window);
+    window->resize(402, 844);
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+
+    auto *home = item(window, "mobileHome");
+    auto *viewport = item(home, "mobileHomeViewport");
+    // QuickGenerate keeps Main.qml as its QObject owner while its visual parent
+    // moves into the mobile slot, so resolve it from the window object tree.
+    auto *panel = item(window, "quickGenerate");
+    auto *slot = item(home, "mobileQuickGenerateSlot");
+    auto *navigation = item(home, "mobileHomeNavigation");
+    auto *recent = item(home, "recentFileCards");
+    auto *published = item(home, "recentPublishedList");
+    auto *history = item(home, "mobileGenerationHistoryCards");
+    QVERIFY(home && viewport && panel && slot && navigation && recent && published && history);
+    QVERIFY(home->isVisible());
+    QCOMPARE(panel->parentItem(), slot);
+    QCOMPARE(panel->width(), 370.0);
+    QCOMPARE(panel->property("contentInset").toReal(), 0.0);
+    QCOMPARE(navigation->property("count").toInt(), 5);
+    QCOMPARE(navigation->property("currentIndex").toInt(), 0);
+    QVERIFY(navigation->property("searchVisible").toBool());
+    QCOMPARE(navigation->height(), 88.0);
+    QTRY_COMPARE(recent->property("count").toInt(), 20);
+    QTRY_COMPARE(published->property("count").toInt(), 4);
+    QTRY_COMPARE(history->property("count").toInt(), 20);
+    QTRY_VERIFY(viewport->property("contentHeight").toReal() > viewport->height());
+    QVERIFY(item(home, "newCanvasAction"));
+    QVERIFY(item(home, "imageGenerationAction"));
+    QVERIFY(item(home, "videoGenerationAction"));
+    QVERIFY(item(home, "boardGenerationAction"));
+
+    const QString capturePath = qEnvironmentVariable("DREAMSCAPES_MOBILE_HOME_CAPTURE");
+    if (!capturePath.isEmpty()) {
+        const auto capture = window->grabWindow();
+        QVERIFY(!capture.isNull());
+        QVERIFY(capture.save(capturePath));
+    }
 }
 
 void GuiTests::foregroundApplicationPreparesBeforeGenerate()
@@ -1297,6 +1367,50 @@ void GuiTests::mainCreatesOneSharedWindow()
         QVERIFY(!item(window, "joinSocietyHost"));
         QVERIFY(item(window, "quickGenerate"));
         QVERIFY(QTest::qWaitForWindowExposed(window));
+        auto *menu = window->findChild<QObject *>("globalMenuBar");
+        QVERIFY(menu);
+        QCOMPARE(menu->property("window").value<QObject *>(), window.data());
+        auto *preferencesAction = window->findChild<QObject *>("globalPreferencesAction");
+        QVERIFY(preferencesAction);
+        QVERIFY(QMetaObject::invokeMethod(preferencesAction, "triggered"));
+        auto *preferences = window->findChild<QQuickWindow *>("preferencesWindow");
+        QVERIFY(preferences);
+        QTRY_VERIFY(preferences->isVisible());
+        QVERIFY(preferences->findChild<QQuickItem *>("preferencesDriveCategory"));
+        QVERIFY(preferences->findChild<QQuickItem *>("preferencesDriveDetails"));
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/preferences-drive-XXXXXX");
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+        auto *location = preferences->findChild<QQuickItem *>("preferencesDriveLocation");
+        auto *apply = preferences->findChild<QQuickItem *>("applySocietyDrive");
+        auto *current = preferences->findChild<QQuickItem *>("preferencesCurrentDrive");
+        QVERIFY(location && apply && current);
+        location->setProperty("text", storage.path());
+        QVERIFY(QMetaObject::invokeMethod(apply, "clicked"));
+        QTRY_COMPARE(current->property("text").toString(), storage.path());
+        QCOMPARE(iiSocietyContainer::SharedStorage::open()->drive().rootPath(), storage.path());
+        location->setProperty("text", storage.filePath("missing"));
+        QVERIFY(QMetaObject::invokeMethod(apply, "clicked"));
+        QVERIFY(preferences->property("locationFailed").toBool());
+        QCOMPARE(current->property("text").toString(), storage.path());
+        location->setProperty("text", storage.path());
+        QVERIFY(QMetaObject::invokeMethod(apply, "clicked"));
+        QCOMPARE(preferences->transientParent(), window.data());
+        const auto capture = qEnvironmentVariable("DREAMSCAPES_PREFERENCES_SCREENSHOT");
+        if (!capture.isEmpty()) {
+            QTest::qWait(150);
+            QVERIFY(preferences->grabWindow().save(capture));
+        }
+        preferences->close();
+        QVERIFY(QMetaObject::invokeMethod(window, "openPreferences"));
+        QCOMPARE(window->findChildren<QQuickWindow *>("preferencesWindow").size(), 1);
+        QTRY_VERIFY(preferences->isVisible());
+        for (const auto &key : {QKeySequence(Qt::Key_Escape), QKeySequence(QKeySequence::Close)}) {
+            preferences->requestActivate();
+            QTRY_VERIFY(preferences->isActive());
+            QTest::keySequence(preferences, key);
+            QTRY_VERIFY(!preferences->isVisible());
+            QVERIFY(QMetaObject::invokeMethod(window, "openPreferences"));
+        }
         QSignalSpy lastWindowClosed(qGuiApp, &QGuiApplication::lastWindowClosed);
         QVERIFY(window->close());
         QTRY_COMPARE(lastWindowClosed.size(), 1);
@@ -1381,17 +1495,20 @@ void GuiTests::sharedPanelLayout()
     auto *generate = item(panel, "generateButton");
     QVERIFY(prompt && media && ratio && quantity && generate);
     QVERIFY(QTest::qWaitForWindowExposed(window));
-    QTRY_COMPARE(panel->width(), width - root->property("mobileSystemSafeLeftInset").toReal()
-                                      - root->property("mobileSystemSafeRightInset").toReal());
+    const bool mobileHomeLayout = target == "ios" || target == "android";
+    const auto availableWidth = width - root->property("mobileSystemSafeLeftInset").toReal()
+                                      - root->property("mobileSystemSafeRightInset").toReal();
+    const auto expectedPanelWidth = mobileHomeLayout ? qMin(370.0, availableWidth - 32.0) : availableWidth;
+    QTRY_COMPARE(panel->width(), expectedPanelWidth);
 
-    const auto padding = theme->property("gap10").toReal();
+    const auto padding = mobileHomeLayout ? 0.0 : theme->property("gap10").toReal();
     const auto gap = theme->property("gap8").toReal();
     QCOMPARE(prompt->height(), 22.0); // Current LVRS TextField contract.
     QCOMPARE(generate->height(), 22.0);
     QCOMPARE(panel->height(), padding * 2 + prompt->height() + gap + generate->height());
-    QCOMPARE(panel->mapToScene(QPointF()).y(), root->property("contentTopInset").toReal());
-    QCOMPARE(panel->width(), width - root->property("mobileSystemSafeLeftInset").toReal()
-                                  - root->property("mobileSystemSafeRightInset").toReal());
+    QCOMPARE(panel->mapToScene(QPointF()).y(), root->property("contentTopInset").toReal()
+                                              + (mobileHomeLayout ? 33.0 : 0.0));
+    QCOMPARE(panel->width(), expectedPanelWidth);
     QCOMPARE(bounds(prompt, panel).left(), padding);
     QCOMPARE(bounds(prompt, panel).top(), padding);
     QCOMPARE(bounds(prompt, panel).right(), panel->width() - padding);

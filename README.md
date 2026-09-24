@@ -79,6 +79,12 @@ GUI 테스트 타깃에는 이 저장소에 존재하는 소스만 등록한다.
 
 `src/App/Views/Home/GenerationHistory.qml`은 Society와 같은 LVRS Small/Brief 파일 카드(140×160, 간격 8)를 사용한다. 터치 드래그·트랙패드·마우스 휠·스크롤바와 방향키·Home·End로 가로 탐색한다. `View all`과 카드 활성화는 `society://generation-history`를 통해 Society의 Storage → Generation History를 연다. Society 앱도 이 URL을 등록한 버전으로 빌드해야 하며, iOS Dreamscapes는 `LSApplicationQueriesSchemes`에 `society`를 포함한다. 실행 요청이 실패하면 홈에 안내를 표시한다. GUI 테스트는 넓은 창과 320px 창에서 위치·20개 제한·썸네일 로딩·자동 갱신·가로 스크롤·URL 전송을 검사한다.
 
+### 모바일 Home
+
+`src/App/Views/Home/MobileHome.qml`은 Figma `Dreamscapes/Home`의 모바일 프레임 `103:1143`을 구현한다. 모바일 플랫폼에서만 사용하며 데스크탑 Home은 기존 구성을 유지한다. 한 개의 세로 스크롤 안에 compact `QuickGenerate`, 새 캔버스·이미지·비디오·보드 2×2 빠른 시작, Recent files, Recent published, Generation history를 배치하고 하단에는 `LV.MobileNavigationBar`를 고정한다. 탭은 Home·Tools·Storage·Notification·Account의 5개이며 Search는 탭 수에서 제외된 독립 액션이다. 구현되지 않은 목적지 화면을 임의로 만들지 않으므로 Home 이외 탭은 목적지 신호만 방출한다.
+
+파일 영역은 `DashboardFiles`에 직접 연결한다. Recent files와 Generation history는 각각 최신 20개, Recent published는 최신 4개만 노출한다. QML에서도 같은 상한을 적용하지만 실제 탐색·정렬·감시는 `iiSocietyContainer::DashboardFiles`가 담당한다. 모바일 Home과 결과 화면은 동일한 `QuickGenerate` 인스턴스를 재사용하므로 스크롤·결과 전환 중에도 프롬프트, 종횡비와 생성 수량이 유지된다. `mobileHomeUsesFigmaSectionsLimitsAndLvrsNavigation`은 402×844 iOS 테마에서 20/4/20 목록 상한, 5탭+검색, 370px 콘텐츠 폭, 하단 88px LVRS 내비게이션과 세로 스크롤을 검사한다.
+
 [Figma QuickGenerate, 15:218](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=15-218)의 구성이다. Figma TextField는 `LV.InputField`의 Rounded 재질, DropdownButton은 `LV.LabelMenuButton`, PushButton은 `LV.LabelButton`에 대응한다. 레이아웃은 `LV.VStack`·`LV.HStack`을 사용하며 별도 UI 라이브러리나 복제한 아이콘을 추가하지 않는다. `generalchevronDown`은 Figma와 벡터 모양·색상이 같은 LVRS 내장 자산이다.
 
 바깥 여백은 `LV.Theme.gap10`, 행 간격과 선택 버튼 간격은 `LV.Theme.gap8`이다. LVRS의 플랫폼 공통 치수 정책에 따라 데스크탑·iOS·Android 모두 높이 72px, 입력란 22px, 버튼 22px, Body 글자 13px을 사용한다. 좁은 화면에서는 가로 버튼 간격만 남은 폭에 맞춰 줄여 버튼의 글자와 화살표가 겹치지 않게 한다. 홈에서는 상단 핸들 및 시스템 안전 영역 아래의 콘텐츠 시작점에 고정된다. 결과 화면에서는 하단 안전 영역과 Qt 입력기가 보고한 키보드 영역 위에 배치하며, 메뉴를 버튼 위쪽으로 연다.
@@ -276,7 +282,7 @@ iiFileProvider를 앱의 `Frameworks/`에 포함해 함께 서명하고 실행 �
 
 ```sh
 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
-python3 -B tests/verify_ios_bundle.py build/ios-device/bin/Debug/Dreamscapes.app \
+python3 -B tests/verify_ios_bundle.py build/bin/Dreamscapes.app \
   --device <iPhone-UDID>
 ```
 
@@ -522,3 +528,15 @@ Implementation files and their headers live together under `src/`. Existing feat
 ### 생성 전 최소 모델 확인
 
 Dreamscapes의 worker는 `IILD_MODEL_VALIDATION=metadata` 정책을 사용한다. 최초 선택부터 체크포인트·패키지 멤버·LoRA·VAE·ControlNet의 전체 해시를 계산하지 않는다. 경로, 파일 존재·비어 있지 않음, 필요한 작은 manifest/형식 정보만 확인하고 실제 로더로 넘긴다. 검사하지 않은 SHA-256은 null이며 검증 성공으로 기록하지 않는다. 모델 문제는 실제 로딩·생성 오류 또는 생성 결과로 드러나며, 로더의 실패를 숨기거나 성공한 결과로 바꾸지 않는다. 기존 영구 해시 캐시는 명시적인 전체 검증용 SDK 경로에서만 사용된다. 생성에 필요한 모델 읽기·변환·GPU 로딩 시간은 이 사전 검사 생략과 별개이다.
+# Desktop window and menu shell
+
+macOS 글로벌 메뉴 바에 File·Edit·Window·Help의 빈 구조를 제공한다. 앱 메뉴의
+Preferences… 또는 ⌘+,는 좌측 카테고리·우측 상세 내용의 별도 LVRS 환경설정 창을 연다.
+창은 재사용하며 Escape·⌘W·창 닫기로 숨기고, 메인 창을 닫으면 함께 닫는다.
+환경설정 열기와 앱 종료 이외의 메뉴 동작은 아직 추가하지 않는다.
+
+Society drive 카테고리에서 현재 위치를 확인하고 기존 Society 드라이브 루트 경로를 입력하거나 Choose folder…로 선택한 뒤 Apply로 적용한다. `GenerationController::selectStorageLocation`은 기존 컨테이너를 검증하고 SDK 공유 기본 위치에 저장한 뒤 연결한다. 빈 경로·상대 경로·일반 폴더는 거부하며 기존 연결을 보존한다. 생성/스토리지 작업 중 변경은 거부한다. sparsebundle은 먼저 마운트하고 마운트된 루트 폴더를 선택한다. 파일 이동·삭제나 새 드라이브 생성은 하지 않는다. 저장 위치는 Society와 공유하며, 다른 실행 중인 앱을 강제로 전환하지 않는다.
+
+GUI 테스트 `mainCreatesOneSharedWindow`는 카테고리·상세 영역, Apply 동작, 공유 위치 저장, 잘못된 경로에서 연결 보존과 창 수명 주기를 검증한다. Generation 테스트 `driveLocationSelectionPersistsAndRejectsInvalidFolders`는 파일 URL 입력, 재연결 및 잘못된 폴더 거부를 검증한다.
+
+macOS 창 닫기·앱 종료·Dock 재열기 동작은 [애플리케이션 수명 정책](docs/ApplicationLifetime.md)을 따른다.

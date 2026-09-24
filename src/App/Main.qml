@@ -1,7 +1,10 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Dialogs
+import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import Qt.labs.platform as Platform
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
 import "Views/Home"
@@ -10,7 +13,196 @@ import "Views/Result"
 LV.ApplicationWindow {
     id: window
     objectName: "mainWindow"
+    property var preferencesWindow: null
+    function openPreferences() {
+        if (isMobilePlatform)
+            return;
+        if (!preferencesWindow)
+            preferencesWindow = preferencesComponent.createObject(window);
+        preferencesWindow.showNormal();
+        preferencesWindow.raise();
+        preferencesWindow.requestActivate();
+    }
+    onClosing: if (preferencesWindow) preferencesWindow.close()
+    Component {
+        id: preferencesComponent
+        LV.ApplicationWindow {
+            id: preferences
+            objectName: "preferencesWindow"
+            title: qsTr("Preferences — Dreamscapes")
+            transientParent: window
+            width: 720
+            height: 440
+            desktopMinWidth: 360
+            desktopMinHeight: 320
+            visible: false
+            modality: Qt.NonModal
+            flags: Qt.Dialog
+            useInternalPageStack: false
+            navigationEnabled: false
+            property string locationMessage: ""
+            property bool locationFailed: false
+            function applyDriveLocation() {
+                locationFailed = !(generation.selectStorageLocation(locationField.text.trim()))
+                locationMessage = locationFailed ? generation.errorString
+                    : qsTr("Society drive location saved.")
+            }
+            FolderDialog {
+                id: locationDialog
+                title: qsTr("Choose an existing Society drive folder")
+                onAccepted: locationField.text = selectedFolder.toString()
+            }
+            RowLayout {
+                anchors.fill: parent
+                spacing: 0
+                Rectangle {
+                    Layout.preferredWidth: Math.min(180, preferences.width * 0.3)
+                    Layout.fillHeight: true
+                    color: LV.Theme.panelBackground03
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: LV.Theme.gap12
+                        spacing: LV.Theme.gap16
+                        LV.Label { text: qsTr("Preferences"); style: header2; Layout.fillWidth: true }
+                        LV.PushButton {
+                            objectName: "preferencesDriveCategory"
+                            text: qsTr("Society drive")
+                            Layout.fillWidth: true
+                            tone: LV.AbstractButton.Primary
+                            Accessible.name: qsTr("Society drive category")
+                        }
+                        Item { Layout.fillHeight: true }
+                    }
+                }
+                Controls.ScrollView {
+                    id: driveDetails
+                    objectName: "preferencesDriveDetails"
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    contentWidth: availableWidth
+                    Controls.ScrollBar.horizontal.policy: Controls.ScrollBar.AlwaysOff
+                    ColumnLayout {
+                        width: driveDetails.availableWidth
+                        spacing: LV.Theme.gap16
+                        Item { Layout.preferredHeight: LV.Theme.gap8 }
+                        LV.Label {
+                            Layout.leftMargin: LV.Theme.gap20
+                            Layout.rightMargin: LV.Theme.gap20
+                            Layout.fillWidth: true
+                            text: qsTr("Society drive")
+                            style: header
+                        }
+                        LV.Label {
+                            Layout.leftMargin: LV.Theme.gap20
+                            Layout.rightMargin: LV.Theme.gap20
+                            Layout.fillWidth: true
+                            text: qsTr("Choose the existing Society drive used for shared models and files. This does not move or delete data.")
+                            style: description
+                            wrapMode: Text.Wrap
+                            sizeToContentHeight: true
+                        }
+                        LV.Label {
+                            Layout.leftMargin: LV.Theme.gap20
+                            Layout.rightMargin: LV.Theme.gap20
+                            text: qsTr("Current location")
+                            style: header2
+                        }
+                        LV.Label {
+                            objectName: "preferencesCurrentDrive"
+                            style: body
+                            Layout.leftMargin: LV.Theme.gap20
+                            Layout.rightMargin: LV.Theme.gap20
+                            Layout.fillWidth: true
+                            text: generation.connected ? generation.containerPath : qsTr("No Society drive connected")
+                            textFormat: Text.PlainText
+                            wrapMode: Text.WrapAnywhere
+                            sizeToContentHeight: true
+                        }
+                        LV.InputField {
+                            id: locationField
+                            objectName: "preferencesDriveLocation"
+                            Layout.leftMargin: LV.Theme.gap20
+                            Layout.rightMargin: LV.Theme.gap20
+                            Layout.fillWidth: true
+                            placeholderText: qsTr("Existing Society drive folder")
+                            Accessible.name: qsTr("Society drive location")
+                            text: generation.containerPath
+                            onAccepted: if (applyLocation.enabled) preferences.applyDriveLocation()
+                        }
+                        Flow {
+                            Layout.leftMargin: LV.Theme.gap20
+                            Layout.rightMargin: LV.Theme.gap20
+                            Layout.fillWidth: true
+                            spacing: LV.Theme.gap8
+                            LV.PushButton {
+                                objectName: "browseSocietyDrive"
+                                tone: LV.AbstractButton.Default
+                                text: qsTr("Choose folder…")
+                                enabled: !generation.busy
+                                onClicked: locationDialog.open()
+                            }
+                            LV.PushButton {
+                                id: applyLocation
+                                objectName: "applySocietyDrive"
+                                text: qsTr("Apply")
+                                enabled: locationField.text.trim().length > 0 && !generation.busy
+                                onClicked: preferences.applyDriveLocation()
+                            }
+                        }
+                        LV.Label {
+                            objectName: "preferencesDriveFeedback"
+                            style: body
+                            Layout.leftMargin: LV.Theme.gap20
+                            Layout.rightMargin: LV.Theme.gap20
+                            Layout.fillWidth: true
+                            visible: text.length > 0
+                            text: preferences.locationMessage
+                            color: preferences.locationFailed ? LV.Theme.accentRed : LV.Theme.textTokenBody
+                            textFormat: Text.PlainText
+                            wrapMode: Text.WrapAnywhere
+                            sizeToContentHeight: true
+                        }
+                        Item { Layout.preferredHeight: LV.Theme.gap20 }
+                    }
+                }
+            }
+            Shortcut { sequence: "Escape"; enabled: preferences.visible; onActivated: preferences.close() }
+            Shortcut { sequences: [StandardKey.Close]; enabled: preferences.visible; onActivated: preferences.close() }
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+,"
+        context: Qt.ApplicationShortcut
+        enabled: !window.isMobilePlatform
+        onActivated: window.openPreferences()
+    }
+    Platform.MenuBar {
+        objectName: "globalMenuBar"
+        window: window
+        Platform.Menu {
+            title: qsTr("File")
+            Platform.MenuItem {
+                objectName: "globalPreferencesAction"
+                text: qsTr("Preferences…")
+                role: Platform.MenuItem.PreferencesRole
+                onTriggered: window.openPreferences()
+            }
+            Platform.MenuItem {
+                text: qsTr("Quit Dreamscapes")
+                role: Platform.MenuItem.QuitRole
+                onTriggered: Qt.quit()
+            }
+        }
+        Platform.Menu { title: qsTr("Edit") }
+        Platform.Menu { title: qsTr("Window") }
+        Platform.Menu { title: qsTr("Help") }
+    }
     property string initialContainerPath: ""
+    // Theme.targetOverride is the LVRS-supported preview/test hook; the real
+    // iOS and Android builds still enter this path through isMobilePlatform.
+    readonly property bool useMobileHomeLayout: isMobilePlatform
+        || LV.Theme.effectiveTarget === "ios" || LV.Theme.effectiveTarget === "android"
     property var agentQuestionInbox: null
     onAgentQuestionInboxChanged: {
         if (agentQuestionInbox) agentQuestions.setSource("qrc:/iiLocalLLM/UserQuestionsSheet.qml", {inbox: agentQuestionInbox})
@@ -84,8 +276,8 @@ LV.ApplicationWindow {
             ? Math.max(0, windowDragHandleTopMargin + windowDragHandleHeight) : 0)
     title: "Dreamscapes"
     primaryColor: LV.Theme.defaultPrimary
-    width: isMobilePlatform ? 390 : 960
-    height: isMobilePlatform ? 844 : 640
+    width: useMobileHomeLayout ? 390 : 960
+    height: useMobileHomeLayout ? 844 : 640
     desktopMinWidth: 320
     desktopMinHeight: 480
     mobileMinWidth: 320
@@ -162,10 +354,26 @@ LV.ApplicationWindow {
         anchors.bottomMargin: Math.max(window.mobileSystemSafeBottomInset, window.keyboardBottomInset)
         clip: true
 
+        MobileHome {
+            id: mobileHome
+            anchors.fill: parent
+            visible: window.useMobileHomeLayout && !window.resultVisible
+            recentFiles: historyModel.recentFiles
+            recentPublished: historyModel.recentPublished
+            generationHistory: historyModel.generationHistory
+            loading: historyModel.loading
+            errorText: historyModel.errorString
+            onViewAllGenerationHistoryRequested: {
+                const opened = societyApplication.openGenerationHistory()
+                if (!opened) console.warn(qsTr("Could not open Society. Open Society on this device and try again."))
+            }
+        }
+
         GenerationResult {
             id: resultView
             anchors.top: parent.top
-            anchors.bottom: quickGenerate.top
+            anchors.bottom: window.resultVisible || !window.useMobileHomeLayout
+                ? quickGenerate.top : parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             visible: window.resultVisible
@@ -191,13 +399,16 @@ LV.ApplicationWindow {
 
         QuickGenerate {
             id: quickGenerate
+            parent: window.resultVisible || !window.useMobileHomeLayout
+                ? appContent : mobileHome.quickGenerateContainer
             // Switching both vertical anchors can stretch the item and discard its
             // height binding. Position it without changing its implicit height.
             y: window.resultVisible
                 ? parent.height - height : 0
-            anchors.left: parent.left
-            anchors.right: parent.right
+            x: 0
+            width: parent ? parent.width : 0
             height: implicitHeight
+            contentInset: window.useMobileHomeLayout && !window.resultVisible ? 0 : LV.Theme.gap10
             menusOpenUpward: window.resultVisible
             onGenerateRequested: function(prompt, mediaType, aspectRatio, count) {
                 window.generateRequested(prompt, mediaType, aspectRatio, count)
@@ -209,7 +420,7 @@ LV.ApplicationWindow {
         Flickable {
             id: storagePanel
             objectName: "storagePanel"
-            visible: !window.resultVisible
+            visible: !window.useMobileHomeLayout && !window.resultVisible
             anchors.top: window.resultVisible ? parent.top : quickGenerate.bottom
             anchors.bottom: parent.bottom
             anchors.left: parent.left

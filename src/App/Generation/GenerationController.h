@@ -88,6 +88,7 @@ public:
     QVariantMap backgroundExecutionStatus() const;
 
     Q_INVOKABLE bool connectStorage(const QString &path = {});
+    Q_INVOKABLE bool selectStorageLocation(const QString &path);
     Q_INVOKABLE void refreshModels();
     Q_INVOKABLE QString enqueue(const QString &prompt, const QString &aspectRatio = QStringLiteral("1:1"), int count = 1);
     Q_INVOKABLE bool cancel(const QString &id);

@@ -400,6 +400,23 @@ QVariantMap GenerationController::resultForImage(const QJsonObject &job, const Q
     return result;
 }
 
+bool GenerationController::selectStorageLocation(const QString &path)
+{
+    if (busy() || m_cacheMigrationActive)
+        return fail(tr("Wait for the current storage operation before changing storage."));
+    const QUrl url(path);
+    const auto local = url.isLocalFile() ? url.toLocalFile() : path;
+    if (local.trimmed().isEmpty() || !QDir::isAbsolutePath(local))
+        return fail(tr("Choose an existing Society drive folder using an absolute path."));
+    QString error;
+    // Validate before replacing the active storage or its saved shared location.
+    auto candidate = SharedStorage::open(local, &error);
+    if (!candidate) return fail(error);
+    if (!SharedStorage::setDefaultContainer(candidate->drive().rootPath(), &error))
+        return fail(error);
+    return connectStorage(candidate->drive().rootPath());
+}
+
 bool GenerationController::connectStorage(const QString &path)
 {
     if (busy() || m_cacheMigrationActive) return fail(tr("Wait for the current storage operation before changing storage."));

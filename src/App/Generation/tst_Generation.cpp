@@ -54,6 +54,29 @@ class GenerationTests : public QObject
 {
     Q_OBJECT
 private slots:
+    void driveLocationSelectionPersistsAndRejectsInvalidFolders()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/drive-location-XXXXXX");
+        QVERIFY(prepare(root));
+        const auto settings = qgetenv("SOCIETY_STORAGE_SETTINGS_PATH");
+        qputenv("SOCIETY_STORAGE_SETTINGS_PATH", root.filePath("settings.json").toUtf8());
+        const auto restore = qScopeGuard([&] { qputenv("SOCIETY_STORAGE_SETTINGS_PATH", settings); });
+        GenerationController controller(fakeRuntime());
+        QVERIFY(controller.selectStorageLocation(QUrl::fromLocalFile(root.path()).toString()));
+        QCOMPARE(controller.containerPath(), root.path());
+        auto saved = SharedStorage::open();
+        QVERIFY(saved);
+        QCOMPARE(saved->drive().rootPath(), root.path());
+        for (const auto &path : {QString(), QString("relative"), root.filePath("missing"), root.filePath("Files")}) {
+            QVERIFY(!controller.selectStorageLocation(path));
+            QCOMPARE(controller.containerPath(), root.path());
+            QCOMPARE(SharedStorage::open()->drive().rootPath(), root.path());
+        }
+        GenerationController reopened(fakeRuntime());
+        QVERIFY(reopened.connectStorage());
+        QCOMPARE(reopened.containerPath(), root.path());
+    }
+
     void unifiedModelReachesTheNativeRuntimeAsOnePackage()
     {
         QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/unified-generation-XXXXXX");

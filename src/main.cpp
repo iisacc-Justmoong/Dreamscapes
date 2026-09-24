@@ -1,3 +1,4 @@
+#include "App/ApplicationLifetime.h"
 #include <backend/runtime/appentry.h>
 #include "App/Generation/GenerationController.h"
 #include "App/Views/Result/ImageFileExporter.h"
@@ -25,6 +26,7 @@ int main(int argc, char *argv[])
     application.moduleUri = QStringLiteral("Dreamscapes");
     application.rootObject = QStringLiteral("Main");
     application.configureEngine = [](QQmlApplicationEngine &engine) {
+        configureApplicationLifetime(engine);
 #ifdef DREAMSCAPES_WITH_LOCAL_MCP
         QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
             [&engine](QObject* root, const QUrl&) { if (root) installDreamscapesMcp(root, &engine); });
