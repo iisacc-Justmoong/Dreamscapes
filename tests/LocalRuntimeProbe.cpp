@@ -23,6 +23,28 @@ void dreamscapesLocalRuntimeProbe(QObject *root)
         const auto index = args.indexOf(name);
         return index >= 0 && index + 1 < args.size() ? args[index + 1] : QString();
     };
+    if (args.contains("--inspect-society-models")) {
+        auto *controller = root->findChild<GenerationController *>("generationController");
+        if (!controller) return;
+        const auto output = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
+            + "/society-models-verification.json";
+        const auto write = [controller, output] {
+            const auto models = controller->models();
+            QSaveFile file(output);
+            if (file.open(QIODevice::WriteOnly)) {
+                file.write(QJsonDocument(QJsonObject{{"metadataOnly", true},
+                    {"observedAt", QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)},
+                    {"foreground", controller->foreground()}, {"storageConnected", controller->connected()},
+                    {"modelCount", models.size()}, {"models", QJsonArray::fromVariantList(models)},
+                    {"error", controller->errorString()}}).toJson());
+                file.commit();
+            }
+        };
+        auto *timer = new QTimer(root); timer->setInterval(2000);
+        QObject::connect(timer, &QTimer::timeout, root, write); timer->start();
+        QObject::connect(controller, &GenerationController::modelsChanged, root, write);
+        write(); return;
+    }
     if (!args.contains("--verify-local-generation")) return;
     auto *controller = root->findChild<GenerationController *>("generationController");
     if (!controller) return;
