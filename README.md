@@ -53,7 +53,8 @@ Android의 `scripts/build-android.sh`는 Helper의 전이 의존성인 iiAcountM
 - `src/main.cpp`: LVRS 런타임을 초기화하고 항상 `Main.qml`만 연다.
 - `src/App/Main.qml`: 모든 플랫폼이 사용하는 단일 `LV.ApplicationWindow`이며 생성 완료·뒤로 이동과 QuickGenerate의 상단/하단 배치를 연결한다.
 - `src/App/Views/Home/QuickGenerate.qml`: LVRS 입력란·버튼·메뉴와 반응형 스택 레이아웃을 조합한 공통 생성 패널이다.
-- `src/App/Views/Result/GenerationResult.qml`: 여러 결과의 스크롤 갤러리, 선택 이미지의 Fit 확대 보기, Back·New Project 버튼과 생성 중/오류 상태를 제공한다.
+- `src/App/Views/Result/GenerationResult.qml`: 여러 결과의 스크롤 갤러리, 선택 이미지의 Fit 확대 보기, Back·New Canvas 버튼과 생성 중/오류 상태를 제공한다.
+- `src/App/Views/Editor/CanvasEditor.qml`: 홈·생성 결과의 공통 에디터 진입 화면과 Back/Escape 복귀를 제공한다.
 - `src/App/Views/Result/Assets/right.svg`: Figma에서 내려받은 정확한 화살표 원본이며 LVRS IconButton 안에서 180도 회전한다.
 - `src/App/tst_Gui.cpp`: Main 진입점·창 수명·화면 크기 변경 시 상태 유지·공통 패널 배치·입력 및 메뉴 선택·요청 전달을 검증한다.
 - `src/App/Generation/GenerationController.h/.cpp`: Society 모델 참조를 고정한 앱 메모리 큐와 기존 iiLocalDiffusion 실행기 연결을 담당한다.
@@ -85,27 +86,23 @@ GUI 테스트 타깃에는 이 저장소에 존재하는 소스만 등록한다.
 
 파일 영역은 `DashboardFiles`에 직접 연결한다. Recent files와 Generation history는 각각 최신 20개, Recent published는 최신 4개만 노출한다. QML에서도 같은 상한을 적용하지만 실제 탐색·정렬·감시는 `iiSocietyContainer::DashboardFiles`가 담당한다. 모바일 Home과 결과 화면은 동일한 `QuickGenerate` 인스턴스를 재사용하므로 스크롤·결과 전환 중에도 프롬프트, 종횡비와 생성 수량이 유지된다. `mobileHomeUsesFigmaSectionsLimitsAndLvrsNavigation`은 402×844 iOS 테마에서 20/4/20 목록 상한, 5탭+검색, 370px 콘텐츠 폭, 하단 88px LVRS 내비게이션과 세로 스크롤을 검사한다.
 
-[Figma QuickGenerate, 15:218](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=15-218)의 구성이다. Figma TextField는 `LV.InputField`의 Rounded 재질, DropdownButton은 `LV.LabelMenuButton`, PushButton은 `LV.LabelButton`에 대응한다. 레이아웃은 `LV.VStack`·`LV.HStack`을 사용하며 별도 UI 라이브러리나 복제한 아이콘을 추가하지 않는다. `generalchevronDown`은 Figma와 벡터 모양·색상이 같은 LVRS 내장 자산이다.
+[Figma Home QuickGenerate, 79:3435](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=79-3435)를 먼저 갱신한 뒤 코드에 반영했다. 둥근 패널 안에 Image/Video 선택, 프롬프트 입력, 오른쪽 아래 Generate만 표시한다. 이미지 업로드, 모델 선택, 화면비, 생성 개수, More, Upgrade는 QuickGenerate에 표시하지 않는다. `LV.VStack`·`LV.HStack`, `LV.InputField`, `LV.LabelMenuButton`, `LV.LabelButton`, `LV.ContextMenu`를 사용한다.
 
-바깥 여백은 `LV.Theme.gap10`, 행 간격과 선택 버튼 간격은 `LV.Theme.gap8`이다. LVRS의 플랫폼 공통 치수 정책에 따라 데스크탑·iOS·Android 모두 높이 72px, 입력란 22px, 버튼 22px, Body 글자 13px을 사용한다. 좁은 화면에서는 가로 버튼 간격만 남은 폭에 맞춰 줄여 버튼의 글자와 화살표가 겹치지 않게 한다. 홈에서는 상단 핸들 및 시스템 안전 영역 아래의 콘텐츠 시작점에 고정된다. 결과 화면에서는 하단 안전 영역과 Qt 입력기가 보고한 키보드 영역 위에 배치하며, 메뉴를 버튼 위쪽으로 연다.
+패널은 LVRS `panelBackground05`, 테두리 `panelBackground08`, 반경 `radiusXl`(16px), 안쪽 여백 12px와 1px 테두리, 행 간격 12px, 높이 126px이다. 입력창·유형 선택·Generate의 높이는 44px이며 Pretendard Medium 13px을 사용한다. 모바일 Home은 바깥 여백 0, 나머지 진입점은 10px이다. 480px 미만 패널에서는 안내를 `Describe your idea`로 줄인다. 화살표는 Figma 원본 18×18 SVG를 `Views/Home/Assets/media-chevron.svg`에 보관하고 번들에 포함한다.
 
-초기 상태는 빈 `Prompt`, `Image`, `1:1`, 수량 `1`이다. 출력 형식 메뉴에는 현재 지원하는 UI 형식인 Image만 표시한다. 비율 메뉴는 `1:1`, `4:3`, `3:4`, `16:9`, `9:16`을 제공하며, 메뉴의 폭은 안전 영역의 가용 너비 안으로 제한한다. Generate 클릭 또는 입력란의 Enter는 앞뒤 공백을 제거한 프롬프트와 현재 설정으로 `Main.generateRequested(prompt, mediaType, aspectRatio, count)` 신호를 한 번 전달한다. 빈 입력은 요청을 전달하지 않고 입력란에 포커스를 둔다. 입력 내용은 요청 후에도 유지한다.
+기본값은 빈 프롬프트와 Image이다. Generate와 Enter는 앞뒤 공백을 제거한 프롬프트를 제출하며, 빈 입력은 입력창에 포커스를 둔다. 유형 전환, 창 크기 변경, Home/결과/에디터 전환에서 초안을 보존한다. 결과 화면에서는 메뉴를 위로 연다. 기존 호출자와 복원된 초안을 위해 `generateRequested(prompt, mediaType, aspectRatio, count)`와 내부 `aspectRatio`/`generationCount` 속성은 유지하며 새 입력의 기본값은 1:1, 1개이다. 상세 생성 화면의 비율·수량 기능과 생성 큐 계약은 유지한다.
 
-Generate는 요청 신호를 유지하면서 선택 수량만큼 해당 앱 인스턴스의 메모리 큐에 제출한다. 아래 모델 선택 메뉴는 Society의 `Models/`를 읽는다. 모델이 없거나 입력이 잘못되면 요청을 실행하지 않고 오류를 표시한다. `Refresh models`와 앱 활성화 시 모델 목록을 갱신한다.
+Image는 기존 `GenerationController.enqueue`로 연결한다. Video는 선택과 요청 전달을 지원하지만 현재 엔진에 비디오 생성 경로가 없으므로 안내를 표시하고 이미지 큐에 등록하지 않는다. 입력 내용은 유지된다. Society도 같은 컴포저 구성을 사용하며 아직 공급자가 연결되지 않았다는 기존 안내를 표시한다.
 
-QuickGenerate는 [Figma 15:218](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=15-218)에 맞춰 `Image`, 종횡비, 생성 수량 드롭다운과 `Generate`를 배치한다. 수량의 기본값은 1이며 옵션은 `1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40, 50, 100, 200, 500, 1000`이다. 기존 LVRS `LabelMenuButton`·`ContextMenu`·`MenuItem`을 재사용하며 긴 수량 목록만 Qt Quick ListView로 스크롤한다. 메뉴 높이를 창 안으로 제한하고 선택 항목을 다시 열 때 표시한다. 마우스·터치 스크롤과 방향키·Home·End·Enter 선택을 지원한다. 새 외부 패키지를 추가하지 않았다.
-
-수량은 `generateRequested(prompt, mediaType, aspectRatio, count)`로 전달한다. `GenerationController.enqueue(prompt, aspectRatio, count = 1)`은 프롬프트·비율·모델을 한 번 검증하고 동일한 모델 참조로 수량만큼 작업을 메모리 큐에 넣는다. 반환값은 첫 작업 ID이며 기존 단일 생성 호출은 그대로 1개를 요청한다. 1 미만 또는 1000 초과 수량과 잘못된 입력은 작업을 추가하지 않는다. 기존 실행기가 이미지를 한 장씩 순서대로 처리하므로 요청 수량이 GPU 동시 배치 크기가 되지 않는다. 각 작업의 취소·실패·완료 및 완성 이미지의 Society 저장 경계를 유지한다.
-
-`Dreamscapes.Gui`는 정확한 20개 옵션, 최대 수량의 화면 배치·스크롤·재선택·Enter 제출, 화면 전환과 크기 변경 시 수량 보존, 상단/하단 메뉴 위치, UI 제출 후 이미지 3개 저장을 검사한다. `Dreamscapes.Generation`은 1000개 요청의 고유 ID·모델 스냅샷·일괄 큐 등록, 잘못된 수량의 무변경 처리, 단일 실행기의 순차 이미지 3개 생성을 검증한다. 생성 검증에는 기존 시험용 실행기를 사용한다.
+`sharedPanelLayout`은 데스크톱·모바일 8개 크기의 배치, 터치 영역, 원본 아이콘 로딩을 검사한다. `sharedControlsSubmitCurrentSelection`은 Image/Video 선택, 공백 처리, Enter, 초안 유지와 Video 요청의 이미지 큐 차단을 검사한다. 기존 결과 화면·캔버스 라우팅·실행기 픽스처 생성 테스트도 회귀 검증한다.
 
 ## 생성 결과 화면
 
-[Figma 생성 결과, 31:81](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=31-81)의 도구 모음과 QuickGenerate를 유지하면서 다중 결과를 갤러리로 확장한다. 기본 데스크탑 창은 960×640이며, 402×575 기준 창에서 단일 이미지 영역은 기존 402×242px Fit 표시를 유지한다. 콘텐츠 상단 버튼은 22px, 하단 QuickGenerate는 현재 LVRS 입력 계약에 따라 72px이다. 배경·버튼·입력란·글자는 기존 LVRS 테마와 컴포넌트를 재사용한다.
+[Figma 생성 결과, 31:81](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=31-81)의 도구 모음과 QuickGenerate를 유지하면서 다중 결과를 갤러리로 확장한다. 기본 데스크탑 창은 960×640이며, 402×575 기준 창에서 단일 이미지 영역은 기존 402×242px Fit 표시를 유지한다. 콘텐츠 상단 버튼은 22px, 하단 QuickGenerate는 바깥 여백을 포함해 146px이다. 배경·버튼·입력란·글자는 기존 LVRS 테마와 컴포넌트를 재사용한다.
 
 완료 이미지가 여러 장이면 상단 도구 모음과 하단 QuickGenerate 사이의 전체 공간을 스크롤 갤러리로 사용한다. 사진 앱처럼 2px 간격의 정사각형 썸네일을 `PreserveAspectCrop`으로 채우며, 가용 폭 160px당 한 열을 두고 최소 2열로 배치한다. 예를 들어 390px 창은 2열, 960px 창은 6열이며 리사이즈에 따라 바뀐다. 썸네일을 누르면 가용 영역 전체에서 원본 비율로 크게 표시하고, Back은 같은 스크롤 위치의 갤러리로 돌아간다. 갤러리에서 Back을 누르면 홈으로 이동하며 해당 결과 화면의 수명이 끝난다. 홈이나 확대 화면에서 새 생성을 제출하면 이전 이미지·선택·확대·스크롤 상태를 비우고 새 요청의 진행과 결과를 표시한다. 방향키·Home·End로 선택하고 Enter로 확대할 수 있다. 오른쪽 클릭·길게 누르기는 선택 이미지의 기존 저장 메뉴를 연다.
 
-`GenerationController.completedResults`는 현재 앱 세션에서 완료된 모든 작업의 모든 출력 이미지를 생성 순서대로 제공한다. 각 항목의 `imageSource`·`image`와 프롬프트·비율·모델 정보가 같은 이미지를 가리킨다. 실패·취소·진행 중 작업, 삭제된 파일과 심볼릭 링크는 제외하며 저장소를 다시 연결하면 목록을 비운다. `latestResult`의 기존 최근 작업 첫 이미지 계약은 유지한다. `enqueue()`는 검증을 통과한 생성 묶음 전체를 큐에 추가한 뒤 `submissionQueued(QStringList jobIds)`를 한 번 내보낸다. 결과 화면은 이 ID 목록에 속한 작업·완료 이미지만 사용한다. 같은 요청 안에서 완료 이미지가 추가될 때에는 스크롤 위치와 확대 중인 선택을 보존하고, 다음 프롬프트를 편집해도 선택 이미지의 저장·New Project 입력은 바뀌지 않는다. 화면을 닫아도 실제 생성 큐와 Society의 완성 이미지 파일은 유지된다.
+`GenerationController.completedResults`는 현재 앱 세션에서 완료된 모든 작업의 모든 출력 이미지를 생성 순서대로 제공한다. 각 항목의 `imageSource`·`image`와 프롬프트·비율·모델 정보가 같은 이미지를 가리킨다. 실패·취소·진행 중 작업, 삭제된 파일과 심볼릭 링크는 제외하며 저장소를 다시 연결하면 목록을 비운다. `latestResult`의 기존 최근 작업 첫 이미지 계약은 유지한다. `enqueue()`는 검증을 통과한 생성 묶음 전체를 큐에 추가한 뒤 `submissionQueued(QStringList jobIds)`를 한 번 내보낸다. 결과 화면은 이 ID 목록에 속한 작업·완료 이미지만 사용한다. 같은 요청 안에서 완료 이미지가 추가될 때에는 스크롤 위치와 확대 중인 선택을 보존하고, 다음 프롬프트를 편집해도 선택 이미지의 저장·New Canvas 입력은 바뀌지 않는다. 화면을 닫아도 실제 생성 큐와 Society의 완성 이미지 파일은 유지된다.
 
 생성 중인 작업은 갤러리 마지막 미리보기 타일로 표시하며 저장·프로젝트 입력으로 선택할 수 없다. 기존 Qt Quick [GridView](https://doc.qt.io/qt-6.8/qml-qtquick-gridview.html)의 항목 재사용·세로 스크롤과 Qt Quick Controls ScrollBar를 LVRS 색상으로 사용한다. 화면 주변만 썸네일을 만들고 [Image.sourceSize](https://doc.qt.io/qt-6.8/qml-qtquick-image.html#sourceSize-prop)를 타일 크기와 화면 배율에 맞춰 제한한다. 확대 모드에서 원본을 로딩하며, 새 이미지 라이브러리나 외부 의존성은 추가하지 않는다.
 
@@ -155,11 +152,13 @@ QuickGenerate는 홈과 결과 화면을 오갈 때 `implicitHeight`를 유지�
 
 QuickGenerate는 이동·리사이즈 시 재생성하지 않는다. 현재 앱 세션에서는 직전 프롬프트와 비율·수량을 유지하므로 하단에서 수정하고 연속 생성할 수 있다. 앱을 다시 열면 큐·프롬프트·결과 화면은 복원하지 않으며, Society에 저장한 완성 이미지 파일은 유지한다. 작업 도중 사용자가 입력한 다음 프롬프트는 완료 이벤트가 덮어쓰지 않는다. 제출 시 키보드와 메뉴를 닫으며, 생성 중·대기·실패·이미지 로딩 오류는 결과 화면 안에 표시한다.
 
-`GenerationController.latestResult`는 검증된 최근 완료 이미지 URL(`imageSource`)과 같은 작업의 ID·프롬프트·비율·모델·저장 위치 정보를 함께 반환한다. 갤러리에서 선택한 경우 `selectedResult`로 해당 이미지의 정보를 유지한다. `New Project`는 대기·생성이 끝나고 선택한 완성 이미지가 로딩된 경우에만 활성화되고 `Main.newProjectRequested(url imageSource, var generationResult)`를 전달한다. 중간 미리보기는 프로젝트 입력으로 전달하지 않는다. 이 값은 화면에 표시된 생성 작업의 정보이며, 입력란에서 수정 중인 다음 프롬프트와 구분된다. 프로젝트 편집 화면과 프로젝트 파일 생성은 현재 저장소에 없으며 이 연결 인터페이스를 소비할 후속 기능이다.
+`GenerationController.latestResult`는 검증된 최근 완료 이미지 URL(`imageSource`)과 같은 작업의 ID·프롬프트·비율·모델·저장 위치 정보를 함께 반환한다. 갤러리에서 선택한 경우 `selectedResult`로 해당 이미지의 정보를 유지한다. `New Canvas`는 대기·생성이 끝나고 선택한 완성 이미지가 로딩된 경우에만 활성화되고 `Main.newProjectRequested(url imageSource, var generationResult)`를 전달한다. 중간 미리보기는 프로젝트 입력으로 전달하지 않는다. 이 값은 화면에 표시된 생성 작업의 정보이며, 입력란에서 수정 중인 다음 프롬프트와 구분된다. 이 버튼은 선택한 이미지와 메타데이터를 `CanvasEditor.qml`에 전달하고 에디터 뷰로 이동한다. 홈의 새 캔버스는 같은 뷰에 빈 캔버스를 연다. 에디터의 Back 또는 Escape는 진입 전 화면으로 돌아가며 생성 입력 초안과 갤러리 선택을 보존한다. 기존 `newProjectButton` 객체 이름과 `newProjectRequested` 신호는 연동 호환성을 위해 유지한다. 현재 에디터는 빈 캔버스 또는 선택 이미지의 Fit 표시와 화면 전환을 제공하며, 드로잉 도구와 프로젝트 파일 저장은 아직 구현하지 않았다.
+
+`canvasRoutesPreserveSelectionAndDraft`는 데스크탑·모바일 테마에서 New Canvas 레이블, 실제 버튼 클릭에 의한 에디터 전환, 선택 이미지·메타데이터 전달, 복귀 후 초안 보존, 모바일 홈의 빈 캔버스 진입과 이전 이미지 초기화를 검증한다.
 
 `resultGalleryLayoutAndSelection`은 320·390·960·1440px 창과 1,000장 목록에서 넓은 그리드, 마지막 이미지 도달, 제한된 썸네일 생성, 확대·프로젝트 선택, 같은 요청의 결과 추가 후 선택·스크롤·초안 보존을 검사한다. `countSelectionCreatesThreeImagesInSociety`는 실제 QuickGenerate 수량 3 제출이 저장소의 파일 3개와 갤러리 항목 3개로 연결되고 다음 제출에는 새 3장만 표시되는지 확인한다. `newSubmissionReplacesDismissedResults`는 데스크탑 단일·모바일 크기 다중 결과에서 홈 이탈 후 새 요청의 대기·미리보기·결과 표시와 이전 파일 보존을 검사한다. `dismissedGenerationCannotReopenOrContaminateTheNextSubmission`은 진행 중 이탈, 직접 컨트롤러 제출, 이전 작업의 늦은 미리보기·완료 격리와 홈 유지도 검사한다. `batchSubmissionKeepsOneModelSnapshotAndRejectsInvalidCounts`는 성공한 묶음당 한 번의 ID 통지와 잘못된 제출의 미통지를 검증한다. `completedResultsExposeEveryImageAndExcludeUnpublishedFiles`는 한 작업의 다중 출력, 연속 작업, 실패·취소·삭제·리디렉션 제외와 저장소 전환을 검사한다. 이 테스트는 결정적 생성 fixture를 사용하며 실제 모델 추론·물리 모바일 기기 실행을 증명하지 않는다.
 
-`resultScreenLayout`은 기준 화면·좁은 창·데스크탑·모바일 테마·가로 화면에서 치수, 원본 비율과 전체 이미지가 보존되는 Fit 크기, 하단 패널 및 위로 열리는 메뉴를 검사한다. 가로·세로·정사각형 원본의 실제 표시 크기를 프레임에 맞춘 예상 크기와 비교한다. `generateOpensResultImmediatelyAndDisplaysEveryPreview`는 Generate 직후 전환, 매 단계 미리보기 교체, 진행 단계, New Project 비활성화, 생성 중 Back/재진입과 초안 보존을 검사한다. 생성 컨트롤러 테스트는 나뉘어 도착한 이벤트, 중복·잘못된 이벤트, 미리보기 이후 실패·취소, 임시 파일 정리와 최종 파일 분리를 검사한다. `generateButtonUsesSocietyStorage`는 완료 전환과 연속 생성, 프로젝트 입력을 검사한다. 테스트용 결정적 생성기는 UI·저장 프로토콜을 검증하며 실제 모델 추론을 대신하지 않는다. 아래 명령으로 캡처하는 이미지도 Fit 검사용 색상 패턴이다.
+`resultScreenLayout`은 기준 화면·좁은 창·데스크탑·모바일 테마·가로 화면에서 치수, 원본 비율과 전체 이미지가 보존되는 Fit 크기, 하단 패널 및 위로 열리는 메뉴를 검사한다. 가로·세로·정사각형 원본의 실제 표시 크기를 프레임에 맞춘 예상 크기와 비교한다. `generateOpensResultImmediatelyAndDisplaysEveryPreview`는 Generate 직후 전환, 매 단계 미리보기 교체, 진행 단계, New Canvas 비활성화, 생성 중 Back/재진입과 초안 보존을 검사한다. 생성 컨트롤러 테스트는 나뉘어 도착한 이벤트, 중복·잘못된 이벤트, 미리보기 이후 실패·취소, 임시 파일 정리와 최종 파일 분리를 검사한다. `generateButtonUsesSocietyStorage`는 완료 전환과 연속 생성, 프로젝트 입력을 검사한다. 테스트용 결정적 생성기는 UI·저장 프로토콜을 검증하며 실제 모델 추론을 대신하지 않는다. 아래 명령으로 캡처하는 이미지도 Fit 검사용 색상 패턴이다.
 
 ```sh
 QSG_RHI_BACKEND=metal QML_DISABLE_DISK_CACHE=1 DREAMSCAPES_CAPTURE_DIR="$PWD/build/result-verification" \
@@ -222,6 +221,8 @@ DREAMSCAPES_REAL_SMOKE_CONTAINER=/path/to/verification-society \
 기존 Qt Core/Gui의 QProcess·QTemporaryDir·QSaveFile과 iiLocalDiffusion을 재사용한다. 추가 큐 프레임워크나 영구 데이터베이스를 도입하지 않는다. 추론 의존성과 라이선스는 iiLocalDiffusion의 기존 Diffusers/PyTorch 런타임과 번들 설정 리소스의 라이선스를 따른다. SDK 라이브러리만 링크했다고 Python 추론 환경이 설치되는 것은 아니다.
 
 필수 버전은 `iiSocietyContainer >= 0.10.0`, `iiSocietyHelper >= 0.5.0`, `iiLocalDiffusion >= 0.5.0`이다. 데스크톱 구성 시 발견한 실행기의 `--model-path` 계약도 검사하여 오래된 설치본을 거부한다. `DREAMSCAPES_DIFFUSION_EXECUTABLE` CMake 경로나 `IILD_GENERATOR_EXECUTABLE` 실행 환경으로 SDK 실행기를 지정한다. Python 환경은 SDK의 관리 환경을 기본으로 사용하며 `DREAMSCAPES_DIFFUSION_PYTHON_EXECUTABLE` CMake 옵션 또는 우선하는 `IILD_PYTHON_EXECUTABLE` 환경변수로 지정할 수 있다. 단일 체크포인트는 현재 SDK의 독립 실행기와 번들 SD1/SDXL 설정을 사용하며 ComfyUI를 요구하지 않는다. 누락된 런타임·지원하지 않는 모델은 실패 원인을 표시한다.
+
+`Reference dependency accelerate is missing` 오류가 발생하면 실제 생성 worker의 Python 경로부터 확인한다. 빌드·테스트용 Python과 추론용 Python은 별개이며, Codex 도구용 Python 경로를 `DREAMSCAPES_DIFFUSION_PYTHON_EXECUTABLE`에 고정한 과거 앱은 SDK의 `runtime-python.json`보다 그 설정을 우선한다. 일반 배포는 해당 CMake 옵션을 비워 SDK 관리 환경을 사용한다. 설치 앱이 최신 빌드인지도 확인해야 한다. 관리 환경에서 `accelerate`, `torch`, `diffusers`, `transformers`를 import하고, 기본 LoRA와 토크나이저에 필요한 `peft`, `sentencepiece` 및 `pip check`를 검사한다. 설치 버전도 SDK의 `reference/diffusers/requirements.txt` 고정 버전과 일치시킨다. Society 공유 생성 리소스는 아래 절차로 별도 검증한다. 의존성 검사나 `--print-config` 통과만으로 생성 성공을 판정하지 않고, 실제 모델로 완료된 작업과 PNG를 확인한다.
 
 iOS는 `iiSocietyContainer_configure_ios_client()`와 `SOCIETY_IOS_APP_GROUP`·`SOCIETY_IOS_TEAM`으로 같은 기기의 Society 원본 컨테이너에 접근한다. 다른 기기의 연결·인증·동기화는 Society끼리 수행한다. Finder/iOS Files는 계속 `Files/`만 공개한다.
 
@@ -396,7 +397,7 @@ iOS 26 이상에서는 사용자가 시작한 이미지 생성에 `BGContinuedPr
 
 `DreamscapesLocalSocietyTests`는 단계 혼동, 로딩 중 취소/백그라운드/제한 시간/예외, 다음 요청 재시도, 화면 유지 해제를 검사한다. 실제 기기 검증은 `DREAMSCAPES_LOCAL_RUNTIME_PROBE=ON` 빌드의 `--verify-local-generation --local-model <model> --local-prompt <prompt>`를 이용하며, Documents의 `local-generation-verification.json`에서 단계·경과 관측 시각·전경·화면 유지·최종 결과를 확인한다. 테스트용 엔진 결과와 실기기 결과는 별도 증거로 기록한다. 화면 유지 API: [Apple UIKit](https://developer.apple.com/documentation/uikit/uiapplication/isidletimerdisabled).
 
-공유 프롬프트 필드는 현재 LVRS의 22px 계약을 따른다. 기본 QuickGenerate 높이는 패딩 20px + 입력 22px + 간격 8px + 버튼 22px = 72px이며, 결과 이미지 중앙 배치 검증도 이 높이를 기준으로 한다.
+공유 QuickGenerate는 LVRS 컨트롤을 44px 터치 영역에 배치한다. 패널은 안쪽 여백·테두리 26px + 입력 행 44px + 간격 12px + 버튼 행 44px = 126px이며, 결과 화면에서는 바깥 여백 20px를 더한 146px이다. 결과 이미지 중앙 배치 검증도 이 높이를 기준으로 한다.
 
 LVRS 공통 모션은 버튼의 눌림·복원과 컨텍스트 메뉴의 진입·닫힘에 적용된다. 이미지 저장 GUI 회귀 테스트는 메뉴의 `visible`이 false가 되어 닫힘 애니메이션이 완료된 뒤 다음 클릭을 전송하며, 고정 시간 대기 없이 파일 저장 취소·재시도와 사진 저장 중 중복 요청 방지를 검사한다.
 
@@ -540,3 +541,32 @@ Society drive 카테고리에서 현재 위치를 확인하고 기존 Society �
 GUI 테스트 `mainCreatesOneSharedWindow`는 카테고리·상세 영역, Apply 동작, 공유 위치 저장, 잘못된 경로에서 연결 보존과 창 수명 주기를 검증한다. Generation 테스트 `driveLocationSelectionPersistsAndRejectsInvalidFolders`는 파일 URL 입력, 재연결 및 잘못된 폴더 거부를 검증한다.
 
 macOS 창 닫기·앱 종료·Dock 재열기 동작은 [애플리케이션 수명 정책](docs/ApplicationLifetime.md)을 따른다.
+
+### Explicit VAE selection
+
+Desktop generation can select an external VAE from Society `Models/VAE/` with the VAE menu or the `vaes`/`select_vae` MCP tools. Each submitted job pins the VAE's container reference independently of later selection changes and resolves it again before passing `--vae` to iiLocalDiffusion. The SDK validates the model latent contract. Empty selection preserves embedded/fallback behavior. Explicit selection currently requires the local desktop worker; unsupported native/remote requests fail instead of silently ignoring the VAE.
+
+Desktop worker requests also forward the job seed explicitly so recorded seeds reproduce the actual request, including VAE/HiRes comparisons. Foreground preparation includes the selected VAE.
+
+The MCP `generate` tool accepts an optional unsigned 32-bit seed; batches increment a supplied seed in submission order and reject overflow. This supports repeatable comparison and queue transfer without changing prompts or seeds.
+
+### Society model inventory refresh (0.1.1)
+
+Dreamscapes reads generation model snapshots through iiSocietyHelper 0.7.2 `FileSystem::models()` on startup, activation and foreground polling. iiSocietyContainer 0.14.1 reconciles native owner files with the asynchronous catalog so Deleted models disappear and newly published checkpoints/packages appear before indexing completes. Replica-only models remain visible for download. Removing a selected checkpoint chooses the next valid model; removing a selected VAE resets it to Model default. Hidden conversion resources are excluded. The `modelInventoryFollowsSocietyOwnerAtStartupAndRefresh` regression test covers stale startup catalogs, changes without restart, stable refresh and empty selections.
+
+The MCP process test retains a 25-second default startup limit. For a cold signed app on slow external storage, run the test binary with `DREAMSCAPES_TEST_STARTUP_TIMEOUT_MS=60000` (accepted range 25000–120000 ms). Only root-window startup uses this budget; protocol requests, generation and cancellation assertions keep their existing limits. Run the binary directly when the configured startup budget could exceed CTest's 90-second suite limit.
+
+### Krea 2 QuickGenerate 비율 호환
+
+Native Krea 2도 QuickGenerate의 다섯 비율과 기존 8px 출력 격자를 사용한다.
+SDK는 내부 캔버스만 64px 단위로 올림하고 최종 RGB를 중앙 크롭하여 요청 크기로 반환한다.
+9:16은 1024×1856 내부 캔버스에서 상하 16px씩 제거한 1024×1824 결과이다.
+Krea의 해상도별 스케줄은 내부 캔버스 기준으로 계산하며 출력 비율을 강제로 변경하거나 이미지를 늘리지 않는다.
+
+## 모바일 에디터 툴바
+
+Figma [Editor Toolbar · Full 19](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=143-1652)의 19개 항목을 `Views/Editor/EditorToolbar.qml`에 구현했다. 모바일 에디터 하단의 시스템 안전 영역 안에서 좌우 8px·하단 8px 여백을 두고 표시한다. 캔버스는 툴바 위에서 끝나므로 이미지와 도구가 겹치지 않는다. 데스크탑 레이아웃에는 이 모바일 툴바를 표시하지 않는다.
+
+원본의 높이 84px, 86×68px 도구, 4px 간격, 22px 아이콘 영역, 9px Pretendard Medium 레이블을 유지한다. `LV.Tab`의 선택·접근성·키보드 동작을 재사용하고 `ListView`가 가로 터치/마우스 드래그, 관성 스크롤과 항목 스냅을 처리한다. 스크롤만으로 도구가 선택되지 않으며 탭으로 선택한 도구는 크기 변경 후에도 유지된다. 방향키와 Home/End로도 탐색할 수 있다. `CanvasEditor.selectedTool`과 `toolSelected(toolId)`가 현재 선택과 도구 전환을 노출한다. 툴 버튼을 누르면 해당 도구의 LVRS 하단 시트가 올라온다. 19개 통합 패널의 428개 항목, 툴별 입력 상태 보존, Reset, 세로 스크롤, 색상 선택, Escape·배경 탭·하단 드래그 닫기를 제공한다. 좁은 화면에서는 2열 항목을 1열로 배치한다. 그리기·문서 저장·생성 등 편집 엔진 동작은 아직 연결하지 않았으며 해당 액션을 누르면 연결되지 않은 상태를 명시한다. 구현 구조와 검증 계약은 [EditorToolPanels.md](docs/EditorToolPanels.md)에 있다.
+
+19개 원본 SVG는 `Views/Editor/Assets/`에 그대로 저장되어 앱 리소스에 포함된다. `manifest.json`에 Figma 노드, 파일, 원본 크기와 아이콘 영역 안의 위치를 기록했다. 런타임에 임시 Figma URL을 사용하지 않는다. `mobileEditorToolbarSlidesAndSelects`는 320/390/402px iOS 테마, 360px Android 테마, 가로 화면 및 전체 원본 폭에서 하단 배치·안전 영역·선택·터치/마우스 드래그·끝 항목 도달·키보드 탐색과 모든 SVG의 로드·파일·표시 치수를 검사한다.

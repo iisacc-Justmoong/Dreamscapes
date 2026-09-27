@@ -8,18 +8,19 @@ Item {
     objectName: "quickGenerate"
 
     property alias prompt: promptField.text
-    readonly property string mediaType: "Image"
+    property string mediaType: "Image"
+    // Retain the request contract for restored drafts and existing callers.
     property string aspectRatio: "1:1"
     property int generationCount: 1
-    readonly property var generationCounts: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-        15, 20, 25, 30, 40, 50, 100, 200, 500, 1000]
     property bool menusOpenUpward: false
     property real contentInset: LV.Theme.gap10
+    property string errorText: ""
     readonly property var platformInputMethod: Qt.inputMethod
     signal generateRequested(string prompt, string mediaType, string aspectRatio, int count)
 
     implicitWidth: 402
-    implicitHeight: content.implicitHeight + contentInset * 2
+    implicitHeight: composer.implicitHeight + contentInset * 2
+        + (notice.visible ? notice.implicitHeight + LV.Theme.gap8 : 0)
 
     function openMenu(menu, button) {
         const offset = menusOpenUpward
@@ -30,8 +31,6 @@ Item {
 
     function dismissInput() {
         mediaMenu.close()
-        ratioMenu.close()
-        countMenu.close()
         platformInputMethod.hide()
     }
 
@@ -45,83 +44,121 @@ Item {
         generateRequested(trimmedPrompt, mediaType, aspectRatio, generationCount)
     }
 
-    LV.VStack {
-        id: content
+    Rectangle {
+        id: composer
+        objectName: "quickGenerateComposer"
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.margins: root.contentInset
+        implicitHeight: content.implicitHeight + (LV.Theme.gap12 + border.width) * 2
         height: implicitHeight
-        spacing: LV.Theme.gap8
-        alignment: Qt.AlignLeft
+        radius: LV.Theme.radiusXl
+        color: LV.Theme.panelBackground05
+        border.width: 1
+        border.color: LV.Theme.panelBackground08
 
-        LV.InputField {
-            id: promptField
-            objectName: "promptField"
-            Layout.fillWidth: true
-            placeholderText: qsTr("Prompt")
-            style: roundedStyle
-            clearButtonVisible: false
-            Accessible.name: qsTr("Prompt")
-            onAccepted: root.submit()
-        }
-
-        LV.HStack {
-            id: actions
-            Layout.fillWidth: true
-            spacing: 0
-
-            // Preserve natural button widths when the shared layout narrows.
-            readonly property real actionSpacing: Math.min(LV.Theme.gap8, Math.max(0,
-                (width - mediaButton.implicitWidth - ratioButton.implicitWidth
-                 - countButton.implicitWidth - generateButton.implicitWidth) / 3))
+        LV.VStack {
+            id: content
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: LV.Theme.gap12 + composer.border.width
+            spacing: LV.Theme.gap12
 
             LV.HStack {
-                Layout.minimumWidth: implicitWidth
-                spacing: actions.actionSpacing
+                Layout.fillWidth: true
+                spacing: LV.Theme.gap8
 
                 LV.LabelMenuButton {
                     id: mediaButton
                     objectName: "mediaTypeButton"
-                    text: qsTr("Image")
-                    tone: LV.AbstractButton.Default
-                    Accessible.name: qsTr("Media type: Image")
+                    Layout.preferredWidth: 76
+                    Layout.minimumWidth: 76
+                    Layout.preferredHeight: 44
+                    text: root.mediaType === "Video" ? qsTr("Video") : qsTr("Image")
+                    tone: LV.AbstractButton.Borderless
+                    contentItem: Item {
+                        implicitWidth: mediaLabel.implicitWidth + 18
+                        implicitHeight: 18
+                        LV.Label {
+                            id: mediaLabel
+                            height: LV.Theme.textBodyLineHeight
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: mediaButton.text
+                            style: body
+                            color: mediaButton.textColor
+                        }
+                        Image {
+                            objectName: "mediaTypeChevron"
+                            x: mediaLabel.implicitWidth
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 18
+                            height: 18
+                            source: Qt.resolvedUrl("Assets/media-chevron.svg")
+                            sourceSize: Qt.size(18 * Screen.devicePixelRatio, 18 * Screen.devicePixelRatio)
+                        }
+                    }
+                    Accessible.name: qsTr("Media type: %1").arg(text)
                     onClicked: root.openMenu(mediaMenu, mediaButton)
                 }
 
-                LV.LabelMenuButton {
-                    id: ratioButton
-                    objectName: "aspectRatioButton"
-                    text: root.aspectRatio
-                    tone: LV.AbstractButton.Default
-                    Accessible.name: qsTr("Aspect ratio: %1").arg(root.aspectRatio)
-                    onClicked: root.openMenu(ratioMenu, ratioButton)
+                Rectangle {
+                    Layout.preferredWidth: 1
+                    Layout.preferredHeight: 20
+                    Layout.alignment: Qt.AlignVCenter
+                    color: LV.Theme.panelBackground08
                 }
 
-                LV.LabelMenuButton {
-                    id: countButton
-                    objectName: "generationCountButton"
-                    text: String(root.generationCount)
-                    tone: LV.AbstractButton.Default
-                    Accessible.name: qsTr("Image count: %1").arg(root.generationCount)
-                    onClicked: root.openMenu(countMenu, countButton)
+                LV.InputField {
+                    id: promptField
+                    objectName: "promptField"
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.preferredHeight: 44
+                    placeholderText: composer.width < 480
+                        ? qsTr("Describe your idea") : qsTr("Describe what you want to generate")
+                    style: inlineStyle
+                    clearButtonVisible: false
+                    glassEnabled: false
+                    backgroundComponent: Item {}
+                    placeholderColor: LV.Theme.titleHeaderColor
+                    Accessible.name: qsTr("Generation prompt")
+                    onAccepted: root.submit()
                 }
             }
 
-            Item {
+            LV.HStack {
                 Layout.fillWidth: true
-                Layout.minimumWidth: actions.actionSpacing
-            }
-
-            LV.LabelButton {
-                id: generateButton
-                objectName: "generateButton"
-                Layout.minimumWidth: implicitWidth
-                text: qsTr("Generate")
-                tone: LV.AbstractButton.Primary
-                onClicked: root.submit()
+                spacing: 0
+                Item { Layout.fillWidth: true }
+                LV.LabelButton {
+                    objectName: "generateButton"
+                    Layout.preferredWidth: 104
+                    Layout.minimumWidth: 104
+                    Layout.preferredHeight: 44
+                    text: qsTr("Generate")
+                    tone: LV.AbstractButton.Primary
+                    shapeStyle: shapeCylinder
+                    onClicked: root.submit()
+                }
             }
         }
+    }
+
+    LV.Label {
+        id: notice
+        objectName: "quickGenerateNotice"
+        anchors.top: composer.bottom
+        anchors.topMargin: LV.Theme.gap8
+        anchors.left: composer.left
+        anchors.right: composer.right
+        visible: text.length > 0
+        text: root.errorText
+        color: LV.Theme.descriptionColor
+        wrapMode: Text.Wrap
+        sizeToContentHeight: true
+        Accessible.name: text
     }
 
     LV.ContextMenu {
@@ -130,77 +167,10 @@ Item {
         showIconSlot: false
         itemWidth: Math.max(0, Math.min(LV.Theme.scaleMetric(145),
             root.width - leftPadding - rightPadding - edgeMargin * 2))
-        selectedIndex: 0
-        items: [qsTr("Image")]
-    }
-
-    LV.ContextMenu {
-        id: ratioMenu
-        objectName: "aspectRatioMenu"
-        showIconSlot: false
-        itemWidth: Math.max(0, Math.min(LV.Theme.scaleMetric(145),
-            root.width - leftPadding - rightPadding - edgeMargin * 2))
-        items: ["1:1", "4:3", "3:4", "16:9", "9:16"]
-        selectedIndex: items.indexOf(root.aspectRatio)
+        items: [qsTr("Image"), qsTr("Video")]
+        selectedIndex: root.mediaType === "Video" ? 1 : 0
         onItemTriggered: function(index, entry) {
-            root.aspectRatio = String(entry)
-        }
-    }
-
-    LV.ContextMenu {
-        id: countMenu
-        objectName: "generationCountMenu"
-        showIconSlot: false
-        itemWidth: Math.max(0, Math.min(LV.Theme.scaleMetric(145),
-            root.width - leftPadding - rightPadding - edgeMargin * 2))
-        items: root.generationCounts.map(function(count) { return String(count) })
-        selectedIndex: root.generationCounts.indexOf(root.generationCount)
-        implicitHeight: Math.min(countList.contentHeight + topPadding + bottomPadding,
-            LV.Theme.scaleMetric(320), parent ? Math.max(0, parent.height - edgeMargin * 2) : LV.Theme.scaleMetric(320))
-        onItemTriggered: function(index, entry) { root.generationCount = Number(entry) }
-        onOpened: {
-            countList.currentIndex = selectedIndex
-            countList.positionViewAtIndex(selectedIndex, ListView.Contain)
-            countList.forceActiveFocus()
-        }
-
-        contentItem: ListView {
-            id: countList
-            objectName: "generationCountList"
-            implicitHeight: contentHeight
-            spacing: countMenu.itemSpacing
-            model: countMenu.items
-            currentIndex: 0
-            clip: true
-            boundsBehavior: Flickable.StopAtBounds
-            keyNavigationEnabled: true
-            Keys.onReturnPressed: countMenu.triggerEntry(currentIndex)
-            Keys.onEnterPressed: countMenu.triggerEntry(currentIndex)
-            Keys.onPressed: function(event) {
-                if (event.key === Qt.Key_Home) {
-                    currentIndex = 0
-                    positionViewAtBeginning()
-                    event.accepted = true
-                } else if (event.key === Qt.Key_End) {
-                    currentIndex = count - 1
-                    positionViewAtEnd()
-                    event.accepted = true
-                }
-            }
-            delegate: LV.MenuItem {
-                required property int index
-                required property var modelData
-                objectName: "generationCountOption" + index
-                width: countList.width
-                itemWidth: countMenu.itemWidth
-                label: String(modelData)
-                keyVisible: false
-                showIconSlot: false
-                hasChildItems: false
-                state: index === countList.currentIndex ? selectedState : defaultState
-                Accessible.name: qsTr("%1 images").arg(modelData)
-                onClicked: countMenu.triggerEntry(index)
-            }
+            root.mediaType = index === 1 ? "Video" : "Image"
         }
     }
 }

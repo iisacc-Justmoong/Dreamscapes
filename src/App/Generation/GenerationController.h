@@ -47,6 +47,8 @@ class GenerationController : public QObject
     Q_PROPERTY(bool connected READ connected NOTIFY storageChanged)
     Q_PROPERTY(QString containerPath READ containerPath NOTIFY storageChanged)
     Q_PROPERTY(QVariantList models READ models NOTIFY modelsChanged)
+    Q_PROPERTY(QVariantList vaes READ vaes NOTIFY modelsChanged)
+    Q_PROPERTY(QString selectedVae READ selectedVae WRITE setSelectedVae NOTIFY modelsChanged)
     Q_PROPERTY(QString selectedModel READ selectedModel WRITE setSelectedModel NOTIFY modelsChanged)
     Q_PROPERTY(QVariantList jobs READ jobs NOTIFY jobsChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY jobsChanged)
@@ -69,6 +71,9 @@ public:
     bool connected() const;
     QString containerPath() const;
     QVariantList models() const;
+    QVariantList vaes() const;
+    QString selectedVae() const;
+    void setSelectedVae(const QString &id);
     QString selectedModel() const;
     void setSelectedModel(const QString &id);
     QVariantList jobs() const;
@@ -90,7 +95,7 @@ public:
     Q_INVOKABLE bool connectStorage(const QString &path = {});
     Q_INVOKABLE bool selectStorageLocation(const QString &path);
     Q_INVOKABLE void refreshModels();
-    Q_INVOKABLE QString enqueue(const QString &prompt, const QString &aspectRatio = QStringLiteral("1:1"), int count = 1);
+    Q_INVOKABLE QString enqueue(const QString &prompt, const QString &aspectRatio = QStringLiteral("1:1"), int count = 1, qint64 seed = -1);
     Q_INVOKABLE bool cancel(const QString &id);
 
 signals:
@@ -164,6 +169,7 @@ private:
     std::optional<iiSocietyContainer::SharedStorage> m_storage;
     QList<iiSocietyContainer::StoredModel> m_models;
     QString m_selected;
+    QString m_selectedVae;
     QList<QJsonObject> m_jobs;
     QJsonObject m_active;
     QString m_output;

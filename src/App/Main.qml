@@ -9,6 +9,7 @@ import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
 import "Views/Home"
 import "Views/Result"
+import "Views/Editor"
 
 LV.ApplicationWindow {
     id: window
@@ -210,6 +211,9 @@ LV.ApplicationWindow {
     }
     Loader { id: agentQuestions }
     property bool resultVisible: false
+    property bool editorVisible: false
+    property url canvasImageSource: ""
+    property var canvasGenerationResult: ({})
     property var currentResult: ({})
     property var resultJobIds: []
     property string generationRequestError: ""
@@ -291,6 +295,18 @@ LV.ApplicationWindow {
     signal generateRequested(string prompt, string mediaType, string aspectRatio, int count)
     signal newProjectRequested(url imageSource, var generationResult)
 
+    function openCanvas(imageSource, generationResult) {
+        quickGenerate.dismissInput()
+        modelMenu.close()
+        canvasImageSource = imageSource || ""
+        canvasGenerationResult = generationResult || ({})
+        editorVisible = true
+        editorView.forceActiveFocus()
+    }
+    function closeCanvas() {
+        editorVisible = false
+    }
+
     function presentLatestResult() {
         const result = submissionResults.length > 0 ? submissionResults[submissionResults.length - 1] : ({})
         const source = result.imageSource ? result.imageSource.toString() : ""
@@ -313,6 +329,7 @@ LV.ApplicationWindow {
         resultView.resetPresentation()
     }
     function showSubmission(jobIds) {
+        editorVisible = false
         dismissResult()
         resultJobIds = jobIds.slice()
         quickGenerate.dismissInput()
@@ -357,7 +374,10 @@ LV.ApplicationWindow {
         MobileHome {
             id: mobileHome
             anchors.fill: parent
-            visible: window.useMobileHomeLayout && !window.resultVisible
+            visible: window.useMobileHomeLayout && !window.resultVisible && !window.editorVisible
+            onQuickActionRequested: function(action) {
+                if (action === "canvas") window.openCanvas("", ({}))
+            }
             recentFiles: historyModel.recentFiles
             recentPublished: historyModel.recentPublished
             generationHistory: historyModel.generationHistory
@@ -376,7 +396,7 @@ LV.ApplicationWindow {
                 ? quickGenerate.top : parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            visible: window.resultVisible
+            visible: window.resultVisible && !window.editorVisible
             result: window.currentResult
             results: window.submissionResults
             previewSource: window.activeGeneration.id ? generation.previewImage : ""
@@ -392,13 +412,24 @@ LV.ApplicationWindow {
                 window.dismissResult()
             }
             onNewProjectRequested: function(imageSource, generationResult) {
-                quickGenerate.dismissInput()
+                window.openCanvas(imageSource, generationResult)
                 window.newProjectRequested(imageSource, generationResult)
             }
         }
 
+        CanvasEditor {
+            id: editorView
+            mobileLayout: window.useMobileHomeLayout
+            anchors.fill: parent
+            visible: window.editorVisible
+            imageSource: window.canvasImageSource
+            generationResult: window.canvasGenerationResult
+            onBackRequested: window.closeCanvas()
+        }
+
         QuickGenerate {
             id: quickGenerate
+            visible: !window.editorVisible
             parent: window.resultVisible || !window.useMobileHomeLayout
                 ? appContent : mobileHome.quickGenerateContainer
             // Switching both vertical anchors can stretch the item and discard its
@@ -410,8 +441,14 @@ LV.ApplicationWindow {
             height: implicitHeight
             contentInset: window.useMobileHomeLayout && !window.resultVisible ? 0 : LV.Theme.gap10
             menusOpenUpward: window.resultVisible
+            errorText: window.resultVisible ? "" : window.generationRequestError
             onGenerateRequested: function(prompt, mediaType, aspectRatio, count) {
                 window.generateRequested(prompt, mediaType, aspectRatio, count)
+                window.generationRequestError = ""
+                if (mediaType === "Video") {
+                    window.generationRequestError = qsTr("Video generation is not available yet. Your prompt is preserved; choose Image to generate an image.")
+                    return
+                }
                 if (generation.enqueue(prompt, aspectRatio, count).length === 0)
                     window.generationRequestError = generation.errorString
             }
@@ -420,7 +457,7 @@ LV.ApplicationWindow {
         Flickable {
             id: storagePanel
             objectName: "storagePanel"
-            visible: !window.useMobileHomeLayout && !window.resultVisible
+            visible: !window.useMobileHomeLayout && !window.resultVisible && !window.editorVisible
             anchors.top: window.resultVisible ? parent.top : quickGenerate.bottom
             anchors.bottom: parent.bottom
             anchors.left: parent.left
@@ -477,6 +514,14 @@ LV.ApplicationWindow {
                     enabled: generation.models.length > 0
                     onClicked: modelMenu.openFor(modelButton, 0, modelButton.height + LV.Theme.gap2)
                 }
+                LV.LabelMenuButton {
+                    id: vaeButton
+                    objectName: "societyVaeSelector"
+                    Layout.fillWidth: true
+                    text: generation.selectedVae.length ? qsTr("VAE: ") + generation.selectedVae : qsTr("VAE: Model default")
+                    tone: LV.AbstractButton.Default
+                    onClicked: vaeMenu.openFor(vaeButton, 0, vaeButton.height + LV.Theme.gap2)
+                }
                 LV.Label {
                     Layout.fillWidth: true
                     visible: generation.connected && !generation.runtimeAvailable
@@ -529,6 +574,15 @@ LV.ApplicationWindow {
                     }
                 }
             }
+        }
+        LV.ContextMenu {
+            id: vaeMenu
+            objectName: "societyVaeMenu"
+            showIconSlot: false
+            itemWidth: Math.max(0, Math.min(440, storagePanel.width - leftPadding - rightPadding - edgeMargin * 2))
+            items: [qsTr("Model default")].concat(generation.vaes.map(function(model) { return model.id }))
+            selectedIndex: generation.selectedVae.length ? items.indexOf(generation.selectedVae) : 0
+            onItemTriggered: function(index, entry) { generation.selectedVae = index === 0 ? "" : String(entry) }
         }
         LV.ContextMenu {
             id: modelMenu

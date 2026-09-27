@@ -1,0 +1,214 @@
+{
+  "figmaNode": "143:1652",
+  "icons": [
+    {
+      "file": "elements.svg",
+      "node": "144:1651",
+      "width": "18.1",
+      "height": "18.1",
+      "viewBox": "0 0 18.1 18.1",
+      "bytes": 957,
+      "label": "Elements",
+      "x": 1.95,
+      "y": 1.95
+    },
+    {
+      "file": "text.svg",
+      "node": "144:1658",
+      "width": "14.4333",
+      "height": "18.1",
+      "viewBox": "0 0 14.4333 18.1",
+      "bytes": 382,
+      "label": "Text",
+      "x": 3.7833,
+      "y": 1.95
+    },
+    {
+      "file": "camera-photo.svg",
+      "node": "144:1663",
+      "width": "16.2667",
+      "height": "16.2667",
+      "viewBox": "0 0 16.2667 16.2667",
+      "bytes": 696,
+      "label": "Camera/Photo",
+      "x": 2.8667,
+      "y": 2.8667
+    },
+    {
+      "file": "asset.svg",
+      "node": "144:1669",
+      "width": "18.1",
+      "height": "18.1",
+      "viewBox": "0 0 18.1 18.1",
+      "bytes": 1447,
+      "label": "Asset",
+      "x": 1.95,
+      "y": 1.95
+    },
+    {
+      "file": "file.svg",
+      "node": "144:1677",
+      "width": "13.5167",
+      "height": "19.9333",
+      "viewBox": "0 0 13.5167 19.9333",
+      "bytes": 541,
+      "label": "File",
+      "x": 4.7,
+      "y": 1.0333
+    },
+    {
+      "file": "background.svg",
+      "node": "144:1683",
+      "width": "18.1",
+      "height": "16.2667",
+      "viewBox": "0 0 18.1 16.2667",
+      "bytes": 994,
+      "label": "Background",
+      "x": 1.95,
+      "y": 2.8667
+    },
+    {
+      "file": "audio-track.svg",
+      "node": "144:1690",
+      "width": "16.2667",
+      "height": "18.1",
+      "viewBox": "0 0 16.2667 18.1",
+      "bytes": 938,
+      "label": "Audio track",
+      "x": 1.95,
+      "y": 1.95
+    },
+    {
+      "file": "canvas.svg",
+      "node": "144:1697",
+      "width": "18.1",
+      "height": "18.1",
+      "viewBox": "0 0 18.1 18.1",
+      "bytes": 760,
+      "label": "Canvas",
+      "x": 1.95,
+      "y": 1.95
+    },
+    {
+      "file": "generative.svg",
+      "node": "144:1703",
+      "width": "20.85",
+      "height": "19.9333",
+      "viewBox": "0 0 20.85 19.9333",
+      "bytes": 686,
+      "label": "Generative",
+      "x": 0.1167,
+      "y": 1.0333
+    },
+    {
+      "file": "layers.svg",
+      "node": "144:1708",
+      "width": "18.1003",
+      "height": "18.1",
+      "viewBox": "0 0 18.1003 18.1",
+      "bytes": 588,
+      "label": "Layers",
+      "x": 1.95,
+      "y": 1.95
+    },
+    {
+      "file": "select.svg",
+      "node": "145:1651",
+      "width": "18.1",
+      "height": "18.1",
+      "viewBox": "0 0 18.1 18.1",
+      "bytes": 730,
+      "label": "Select",
+      "x": 1.95,
+      "y": 1.95
+    },
+    {
+      "file": "color.svg",
+      "node": "145:1657",
+      "width": "18.1",
+      "height": "18.1",
+      "viewBox": "0 0 18.1 18.1",
+      "bytes": 878,
+      "label": "Color",
+      "x": 1.95,
+      "y": 1.95
+    },
+    {
+      "file": "effects.svg",
+      "node": "145:1664",
+      "width": "18.1",
+      "height": "18.1",
+      "viewBox": "0 0 18.1 18.1",
+      "bytes": 596,
+      "label": "Effects",
+      "x": 1.0333,
+      "y": 1.0333
+    },
+    {
+      "file": "retouch.svg",
+      "node": "145:1669",
+      "width": "16.5352",
+      "height": "14.9703",
+      "viewBox": "0 0 16.5352 14.9703",
+      "bytes": 934,
+      "label": "Retouch",
+      "x": 1.6816,
+      "y": 1.6816
+    },
+    {
+      "file": "fill.svg",
+      "node": "145:1675",
+      "width": "16.725",
+      "height": "18.1",
+      "viewBox": "0 0 16.725 18.1",
+      "bytes": 609,
+      "label": "Fill",
+      "x": 1.95,
+      "y": 1.95
+    },
+    {
+      "file": "brush.svg",
+      "node": "145:1681",
+      "width": "17.1833",
+      "height": "17.1833",
+      "viewBox": "0 0 17.1833 17.1833",
+      "bytes": 620,
+      "label": "Brush",
+      "x": 1.95,
+      "y": 2.8667
+    },
+    {
+      "file": "auto-enhance.svg",
+      "node": "145:1687",
+      "width": "18.1",
+      "height": "18.1",
+      "viewBox": "0 0 18.1 18.1",
+      "bytes": 688,
+      "label": "Auto enhance",
+      "x": 1.95,
+      "y": 1.95
+    },
+    {
+      "file": "masking.svg",
+      "node": "145:1693",
+      "width": "19.9333",
+      "height": "14.4333",
+      "viewBox": "0 0 19.9333 14.4333",
+      "bytes": 1116,
+      "label": "Masking",
+      "x": 1.0333,
+      "y": 3.7833
+    },
+    {
+      "file": "eraser.svg",
+      "node": "145:1700",
+      "width": "16.2667",
+      "height": "15.35",
+      "viewBox": "0 0 16.2667 15.35",
+      "bytes": 558,
+      "label": "Eraser",
+      "x": 2.8667,
+      "y": 3.7833
+    }
+  ]
+}

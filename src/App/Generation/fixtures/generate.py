@@ -11,6 +11,8 @@ import zlib
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model-path', required=True)
+parser.add_argument('--vae')
+parser.add_argument('--seed', type=int)
 parser.add_argument('--prompt', required=True)
 parser.add_argument('--width', type=int, required=True)
 parser.add_argument('--height', type=int, required=True)

@@ -217,10 +217,10 @@ Item {
 
         LV.LabelButton {
             objectName: "newProjectButton"
-            text: qsTr("New Project")
+            text: qsTr("New Canvas")
             tone: LV.AbstractButton.Primary
             enabled: root.imageReady && !root.generationPending && !root.showingPreview
-            Accessible.name: qsTr("New project from generated image")
+            Accessible.name: qsTr("New canvas from generated image")
             onClicked: root.newProjectRequested(root.imageSource, root.selectedResult)
         }
     }

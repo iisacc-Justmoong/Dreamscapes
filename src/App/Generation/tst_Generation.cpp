@@ -1,4 +1,5 @@
 #include "GenerationController.h"
+#include <StorageMap.h>
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
@@ -54,6 +55,65 @@ class GenerationTests : public QObject
 {
     Q_OBJECT
 private slots:
+    void modelInventoryFollowsSocietyOwnerAtStartupAndRefresh()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-inventory-XXXXXX");
+        QVERIFY(prepare(root));
+        const auto drive = SocietyDrive::open(root.path()); QVERIFY(drive);
+        StorageMap map(*drive);
+        QVERIFY(map.publish({QJsonObject{{"path", "models/Checkpoint/deleted.safetensors"},
+            {"kind", "file"}, {"size", "7"}, {"version", QString(64, 'a')}}}));
+        QVERIFY(write(root.filePath(".society-sync/primary.json"), QJsonDocument(QJsonObject{
+            {"schema", 1}, {"container", drive->identifier()}, {"scope", QString(64, 'a')}, {"host", "test-host"}}).toJson()));
+        QVERIFY(write(root.filePath("Models/VAE/selected.safetensors"), "vae"));
+        GenerationController controller(fakeRuntime());
+        QVERIFY(controller.connectStorage(root.path()));
+        QCOMPARE(controller.models().size(), 2);
+        controller.setSelectedModel("first model.safetensor");
+        controller.setSelectedVae("VAE/selected.safetensors");
+        QVERIFY(QFile::rename(root.filePath("Models/first model.safetensor"), root.filePath("Deleted/first model.safetensor")));
+        QVERIFY(QFile::remove(root.filePath("Models/VAE/selected.safetensors")));
+        QVERIFY(write(root.filePath("Models/Checkpoint/new.safetensors"), "new model"));
+        controller.refreshModels();
+        QCOMPARE(controller.models().size(), 2); QVERIFY(controller.vaes().isEmpty());
+        QVERIFY(controller.selectedVae().isEmpty());
+        QCOMPARE(controller.selectedModel(), QString("Checkpoint/new.safetensors"));
+        QSignalSpy changes(&controller, &GenerationController::modelsChanged);
+        controller.refreshModels(); QCOMPARE(changes.size(), 0);
+        QVERIFY(QFile::remove(root.filePath("Models/second.SAFETENSORS")));
+        QVERIFY(QFile::remove(root.filePath("Models/Checkpoint/new.safetensors")));
+        controller.refreshModels(); QVERIFY(controller.models().isEmpty()); QVERIFY(controller.selectedModel().isEmpty());
+    }
+
+    void explicitVaeIsPinnedPerJobAndForwardedToWorker()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/explicit-vae-XXXXXX");
+        QVERIFY(prepare(root));
+        QVERIFY(QDir().mkpath(root.filePath("Models/VAE")));
+        QVERIFY(write(root.filePath("Models/VAE/sdxl.safetensors"), "test vae"));
+        GenerationController controller(fakeRuntime());
+        QVERIFY(controller.connectStorage(root.path()));
+        QCOMPARE(controller.vaes().size(), 1);
+        QCOMPARE(controller.models().size(), 2);
+        controller.setSelectedModel("first model.safetensor");
+        controller.setSelectedVae("VAE/sdxl.safetensors");
+        const auto first = controller.enqueue("slow external vae", "1:1", 1, 123456);
+        controller.setSelectedVae({});
+        const auto second = controller.enqueue("embedded vae");
+        QVERIFY(!first.isEmpty() && !second.isEmpty());
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, first), QString("completed"), 10000);
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, second), QString("completed"), 10000);
+        const auto firstJob = recordedJob(controller, first);
+        QCOMPARE(firstJob.value("seed").toInteger(), qint64(123456));
+        QCOMPARE(firstJob.value("generation").toObject().value("seed").toInteger(), firstJob.value("seed").toInteger());
+        QCOMPARE(firstJob.value("vae").toObject().value("path").toString(), QString("VAE/sdxl.safetensors"));
+        QCOMPARE(firstJob.value("generation").toObject().value("vae").toString(), root.filePath("Models/VAE/sdxl.safetensors"));
+        QVERIFY(recordedJob(controller, second).value("generation").toObject().value("vae").isNull());
+        controller.setSelectedVae("../outside.safetensors");
+        QVERIFY(controller.selectedVae().isEmpty());
+        QVERIFY(!controller.errorString().isEmpty());
+    }
+
     void driveLocationSelectionPersistsAndRejectsInvalidFolders()
     {
         QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/drive-location-XXXXXX");

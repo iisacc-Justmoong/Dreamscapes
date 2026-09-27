@@ -28,7 +28,7 @@ a::ToolResult page(const QVariantList& list, const QJsonObject& args) {
 }
 QJsonObject status(GenerationController& controller) {
     return {{"connected", controller.connected()}, {"container_path", controller.containerPath()},
-        {"selected_model", controller.selectedModel()}, {"model_count", controller.models().size()},
+        {"selected_model", controller.selectedModel()}, {"selected_vae", controller.selectedVae()}, {"model_count", controller.models().size()},
         {"job_count", controller.jobs().size()}, {"busy", controller.busy()},
         {"runtime_available", controller.runtimeAvailable()}, {"error", controller.errorString()},
         {"inference", QJsonObject::fromVariantMap(controller.inferenceStatus())},
@@ -52,6 +52,14 @@ void installDreamscapesMcp(QObject* root, QObject* lifetime) {
             [](auto& object, const auto&, const auto&) { return a::ToolResult{"Dreamscapes state", status(object)}; });
         add("models", "List Dreamscapes models in the device's local Society container.", pageInput(), true,
             [](auto& object, const auto& args, const auto&) { return page(object.models(), args); });
+        add("vaes", "List explicit VAE files in Society's VAE folder.", pageInput(), true,
+            [](auto& object, const auto& args, const auto&) { return page(object.vaes(), args); });
+        add("select_vae", "Select a Society VAE ID for future jobs; empty id uses the model default.",
+            input({{"id", QJsonObject{{"type", "string"}, {"maxLength", 4096}}}}, {"id"}), false,
+            [](auto& object, const auto& args, const auto&) {
+                object.setSelectedVae(args["id"].toString());
+                return a::ToolResult{"Dreamscapes VAE selection", {{"selected_vae", object.selectedVae()}}, object.selectedVae() != args["id"].toString()};
+            });
         add("jobs", "List Dreamscapes' actual generation jobs and completion/error state.", pageInput(), true,
             [](auto& object, const auto& args, const auto&) { return page(object.jobs(), args); });
         add("select_model", "Select an existing model ID returned by Dreamscapes.models.",
@@ -65,12 +73,13 @@ void installDreamscapesMcp(QObject* root, QObject* lifetime) {
         add("refresh_models", "Refresh Dreamscapes' local model catalog.", input(), false,
             [](auto& object, const auto&, const auto&) { object.refreshModels(); return a::ToolResult{"Dreamscapes models refreshed", status(object)}; });
         add("generate", "Submit image generation to this running Dreamscapes instance. Returns actual job IDs; poll jobs for completion.",
-            input({{"prompt", QJsonObject{{"type", "string"}, {"minLength", 1}, {"maxLength", 32000}}},
+            input({{"seed", QJsonObject{{"type", "integer"}, {"minimum", 0}, {"maximum", 4294967295.0}}},
+                {"prompt", QJsonObject{{"type", "string"}, {"minLength", 1}, {"maxLength", 32000}}},
                 {"aspect_ratio", QJsonObject{{"type", "string"}, {"enum", QJsonArray{"1:1", "4:3", "3:4", "16:9", "9:16"}}}},
                 {"count", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 1000}}}}, {"prompt"}), false,
             [](auto& object, const auto& args, const auto&) {
                 const auto count = args["count"].toInt(1);
-                const auto id = object.enqueue(args["prompt"].toString(), args["aspect_ratio"].toString("1:1"), count);
+                const auto id = object.enqueue(args["prompt"].toString(), args["aspect_ratio"].toString("1:1"), count, args.contains("seed") ? args["seed"].toInteger() : -1);
                 if (id.isEmpty()) return a::ToolResult{object.errorString(), {}, true};
                 const auto jobs = object.jobs(); QJsonArray ids;
                 // The UI returns newest jobs first; expose this submission in creation order.
@@ -86,7 +95,7 @@ void installDreamscapesMcp(QObject* root, QObject* lifetime) {
                     {{"job_id", id}, {"cancelled", cancelled}}, !cancelled};
             });
         auto policy = std::make_shared<a::RulePolicy>(a::PermissionMode::Default,
-            QList<a::PermissionRule>{{"select_model", a::PermissionBehavior::Allow}, {"refresh_models", a::PermissionBehavior::Allow},
+            QList<a::PermissionRule>{{"select_vae", a::PermissionBehavior::Allow}, {"select_model", a::PermissionBehavior::Allow}, {"refresh_models", a::PermissionBehavior::Allow},
                 {"generate", a::PermissionBehavior::Allow}, {"cancel", a::PermissionBehavior::Allow}});
         a::McpServerOptions bridge; bridge.workingDirectory = QDir::currentPath(); bridge.appId = "com.iisacc.dreamscapes";
         auto* questions = new a::QuestionInbox(a::PermissionRequestsOptions{}, lifetime);

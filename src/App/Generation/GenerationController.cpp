@@ -330,13 +330,34 @@ QVariantList GenerationController::models() const
 {
     QVariantList result;
     for (const auto &model : m_models)
-        result.append(QVariantMap{{"id", model.id}, {"name", model.name}, {"format", model.format},
-            {"available", model.available}, {"bytes", model.bytes}});
+        if (!model.id.startsWith("VAE/", Qt::CaseInsensitive))
+            result.append(QVariantMap{{"id", model.id}, {"name", model.name}, {"format", model.format},
+                {"available", model.available}, {"bytes", model.bytes}});
     return result;
+}
+QVariantList GenerationController::vaes() const
+{
+    QVariantList result;
+    for (const auto &model : m_models)
+        if (model.id.startsWith("VAE/", Qt::CaseInsensitive) && model.format == "safetensors")
+            result.append(QVariantMap{{"id", model.id}, {"name", model.name}, {"available", model.available}});
+    return result;
+}
+QString GenerationController::selectedVae() const { return m_selectedVae; }
+void GenerationController::setSelectedVae(const QString &id)
+{
+    if (!id.isEmpty() && std::none_of(m_models.cbegin(), m_models.cend(), [&](const auto &model) {
+            return model.id == id && model.id.startsWith("VAE/", Qt::CaseInsensitive) && model.format == "safetensors";
+        })) { fail(tr("Choose a VAE from Society's VAE folder.")); return; }
+    if (m_selectedVae == id) return;
+    m_selectedVae = id;
+    fail({});
+    m_residencyPending = true;
+    emit modelsChanged();
 }
 void GenerationController::setSelectedModel(const QString &id)
 {
-    if (m_selected == id) return;
+    if (m_selected == id || id.startsWith("VAE/", Qt::CaseInsensitive)) return;
     if (std::none_of(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == id; })) return;
     m_selected = id;
     if (!busy() && !m_controlId.isEmpty() && m_preparingModel != id) {
@@ -427,6 +448,7 @@ bool GenerationController::connectStorage(const QString &path)
     if (!storage) return fail(error);
     m_storage = std::move(storage);
     m_selected.clear();
+    m_selectedVae.clear();
     m_jobs.clear();
     if (!discardLegacyStorage()) {
         m_storage.reset();
@@ -457,22 +479,26 @@ void GenerationController::refreshModels()
         ? SharedStorage::open(m_fileSystem.rootPath(), &error) : std::optional<SharedStorage>();
     if (!storage) {
         if (error.isEmpty()) error = m_fileSystem.errorString();
-        m_storage.reset(); m_models.clear(); m_selected.clear();
+        m_storage.reset(); m_models.clear(); m_selected.clear(); m_selectedVae.clear();
         emit storageChanged(); emit modelsChanged();
         fail(error);
         return;
     }
     const bool storageChangedNow = !m_storage || m_storage->drive().identifier() != storage->drive().identifier()
         || m_storage->drive().rootPath() != storage->drive().rootPath();
-    auto models = storage->models(&error);
+    auto models = m_fileSystem.models();
+    error = m_fileSystem.errorString();
     const bool changed = storageChangedNow || models.size() != m_models.size()
         || !std::equal(models.cbegin(), models.cend(), m_models.cbegin(), m_models.cend(),
-            [](const StoredModel &a, const StoredModel &b) { return a.id == b.id && a.fingerprint == b.fingerprint && a.available == b.available; });
+            [](const StoredModel &a, const StoredModel &b) { return a.id == b.id && a.name == b.name && a.format == b.format && a.fingerprint == b.fingerprint
+                && a.available == b.available && a.bytes == b.bytes; });
     m_storage = std::move(storage);
     if (m_foreground) m_societyClient.start(m_storage->drive().rootPath());
     m_models = std::move(models);
     if (std::none_of(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == m_selected; }))
-        m_selected = m_models.isEmpty() ? QString() : m_models.first().id;
+        m_selected = this->models().isEmpty() ? QString() : this->models().first().toMap().value("id").toString();
+    if (std::none_of(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == m_selectedVae; }))
+        m_selectedVae.clear();
     fail(error);
     if (storageChangedNow) {
         // Requests remain durable in the old Society replica; tracking is local
@@ -628,12 +654,15 @@ void GenerationController::clearWorkingFiles()
     m_output.clear();
 }
 
-QString GenerationController::enqueue(const QString &prompt, const QString &aspectRatio, int count)
+QString GenerationController::enqueue(const QString &prompt, const QString &aspectRatio, int count, qint64 seed)
 {
 #if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
     if (!runtimeAvailable()) { fail(tr("Local image generation is unavailable in this build.")); return {}; }
 #endif
     if (count < 1 || count > 1000) { fail(tr("Choose an image count from 1 to 1000.")); return {}; }
+    if (seed < -1 || seed > std::numeric_limits<quint32>::max() - qint64(count - 1)) {
+        fail(tr("Choose a seed from 0 to 4294967295, with room for the image count.")); return {};
+    }
     if (!connected()) { fail(tr("Open Society on this device to load its storage map.")); return {}; }
     const auto trimmed = prompt.trimmed();
     const auto size = imageSize(aspectRatio, m_runtime.imageExtent);
@@ -647,6 +676,14 @@ QString GenerationController::enqueue(const QString &prompt, const QString &aspe
     const bool localReady = required.isEmpty() ? selected->available : map.available(required);
     if (localReady && m_runtime.nativeInference && selected->format != "safetensors" && selected->format != "unified") {
         fail(tr("Choose a checkpoint or unified model for on-device generation.")); return {};
+    }
+    QJsonObject vaeReference;
+    if (!m_selectedVae.isEmpty()) {
+        const auto vae = std::find_if(m_models.cbegin(), m_models.cend(), [&](const auto &value) { return value.id == m_selectedVae; });
+        if (vae == m_models.cend() || !vae->available || !localReady || m_runtime.nativeInference) {
+            fail(tr("Explicit VAE selection currently requires locally available models and the desktop runtime.")); return {};
+        }
+        vaeReference = vae->reference(m_storage->drive().identifier());
     }
     const auto reference = selected->reference(m_storage->drive().identifier());
     QString error;
@@ -667,8 +704,8 @@ QString GenerationController::enqueue(const QString &prompt, const QString &aspe
             {"createdAt", created.addMSecs(index).toString(Qt::ISODateWithMs)}, {"updatedAt", updated},
             {"state", "queued"}, {"execution", localReady ? "local" : "host"}, {"prompt", trimmed},
             {"aspectRatio", aspectRatio}, {"width", size.width()}, {"height", size.height()},
-            {"steps", m_runtime.steps}, {"seed", double(QRandomGenerator::global()->generate())},
-            {"device", m_runtime.device}, {"model", reference}, {"modelName", selected->name}};
+            {"steps", m_runtime.steps}, {"seed", double(seed < 0 ? QRandomGenerator::global()->generate() : seed + index)},
+            {"device", m_runtime.device}, {"model", reference}, {"modelName", selected->name}, {"vae", vaeReference}};
         m_jobs.append(job);
     }
     // Validate once and publish the whole submission before starting the serial worker.
@@ -723,10 +760,17 @@ void GenerationController::pump()
     if (m_cancelled) { finish("cancelled"); return; }
     QStringList arguments{"--model-path", model, "--prompt", m_active.value("prompt").toString(),
         "--width", QString::number(m_active.value("width").toInt()), "--height", QString::number(m_active.value("height").toInt()),
-        "--steps", QString::number(m_active.value("steps").toInt()), "--device", m_active.value("device").toString(),
+        "--steps", QString::number(m_active.value("steps").toInt()),
+        "--seed", QString::number(m_active.value("seed").toInteger()), "--device", m_active.value("device").toString(),
         "--output-dir", m_output};
     arguments.append({"--cache-dir", m_workDirectory->filePath("cache"),
         "--preview-dir", m_previewDirectory->path()});
+    const auto vaeReference = m_active.value("vae").toObject();
+    if (!vaeReference.isEmpty()) {
+        const auto vae = m_storage->resolveModel(vaeReference, &error);
+        if (vae.isEmpty()) { finish("failed", error); return; }
+        arguments.append({"--vae", vae});
+    }
     arguments.append(resourceArguments(&error));
     if (!error.isEmpty()) { finish("failed", error); return; }
     if (m_active.value("model").toObject().value("format") == "safetensors")
@@ -1022,6 +1066,13 @@ void GenerationController::prepareForeground()
         arguments = {"--model-path", model, "--device", m_runtime.device,
                      "--width", QString::number(m_runtime.imageExtent), "--height", QString::number(m_runtime.imageExtent),
                      "--steps", QString::number(m_runtime.steps)};
+        if (!m_selectedVae.isEmpty()) {
+            const auto vae = std::find_if(m_models.cbegin(), m_models.cend(), [&](const auto &value) { return value.id == m_selectedVae; });
+            if (vae == m_models.cend()) { fail(tr("The selected VAE is no longer available.")); return; }
+            const auto path = m_storage->resolveModel(vae->reference(m_storage->drive().identifier()), &error);
+            if (path.isEmpty()) { fail(error); return; }
+            arguments.append({"--vae", path});
+        }
         arguments.append(resourceArguments(&error));
         if (!error.isEmpty()) { setInferenceStatus({{"state", "error"}, {"ready", false}, {"error", error}}); return; }
         if (selected->format == "safetensors") arguments.append({"--backend", "local"});

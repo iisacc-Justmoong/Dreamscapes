@@ -40,8 +40,13 @@ struct AppProcess : QProcess {
         start(MCP_APP_EXECUTABLE, {"--society-container", base + "/container"});
     }
     bool waitForRoot() {
+        // Cold signed bundles on external storage can exceed the normal CI
+        // startup budget before QML loads. Keep the default strict and bounded.
+        bool configured = false;
+        const int requested = qEnvironmentVariableIntValue("DREAMSCAPES_TEST_STARTUP_TIMEOUT_MS", &configured);
+        const int timeout = configured && requested >= 25000 && requested <= 120000 ? requested : 25000;
         QElapsedTimer timer; timer.start();
-        while (state() != NotRunning && timer.elapsed() < 25000) {
+        while (state() != NotRunning && timer.elapsed() < timeout) {
             waitForReadyRead(100); output += readAll();
             if (output.contains("bootstrap.entry.root-loaded")) return true;
         }
@@ -114,6 +119,8 @@ private slots:
         const auto drive = iiSocietyContainer::SocietyDrive::create(base.filePath("container")); QVERIFY(drive);
         QVERIFY(write(base.filePath("container/Models/first.safetensors"), "MCP process-protocol fixture model 1"));
         QVERIFY(write(base.filePath("container/Models/second.safetensors"), "MCP process-protocol fixture model 2"));
+        QVERIFY(QDir().mkpath(base.filePath("container/Models/VAE")));
+        QVERIFY(write(base.filePath("container/Models/VAE/sdxl.safetensors"), "MCP VAE fixture"));
         AppProcess process; process.startApp(base.path(), true); QVERIFY(process.waitForStarted());
         QVERIFY2(process.waitForRoot(), process.output.constData());
         const auto discovered = m::discoverLocalApplications(base.filePath("apps"));
@@ -128,8 +135,13 @@ private slots:
             if (tool["name"] == "iiLocalLLM.agent.permissions.get")
                 QVERIFY(tool["annotations"].toObject()["readOnlyHint"].toBool());
         }
-        QCOMPARE(toolNames, QSet<QString>({"status", "models", "jobs", "select_model",
+        QCOMPARE(toolNames, QSet<QString>({"status", "models", "vaes", "select_vae", "jobs", "select_model",
             "refresh_models", "generate", "cancel", "iiLocalLLM.agent.permissions.get", "AskUserQuestion"}));
+        QCOMPARE(data(client, "vaes")["total"].toInt(), 1);
+        QCOMPARE(data(client, "select_vae", {{"id", "VAE/sdxl.safetensors"}})["selected_vae"].toString(), QString("VAE/sdxl.safetensors"));
+        QVERIFY(call(client, "select_vae", {{"id", "../escape.safetensors"}})["isError"].toBool());
+        QCOMPARE(data(client, "status")["selected_vae"].toString(), QString("VAE/sdxl.safetensors"));
+        QVERIFY(!call(client, "select_vae", {{"id", ""}})["isError"].toBool());
         const auto policy = data(client, "iiLocalLLM.agent.permissions.get");
         QVERIFY(policy["inspection_supported"].toBool());
         QCOMPARE(policy["provider"].toString(), QString("rules"));
@@ -150,11 +162,12 @@ private slots:
         QCOMPARE(data(client, "status")["job_count"].toInt(), 0);
 
         // This exercises the real app/storage/worker protocol using a deterministic PNG fixture, not native model inference.
-        const auto first = data(client, "generate", {{"prompt", "fixture generation"}, {"aspect_ratio", "4:3"}});
+        const auto first = data(client, "generate", {{"prompt", "fixture generation"}, {"aspect_ratio", "4:3"}, {"seed", 123456}});
         const auto firstId = first["first_job_id"].toString(); QVERIFY(!firstId.isEmpty());
         QCOMPARE(first["job_ids"].toArray(), QJsonArray{firstId});
         QTRY_COMPARE_WITH_TIMEOUT(findJob(client, firstId)["state"].toString(), QString("completed"), 20000);
         const auto completed = findJob(client, firstId);
+        QCOMPARE(completed["seed"].toInteger(), qint64(123456));
         const auto imagePath = base.filePath("container/" + completed["image"].toString());
         QVERIFY(completed["image"].toString().startsWith("Generation History/"));
         const QImage image(imagePath); QVERIFY(!image.isNull());

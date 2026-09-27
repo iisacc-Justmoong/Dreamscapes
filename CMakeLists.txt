@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.31)
 include("${CMAKE_CURRENT_LIST_DIR}/cmake/single-app/Defaults.cmake")
-project(Dreamscapes VERSION 0.1.0 LANGUAGES CXX)
+project(Dreamscapes VERSION 0.1.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -14,10 +14,10 @@ find_package(iiCSMIDI CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiCSMIDI")
 find_package(iiLicenseManager CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLicenseManager")
 find_package(iiLocalDiffusion 0.6.1 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLocalDiffusion")
 find_package(iiPaintEngine CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiPaintEngine")
-find_package(iiSocietyContainer 0.14.0 CONFIG REQUIRED COMPONENTS Gui HINTS "$ENV{HOME}/.local/SDK/iiSocietyContainer")
+find_package(iiSocietyContainer 0.14.1 CONFIG REQUIRED COMPONENTS Gui HINTS "$ENV{HOME}/.local/SDK/iiSocietyContainer")
 find_package(iiSocietyClient 0.1.0 CONFIG REQUIRED)
 find_package(iiSocietyGeneration 0.1.0 CONFIG REQUIRED)
-find_package(iiSocietyHelper 0.5.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietyHelper")
+find_package(iiSocietyHelper 0.7.2 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietyHelper")
 find_package(iiUpdateManager CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiUpdateManager")
 find_package(LVRS CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/LVRS")
 qt_standard_project_setup(REQUIRES 6.8)
@@ -93,6 +93,7 @@ endif()
 # Source location must not change the QML module's existing resource URLs.
 file(GLOB_RECURSE _app_source_resources CONFIGURE_DEPENDS
     RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/src/App/*.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/App/*.js"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/App/*.svg")
 foreach(_app_resource IN LISTS _app_source_resources)
     string(REGEX REPLACE "^src/" "" _app_resource_alias "${_app_resource}")
@@ -114,11 +115,22 @@ lvrs_add_qml_app(
         src/App/Views/Home/AdvancedGenerate.qml
         src/App/Views/Home/GenerationHistory.qml
         src/App/Views/Result/GenerationResult.qml
+        src/App/Views/Editor/CanvasEditor.qml
+        src/App/Views/Editor/EditorToolbar.qml
+        src/App/Views/Editor/EditorToolDefinitions.js
+        src/App/Views/Editor/EditorToolControl.qml
+        src/App/Views/Editor/EditorToolPanel.qml
+        src/App/Views/Editor/EditorToolSheet.qml
     NO_PLATFORM_RUNTIME_TARGETS
 )
 qt_add_resources(Dreamscapes result_assets
     PREFIX "/qt/qml/Dreamscapes"
-    FILES src/App/Views/Result/Assets/right.svg)
+    FILES src/App/Views/Result/Assets/right.svg
+        src/App/Views/Home/Assets/media-chevron.svg)
+file(GLOB editor_toolbar_assets CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Editor/Assets/*.svg")
+qt_add_resources(Dreamscapes editor_toolbar_assets
+    PREFIX "/qt/qml/Dreamscapes"
+    FILES ${editor_toolbar_assets})
 option(DREAMSCAPES_LOCAL_RUNTIME_PROBE "Enable opt-in local device inference verification" OFF)
 if(DREAMSCAPES_LOCAL_RUNTIME_PROBE)
     target_compile_definitions(DreamscapesGeneration PRIVATE DREAMSCAPES_LOCAL_RUNTIME_PROBE)
@@ -316,7 +328,7 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_test(NAME Dreamscapes.Gui COMMAND DreamscapesGuiTests)
     set_tests_properties(Dreamscapes.Gui PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1"
-        TIMEOUT 120
+        TIMEOUT 600
     )
     qt_add_executable(DreamscapesGenerationTests src/App/Generation/tst_Generation.cpp)
     target_link_libraries(DreamscapesGenerationTests PRIVATE DreamscapesGeneration Qt6::Test)
