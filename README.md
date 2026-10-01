@@ -86,19 +86,17 @@ GUI 테스트 타깃에는 이 저장소에 존재하는 소스만 등록한다.
 
 파일 영역은 `DashboardFiles`에 직접 연결한다. Recent files와 Generation history는 각각 최신 20개, Recent published는 최신 4개만 노출한다. QML에서도 같은 상한을 적용하지만 실제 탐색·정렬·감시는 `iiSocietyContainer::DashboardFiles`가 담당한다. 모바일 Home과 결과 화면은 동일한 `QuickGenerate` 인스턴스를 재사용하므로 스크롤·결과 전환 중에도 프롬프트, 종횡비와 생성 수량이 유지된다. `mobileHomeUsesFigmaSectionsLimitsAndLvrsNavigation`은 402×844 iOS 테마에서 20/4/20 목록 상한, 5탭+검색, 370px 콘텐츠 폭, 하단 88px LVRS 내비게이션과 세로 스크롤을 검사한다.
 
-[Figma Home QuickGenerate, 79:3435](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=79-3435)를 먼저 갱신한 뒤 코드에 반영했다. 둥근 패널 안에 Image/Video 선택, 프롬프트 입력, 오른쪽 아래 Generate만 표시한다. 이미지 업로드, 모델 선택, 화면비, 생성 개수, More, Upgrade는 QuickGenerate에 표시하지 않는다. `LV.VStack`·`LV.HStack`, `LV.InputField`, `LV.LabelMenuButton`, `LV.LabelButton`, `LV.ContextMenu`를 사용한다.
+[Figma QuickGenerate, 203:6930](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=203-6930)를 기준으로 기존의 compact 구성을 복원하였다. 상단은 전체 폭의 Prompt 입력란이고, 8px 아래 행 왼쪽에 Image·화면비·생성 수량 드롭다운, 오른쪽에 Generate 버튼을 배치한다. 한 줄 입력란과 버튼은 LVRS 기본 22px, 한 줄 콘텐츠 높이는 52px이다. 모든 생성 [프롬프트 입력란](docs/PromptFields.md)은 폭을 넘는 텍스트를 자동 줄바꿈하고 실제 줄 수에 따라 높이를 늘린다. 텍스트를 삭제하면 다시 줄어든다. 둥근 외곽 컴포저 패널은 사용하지 않는다. 모바일 Home의 바깥 여백은 0, 나머지 진입점은 10px이며 LVRS 입력 재질·색상·Pretendard Medium 13px을 재사용한다. 세 드롭다운에는 지정 노드의 원본 18×18 화살표 SVG를 사용한다.
 
-패널은 LVRS `panelBackground05`, 테두리 `panelBackground08`, 반경 `radiusXl`(16px), 안쪽 여백 12px와 1px 테두리, 행 간격 12px, 높이 126px이다. 입력창·유형 선택·Generate의 높이는 44px이며 Pretendard Medium 13px을 사용한다. 모바일 Home은 바깥 여백 0, 나머지 진입점은 10px이다. 480px 미만 패널에서는 안내를 `Describe your idea`로 줄인다. 화살표는 Figma 원본 18×18 SVG를 `Views/Home/Assets/media-chevron.svg`에 보관하고 번들에 포함한다.
+화면비는 1:1·4:3·3:4·16:9·9:16, 수량은 1~10·15·20·25·30·40·50·100·200·500·1000을 다시 선택할 수 있다. 기본값은 빈 프롬프트, Image, 1:1, 1개이다. Figma의 100 표시는 선택 가능한 상태이며 앱을 열 때 100장 생성을 기본 선택하지 않는다. 수량 목록은 스크롤·키보드 탐색을 지원한다. 좁은 화면에서는 버튼 간격을 줄이며 버튼과 Generate가 겹치지 않도록 한다.
 
-기본값은 빈 프롬프트와 Image이다. Generate와 Enter는 앞뒤 공백을 제거한 프롬프트를 제출하며, 빈 입력은 입력창에 포커스를 둔다. 유형 전환, 창 크기 변경, Home/결과/에디터 전환에서 초안을 보존한다. 결과 화면에서는 메뉴를 위로 연다. 기존 호출자와 복원된 초안을 위해 `generateRequested(prompt, mediaType, aspectRatio, count)`와 내부 `aspectRatio`/`generationCount` 속성은 유지하며 새 입력의 기본값은 1:1, 1개이다. 상세 생성 화면의 비율·수량 기능과 생성 큐 계약은 유지한다.
+`generateRequested(prompt, mediaType, aspectRatio, count)` 계약, Enter 제출, 공백 제거, 빈 입력 포커스, 초안 보존, 결과 화면의 위쪽 메뉴와 오류 안내를 유지한다. Image는 기존 생성 큐에 연결한다. 현재의 Image/Video 선택과 Video 미지원 안내도 유지하며 Video 요청을 이미지 큐에 넣지 않는다. Society에도 동일한 레이아웃과 선택 컨트롤을 적용한다.
 
-Image는 기존 `GenerationController.enqueue`로 연결한다. Video는 선택과 요청 전달을 지원하지만 현재 엔진에 비디오 생성 경로가 없으므로 안내를 표시하고 이미지 큐에 등록하지 않는다. 입력 내용은 유지된다. Society도 같은 컴포저 구성을 사용하며 아직 공급자가 연결되지 않았다는 기존 안내를 표시한다.
-
-`sharedPanelLayout`은 데스크톱·모바일 8개 크기의 배치, 터치 영역, 원본 아이콘 로딩을 검사한다. `sharedControlsSubmitCurrentSelection`은 Image/Video 선택, 공백 처리, Enter, 초안 유지와 Video 요청의 이미지 큐 차단을 검사한다. 기존 결과 화면·캔버스 라우팅·실행기 픽스처 생성 테스트도 회귀 검증한다.
+`sharedPanelLayout`은 데스크톱·모바일 9개 크기에서 두 행 배치, 겹침 방지와 세 원본 아이콘의 로딩·18px 크기를 검사한다. `sharedControlsSubmitCurrentSelection`은 유형·비율·수량 선택, 1000개 목록 끝까지의 키보드 탐색, 공백·Enter·초안 보존과 Video 요청 차단을 검사한다. 기존 결과 화면과 3장 생성 fixture도 회귀 검증한다.
 
 ## 생성 결과 화면
 
-[Figma 생성 결과, 31:81](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=31-81)의 도구 모음과 QuickGenerate를 유지하면서 다중 결과를 갤러리로 확장한다. 기본 데스크탑 창은 960×640이며, 402×575 기준 창에서 단일 이미지 영역은 기존 402×242px Fit 표시를 유지한다. 콘텐츠 상단 버튼은 22px, 하단 QuickGenerate는 바깥 여백을 포함해 146px이다. 배경·버튼·입력란·글자는 기존 LVRS 테마와 컴포넌트를 재사용한다.
+[Figma 생성 결과, 31:81](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=31-81)의 도구 모음과 QuickGenerate를 유지하면서 다중 결과를 갤러리로 확장한다. 기본 데스크탑 창은 960×640이며, 402×575 기준 창에서 단일 이미지 영역은 기존 402×242px Fit 표시를 유지한다. 콘텐츠 상단 버튼은 22px, 하단 QuickGenerate는 한 줄 프롬프트일 때 바깥 여백을 포함해 72px이다. 여러 줄 입력 시 자동으로 높이가 늘어나며, 창 높이를 넘는 입력은 컴포저 안에서 세로 스크롤한다. 배경·버튼·입력란·글자는 기존 LVRS 테마와 컴포넌트를 재사용한다.
 
 완료 이미지가 여러 장이면 상단 도구 모음과 하단 QuickGenerate 사이의 전체 공간을 스크롤 갤러리로 사용한다. 사진 앱처럼 2px 간격의 정사각형 썸네일을 `PreserveAspectCrop`으로 채우며, 가용 폭 160px당 한 열을 두고 최소 2열로 배치한다. 예를 들어 390px 창은 2열, 960px 창은 6열이며 리사이즈에 따라 바뀐다. 썸네일을 누르면 가용 영역 전체에서 원본 비율로 크게 표시하고, Back은 같은 스크롤 위치의 갤러리로 돌아간다. 갤러리에서 Back을 누르면 홈으로 이동하며 해당 결과 화면의 수명이 끝난다. 홈이나 확대 화면에서 새 생성을 제출하면 이전 이미지·선택·확대·스크롤 상태를 비우고 새 요청의 진행과 결과를 표시한다. 방향키·Home·End로 선택하고 Enter로 확대할 수 있다. 오른쪽 클릭·길게 누르기는 선택 이미지의 기존 저장 메뉴를 연다.
 
@@ -268,6 +266,9 @@ open build/bin/Dreamscapes.app
 macOS 개발 앱에는 설치된 LVRS 라이브러리 디렉터리를 build RPATH로 기록하므로 별도의 `DYLD_LIBRARY_PATH` 설정 없이 실행할 수 있다. 현재 산출물은 설치된 Qt·LVRS를 참조하는 개발 빌드이며 재배포용 독립 패키지는 아니다.
 
 ## 다른 플랫폼
+
+모바일 하단 툴바 아이콘은 Figma `103:1211`의 원본 SVG를 번들에 포함하며, LVRS의 원본 색상 보존 옵션으로 렌더링한다. 매핑과 검증 방법은 [모바일 아이콘 계약](docs/MobileNavigationIcons.md)에 기록한다.
+
 ### iOS 기기 패키지
 
 iOS 빌드는 필수 SDK 9개를 유지한다. 정적 LVRS·Society Container·Helper와 나머지
@@ -397,7 +398,7 @@ iOS 26 이상에서는 사용자가 시작한 이미지 생성에 `BGContinuedPr
 
 `DreamscapesLocalSocietyTests`는 단계 혼동, 로딩 중 취소/백그라운드/제한 시간/예외, 다음 요청 재시도, 화면 유지 해제를 검사한다. 실제 기기 검증은 `DREAMSCAPES_LOCAL_RUNTIME_PROBE=ON` 빌드의 `--verify-local-generation --local-model <model> --local-prompt <prompt>`를 이용하며, Documents의 `local-generation-verification.json`에서 단계·경과 관측 시각·전경·화면 유지·최종 결과를 확인한다. 테스트용 엔진 결과와 실기기 결과는 별도 증거로 기록한다. 화면 유지 API: [Apple UIKit](https://developer.apple.com/documentation/uikit/uiapplication/isidletimerdisabled).
 
-공유 QuickGenerate는 LVRS 컨트롤을 44px 터치 영역에 배치한다. 패널은 안쪽 여백·테두리 26px + 입력 행 44px + 간격 12px + 버튼 행 44px = 126px이며, 결과 화면에서는 바깥 여백 20px를 더한 146px이다. 결과 이미지 중앙 배치 검증도 이 높이를 기준으로 한다.
+공유 QuickGenerate는 Figma 203:6930의 compact 구성을 사용한다. 입력 행 22px + 간격 8px + 버튼 행 22px = 52px이며, 결과 화면에서는 바깥 여백 20px를 더한 72px이다. 결과 이미지 중앙 배치 검증도 이 높이를 기준으로 한다.
 
 LVRS 공통 모션은 버튼의 눌림·복원과 컨텍스트 메뉴의 진입·닫힘에 적용된다. 이미지 저장 GUI 회귀 테스트는 메뉴의 `visible`이 false가 되어 닫힘 애니메이션이 완료된 뒤 다음 클릭을 전송하며, 고정 시간 대기 없이 파일 저장 취소·재시도와 사진 저장 중 중복 요청 방지를 검사한다.
 
@@ -570,3 +571,54 @@ Figma [Editor Toolbar · Full 19](https://www.figma.com/design/bn8O4AHKr1X9DWnhR
 원본의 높이 84px, 86×68px 도구, 4px 간격, 22px 아이콘 영역, 9px Pretendard Medium 레이블을 유지한다. `LV.Tab`의 선택·접근성·키보드 동작을 재사용하고 `ListView`가 가로 터치/마우스 드래그, 관성 스크롤과 항목 스냅을 처리한다. 스크롤만으로 도구가 선택되지 않으며 탭으로 선택한 도구는 크기 변경 후에도 유지된다. 방향키와 Home/End로도 탐색할 수 있다. `CanvasEditor.selectedTool`과 `toolSelected(toolId)`가 현재 선택과 도구 전환을 노출한다. 툴 버튼을 누르면 해당 도구의 LVRS 하단 시트가 올라온다. 19개 통합 패널의 428개 항목, 툴별 입력 상태 보존, Reset, 세로 스크롤, 색상 선택, Escape·배경 탭·하단 드래그 닫기를 제공한다. 좁은 화면에서는 2열 항목을 1열로 배치한다. 그리기·문서 저장·생성 등 편집 엔진 동작은 아직 연결하지 않았으며 해당 액션을 누르면 연결되지 않은 상태를 명시한다. 구현 구조와 검증 계약은 [EditorToolPanels.md](docs/EditorToolPanels.md)에 있다.
 
 19개 원본 SVG는 `Views/Editor/Assets/`에 그대로 저장되어 앱 리소스에 포함된다. `manifest.json`에 Figma 노드, 파일, 원본 크기와 아이콘 영역 안의 위치를 기록했다. 런타임에 임시 Figma URL을 사용하지 않는다. `mobileEditorToolbarSlidesAndSelects`는 320/390/402px iOS 테마, 360px Android 테마, 가로 화면 및 전체 원본 폭에서 하단 배치·안전 영역·선택·터치/마우스 드래그·끝 항목 도달·키보드 탐색과 모든 SVG의 로드·파일·표시 치수를 검사한다.
+
+### 추론 진단 기록과 데스크톱 무진행 감시
+
+데스크톱 iiLocalDiffusion 워커는 Society 저장소의
+`Models/.society-runtime/iiLocalDiffusion/diagnostics/inference-*.jsonl`에 네이티브
+추론 기록을 남긴다. 임시 생성 폴더를 정리하거나 워커를 종료해도 기록은 유지된다.
+각 작업의 `telemetry` 및 `inferenceStatus.telemetry`에는 최근 기록과 파일 경로가
+전달된다. SDK 갱신이 필요하며, 이전 SDK가 보내지 않는 기록을 앱이 추정하지 않는다.
+
+기록 범위는 Model load → Text encode → Denoise step → VAE decode → Postprocess이다.
+실제 모듈의 실행 backend, 단계·step 시간, 가중치 로딩 구간, 프로세스 메모리와
+시스템 swap을 구분한다. Metal 표시는 모듈 배치이며 모든 연산자의 CPU fallback이
+없었다는 증거가 아니다. 상세 측정 정의는 SDK의 `docs/krea2.md`를 따른다.
+
+데스크톱 생성 요청에도 `nativeTimeoutMilliseconds`(기본 15분)의 무진행 감시를
+적용한다. 단계·step·모델 검증 바이트 또는 실제 완료된 CPU graph batch가 바뀌거나 유효한 새 미리보기가 도착하면
+제한 시간이 갱신된다. 동일 진행값 반복과 telemetry heartbeat는 갱신하지 않는다.
+제한 초과 시 해당 워커 프로세스 그룹을 종료하고, 2초 후에도 살아 있으면 강제
+종료한다. 작업은 실패로 처리하고 마지막 단계와 진단 파일 경로를 오류에 남긴다.
+전체 생성 시간에 고정 15분 제한을 두는 것은 아니다. 원격 Society 작업과 모바일
+인프로세스 취소 정책은 각 실행 경로에서 관리한다.
+
+`Dreamscapes.Generation`은 heartbeat만 보내는 워커가 실패하는지, 실제 step이
+진행되면 전체 시간이 감시 간격을 넘어도 완료하는지, 실패 후에도 진단 파일이
+보존되는지 검증한다.
+
+
+The `Dreamscapes.Generation` CTest suite has a 90-second outer limit to cover
+worker startup, cancellation, and history fixtures while real inference shares
+external storage. Individual generation/watchdog deadlines are unchanged; this
+is test-runner headroom, not a longer application stall timeout.
+
+QuickGenerate 복원 회귀 테스트는 `ctest --test-dir build -R "^Dreamscapes.QuickGenerate$" --output-on-failure`로 실행한다.
+
+## Desktop Home — Figma 261:3148
+
+The desktop home uses an LVRS menu sidebar and native title-bar search,
+notifications and account controls. Recent files, publications and generation
+history are backed by Society's `DashboardFiles`, including search-before-limit
+filtering and automatic file-change refresh. Layout, asset provenance,
+interaction contracts and focused tests are documented in
+[DesktopHome.md](docs/DesktopHome.md).
+
+The desktop Home includes the [interactive paint canvas](docs/HomePaintCanvas.md): LVRS icon tools and ColorPicker, draggable image references, undoable pixel paste, and immutable generation inputs.
+
+The desktop [Home body](docs/DesktopHome.md) follows Figma `261:3148`: a canvas-first
+composer, compact icon/slider/color tools, reference-image attachments, and five
+continuous content rows. Inspiration cards fill the editable prompt; persisted
+rows are backed by Society. Native window chrome remains unchanged.
+
+The Home [New canvas chooser](docs/NewCanvas.md) provides 300 Figma-derived canvas presets, global search, custom physical dimensions, and LVRS controls before opening an iiSharedCanvas editor document.

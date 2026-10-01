@@ -213,10 +213,12 @@ LV.ApplicationWindow {
     property bool resultVisible: false
     property bool editorVisible: false
     property url canvasImageSource: ""
+    property var canvasSpecification: ({})
     property var canvasGenerationResult: ({})
     property var currentResult: ({})
     property var resultJobIds: []
     property string generationRequestError: ""
+    readonly property alias generationBackend: generation
     readonly property var submissionJobs: generation.jobs.filter(function(job) { return resultJobIds.indexOf(job.id) >= 0 })
     readonly property var submissionResults: generation.connected
         ? generation.completedResults.filter(function(result) { return resultJobIds.indexOf(result.id) >= 0 }) : []
@@ -275,13 +277,26 @@ LV.ApplicationWindow {
     readonly property var platformInputMethod: Qt.inputMethod
     readonly property real keyboardBottomInset: platformInputMethod.visible && platformInputMethod.keyboardRectangle.height > 0
         ? Math.max(0, height - platformInputMethod.keyboardRectangle.y) : 0
+    // Keep the app-owned title-bar row and every view clear of AppKit's native
+    // traffic lights. The extra content gap prevents the first control row from
+    // visually colliding with either the buttons or the drag region.
+    readonly property real desktopTitleBarHeight: LV.Theme.scaleMetric(48)
+    readonly property real desktopTitleBarContentGap: LV.Theme.gap8
+    readonly property real desktopTitleBarLeadingClearance: nativeTitleBarControlsRect.width > 0
+        ? nativeTitleBarControlsRect.x + nativeTitleBarControlsRect.width + LV.Theme.gap12
+        : LV.Theme.gap12
     readonly property real contentTopInset: Math.max(mobileSystemSafeTopInset,
         windowChromeInteractionsEnabled && windowDragHandleEnabled && visibility !== Window.FullScreen
-            ? Math.max(0, windowDragHandleTopMargin + windowDragHandleHeight) : 0)
+            ? Math.max(0, windowDragHandleTopMargin + windowDragHandleHeight) : 0,
+        !useMobileHomeLayout
+            ? (visibility === Window.FullScreen
+                ? (!resultVisible && !editorVisible ? LV.Theme.controlHeightSm + LV.Theme.gap12 : 0)
+                : desktopTitleBarHeight + desktopTitleBarContentGap)
+            : 0)
     title: "Dreamscapes"
     primaryColor: LV.Theme.defaultPrimary
-    width: useMobileHomeLayout ? 390 : 960
-    height: useMobileHomeLayout ? 844 : 640
+    width: useMobileHomeLayout ? 390 : 1280
+    height: useMobileHomeLayout ? 844 : 800
     desktopMinWidth: 320
     desktopMinHeight: 480
     mobileMinWidth: 320
@@ -290,7 +305,11 @@ LV.ApplicationWindow {
     visible: true
     navigationEnabled: false
     useInternalPageStack: false
-    windowDragExclusionItems: [appContent]
+    nativeTitleBarHeight: useMobileHomeLayout ? 0 : desktopTitleBarHeight
+    nativeTitleBarLeftMargin: LV.Theme.gap16
+    // LVRS owns window movement only in this top strip; content drags paint/select.
+    windowDragHandleHeight: 40
+    windowDragExclusionItems: [appContent, desktopToolbar]
 
     signal generateRequested(string prompt, string mediaType, string aspectRatio, int count)
     signal newProjectRequested(url imageSource, var generationResult)
@@ -298,13 +317,20 @@ LV.ApplicationWindow {
     function openCanvas(imageSource, generationResult) {
         quickGenerate.dismissInput()
         modelMenu.close()
+        if (!imageSource) editorView.createBlankCanvas({width: 1024, height: 1024, unit: "px", ppi: 300, background: "White", name: qsTr("Untitled Canvas")})
         canvasImageSource = imageSource || ""
         canvasGenerationResult = generationResult || ({})
+        canvasSpecification = ({})
         editorVisible = true
         editorView.forceActiveFocus()
     }
     function closeCanvas() {
         editorVisible = false
+    }
+    function openNewCanvas() {
+        quickGenerate.dismissInput()
+        modelMenu.close()
+        newCanvasDialog.begin()
     }
 
     function presentLatestResult() {
@@ -352,13 +378,69 @@ LV.ApplicationWindow {
         id: historyModel
         objectName: "generationHistoryModel"
         containerPath: generation.connected ? generation.containerPath : ""
+        query: window.useMobileHomeLayout ? "" : desktopToolbar.query
     }
     SocietyApplication { id: societyApplication }
 
     GenerationController {
         id: generation
         objectName: "generationController"
-        onSubmissionQueued: function(jobIds) { window.showSubmission(jobIds) }
+        onSubmissionQueued: function(jobIds) {
+            const firstJob = generation.jobs.find(job => job.id === jobIds[0])
+            // Reference images use an advanced recipe, but Home still owns the result route.
+            if (quickGenerate.submitting || !firstJob || !firstJob.advancedParameters)
+                window.showSubmission(jobIds)
+        }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        color: LV.Theme.surfaceSolid
+        visible: !window.useMobileHomeLayout && !window.resultVisible && !window.editorVisible
+    }
+    DesktopHomeToolbar {
+        id: desktopToolbar
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.topMargin: Math.max(0, (window.desktopTitleBarHeight - height) / 2)
+        anchors.rightMargin: LV.Theme.gap12
+        width: Math.min(LV.Theme.scaleMetric(265), Math.max(0,
+            window.width - anchors.rightMargin - window.desktopTitleBarLeadingClearance))
+        visible: !window.useMobileHomeLayout && !window.resultVisible && !window.editorVisible
+        jobs: generation.jobs
+        onPreferencesRequested: window.openPreferences()
+        onSocietyRequested: window.openSociety()
+        onActivityRequested: desktopHome.showHome()
+    }
+    Shortcut {
+        sequence: StandardKey.Find
+        enabled: desktopToolbar.visible && !newCanvasDialog.visible
+        onActivated: desktopToolbar.focusSearch()
+    }
+    Shortcut { sequence: StandardKey.New; enabled: !newCanvasDialog.visible; onActivated: window.openNewCanvas() }
+    NewCanvasDialog {
+        id: newCanvasDialog
+        availableArea: appContent
+        onCanvasRequested: function(specification) {
+            if (!editorView.createBlankCanvas(specification)) {
+                creationError = qsTr("Could not create the canvas. Adjust its dimensions and try again.")
+                return
+            }
+            window.canvasSpecification = specification
+            window.canvasImageSource = ""
+            window.canvasGenerationResult = ({})
+            window.editorVisible = true
+            close()
+            editorView.forceActiveFocus()
+        }
+    }
+    function openSociety() {
+        window.generationRequestError = Qt.openUrlExternally("society://")
+            ? "" : qsTr("Could not open Society. Open Society on this device and try again.")
+    }
+    function openHomeFile(file) {
+        if (file.previewSource && file.previewSource.toString().length > 0) window.openCanvas(file.previewSource, file)
+        else window.openSociety()
     }
 
     Item {
@@ -376,7 +458,7 @@ LV.ApplicationWindow {
             anchors.fill: parent
             visible: window.useMobileHomeLayout && !window.resultVisible && !window.editorVisible
             onQuickActionRequested: function(action) {
-                if (action === "canvas") window.openCanvas("", ({}))
+                if (action === "canvas") window.openNewCanvas()
             }
             recentFiles: historyModel.recentFiles
             recentPublished: historyModel.recentPublished
@@ -389,11 +471,62 @@ LV.ApplicationWindow {
             }
         }
 
+        DesktopHome {
+            id: desktopHome
+            anchors.fill: parent
+            visible: !window.useMobileHomeLayout && !window.resultVisible && !window.editorVisible
+            recentFiles: historyModel.recentFiles
+            recentPublished: historyModel.recentPublished
+            generationHistory: historyModel.generationHistory
+            loading: historyModel.loading
+            errorText: historyModel.errorString
+            onQuickActionRequested: function(action) {
+                if (action === "canvas") window.openNewCanvas()
+                else if (action === "tools") window.openCanvas("", ({}))
+                else if (action === "image") {
+                    imageWorkspaceLoader.opened = true
+                    if (imageWorkspaceLoader.item) imageWorkspaceLoader.item.parameterPanel.focusPrompt()
+                    window.generationRequestError = ""
+                } else if (action === "video") {
+                    quickGenerate.mediaType = "Video"
+                    quickGenerate.focusPrompt()
+                    window.generationRequestError = ""
+                } else {
+                    window.generationRequestError = action === "audio"
+                        ? qsTr("Audio generation is not available yet. Your prompt is preserved.")
+                        : qsTr("Board creation is not available yet. Your prompt is preserved.")
+                }
+            }
+            onBrowseRequested: window.openSociety()
+            onPublishedRequested: window.openSociety()
+            onHistoryRequested: {
+                if (!societyApplication.openGenerationHistory())
+                    window.generationRequestError = qsTr("Could not open Society. Open Society on this device and try again.")
+            }
+            onFileRequested: function(file) { window.openHomeFile(file) }
+            onPromptRequested: function(prompt) { quickGenerate.prompt = prompt; quickGenerate.focusPrompt() }
+        }
+
+        Loader {
+            id: imageWorkspaceLoader
+            objectName: "imageGenerationWorkspaceLoader"
+            property bool opened: false
+            // Retain the draft after first use, without inflating Home startup.
+            active: opened
+            parent: desktopHome.imageWorkspaceContainer
+            anchors.fill: parent
+            visible: !window.useMobileHomeLayout && desktopHome.selectedAction === "image"
+            sourceComponent: ImageGenerationWorkspace {
+                generation: window.generationBackend
+                onEditImageRequested: function(source, result) { window.openCanvas(source, result) }
+            }
+        }
+
         GenerationResult {
             id: resultView
             anchors.top: parent.top
-            anchors.bottom: window.resultVisible || !window.useMobileHomeLayout
-                ? quickGenerate.top : parent.bottom
+            anchors.bottom: window.resultVisible
+                ? resultComposerViewport.top : parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             visible: window.resultVisible && !window.editorVisible
@@ -424,22 +557,39 @@ LV.ApplicationWindow {
             visible: window.editorVisible
             imageSource: window.canvasImageSource
             generationResult: window.canvasGenerationResult
+            canvasSpecification: window.canvasSpecification
             onBackRequested: window.closeCanvas()
+        }
+
+        Flickable {
+            id: resultComposerViewport
+            objectName: "resultComposerViewport"
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            visible: window.resultVisible && !window.editorVisible
+            // Preserve access to Back when a prompt grows beyond the window.
+            height: Math.min(quickGenerate.implicitHeight,
+                Math.max(0, parent.height - LV.Theme.controlHeightSm * 2))
+            contentWidth: width
+            contentHeight: quickGenerate.implicitHeight
+            clip: true
+            flickableDirection: Flickable.VerticalFlick
+            boundsBehavior: Flickable.StopAtBounds
+            Controls.ScrollBar.vertical: Controls.ScrollBar { policy: Controls.ScrollBar.AsNeeded }
         }
 
         QuickGenerate {
             id: quickGenerate
-            visible: !window.editorVisible
-            parent: window.resultVisible || !window.useMobileHomeLayout
-                ? appContent : mobileHome.quickGenerateContainer
-            // Switching both vertical anchors can stretch the item and discard its
-            // height binding. Position it without changing its implicit height.
-            y: window.resultVisible
-                ? parent.height - height : 0
+            visible: !window.editorVisible && (window.resultVisible || window.useMobileHomeLayout || desktopHome.selectedAction !== "image")
+            parent: window.resultVisible ? resultComposerViewport.contentItem : window.useMobileHomeLayout
+                ? mobileHome.quickGenerateContainer : desktopHome.quickGenerateContainer
+            y: 0
             x: 0
             width: parent ? parent.width : 0
             height: implicitHeight
-            contentInset: window.useMobileHomeLayout && !window.resultVisible ? 0 : LV.Theme.gap10
+            contentInset: window.resultVisible ? LV.Theme.gap10 : 0
+            canvasEnabled: !window.useMobileHomeLayout && !window.resultVisible
             menusOpenUpward: window.resultVisible
             errorText: window.resultVisible ? "" : window.generationRequestError
             onGenerateRequested: function(prompt, mediaType, aspectRatio, count) {
@@ -449,22 +599,29 @@ LV.ApplicationWindow {
                     window.generationRequestError = qsTr("Video generation is not available yet. Your prompt is preserved; choose Image to generate an image.")
                     return
                 }
-                if (generation.enqueue(prompt, aspectRatio, count).length === 0)
-                    window.generationRequestError = generation.errorString
+                let jobId
+                if (quickGenerate.hasCanvasInputs) {
+                    const parameters = quickGenerate.generationParameters(generation.selectedModel)
+                    if (Object.keys(parameters).length === 0) {
+                        window.generationRequestError = quickGenerate.homePaint.canvas.inputError
+                        return
+                    }
+                    jobId = generation.enqueueHomeCanvas(parameters, aspectRatio)
+                } else {
+                    jobId = generation.enqueue(prompt, aspectRatio, count)
+                }
+                if (jobId.length === 0) window.generationRequestError = generation.errorString
             }
         }
 
         Flickable {
             id: storagePanel
             objectName: "storagePanel"
-            visible: !window.useMobileHomeLayout && !window.resultVisible && !window.editorVisible
-            anchors.top: window.resultVisible ? parent.top : quickGenerate.bottom
-            anchors.bottom: parent.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: LV.Theme.gap10
-            anchors.rightMargin: LV.Theme.gap10
-            anchors.bottomMargin: LV.Theme.gap10
+            visible: !window.useMobileHomeLayout && !window.resultVisible && !window.editorVisible && desktopHome.selectedAction !== "image"
+            parent: desktopHome.storageContainer
+            width: parent.width
+            height: contentHeight
+            interactive: false
             contentWidth: width
             contentHeight: storageContent.implicitHeight
             clip: true
@@ -475,17 +632,6 @@ LV.ApplicationWindow {
                 width: parent.width
                 height: implicitHeight
                 spacing: LV.Theme.gap8
-
-                GenerationHistory {
-                    Layout.fillWidth: true
-                    Layout.bottomMargin: LV.Theme.gap16
-                    files: historyModel.generationHistory
-                    loading: historyModel.loading
-                    property string navigationError: ""
-                    errorText: navigationError || historyModel.errorString
-                    onViewAllRequested: navigationError = societyApplication.openGenerationHistory()
-                        ? "" : qsTr("Could not open Society. Open Society on this device and try again.")
-                }
 
                 LV.HStack {
                     Layout.fillWidth: true

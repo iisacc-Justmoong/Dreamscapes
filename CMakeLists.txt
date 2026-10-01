@@ -13,6 +13,7 @@ find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Core Gui Qml Quick QuickControl
 find_package(iiCSMIDI CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiCSMIDI")
 find_package(iiLicenseManager CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLicenseManager")
 find_package(iiLocalDiffusion 0.6.1 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLocalDiffusion")
+find_package(iiSharedCanvas CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSharedCanvas")
 find_package(iiPaintEngine CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiPaintEngine")
 find_package(iiSocietyContainer 0.14.1 CONFIG REQUIRED COMPONENTS Gui HINTS "$ENV{HOME}/.local/SDK/iiSocietyContainer")
 find_package(iiSocietyClient 0.1.0 CONFIG REQUIRED)
@@ -51,10 +52,22 @@ if(DREAMSCAPES_DIFFUSION_EXECUTABLE AND NOT CMAKE_CROSSCOMPILING)
     endif()
 endif()
 add_library(DreamscapesGeneration STATIC)
+# Publication uses the same immutable, cross-platform brand asset as the app.
+set(_watermark_icon "${CMAKE_CURRENT_SOURCE_DIR}/resources/Appicon/generated/common/Dreamscapes.png")
+set_source_files_properties("${_watermark_icon}" PROPERTIES QT_RESOURCE_ALIAS "Dreamscapes.png")
+qt_add_resources(DreamscapesGeneration dreamscapes_watermark PREFIX "/generation/watermark"
+    FILES "${_watermark_icon}")
 qt_add_qml_module(DreamscapesGeneration
     URI Dreamscapes.Storage VERSION 1.0 NO_PLUGIN
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Dreamscapes/Storage"
     SOURCES src/App/Views/Home/SocietyTypes.h
+        src/App/Views/Home/HomeCanvas.h src/App/Views/Home/HomeCanvas.cpp
+        src/App/Views/Home/CanvasPresets.h src/App/Views/Home/CanvasPresets.cpp
+        src/App/Views/Editor/EditorCanvas.h src/App/Views/Editor/EditorCanvas.cpp
+        src/App/Generation/AdvancedImageParameters.h src/App/Generation/AdvancedImageParameters.cpp
+        src/App/Generation/ImageParameterCodec.h src/App/Generation/ImageParameterCodec.cpp
+        src/App/Generation/AdvancedImageOutput.h src/App/Generation/AdvancedImageOutput.cpp
+        src/App/Generation/AdvancedImageInputs.h src/App/Generation/AdvancedImageInputs.cpp
         src/App/Generation/GenerationController.h src/App/Generation/GenerationController.cpp
         src/App/Generation/SocietyGenerationStorage.h src/App/Generation/SocietyGenerationStorage.cpp
         src/App/Views/Result/ImageFileExporter.h src/App/Views/Result/ImageFileExporter.cpp
@@ -69,11 +82,16 @@ elseif(ANDROID)
 else()
     target_sources(DreamscapesGeneration PRIVATE src/App/Views/Result/PhotoLibraryUnsupported.cpp)
 endif()
-target_link_libraries(DreamscapesGeneration PUBLIC iiSocietyGeneration::iiSocietyGeneration iiSocietyClient::iiSocietyClient Qt6::Gui Qt6::Qml iiSocietyContainer::Gui iiSocietyHelper::iiSocietyHelper iiLocalDiffusion::iiLocalDiffusion Qt6::Concurrent)
+target_link_libraries(DreamscapesGeneration PUBLIC iiSharedCanvas::iiSharedCanvas iiSocietyGeneration::iiSocietyGeneration iiSocietyClient::iiSocietyClient Qt6::Gui Qt6::Qml iiSocietyContainer::Gui iiSocietyHelper::iiSocietyHelper iiLocalDiffusion::iiLocalDiffusion Qt6::Concurrent)
+target_compile_features(DreamscapesGeneration PUBLIC cxx_std_23)
+set_source_files_properties(src/App/Views/Home/Data/canvas-presets.json PROPERTIES QT_RESOURCE_ALIAS "catalog.json")
+qt_add_resources(DreamscapesGeneration canvas_presets PREFIX "/canvas"
+    FILES src/App/Views/Home/Data/canvas-presets.json)
 target_include_directories(DreamscapesGeneration PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_include_directories(DreamscapesGeneration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Generation")
 target_include_directories(DreamscapesGeneration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Result")
 target_include_directories(DreamscapesGeneration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Home")
+target_include_directories(DreamscapesGeneration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Editor")
 if(IOS)
     enable_language(Swift)
     target_sources(DreamscapesGeneration PRIVATE src/App/Generation/GenerationScreenActivity.mm
@@ -108,11 +126,20 @@ lvrs_add_qml_app(
     QML_FILES
         src/App/Main.qml
         src/App/Views/Home/QuickGenerate.qml
+        src/App/Views/Home/PromptField.qml
+        src/App/Views/Home/NewCanvasDialog.qml
+        src/App/Views/Home/CanvasSizePreview.qml
+        src/App/Views/Home/HomePaintCanvas.qml
         src/App/Views/Home/QuickActionCard.qml
         src/App/Views/Home/FileCarousel.qml
         src/App/Views/Home/PublishedList.qml
         src/App/Views/Home/MobileHome.qml
+        src/App/Views/Home/HomeContentRow.qml
+        src/App/Views/Home/HomePromptStarters.qml
+        src/App/Views/Home/DesktopHome.qml
+        src/App/Views/Home/DesktopHomeToolbar.qml
         src/App/Views/Home/AdvancedGenerate.qml
+        src/App/Views/Home/ImageGenerationWorkspace.qml
         src/App/Views/Home/GenerationHistory.qml
         src/App/Views/Result/GenerationResult.qml
         src/App/Views/Editor/CanvasEditor.qml
@@ -126,7 +153,27 @@ lvrs_add_qml_app(
 qt_add_resources(Dreamscapes result_assets
     PREFIX "/qt/qml/Dreamscapes"
     FILES src/App/Views/Result/Assets/right.svg
-        src/App/Views/Home/Assets/media-chevron.svg)
+        src/App/Views/Home/Assets/Paint/brush.svg
+        src/App/Views/Home/Assets/media-chevron.svg
+        src/App/Views/Home/Assets/home-canvas.svg
+        src/App/Views/Home/Assets/home-image.svg
+        src/App/Views/Home/Assets/home-video.svg
+        src/App/Views/Home/Assets/home-board.svg)
+file(GLOB desktop_home_assets CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Home/Assets/Desktop/*.svg")
+qt_add_resources(Dreamscapes desktop_home_assets
+    PREFIX "/qt/qml/Dreamscapes" FILES ${desktop_home_assets})
+file(GLOB home_direction_assets CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Home/Assets/Directions/*.svg")
+qt_add_resources(Dreamscapes home_direction_assets
+    PREFIX "/qt/qml/Dreamscapes" FILES ${home_direction_assets})
+qt_add_resources(Dreamscapes mobile_navigation_assets
+    PREFIX "/qt/qml/Dreamscapes"
+    FILES
+        src/App/Views/Home/Assets/Navigation/home.svg
+        src/App/Views/Home/Assets/Navigation/tools.svg
+        src/App/Views/Home/Assets/Navigation/storage.svg
+        src/App/Views/Home/Assets/Navigation/notification.svg
+        src/App/Views/Home/Assets/Navigation/account.svg
+        src/App/Views/Home/Assets/Navigation/search.svg)
 file(GLOB editor_toolbar_assets CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Editor/Assets/*.svg")
 qt_add_resources(Dreamscapes editor_toolbar_assets
     PREFIX "/qt/qml/Dreamscapes"
@@ -300,6 +347,8 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     endif()
     add_test(NAME Dreamscapes.AppIcons
         COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_app_icons.py")
+    add_test(NAME Dreamscapes.MobileNavigationAssets
+        COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mobile_navigation_assets.py")
     # Only the integration harness acts as Society peers; the app has no Sync transport.
     find_package(iiSocietySync 0.8.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietySync")
     find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Test)
@@ -326,17 +375,65 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_dependencies(DreamscapesGuiTests Dreamscapes)
     lvrs_configure_qml_app(DreamscapesGuiTests NO_PLATFORM_RUNTIME_TARGETS)
     add_test(NAME Dreamscapes.Gui COMMAND DreamscapesGuiTests)
+    add_test(NAME Dreamscapes.QuickGenerate COMMAND DreamscapesGuiTests
+        homeCanvasMaxWidthAndAutoHeight homeCanvasScalesToFramePreservingPainting
+        homePromptDragDoesNotMoveWindow viewsLeaveWindowChromeAvailable
+        homeCanvasSliderRanges homeCanvasDragPaintAndColorPicker sharedPanelLayout sharedControlsSubmitCurrentSelection
+        referenceGenerateOpensResultImmediately
+        countSelectionCreatesThreeImagesInSociety resultScreenLayout
+        canvasRoutesPreserveSelectionAndDraft)
+    add_test(NAME Dreamscapes.DesktopHome COMMAND DreamscapesGuiTests
+        desktopHomeContinuousRowsAndPromptStarters desktopHomeSidebarReflowsAndRoutes
+        desktopHomeSearchesSocietyAndUpdates desktopHomeRendersFigmaFrame
+        historyAppearsBelowQuickGenerateAndScrolls historyShowsAnEmptyState
+        sharedContentSurvivesLayoutChanges)
+    add_test(NAME Dreamscapes.PromptFields COMMAND DreamscapesGuiTests
+        promptFieldsWrapAndGrow promptCursorStaysVisible
+        advancedWorkspacePreservesDraftAndScrolls sharedControlsSubmitCurrentSelection resultScreenLayout)
+    set_tests_properties(Dreamscapes.PromptFields PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1"
+        TIMEOUT 180)
+    set_tests_properties(Dreamscapes.DesktopHome PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1"
+        TIMEOUT 180)
+    set_tests_properties(Dreamscapes.QuickGenerate PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1"
+        TIMEOUT 180)
+
     set_tests_properties(Dreamscapes.Gui PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1"
         TIMEOUT 600
     )
+    qt_add_executable(DreamscapesHomeCanvasTests tests/tst_homecanvas.cpp)
+    qt_add_executable(DreamscapesNewCanvasTests tests/tst_newcanvas.cpp)
+    target_link_libraries(DreamscapesNewCanvasTests PRIVATE DreamscapesGeneration Qt6::Test)
+    add_test(NAME Dreamscapes.NewCanvas COMMAND DreamscapesNewCanvasTests)
+    set_tests_properties(Dreamscapes.NewCanvas PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 60)
+    add_test(NAME Dreamscapes.NewCanvasGui COMMAND DreamscapesGuiTests
+        newCanvasChoosesPrintAndCustomSizes newCanvasSearchCancelAndKeyboard newCanvasPaddingAndStaticDetails
+        canvasRoutesPreserveSelectionAndDraft mobileEditorToolbarSlidesAndSelects)
+    set_tests_properties(Dreamscapes.NewCanvasGui PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 300)
+    target_link_libraries(DreamscapesHomeCanvasTests PRIVATE DreamscapesGeneration Qt6::Test)
+    target_compile_definitions(DreamscapesHomeCanvasTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    add_test(NAME Dreamscapes.HomeCanvas COMMAND DreamscapesHomeCanvasTests)
+    set_tests_properties(Dreamscapes.HomeCanvas PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 60)
+
     qt_add_executable(DreamscapesGenerationTests src/App/Generation/tst_Generation.cpp)
+    qt_add_executable(DreamscapesAdvancedParametersTests tests/tst_advancedparameters.cpp)
+    target_link_libraries(DreamscapesAdvancedParametersTests PRIVATE DreamscapesGeneration Qt6::Test)
+    target_compile_definitions(DreamscapesAdvancedParametersTests PRIVATE
+        DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    add_test(NAME Dreamscapes.AdvancedParameters COMMAND DreamscapesAdvancedParametersTests)
     target_link_libraries(DreamscapesGenerationTests PRIVATE DreamscapesGeneration Qt6::Test)
     target_compile_definitions(DreamscapesGenerationTests PRIVATE
         DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}"
         DREAMSCAPES_FAKE_GENERATOR="${CMAKE_CURRENT_SOURCE_DIR}/src/App/Generation/fixtures/generate.py")
     add_test(NAME Dreamscapes.Generation COMMAND DreamscapesGenerationTests)
-    set_tests_properties(Dreamscapes.Generation PROPERTIES TIMEOUT 45)
+    # Per-job watchdog assertions keep their own short deadlines. Allow the
+    # complete fixture suite to finish while a real generation uses external I/O.
+    set_tests_properties(Dreamscapes.Generation PROPERTIES TIMEOUT 90)
     qt_add_executable(DreamscapesImageExportTests src/App/Views/Result/tst_ImageFileExporter.cpp)
     target_link_libraries(DreamscapesImageExportTests PRIVATE DreamscapesGeneration Qt6::Test)
     target_compile_definitions(DreamscapesImageExportTests PRIVATE

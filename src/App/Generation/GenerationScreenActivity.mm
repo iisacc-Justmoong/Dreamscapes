@@ -11,8 +11,7 @@ struct ScreenActivity {
         addObserverForName:UIApplicationDidReceiveMemoryWarningNotification object:nil
         queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *) {
             if (std::getenv("IILD_NATIVE_DIAGNOSTICS"))
-                std::fputs("Dreamscapes: UIKit memory warning; releasing native model cache\n", stderr);
-            iiLocalDiffusion::releaseNativeDiffusionCache();
+                std::fputs("Dreamscapes: UIKit memory warning; retaining runtime model memory\n", stderr);
         }];
     bool engaged = false;
     BOOL previous = NO;

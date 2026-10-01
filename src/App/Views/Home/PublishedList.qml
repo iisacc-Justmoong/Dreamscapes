@@ -6,6 +6,7 @@ ListView {
     id: root
     property var files: []
     property int maximumItems: 4
+    property bool desktopStyle: false
     readonly property var visibleFiles: Array.prototype.slice.call(files || [], 0, maximumItems)
     signal fileRequested(var file)
 
@@ -32,7 +33,8 @@ ListView {
 
         background: Rectangle {
             radius: row.resolvedCornerRadius
-            color: row.down ? LV.Theme.panelBackground06 : LV.Theme.panelBackground04
+            color: row.down || row.hovered ? LV.Theme.panelBackground06
+                : root.desktopStyle ? "#181a1e" : LV.Theme.panelBackground04
         }
 
         contentItem: Item {
@@ -45,20 +47,28 @@ ListView {
                 radius: LV.Theme.scaleMetric(10)
                 clip: true
                 color: LV.Theme.panelBackground08
+                gradient: root.desktopStyle ? publicationGradient : null
+                Gradient {
+                    id: publicationGradient
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0; color: row.modelData.iconName === "fileTypesimage" ? "#8447e8" : "#ff8533" }
+                    GradientStop { position: 1; color: "#0d0f14" }
+                }
 
                 Image {
                     anchors.fill: parent
                     source: row.modelData.previewSource || ""
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
-                    visible: source.toString().length > 0 && status === Image.Ready
+                    visible: !root.desktopStyle && source.toString().length > 0 && status === Image.Ready
                 }
 
                 Image {
                     anchors.centerIn: parent
                     width: LV.Theme.scaleMetric(24)
                     height: width
-                    source: LV.Theme.iconPath(row.modelData.iconName || "fileTypesimage")
+                    source: root.desktopStyle ? "Assets/Desktop/spark.svg"
+                        : LV.Theme.iconPath(row.modelData.iconName || "fileTypesimage")
                     fillMode: Image.PreserveAspectFit
                 }
             }
@@ -70,6 +80,7 @@ ListView {
                 height: LV.Theme.scaleMetric(20)
                 text: row.modelData.name || ""
                 style: body
+                font.pixelSize: root.desktopStyle ? 14 : LV.Theme.textBody
                 elide: Text.ElideRight
             }
 
@@ -90,7 +101,7 @@ ListView {
                 y: LV.Theme.scaleMetric(20)
                 width: LV.Theme.scaleMetric(24)
                 height: width
-                source: LV.Theme.iconPath("generalchevronRight")
+                source: root.desktopStyle ? "Assets/Desktop/open.svg" : LV.Theme.iconPath("generalchevronRight")
                 fillMode: Image.PreserveAspectFit
             }
         }

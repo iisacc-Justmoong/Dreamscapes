@@ -1,6 +1,10 @@
+#include "App/Views/Home/HomeCanvas.h"
+#include "App/Views/Home/CanvasPresets.h"
+#include "App/Views/Editor/EditorCanvas.h"
 #include "App/ApplicationLifetime.h"
 #include <backend/runtime/appentry.h>
 #include "App/Generation/GenerationController.h"
+#include "App/Generation/AdvancedImageParameters.h"
 #include "App/Views/Result/ImageFileExporter.h"
 #include "App/Views/Result/PhotoLibraryExporter.h"
 #include <QtQml/qqml.h>
@@ -38,9 +42,15 @@ int main(int argc, char *argv[])
             [](QObject *root, const QUrl &) { if (root) dreamscapesLocalRuntimeProbe(root); });
 #endif
         qmlRegisterType<GenerationController>("Dreamscapes.Storage", 1, 0, "GenerationController");
+        // Storage is a static NO_PLUGIN module; register the draft in the
+        // production entry point just like the other exposed storage types.
+        qmlRegisterType<AdvancedImageParameters>("Dreamscapes.Storage", 1, 0, "AdvancedImageParameters");
         qmlRegisterType<iiSocietyContainer::DashboardFiles>("Dreamscapes.Storage", 1, 0, "DashboardFiles");
         qmlRegisterType<iiSocietyContainer::SocietyApplication>("Dreamscapes.Storage", 1, 0, "SocietyApplication");
-        qmlRegisterType<ImageFileExporter>("Dreamscapes.Storage", 1, 0, "ImageFileExporter");
+        qmlRegisterType<HomeCanvas>("Dreamscapes.Storage", 1, 0, "HomeCanvas");
+        qmlRegisterType<CanvasPresets>("Dreamscapes.Storage", 1, 0, "CanvasPresets");
+        qmlRegisterType<EditorCanvas>("Dreamscapes.Storage", 1, 0, "EditorCanvas");
+    qmlRegisterType<ImageFileExporter>("Dreamscapes.Storage", 1, 0, "ImageFileExporter");
         qmlRegisterType<PhotoLibraryExporter>("Dreamscapes.Storage", 1, 0, "PhotoLibraryExporter");
         auto *helper = new iiSocietyHelper::Helper(&engine);
         helper->setObjectName(QStringLiteral("societyHelper"));

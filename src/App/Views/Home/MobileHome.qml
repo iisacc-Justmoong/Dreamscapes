@@ -21,11 +21,13 @@ Item {
     signal fileRequested(var file)
 
     readonly property var destinations: [
-        {iconName: "home-1", accessibleName: qsTr("Home")},
-        {iconName: "collection", accessibleName: qsTr("Tools")},
-        {iconName: "database", accessibleName: qsTr("Storage")},
-        {iconName: "toolwindownotifications", accessibleName: qsTr("Notification")},
-        {iconName: "role-1", accessibleName: qsTr("Account")}
+        // Exact exports from Figma 103:1211, including its LVRS icon variants.
+        {iconSource: Qt.resolvedUrl("Assets/Navigation/home.svg"), preserveIconColors: true, accessibleName: qsTr("Home")},
+        {iconSource: Qt.resolvedUrl("Assets/Navigation/tools.svg"), preserveIconColors: true, accessibleName: qsTr("Tools")},
+        {iconSource: Qt.resolvedUrl("Assets/Navigation/storage.svg"), preserveIconColors: true,
+            iconArtworkSize: Qt.size(17.5, 20.5545), accessibleName: qsTr("Storage")},
+        {iconSource: Qt.resolvedUrl("Assets/Navigation/notification.svg"), preserveIconColors: true, accessibleName: qsTr("Notification")},
+        {iconSource: Qt.resolvedUrl("Assets/Navigation/account.svg"), preserveIconColors: true, accessibleName: qsTr("Account")}
     ]
 
     Flickable {
@@ -180,7 +182,8 @@ Item {
         height: implicitHeight
         platformStyle: LV.MobileTab.IOS
         model: root.destinations
-        search: ({iconName: "generalsearch", accessibleName: qsTr("Search")})
+        search: ({iconSource: Qt.resolvedUrl("Assets/Navigation/search.svg"),
+            preserveIconColors: true, accessibleName: qsTr("Search")})
         currentIndex: 0
         autoSelect: false
         onActivated: function(index) { root.destinationRequested(index) }

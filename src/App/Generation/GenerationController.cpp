@@ -1,8 +1,13 @@
 #include "GenerationController.h"
+#include "ImageParameterCodec.h"
+#include "AdvancedImageOutput.h"
+#include "AdvancedImageInputs.h"
+#include <Generation/NativePose.hpp>
 #include "SocietyGenerationStorage.h"
 #include <StorageMap.h>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QRandomGenerator>
+#include <QRegularExpression>
 #include <QPointer>
 #include <QImage>
 #if defined(Q_OS_IOS)
@@ -24,6 +29,7 @@
 #include <QUuid>
 #include <algorithm>
 #include <limits>
+#include <numeric>
 #if defined(Q_OS_UNIX) && !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
 #include <signal.h>
 #endif
@@ -53,7 +59,7 @@ QSize imageSize(const QString &ratio, int extent)
 GenerationRuntime defaultRuntime()
 {
     GenerationRuntime runtime;
-#if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
+#if defined(Q_OS_IOS) || defined(Q_OS_ANDROID) || defined(Q_OS_MACOS)
     runtime.nativeInference = true;
 #endif
 #if defined(Q_OS_IOS)
@@ -147,6 +153,21 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
         m_nativeCancelled = true;
         setInferenceStatus({{"state", "cancelling"}, {"ready", false}, {"backend", "native"}});
     });
+    m_workerDeadline.setSingleShot(true);
+    connect(&m_workerDeadline, &QTimer::timeout, this, [this] {
+        if (!busy() || m_runtime.nativeInference || m_remoteActive || m_cancelled) return;
+        m_nativeTimedOut = true;
+        const auto telemetry = m_active.value("telemetry").toObject();
+        m_active["timeoutError"] = tr("Image generation stopped making progress at %1 (%2/%3). Diagnostics: %4")
+            .arg(telemetry.value("phase").toString(m_inferenceStatus.value("state").toString()))
+            .arg(telemetry.value("step").toInt()).arg(telemetry.value("total").toInt())
+            .arg(telemetry.value("trace_path").toString());
+        stopProcess(false);
+        const auto id = m_active.value("id");
+        QTimer::singleShot(2000, this, [this, id] {
+            if (m_active.value("id") == id && m_nativeTimedOut) stopProcess(true);
+        });
+    });
     m_storagePoll.start();
     if (m_runtime.backgroundActivity) {
         const QPointer<GenerationController> self(this);
@@ -198,6 +219,7 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
         m_controlId.clear();
         setInferenceStatus({{"state", "stopped"}, {"ready", false}});
         if (!busy() || m_remoteActive) { QTimer::singleShot(0, this, &GenerationController::pump); return; }
+        if (m_nativeTimedOut) { finish("failed", m_active.value("timeoutError").toString()); return; }
         if (m_cancelled) { finish("cancelled"); return; }
         finish("failed", tr("The inference worker exited before completing the request (exit %1). %2").arg(code)
             .arg(QString::fromUtf8(m_log).right(4000)));
@@ -232,6 +254,7 @@ QString GenerationController::selectedModel() const { return m_selected; }
 bool GenerationController::busy() const { return !m_active.isEmpty(); }
 QString GenerationController::errorString() const { return m_error; }
 QUrl GenerationController::previewImage() const { return m_previewImage; }
+QString GenerationController::previewJobId() const { return m_previewJobId; }
 int GenerationController::previewStep() const { return m_previewStep; }
 int GenerationController::previewTotalSteps() const { return m_previewTotalSteps; }
 bool GenerationController::foreground() const { return m_foreground; }
@@ -277,9 +300,8 @@ void GenerationController::setForeground(bool foreground)
     const bool canTransfer = foreground || (m_runtime.backgroundActivity && m_runtime.backgroundActivity->allowsBackgroundExecution());
     if (!canTransfer) m_societyClient.stop();
     if (m_remoteGeneration) m_remoteGeneration->setPaused(!canTransfer);
-    if (!foreground && m_runtime.nativeInference && !m_remoteActive) {
-        if (!busy()) iiLocalDiffusion::releaseNativeDiffusionCache();
-        else if (m_runtime.backgroundActivity)
+    if (!foreground && m_runtime.nativeInference && !m_remoteActive && busy()) {
+        if (m_runtime.backgroundActivity)
             setNativePaused(!m_runtime.backgroundActivity->allowsBackgroundExecution());
         else interruptNative();
     }
@@ -318,7 +340,7 @@ void GenerationController::interruptNative()
 }
 bool GenerationController::runtimeAvailable() const
 {
-    if (m_runtime.nativeInference) return m_runtime.nativeGenerate || iiLocalDiffusion::nativeDiffusionAvailable();
+    if (m_runtime.nativeInference) return m_runtime.nativeGenerate || m_runtime.nativeGenerateAdvanced || iiLocalDiffusion::nativeDiffusionAvailable();
 #if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
     return false;
 #else
@@ -360,14 +382,8 @@ void GenerationController::setSelectedModel(const QString &id)
     if (m_selected == id || id.startsWith("VAE/", Qt::CaseInsensitive)) return;
     if (std::none_of(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == id; })) return;
     m_selected = id;
-    if (!busy() && !m_controlId.isEmpty() && m_preparingModel != id) {
-        // A newly selected model must not wait for obsolete eager preparation.
-        const auto controlId = m_controlId;
-        stopProcess(false);
-        QTimer::singleShot(2000, this, [this, controlId] {
-            if (!busy() && m_controlId == controlId) stopProcess(true);
-        });
-    }
+    // Keep the runtime and its anonymous model sources alive. The pending
+    // selection is prepared when the current preparation reaches its boundary.
     m_residencyPending = true;
     setInferenceStatus({{"state", "waiting-model"}, {"ready", false}});
     emit modelsChanged();
@@ -509,7 +525,7 @@ void GenerationController::refreshModels()
             m_runtime.backgroundActivity->end(true);
         }
         emit storageChanged();
-        startLegacyCacheMigration();
+        if (!m_runtime.nativeInference) startLegacyCacheMigration();
     }
     if (changed) {
         emit modelsChanged();
@@ -656,6 +672,77 @@ void GenerationController::clearWorkingFiles()
 
 QString GenerationController::enqueue(const QString &prompt, const QString &aspectRatio, int count, qint64 seed)
 {
+    return enqueueRequest(prompt, imageSize(aspectRatio, m_runtime.imageExtent), aspectRatio, count, seed, m_runtime.steps);
+}
+
+QString GenerationController::enqueueAdvanced(const QVariantMap &parameters)
+{
+    return enqueueAdvancedRequest(parameters);
+}
+
+QString GenerationController::enqueueHomeCanvas(const QVariantMap &parameters, const QString &aspectRatio)
+{
+    const auto size = imageSize(aspectRatio, 1024);
+    if (size != QSize(parameters.value("width").toInt(), parameters.value("height").toInt())) {
+        fail(tr("The canvas dimensions do not match the selected ratio.")); return {};
+    }
+    if (!connected()) { fail(tr("Open Society on this device to load its storage map.")); return {}; }
+    // Own immutable inputs before enqueueing: queued jobs survive draft edits and removal.
+    auto snapshot = parameters;
+    const auto references = parameters.value("referenceImages").toList();
+    if (references.isEmpty()) return enqueueAdvancedRequest(snapshot, aspectRatio);
+    QString error;
+    const auto directory = m_storage->ensureDirectory(StoreSection::AssetLibrary,
+        "Dreamscapes/GenerationInputs/" + QUuid::createUuid().toString(QUuid::WithoutBraces), &error);
+    if (directory.isEmpty()) { fail(error); return {}; }
+    QVariantList owned;
+    int index = 0;
+    for (const auto &reference : references) {
+        const auto source = QUrl(reference.toString());
+        QImageReader reader(source.toLocalFile()); reader.setAutoTransform(true);
+        const auto dimensions = reader.size();
+        if (!source.isLocalFile() || !reader.canRead() || dimensions.isEmpty()
+            || qint64(dimensions.width()) * dimensions.height() > 64LL * 1024 * 1024
+            || QFileInfo(source.toLocalFile()).size() > 256LL * 1024 * 1024) {
+            QDir(directory).removeRecursively(); fail(tr("A reference image is no longer readable.")); return {};
+        }
+        const auto target = QDir(directory).filePath(QString::number(index++) + "." + QFileInfo(source.toLocalFile()).suffix());
+        if (!QFile::copy(source.toLocalFile(), target)) {
+            QDir(directory).removeRecursively(); fail(tr("Cannot preserve the generation inputs.")); return {};
+        }
+        owned.append(QUrl::fromLocalFile(target).toString());
+    }
+    snapshot["referenceImages"] = owned;
+    const auto id = enqueueAdvancedRequest(snapshot, aspectRatio);
+    if (id.isEmpty()) QDir(directory).removeRecursively();
+    return id;
+}
+
+QString GenerationController::enqueueAdvancedRequest(const QVariantMap &parameters, const QString &aspectRatio)
+{
+    iiLocalDiffusion::ImageParameters values;
+    QString error;
+    if (!dreamscapes::imageParametersFromMap(parameters, &values, &error)) { fail(error); return {}; }
+    auto issues = iiLocalDiffusion::validateImageParameters(values, true);
+    const auto unsupported = iiLocalDiffusion::nativeParameterIssues(values, !m_runtime.nativeInference, iiLocalDiffusion::nativePoseAvailable());
+    issues.insert(issues.end(), unsupported.begin(), unsupported.end());
+    if (!issues.empty()) {
+        QStringList messages;
+        for (const auto &issue : issues) messages.append(QString::fromStdString(issue.field + ": " + issue.message));
+        fail(messages.join('\n')); return {};
+    }
+    const auto snapshot = dreamscapes::imageParametersToMap(values);
+    const auto width = snapshot.value("width").toInt(), height = snapshot.value("height").toInt();
+    const auto divisor = std::gcd(width, height);
+    return enqueueRequest(snapshot.value("prompt").toString(), QSize(width, height),
+        aspectRatio.isEmpty() ? QString::number(width / divisor) + ":" + QString::number(height / divisor) : aspectRatio,
+        snapshot.value("outputCount").toInt(), snapshot.value("seed").toLongLong(), snapshot.value("steps").toInt(),
+        QJsonObject::fromVariantMap(snapshot));
+}
+
+QString GenerationController::enqueueRequest(const QString &prompt, const QSize &size, const QString &aspectRatio,
+    int count, qint64 seed, int steps, QJsonObject advanced)
+{
 #if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
     if (!runtimeAvailable()) { fail(tr("Local image generation is unavailable in this build.")); return {}; }
 #endif
@@ -665,29 +752,159 @@ QString GenerationController::enqueue(const QString &prompt, const QString &aspe
     }
     if (!connected()) { fail(tr("Open Society on this device to load its storage map.")); return {}; }
     const auto trimmed = prompt.trimmed();
-    const auto size = imageSize(aspectRatio, m_runtime.imageExtent);
     if (trimmed.isEmpty() || trimmed.size() > 32000 || size.isEmpty() || size.width() > 4096 || size.height() > 4096
-        || m_runtime.steps < 1 || m_runtime.steps > 1000) { fail(tr("Enter a prompt and a supported image size.")); return {}; }
-    auto selected = std::find_if(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == m_selected; });
+        || steps < 1 || steps > 1000) { fail(tr("Enter a prompt and a supported image size.")); return {}; }
+    const auto requestedModel = advanced.value("model").toString();
+    const auto modelId = requestedModel.isEmpty() ? m_selected : requestedModel;
+    auto selected = std::find_if(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == modelId; });
     if (selected == m_models.cend()) { fail(tr("Add a Diffusion model to Society, then refresh the model list.")); return {}; }
     const StorageMap map(m_storage->drive());
     auto required = map.files("models/" + selected->id);
     required.append(map.files("models/.generation-resources/iiLocalDiffusion")); required.removeDuplicates();
     const bool localReady = required.isEmpty() ? selected->available : map.available(required);
+    if (!advanced.isEmpty() && (!localReady || selected->format != "safetensors")) {
+        fail(tr("Advanced parameters require a locally available native model. Remote and packaged worker routes do not advertise this contract yet.")); return {};
+    }
     if (localReady && m_runtime.nativeInference && selected->format != "safetensors" && selected->format != "unified") {
         fail(tr("Choose a checkpoint or unified model for on-device generation.")); return {};
     }
     QJsonObject vaeReference;
-    if (!m_selectedVae.isEmpty()) {
-        const auto vae = std::find_if(m_models.cbegin(), m_models.cend(), [&](const auto &value) { return value.id == m_selectedVae; });
-        if (vae == m_models.cend() || !vae->available || !localReady || m_runtime.nativeInference) {
-            fail(tr("Explicit VAE selection currently requires locally available models and the desktop runtime.")); return {};
+    const auto vaeId = advanced.isEmpty() ? m_selectedVae : advanced.value("vae").toString();
+    if (!vaeId.isEmpty()) {
+        const auto vae = std::find_if(m_models.cbegin(), m_models.cend(), [&](const auto &value) { return value.id == vaeId; });
+        if (vae == m_models.cend() || !vae->available || !localReady || (m_runtime.nativeInference && advanced.isEmpty())) {
+            fail(advanced.isEmpty()
+                ? tr("Explicit VAE selection currently requires locally available models and the desktop runtime.")
+                : tr("Select a locally available VAE from the Society inventory.")); return {};
         }
         vaeReference = vae->reference(m_storage->drive().identifier());
     }
     const auto reference = selected->reference(m_storage->drive().identifier());
     QString error;
     if (localReady && m_storage->resolveModel(reference, &error).isEmpty()) { fail(error); return {}; }
+    if (!advanced.isEmpty()) {
+        advanced["model"] = selected->id;
+        advanced["prompt"] = trimmed;
+        QJsonArray loras;
+        for (const auto &value : advanced.value("loras").toArray()) {
+            auto lora = value.toObject();
+            const auto source = lora.value("source").toString();
+            const QUrl url(source);
+            QString path;
+            if (url.isLocalFile()) path = url.toLocalFile();
+            else if (!url.scheme().isEmpty()) { fail(tr("LoRA sources must be local files.")); return {}; }
+            else if (QFileInfo(source).isAbsolute()) path = source;
+            else path = m_storage->filePath(StoreSection::Models, source, &error);
+            const QFileInfo info(path);
+            if (!info.isFile() || info.size() == 0
+                || !QStringList{"safetensors", "safetensor", "gguf"}.contains(info.suffix().toLower())) {
+                fail(tr("Choose an existing safetensors or GGUF LoRA file: %1").arg(source)); return {};
+            }
+            lora["source"] = info.canonicalFilePath(); loras.append(lora);
+        }
+        advanced["loras"] = loras;
+        QJsonArray references;
+        for (const auto &value : advanced.value("referenceImages").toArray()) {
+            const auto source = value.toString();
+            const QUrl url(source);
+            QString path;
+            if (url.isLocalFile()) path = url.toLocalFile();
+            else if (!url.scheme().isEmpty()) { fail(tr("Reference images must be local files.")); return {}; }
+            else if (QFileInfo(source).isAbsolute()) path = source;
+            else path = m_storage->filePath(StoreSection::Files, source, &error);
+            const QFileInfo info(path);
+            QImageReader reader(info.canonicalFilePath());
+            const auto dimensions = reader.size();
+            if (!info.isFile() || info.size() == 0 || !reader.canRead() || dimensions.isEmpty()
+                || qint64(dimensions.width()) * dimensions.height() > 64 * 1024 * 1024) {
+                fail(tr("Choose a readable local reference image of at most 64 megapixels: %1").arg(source)); return {};
+            }
+            references.append(info.canonicalFilePath());
+        }
+        advanced["referenceImages"] = references;
+        QJsonArray controls;
+        for (const auto &value : advanced.value("controlNets").toArray()) {
+            auto item = value.toObject();
+            if (item.value("applied").toBool()) {
+                auto fields = QStringList{"imageSource"};
+                const auto process = item.value("process").toString();
+                if (process != "None" && process != "IP-Adapter") fields.append("model");
+                if (item.value("ipAdapter").toBool()) fields.append({"ipAdapterModel", "ipAdapterVision"});
+                if (process == "Pose") fields.append({"poseDetector", "poseModel"});
+                if (item.value("regionalMask").toBool()) fields.append("maskSource");
+                for (const auto &field : fields) {
+                    const bool poseFile = field == "poseDetector" || field == "poseModel";
+                    const bool weightFile = poseFile || field == "model" || field == "ipAdapterModel" || field == "ipAdapterVision";
+                    const auto source = item.value(field).toString();
+                    const QUrl url(source);
+                    QString path;
+                    if (url.isLocalFile()) path = url.toLocalFile();
+                    else if (!url.scheme().isEmpty()) { fail(tr("ControlNet sources must be local files.")); return {}; }
+                    else if (QFileInfo(source).isAbsolute()) path = source;
+                    else path = m_storage->filePath(weightFile ? StoreSection::Models : StoreSection::Files, source, &error);
+                    const QFileInfo info(path);
+                    if (!info.isFile() || info.size() < 1) { fail(tr("Choose an available local ControlNet source: %1").arg(source)); return {}; }
+                    if (poseFile) {
+                        if (info.suffix() != "onnx" || info.size() >= 2LL * 1024 * 1024 * 1024) {
+                            fail(tr("Choose an inline ONNX Pose model below 2 GiB.")); return {};
+                        }
+                    } else if (weightFile) {
+                        if (!QStringList{"safetensors", "safetensor", "gguf"}.contains(info.suffix().toLower())) {
+                            fail(tr("Choose safetensors or GGUF ControlNet/IP-Adapter/vision weights.")); return {};
+                        }
+                    } else {
+                        QImageReader reader(info.canonicalFilePath());
+                        const auto dimensions = reader.size();
+                        if (!reader.canRead() || dimensions.isEmpty()
+                            || qint64(dimensions.width()) * dimensions.height() > 64 * 1024 * 1024) {
+                            fail(tr("Choose a readable ControlNet image of at most 64 megapixels.")); return {};
+                        }
+                    }
+                    item[field] = info.canonicalFilePath();
+                }
+            }
+            controls.append(item);
+        }
+        advanced["controlNets"] = controls;
+        for (const auto &key : QStringList{"upscalerModel", "detailerModel", "refinerModel"}) {
+            const bool upscaler = key == "upscalerModel";
+            const bool refiner = key == "refinerModel";
+            const bool active = upscaler
+                ? advanced.value("hiresFix").toBool() && advanced.value("upscaler").toString() == "4x-ultra"
+                : advanced.value(refiner ? "refiner" : "detailer").toBool();
+            if (!active) continue;
+            const auto label = upscaler ? tr("4x ESRGAN")
+                : refiner ? tr("SDXL Refiner") : tr("converted YOLOv8 detector");
+            const auto source = advanced.value(key).toString();
+            const QUrl url(source);
+            QString path;
+            if (url.isLocalFile()) path = url.toLocalFile();
+            else if (!url.scheme().isEmpty()) { fail(tr("%1 weights must be local files.").arg(label)); return {}; }
+            else if (QFileInfo(source).isAbsolute()) path = source;
+            else path = m_storage->filePath(StoreSection::Models, source, &error);
+            const QFileInfo info(path);
+            if (!info.isFile() || info.size() < 1
+                || !QStringList{"safetensors", "safetensor", "gguf"}.contains(info.suffix().toLower())) {
+                fail(tr("Choose a local safetensors or GGUF %1 model.").arg(label)); return {};
+            }
+            advanced[key] = info.canonicalFilePath();
+        }
+        const auto embeddingSource = advanced.value("textualEmbeddings").toString();
+        if (!embeddingSource.isEmpty()) {
+            const QUrl url(embeddingSource);
+            QString path;
+            if (url.isLocalFile()) path = url.toLocalFile();
+            else if (!url.scheme().isEmpty()) { fail(tr("Textual embeddings must be local files.")); return {}; }
+            else if (QFileInfo(embeddingSource).isAbsolute()) path = embeddingSource;
+            else path = m_storage->filePath(StoreSection::Models, embeddingSource, &error);
+            const QFileInfo info(path);
+            if (!info.isFile() || info.size() < 1 || info.size() > 100 * 1024 * 1024
+                || !QStringList{"safetensors", "safetensor", "gguf"}.contains(info.suffix().toLower())) {
+                fail(tr("Choose a local safetensors or GGUF embedding of at most 100 MiB.")); return {};
+            }
+            advanced["textualEmbeddings"] = info.canonicalFilePath();
+        }
+    }
     // Preserve submission order even when multiple requests share a millisecond.
     auto created = QDateTime::currentDateTimeUtc();
     if (!m_jobs.isEmpty()) {
@@ -700,12 +917,13 @@ QString GenerationController::enqueue(const QString &prompt, const QString &aspe
     for (int index = 0; index < count; ++index) {
         const auto id = QUuid::createUuid().toString(QUuid::WithoutBraces);
         jobIds.append(id);
-        const QJsonObject job{{"schemaVersion", 1}, {"id", id}, {"appId", "com.iisacc.dreamscapes"},
+        QJsonObject job{{"schemaVersion", 1}, {"id", id}, {"appId", "com.iisacc.dreamscapes"},
             {"createdAt", created.addMSecs(index).toString(Qt::ISODateWithMs)}, {"updatedAt", updated},
             {"state", "queued"}, {"execution", localReady ? "local" : "host"}, {"prompt", trimmed},
             {"aspectRatio", aspectRatio}, {"width", size.width()}, {"height", size.height()},
-            {"steps", m_runtime.steps}, {"seed", double(seed < 0 ? QRandomGenerator::global()->generate() : seed + index)},
+            {"steps", steps}, {"seed", double(seed < 0 ? QRandomGenerator::global()->generate() : seed + index)},
             {"device", m_runtime.device}, {"model", reference}, {"modelName", selected->name}, {"vae", vaeReference}};
+        if (!advanced.isEmpty()) job["advancedParameters"] = advanced;
         m_jobs.append(job);
     }
     // Validate once and publish the whole submission before starting the serial worker.
@@ -736,6 +954,9 @@ void GenerationController::pump()
     const auto resources = map.files("models/.generation-resources/iiLocalDiffusion");
     required.append(resources); required.removeDuplicates();
     if (m_active.value("execution") == "host" || (!required.isEmpty() && !map.available(required))) {
+        if (m_active.contains("advancedParameters")) {
+            finish("failed", tr("The local model became unavailable. Advanced parameters cannot be silently forwarded to an unsupported host.")); return;
+        }
         m_remoteActive = true; m_requiredModelFiles = required;
         m_active["state"] = "connecting-host"; m_active["execution"] = "host";
         m_societyClient.start(m_storage->drive().rootPath());
@@ -773,6 +994,19 @@ void GenerationController::pump()
     }
     arguments.append(resourceArguments(&error));
     if (!error.isEmpty()) { finish("failed", error); return; }
+    const auto advanced = m_active.value("advancedParameters").toObject();
+    if (!advanced.isEmpty()) {
+        // Force the capability-checked native route rather than silently selecting
+        // a pipeline with a different sampling/weighting contract.
+        arguments.append({"--engine", "native", "--negative-prompt", advanced.value("negativePrompt").toString(),
+            "--guidance-scale", QString::number(advanced.value("cfgScale").toDouble(), 'g', 17),
+            "--native-sampler", advanced.value("sampler").toString()});
+        for (const auto &value : advanced.value("loras").toArray()) {
+            const auto lora = value.toObject();
+            arguments.append({"--lora", lora.value("source").toString(),
+                "--lora-scale", QString::number(lora.value("weight").toDouble(), 'g', 17)});
+        }
+    }
     if (m_active.value("model").toObject().value("format") == "safetensors")
         arguments.append({"--backend", "local", "--work-dir", m_workDirectory->filePath("runtime")});
     m_workerRequest = QJsonDocument(QJsonObject{{"schema", "iild-worker-request-v1"},
@@ -866,15 +1100,52 @@ void GenerationController::startNative(const QString &model)
     // total-duration limit must allow a long generation that keeps progressing.
     request.timeoutMilliseconds = std::numeric_limits<int>::max();
     QString storageError;
-    const auto cache = m_storage->ensureDirectory(StoreSection::Models,
-        ".society-runtime/iiLocalDiffusion/q8", &storageError);
-    if (cache.isEmpty()) { finish("failed", storageError); return; }
     const auto resources = resourceArguments(&storageError);
     if (resources.isEmpty()) { finish("failed", storageError); return; }
-    request.q8CacheDirectory = QFile::encodeName(cache).toStdString();
     iiLocalDiffusion::NativeGenerationOptions options;
     options.resourceDirectory = QFile::encodeName(resources[1]).toStdString();
     options.defaultModifiers = resources[2] == "--default-modifiers";
+    const auto advanced = m_active.value("advancedParameters").toObject();
+    iiLocalDiffusion::NativeModelComponents components;
+    iiLocalDiffusion::NativeAdvancedControls sampling;
+    if (!advanced.isEmpty()) {
+        options.negativePrompt = advanced.value("negativePrompt").toString().toStdString();
+        components.guidanceScale = float(advanced.value("cfgScale").toDouble());
+        const auto vaeReference = m_active.value("vae").toObject();
+        if (!vaeReference.isEmpty()) {
+            const auto vae = m_storage->resolveModel(vaeReference, &storageError);
+            if (vae.isEmpty()) { finish("failed", storageError); return; }
+            components.vae = QFile::encodeName(vae).toStdString();
+        }
+        sampling.sampler = advanced.value("sampler").toString().toStdString();
+        sampling.scheduler = advanced.value("scheduler").toString().toStdString();
+        sampling.clipSkip = advanced.value("clipSkip").toInt();
+        sampling.eta = float(advanced.value("eta").toDouble());
+        sampling.seamlessTiling = advanced.value("seamlessTiling").toBool();
+        sampling.hires = advanced.value("hiresFix").toBool();
+        sampling.denoiseStrength = float(advanced.value("denoiseStrength").toDouble());
+        sampling.upscaler = advanced.value("upscaler").toString().toStdString();
+        sampling.upscalerModel = QFile::encodeName(advanced.value("upscalerModel").toString()).toStdString();
+        sampling.detailer = advanced.value("detailer").toBool();
+        sampling.detailerModel = QFile::encodeName(advanced.value("detailerModel").toString()).toStdString();
+        sampling.refiner = advanced.value("refiner").toBool();
+        sampling.refinerSwitch = float(advanced.value("refinerSwitch").toDouble());
+        sampling.refinerModel = QFile::encodeName(advanced.value("refinerModel").toString()).toStdString();
+        sampling.imageStrength = float(advanced.value("imageStrength").toDouble());
+        sampling.promptWeighting = advanced.value("promptWeighting").toBool();
+        sampling.freeU = advanced.value("freeU").toBool();
+        const auto embeddingPath = advanced.value("textualEmbeddings").toString();
+        if (!embeddingPath.isEmpty()) {
+            const auto token = "user_" + QFileInfo(embeddingPath).completeBaseName().toLower()
+                .replace(QRegularExpression("[^a-z0-9_]"), "_").left(100);
+            sampling.embeddings.push_back({token.toStdString(), QFile::encodeName(embeddingPath).toStdString()});
+        }
+        for (const auto &value : advanced.value("loras").toArray()) {
+            const auto lora = value.toObject();
+            options.loras.push_back({QFile::encodeName(lora.value("source").toString()).toStdString(),
+                float(lora.value("weight").toDouble())});
+        }
+    }
     m_active["generation"] = QJsonObject{{"backend", "iiLocalDiffusion-native"},
         {"model_path", model}, {"seed", QString::number(request.seed)}};
     const auto id = m_active.value("id").toString();
@@ -904,16 +1175,33 @@ void GenerationController::startNative(const QString &model)
     auto generation = m_active.value("generation").toObject();
     generation["computeBackend"] = backend == iiLocalDiffusion::NativeComputeBackend::Cpu ? "cpu" : "automatic";
     m_active["generation"] = generation;
-    const auto generate = m_runtime.nativeGenerate ? m_runtime.nativeGenerate
+    auto generate = m_runtime.nativeGenerate ? m_runtime.nativeGenerate
         : [control, backend](const auto &request, const auto &options, const auto &cancelled, const auto &progress, const auto &preview) {
-            return iiLocalDiffusion::generateNativeImageWithPreview(request, options, backend, cancelled, progress, preview, control);
+            return iiLocalDiffusion::generateNativeImageWithResidentWeights(request, options, backend,
+                cancelled, progress, preview, control);
         };
-    const auto legacyCache = m_runtime.legacyQ8CacheDirectory;
-    m_nativeWatcher.setFuture(QtConcurrent::run([this, request, options, id, generate, legacyCache, cache] {
+    if (!advanced.isEmpty()) {
+        const auto advancedGenerate = m_runtime.nativeGenerateAdvanced;
+        const auto referenceSources = advanced.value("referenceImages").toArray();
+        const auto controlSources = advanced.value("controlNets").toArray();
+        generate = [control, backend, components, sampling, referenceSources, controlSources, advancedGenerate](const auto &request, const auto &options,
+            const auto &cancelled, const auto &progress, const auto &preview) {
+            auto effectiveSampling = sampling;
+            QString error;
+            if (!dreamscapes::decodeAdvancedReferences(referenceSources, &effectiveSampling, &error, cancelled, control)
+                || !dreamscapes::decodeAdvancedControlImages(controlSources, &effectiveSampling, &error, cancelled, control)) {
+                iiLocalDiffusion::NativeGenerationResult result;
+                result.cancelled = cancelled.load();
+                result.error = error.toStdString();
+                return result;
+            }
+            if (advancedGenerate) return advancedGenerate(request, options, components, effectiveSampling, cancelled, progress, preview);
+            return iiLocalDiffusion::generateNativeAdvancedImage(request, options, components,
+                effectiveSampling, backend, cancelled, progress, preview, control);
+        };
+    }
+    m_nativeWatcher.setFuture(QtConcurrent::run([this, request, options, id, generate] {
         try {
-            QString migrationError;
-            if (!dreamscapes::migrateLegacyQ8Cache(legacyCache, cache, m_nativeCancelled, &migrationError))
-                throw std::runtime_error(migrationError.toStdString());
             return generate(request, options, m_nativeCancelled, [this, id](const iiLocalDiffusion::NativeGenerationProgress &event) {
                 QMetaObject::invokeMethod(this, [this, id, event] {
                     if (m_active.value("id") != id || m_cancelled || m_nativeTimedOut) return;
@@ -934,8 +1222,11 @@ void GenerationController::startNative(const QString &model)
                     if (m_nativePaused) m_resumeInferenceStatus = status;
                     else setInferenceStatus(status);
                     const auto steps = m_active.value("steps").toInt();
+                    const auto advancedRecipe = m_active.value("advancedParameters").toObject();
+                    const float refinementStrength = advancedRecipe.isEmpty() ? 0.35f
+                        : float(advancedRecipe.value("denoiseStrength").toDouble());
                     if (event.stage == Stage::Denoising
-                        && (event.total == steps || event.total == std::max(1, int(steps * 0.35f)))
+                        && (event.total == steps || event.total == std::max(1, int(steps * refinementStrength)))
                         && event.step >= 0 && event.step <= event.total
                         && (event.total != m_previewTotalSteps || event.step >= m_previewStep)) {
                         m_previewStep = event.step;
@@ -1009,6 +1300,7 @@ bool GenerationController::startWorker(QString *error)
             QDir(path).filePath("dreamscapes-inference-XXXXXX"));
         if (!m_workerDirectory->isValid()) { *error = m_workerDirectory->errorString(); return false; }
         auto environment = m_process.processEnvironment();
+        environment.insert("IILD_NATIVE_TELEMETRY_DIR", QDir(path).filePath("diagnostics"));
         for (const auto &name : {"TMPDIR", "TEMP", "TMP"}) environment.insert(name, m_workerDirectory->path());
         // Backend/model caches also belong to Society. The client consumes
         // already available local sources; missing models are managed in Society.
@@ -1028,6 +1320,7 @@ bool GenerationController::startWorker(QString *error)
         m_workerReady = false;
         m_workerForegroundSupported = false;
         m_pendingOutput.clear();
+        if (busy()) m_workerDeadline.start(std::max(1, m_runtime.nativeTimeoutMilliseconds));
         m_process.start(m_runtime.executable, {"--worker"});
     } else {
         sendWorkerRequest();
@@ -1157,14 +1450,18 @@ bool GenerationController::publishImages(const QStringList &sources, QJsonObject
         // Engine intermediates remain in Society's private runtime area.
         QFile source(sources[i]);
         QSaveFile destination(destinations[i]);
-        bool copied = source.open(QIODevice::ReadOnly) && destination.open(QIODevice::WriteOnly);
-        while (copied && !source.atEnd()) {
+        const auto advanced = job.value("advancedParameters").toObject();
+        bool copied = destination.open(QIODevice::WriteOnly);
+        if (copied && !advanced.isEmpty())
+            copied = dreamscapes::writeAdvancedImage(sources[i], &destination, advanced, job.value("seed").toInteger(), error);
+        else if (copied) copied = source.open(QIODevice::ReadOnly);
+        while (copied && advanced.isEmpty() && !source.atEnd()) {
             const auto bytes = source.read(1024 * 1024);
             copied = source.error() == QFile::NoError && destination.write(bytes) == bytes.size();
         }
         if (!copied || !destination.commit()) {
             for (qsizetype previous = 0; previous < i; ++previous) QFile::remove(destinations[previous]);
-            *error = tr("Cannot save the generated image: %1").arg(source.error() == QFile::NoError
+            if (error->isEmpty()) *error = tr("Cannot save the generated image: %1").arg(source.error() == QFile::NoError
                 ? destination.errorString() : source.errorString());
             return false;
         }
@@ -1177,6 +1474,8 @@ bool GenerationController::publishImages(const QStringList &sources, QJsonObject
 
 void GenerationController::finish(const QString &state, const QString &error)
 {
+    m_workerDeadline.stop();
+    m_workerProgressKey.clear();
     // Replication outlives this generation job, including failure/cancellation.
     m_remoteActive = false; m_requiredModelFiles.clear();
     m_active["state"] = state;
@@ -1202,7 +1501,6 @@ void GenerationController::finish(const QString &state, const QString &error)
         m_backgroundActivityActive = false;
         m_runtime.backgroundActivity->end(state == "completed");
     }
-    if (!m_foreground && m_runtime.nativeInference) iiLocalDiffusion::releaseNativeDiffusionCache();
     emit jobsChanged();
     QTimer::singleShot(0, this, &GenerationController::pump);
 }
@@ -1223,13 +1521,30 @@ void GenerationController::readProcessOutput()
         const auto nativeProgress = line.indexOf("IILD_NATIVE_PROGRESS ");
         if (nativeProgress >= 0 && line.size() - nativeProgress <= 4096)
             acceptNativeWorkerProgress(line.mid(nativeProgress + 21));
+        const auto telemetryStart = line.indexOf("IILD_NATIVE_TELEMETRY ");
+        if (telemetryStart >= 0 && line.size() - telemetryStart <= 8192 && busy() && !m_cancelled) {
+            const auto event = QJsonDocument::fromJson(line.mid(telemetryStart + 22)).object();
+            if (event.value("schema") == "iild-native-telemetry-v1") {
+                m_active["telemetry"] = event;
+                auto status = m_inferenceStatus;
+                status["telemetry"] = event;
+                setInferenceStatus(status);
+                // Heartbeats are observability, never evidence of forward progress.
+            }
+        }
         const auto modelProgress = line.indexOf("IILD_MODEL_PROGRESS ");
         if (modelProgress >= 0 && line.size() - modelProgress <= 4096 && (busy() || !m_controlId.isEmpty()) && !m_cancelled) {
             const auto event = QJsonDocument::fromJson(line.mid(modelProgress + 20)).object();
             const auto completed = event.value("completed_bytes").toDouble(-1), total = event.value("total_bytes").toDouble(-1);
-            if (event.value("schema") == "iild-model-progress-v1" && completed >= 0 && total >= completed)
+            if (event.value("schema") == "iild-model-progress-v1" && completed >= 0 && total >= completed) {
+                const auto key = QString("model:%1/%2").arg(completed).arg(total);
+                if (busy() && !m_nativeTimedOut && key != m_workerProgressKey) {
+                    m_workerProgressKey = key;
+                    m_workerDeadline.start(std::max(1, m_runtime.nativeTimeoutMilliseconds));
+                }
                 setInferenceStatus({{"state", completed == total ? "preparing" : "checking-model"}, {"ready", false},
                     {"completedBytes", completed}, {"totalBytes", total}});
+            }
         }
         const auto ready = line.indexOf("IILD_READY ");
         if (ready >= 0 && line.size() - ready <= 4096
@@ -1253,9 +1568,20 @@ void GenerationController::acceptNativeWorkerProgress(const QByteArray &line)
     const auto event = QJsonDocument::fromJson(line).object();
     if (event.value("schema") != "iild-native-progress-v1") return;
     const auto stage = event.value("stage").toString();
+    if (stage == "computing") {
+        const int batch = event.value("step").toInt(-1);
+        if (batch <= 0 || event.value("total").toInt(-1) != 0 || m_nativeTimedOut) return;
+        const auto key = "computing:" + QString::number(batch);
+        if (key != m_workerProgressKey) {
+            m_workerProgressKey = key;
+            m_workerDeadline.start(std::max(1, m_runtime.nativeTimeoutMilliseconds));
+        }
+        return;
+    }
     if (!QStringList{"waiting", "loading", "encoding", "denoising", "decoding", "preparing-model"}.contains(stage)) return;
     const int step = event.value("step").toInt(-1), total = event.value("total").toInt(-1);
     if (step < 0 || total < 0 || step > total || total > 1000000) return;
+    if (m_nativeTimedOut) return;
     if (stage == "denoising") {
         const auto steps = m_active.value("steps").toInt();
         if ((total != steps && total != std::max(1, int(steps * 0.35f)))
@@ -1264,8 +1590,13 @@ void GenerationController::acceptNativeWorkerProgress(const QByteArray &line)
         m_previewTotalSteps = total;
         emit previewChanged();
     }
+    const auto progressKey = stage + ':' + QString::number(step) + '/' + QString::number(total);
+    if (progressKey != m_workerProgressKey) {
+        m_workerProgressKey = progressKey;
+        m_workerDeadline.start(std::max(1, m_runtime.nativeTimeoutMilliseconds));
+    }
     setInferenceStatus({{"state", stage}, {"ready", false}, {"backend", "native"},
-                        {"step", step}, {"total", total}});
+                        {"step", step}, {"total", total}, {"telemetry", m_active.value("telemetry")}});
 }
 
 void GenerationController::sendWorkerRequest()
@@ -1281,6 +1612,10 @@ void GenerationController::sendWorkerRequest()
         return;
     }
     if (busy() && m_cancelled) { stopProcess(false); return; }
+    if (busy()) {
+        m_workerProgressKey.clear();
+        m_workerDeadline.start(std::max(1, m_runtime.nativeTimeoutMilliseconds));
+    }
     if (m_process.write(m_workerRequest) != m_workerRequest.size()) {
         m_log += "\nCannot send the inference request to iiLocalDiffusion.";
         stopProcess(true);
@@ -1310,7 +1645,7 @@ void GenerationController::acceptWorkerResult(const QByteArray &line)
         QTimer::singleShot(0, this, &GenerationController::pump);
         return;
     }
-    if (!busy() || m_cancelled) return;
+    if (!busy() || m_cancelled || m_nativeTimedOut) return;
     if (event.value("schema") != "iild-worker-result-v1" || event.value("id") != m_active.value("id")
         || !event.value("ok").isBool()) return;
     m_active["worker"] = event; // Timing/cache diagnostics remain in the app's memory.
@@ -1345,7 +1680,10 @@ void GenerationController::acceptPreview(const QByteArray &line)
     QImageReader reader(path);
     const auto size = reader.size();
     if (size.isEmpty() || size.width() > 512 || size.height() > 512 || reader.read().isNull()) return;
+    if (!m_runtime.nativeInference && !m_nativeTimedOut)
+        m_workerDeadline.start(std::max(1, m_runtime.nativeTimeoutMilliseconds));
     m_previewImage = QUrl::fromLocalFile(path);
+    m_previewJobId = m_active.value("id").toString();
     m_previewSequence = sequence;
     m_previewStep = step;
     m_previewTotalSteps = total;
@@ -1371,6 +1709,7 @@ void GenerationController::acceptNativePreview(const iiLocalDiffusion::NativeGen
 void GenerationController::clearPreview()
 {
     m_previewImage.clear();
+    m_previewJobId.clear();
     m_previewStep = m_previewTotalSteps = 0;
     m_previewSequence = 0;
     emit previewChanged();

@@ -9,6 +9,7 @@
 #include <QObject>
 #include <QJsonObject>
 #include <QStringList>
+#include <QSize>
 #include <QTimer>
 #include <QTemporaryDir>
 #include <QUrl>
@@ -38,6 +39,10 @@ struct GenerationRuntime {
     // Optional transport injection for integration tests; production uses the
     // authenticated Society client and never accepts a model URL.
     std::shared_ptr<iiSocietyGeneration::Remote> remoteGeneration;
+    std::function<iiLocalDiffusion::NativeGenerationResult(const iiLocalDiffusion::NativeGenerationRequest &,
+        const iiLocalDiffusion::NativeGenerationOptions &, const iiLocalDiffusion::NativeModelComponents &,
+        const iiLocalDiffusion::NativeAdvancedControls &, const std::atomic_bool &,
+        const iiLocalDiffusion::NativeProgressCallback &, const iiLocalDiffusion::NativePreviewCallback &)> nativeGenerateAdvanced;
 };
 
 class GenerationController : public QObject
@@ -58,6 +63,7 @@ class GenerationController : public QObject
     Q_PROPERTY(QVariantMap latestResult READ latestResult NOTIFY jobsChanged)
     Q_PROPERTY(QVariantList completedResults READ completedResults NOTIFY jobsChanged)
     Q_PROPERTY(QUrl previewImage READ previewImage NOTIFY previewChanged)
+    Q_PROPERTY(QString previewJobId READ previewJobId NOTIFY previewChanged)
     Q_PROPERTY(int previewStep READ previewStep NOTIFY previewChanged)
     Q_PROPERTY(int previewTotalSteps READ previewTotalSteps NOTIFY previewChanged)
     Q_PROPERTY(bool foreground READ foreground WRITE setForeground NOTIFY foregroundChanged)
@@ -84,6 +90,7 @@ public:
     QVariantMap latestResult() const;
     QVariantList completedResults() const;
     QUrl previewImage() const;
+    QString previewJobId() const;
     int previewStep() const;
     int previewTotalSteps() const;
     bool foreground() const;
@@ -96,6 +103,8 @@ public:
     Q_INVOKABLE bool selectStorageLocation(const QString &path);
     Q_INVOKABLE void refreshModels();
     Q_INVOKABLE QString enqueue(const QString &prompt, const QString &aspectRatio = QStringLiteral("1:1"), int count = 1, qint64 seed = -1);
+    Q_INVOKABLE QString enqueueAdvanced(const QVariantMap &parameters);
+    Q_INVOKABLE QString enqueueHomeCanvas(const QVariantMap &parameters, const QString &aspectRatio);
     Q_INVOKABLE bool cancel(const QString &id);
 
 signals:
@@ -110,6 +119,9 @@ signals:
     void screenActivityChanged();
 
 private:
+    QString enqueueAdvancedRequest(const QVariantMap &parameters, const QString &aspectRatio = {});
+    QString enqueueRequest(const QString &prompt, const QSize &size, const QString &aspectRatio,
+        int count, qint64 seed, int steps, QJsonObject advanced = {});
     QVariantMap resultForImage(const QJsonObject &job, const QString &relative) const;
     bool fail(const QString &message);
     void pollStorage();
@@ -159,6 +171,8 @@ private:
     bool m_cacheMigrationActive = false;
     std::atomic_bool m_nativeCancelled{false};
     QTimer m_nativeDeadline;
+    QTimer m_workerDeadline;
+    QString m_workerProgressKey;
     bool m_nativeTimedOut = false;
     bool m_interrupted = false;
     bool m_screenActive = false;
@@ -180,6 +194,7 @@ private:
     std::unique_ptr<QTemporaryDir> m_workerDirectory;
     std::unique_ptr<QTemporaryDir> m_previewDirectory;
     QUrl m_previewImage;
+    QString m_previewJobId;
     int m_previewStep = 0;
     int m_previewTotalSteps = 0;
     int m_previewSequence = 0;

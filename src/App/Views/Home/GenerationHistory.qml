@@ -9,6 +9,7 @@ LV.VStack {
     objectName: "generationHistory"
     property var files: []
     property bool loading: false
+    property bool adaptiveCards: false
     property string errorText: ""
     signal viewAllRequested()
     spacing: LV.Theme.gap12
@@ -19,7 +20,7 @@ LV.VStack {
         LV.Label {
             Layout.fillWidth: true
             Layout.leftMargin: LV.Theme.gap4
-            text: qsTr("Generate history")
+            text: qsTr("Generation history")
             style: body
             elide: Text.ElideRight
         }
@@ -38,7 +39,7 @@ LV.VStack {
         visible: count > 0
         model: root.files
         orientation: ListView.Horizontal
-        spacing: LV.Theme.gap8
+        spacing: root.adaptiveCards ? LV.Theme.gap12 : LV.Theme.gap8
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         activeFocusOnTab: true
@@ -79,7 +80,8 @@ LV.VStack {
             type: LV.Card.File
             size: LV.Card.Small
             detail: LV.Card.Brief
-            width: LV.Theme.scaleMetric(140)
+            width: root.adaptiveCards && cards.width >= LV.Theme.scaleMetric(900)
+                ? (cards.width - 5 * cards.spacing) / 6 : LV.Theme.scaleMetric(140)
             height: LV.Theme.scaleMetric(160)
             filename: modelData.name
             description: modelData.description || ""

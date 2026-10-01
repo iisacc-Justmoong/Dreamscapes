@@ -12,6 +12,12 @@ import zlib
 parser = argparse.ArgumentParser()
 parser.add_argument('--model-path', required=True)
 parser.add_argument('--vae')
+parser.add_argument('--engine', choices=['native'])
+parser.add_argument('--negative-prompt')
+parser.add_argument('--guidance-scale', type=float)
+parser.add_argument('--native-sampler', choices=['auto', 'euler', 'heun'])
+parser.add_argument('--lora')
+parser.add_argument('--lora-scale', type=float)
 parser.add_argument('--seed', type=int)
 parser.add_argument('--prompt', required=True)
 parser.add_argument('--width', type=int, required=True)
@@ -38,6 +44,22 @@ def generate(arguments, request_count=1):
         time.sleep(0.3)
     if args.prompt == 'fail':
         sys.exit('inference fixture rejected this model')
+    if args.prompt in ('telemetry-stall', 'telemetry-progress', 'telemetry-computing'):
+        trace = pathlib.Path(os.environ['IILD_NATIVE_TELEMETRY_DIR']) / 'fixture.jsonl'
+        trace.parent.mkdir(parents=True, exist_ok=True)
+        for index in range(30):
+            step = index if args.prompt == 'telemetry-progress' else 0
+            event = {'schema': 'iild-native-telemetry-v1', 'event': 'heartbeat',
+                     'phase': 'denoise', 'step': step, 'total': args.steps,
+                     'backend': 'Metal', 'trace_path': str(trace), 'elapsed_ms': index * 100}
+            with trace.open('a') as output:
+                output.write(json.dumps(event) + '\n')
+            print('IILD_NATIVE_TELEMETRY ' + json.dumps(event), flush=True)
+            print('IILD_NATIVE_PROGRESS ' + json.dumps({'schema': 'iild-native-progress-v1',
+                  'stage': 'computing' if args.prompt == 'telemetry-computing' else 'denoising',
+                  'step': index + 1 if args.prompt == 'telemetry-computing' else step,
+                  'total': 0 if args.prompt == 'telemetry-computing' else args.steps}), flush=True)
+            time.sleep(0.1)
     if args.prompt == 'native-progress':
         for stage, step, total in [('loading', 200, 685), ('encoding', 0, 0),
                                    ('denoising', 1, args.steps), ('denoising', args.steps, args.steps),
@@ -148,8 +170,9 @@ if sys.argv[1:] == ['--worker']:
                             time.sleep(0.1)
                     if model.read_bytes().startswith(b'prepare-fail'):
                         raise SystemExit('fixture model preparation failed')
-                    if model.read_bytes().startswith(b'prepare-hold'):
-                        time.sleep(20)
+                    if model.read_bytes().startswith(b'prepare-retain'):
+                        model.with_name('.preparation-pid').write_text(str(os.getpid()))
+                        time.sleep(1)
                     time.sleep(0.2)
             if action == 'generate':
                 request_count += 1

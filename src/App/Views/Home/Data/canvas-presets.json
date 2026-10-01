@@ -1,0 +1,3701 @@
+{
+  "revision": 2,
+  "checkedAt": "2026-09-30",
+  "categories": [
+    {
+      "name": "Social media",
+      "subtitle": "Platform-specific sizes for posts, profiles and covers.",
+      "sections": [
+        {
+          "name": "Instagram",
+          "presets": [
+            {
+              "name": "Square post",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "documented-recommendation",
+              "id": "01-01-01",
+              "source": "https://www.adobe.com/express/discover/sizes/instagram"
+            },
+            {
+              "name": "Portrait post",
+              "width": 1080,
+              "height": 1350,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1350,
+              "ppi": null,
+              "classification": "documented-recommendation",
+              "id": "01-01-02",
+              "source": "https://www.adobe.com/express/discover/sizes/instagram"
+            },
+            {
+              "name": "Landscape post",
+              "width": 1080,
+              "height": 566,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 566,
+              "ppi": null,
+              "classification": "documented-recommendation",
+              "id": "01-01-03",
+              "source": "https://www.adobe.com/express/discover/sizes/instagram"
+            },
+            {
+              "name": "Story / Reel cover",
+              "width": 1080,
+              "height": 1920,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1920,
+              "ppi": null,
+              "classification": "documented-recommendation",
+              "id": "01-01-04",
+              "source": "https://www.adobe.com/express/discover/sizes/instagram"
+            },
+            {
+              "name": "Profile image",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-01-05"
+            }
+          ]
+        },
+        {
+          "name": "X",
+          "presets": [
+            {
+              "name": "Landscape post",
+              "width": 1600,
+              "height": 900,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 900,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-02-01"
+            },
+            {
+              "name": "Square post",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-02-02"
+            },
+            {
+              "name": "Profile image",
+              "width": 400,
+              "height": 400,
+              "unit": "px",
+              "pixelWidth": 400,
+              "pixelHeight": 400,
+              "ppi": null,
+              "classification": "documented-recommendation",
+              "id": "01-02-03",
+              "source": "https://help.x.com/en/managing-your-account/common-issues-when-uploading-profile-photo"
+            },
+            {
+              "name": "Profile header",
+              "width": 1500,
+              "height": 500,
+              "unit": "px",
+              "pixelWidth": 1500,
+              "pixelHeight": 500,
+              "ppi": null,
+              "classification": "documented-recommendation",
+              "id": "01-02-04",
+              "source": "https://help.x.com/en/managing-your-account/common-issues-when-uploading-profile-photo"
+            }
+          ]
+        },
+        {
+          "name": "Threads",
+          "presets": [
+            {
+              "name": "Square post",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-03-01"
+            },
+            {
+              "name": "Portrait post",
+              "width": 1080,
+              "height": 1350,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1350,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-03-02"
+            },
+            {
+              "name": "Landscape post",
+              "width": 1600,
+              "height": 900,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 900,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-03-03"
+            },
+            {
+              "name": "Profile image",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-03-04"
+            }
+          ]
+        },
+        {
+          "name": "Facebook",
+          "presets": [
+            {
+              "name": "Square post",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-04-01"
+            },
+            {
+              "name": "Portrait post",
+              "width": 1080,
+              "height": 1350,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1350,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-04-02"
+            },
+            {
+              "name": "Link preview",
+              "width": 1200,
+              "height": 630,
+              "unit": "px",
+              "pixelWidth": 1200,
+              "pixelHeight": 630,
+              "ppi": null,
+              "classification": "documented-recommendation",
+              "id": "01-04-03",
+              "source": "https://www.adobe.com/express/discover/sizes/facebook"
+            },
+            {
+              "name": "Story / Reel cover",
+              "width": 1080,
+              "height": 1920,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1920,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-04-04"
+            },
+            {
+              "name": "Profile cover",
+              "width": 851,
+              "height": 315,
+              "unit": "px",
+              "pixelWidth": 851,
+              "pixelHeight": 315,
+              "ppi": null,
+              "classification": "documented-recommendation",
+              "id": "01-04-05",
+              "source": "https://www.adobe.com/express/discover/sizes/facebook"
+            },
+            {
+              "name": "Group cover",
+              "width": 1640,
+              "height": 856,
+              "unit": "px",
+              "pixelWidth": 1640,
+              "pixelHeight": 856,
+              "ppi": null,
+              "classification": "documented-recommendation",
+              "id": "01-04-06",
+              "source": "https://www.adobe.com/express/discover/sizes/facebook"
+            },
+            {
+              "name": "Event cover",
+              "width": 1200,
+              "height": 630,
+              "unit": "px",
+              "pixelWidth": 1200,
+              "pixelHeight": 630,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-04-07"
+            },
+            {
+              "name": "Profile image",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-04-08"
+            }
+          ]
+        },
+        {
+          "name": "LinkedIn",
+          "presets": [
+            {
+              "name": "Square post",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-05-01"
+            },
+            {
+              "name": "Link preview",
+              "width": 1200,
+              "height": 627,
+              "unit": "px",
+              "pixelWidth": 1200,
+              "pixelHeight": 627,
+              "ppi": null,
+              "classification": "documented-recommendation",
+              "id": "01-05-02",
+              "source": "https://www.linkedin.com/help/linkedin/answer/a563309/image-specifications-for-your-linkedin-pages-and-career-pages"
+            },
+            {
+              "name": "Personal background",
+              "width": 1584,
+              "height": 396,
+              "unit": "px",
+              "pixelWidth": 1584,
+              "pixelHeight": 396,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-05-03"
+            },
+            {
+              "name": "Page cover",
+              "width": 1512,
+              "height": 256,
+              "unit": "px",
+              "pixelWidth": 1512,
+              "pixelHeight": 256,
+              "ppi": null,
+              "classification": "documented-recommendation",
+              "id": "01-05-04",
+              "source": "https://www.linkedin.com/help/linkedin/answer/a563309/image-specifications-for-your-linkedin-pages-and-career-pages"
+            },
+            {
+              "name": "Page logo",
+              "width": 400,
+              "height": 400,
+              "unit": "px",
+              "pixelWidth": 400,
+              "pixelHeight": 400,
+              "ppi": null,
+              "classification": "documented-recommendation",
+              "id": "01-05-05",
+              "source": "https://www.linkedin.com/help/linkedin/answer/a563309/image-specifications-for-your-linkedin-pages-and-career-pages"
+            }
+          ]
+        },
+        {
+          "name": "Pinterest",
+          "presets": [
+            {
+              "name": "Standard Pin",
+              "width": 1000,
+              "height": 1500,
+              "unit": "px",
+              "pixelWidth": 1000,
+              "pixelHeight": 1500,
+              "ppi": null,
+              "classification": "documented-recommendation",
+              "id": "01-06-01",
+              "source": "https://help.pinterest.com/en-gb/business/article/pinterest-product-specs"
+            },
+            {
+              "name": "Square Pin",
+              "width": 1000,
+              "height": 1000,
+              "unit": "px",
+              "pixelWidth": 1000,
+              "pixelHeight": 1000,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-06-02"
+            },
+            {
+              "name": "Vertical cover",
+              "width": 1080,
+              "height": 1920,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1920,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-06-03"
+            },
+            {
+              "name": "Profile image",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-06-04"
+            }
+          ]
+        },
+        {
+          "name": "TikTok",
+          "presets": [
+            {
+              "name": "Video / Story cover",
+              "width": 1080,
+              "height": 1920,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1920,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-07-01"
+            },
+            {
+              "name": "Photo post",
+              "width": 1080,
+              "height": 1350,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1350,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-07-02"
+            },
+            {
+              "name": "Profile image",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-07-03"
+            }
+          ]
+        },
+        {
+          "name": "YouTube",
+          "presets": [
+            {
+              "name": "Video thumbnail",
+              "width": 3840,
+              "height": 2160,
+              "unit": "px",
+              "pixelWidth": 3840,
+              "pixelHeight": 2160,
+              "ppi": null,
+              "classification": "documented-recommendation",
+              "id": "01-08-01",
+              "source": "https://support.google.com/youtube/answer/72431?hl=en"
+            },
+            {
+              "name": "Shorts thumbnail",
+              "width": 2160,
+              "height": 3840,
+              "unit": "px",
+              "pixelWidth": 2160,
+              "pixelHeight": 3840,
+              "ppi": null,
+              "classification": "documented-recommendation",
+              "id": "01-08-02",
+              "source": "https://support.google.com/youtube/answer/72431?hl=en"
+            },
+            {
+              "name": "Channel banner",
+              "width": 2560,
+              "height": 1440,
+              "unit": "px",
+              "pixelWidth": 2560,
+              "pixelHeight": 1440,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-08-03"
+            },
+            {
+              "name": "Channel profile",
+              "width": 800,
+              "height": 800,
+              "unit": "px",
+              "pixelWidth": 800,
+              "pixelHeight": 800,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-08-04"
+            },
+            {
+              "name": "Community post",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-08-05"
+            }
+          ]
+        },
+        {
+          "name": "Snapchat",
+          "presets": [
+            {
+              "name": "Story / Spotlight cover",
+              "width": 1080,
+              "height": 1920,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1920,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-09-01"
+            },
+            {
+              "name": "Square graphic",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-09-02"
+            },
+            {
+              "name": "Profile artwork",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-09-03"
+            }
+          ]
+        },
+        {
+          "name": "Bluesky",
+          "presets": [
+            {
+              "name": "Landscape post",
+              "width": 1600,
+              "height": 900,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 900,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-10-01"
+            },
+            {
+              "name": "Square post",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-10-02"
+            },
+            {
+              "name": "Profile header",
+              "width": 1500,
+              "height": 500,
+              "unit": "px",
+              "pixelWidth": 1500,
+              "pixelHeight": 500,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-10-03"
+            },
+            {
+              "name": "Profile image",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-10-04"
+            }
+          ]
+        },
+        {
+          "name": "Mastodon",
+          "presets": [
+            {
+              "name": "Landscape post",
+              "width": 1600,
+              "height": 900,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 900,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-11-01"
+            },
+            {
+              "name": "Square post",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-11-02"
+            },
+            {
+              "name": "Profile header",
+              "width": 1500,
+              "height": 500,
+              "unit": "px",
+              "pixelWidth": 1500,
+              "pixelHeight": 500,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-11-03"
+            },
+            {
+              "name": "Profile image",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-11-04"
+            }
+          ]
+        },
+        {
+          "name": "Reddit",
+          "presets": [
+            {
+              "name": "Landscape post",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-12-01"
+            },
+            {
+              "name": "Square post",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-12-02"
+            },
+            {
+              "name": "Community banner",
+              "width": 1920,
+              "height": 384,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 384,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-12-03"
+            },
+            {
+              "name": "Community icon",
+              "width": 512,
+              "height": 512,
+              "unit": "px",
+              "pixelWidth": 512,
+              "pixelHeight": 512,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-12-04"
+            }
+          ]
+        },
+        {
+          "name": "Discord",
+          "presets": [
+            {
+              "name": "Server icon",
+              "width": 512,
+              "height": 512,
+              "unit": "px",
+              "pixelWidth": 512,
+              "pixelHeight": 512,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-13-01"
+            },
+            {
+              "name": "Server banner",
+              "width": 960,
+              "height": 540,
+              "unit": "px",
+              "pixelWidth": 960,
+              "pixelHeight": 540,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-13-02"
+            },
+            {
+              "name": "Invite background",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-13-03"
+            },
+            {
+              "name": "Announcement graphic",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-13-04"
+            }
+          ]
+        },
+        {
+          "name": "Twitch",
+          "presets": [
+            {
+              "name": "Profile image",
+              "width": 800,
+              "height": 800,
+              "unit": "px",
+              "pixelWidth": 800,
+              "pixelHeight": 800,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-14-01"
+            },
+            {
+              "name": "Profile banner",
+              "width": 1200,
+              "height": 480,
+              "unit": "px",
+              "pixelWidth": 1200,
+              "pixelHeight": 480,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-14-02"
+            },
+            {
+              "name": "Offline screen",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-14-03"
+            },
+            {
+              "name": "Channel panel",
+              "width": 320,
+              "height": 160,
+              "unit": "px",
+              "pixelWidth": 320,
+              "pixelHeight": 160,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-14-04"
+            }
+          ]
+        },
+        {
+          "name": "LINE",
+          "presets": [
+            {
+              "name": "Square message",
+              "width": 1040,
+              "height": 1040,
+              "unit": "px",
+              "pixelWidth": 1040,
+              "pixelHeight": 1040,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-15-01"
+            },
+            {
+              "name": "Portrait message",
+              "width": 1040,
+              "height": 1850,
+              "unit": "px",
+              "pixelWidth": 1040,
+              "pixelHeight": 1850,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-15-02"
+            },
+            {
+              "name": "Rich menu · large",
+              "width": 2500,
+              "height": 1686,
+              "unit": "px",
+              "pixelWidth": 2500,
+              "pixelHeight": 1686,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-15-03"
+            },
+            {
+              "name": "Rich menu · compact",
+              "width": 2500,
+              "height": 843,
+              "unit": "px",
+              "pixelWidth": 2500,
+              "pixelHeight": 843,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-15-04"
+            }
+          ]
+        },
+        {
+          "name": "KakaoTalk",
+          "presets": [
+            {
+              "name": "Square channel post",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-16-01"
+            },
+            {
+              "name": "Portrait channel post",
+              "width": 1080,
+              "height": 1350,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1350,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-16-02"
+            },
+            {
+              "name": "Channel cover",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-16-03"
+            },
+            {
+              "name": "Profile image",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "01-16-04"
+            }
+          ]
+        }
+      ],
+      "count": 69
+    },
+    {
+      "name": "Video & streaming",
+      "subtitle": "Covers, title cards and live-production graphics.",
+      "sections": [
+        {
+          "name": "Video formats",
+          "presets": [
+            {
+              "name": "Full HD landscape",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-01-01"
+            },
+            {
+              "name": "4K landscape",
+              "width": 3840,
+              "height": 2160,
+              "unit": "px",
+              "pixelWidth": 3840,
+              "pixelHeight": 2160,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-01-02"
+            },
+            {
+              "name": "Full HD vertical",
+              "width": 1080,
+              "height": 1920,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1920,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-01-03"
+            },
+            {
+              "name": "4K vertical",
+              "width": 2160,
+              "height": 3840,
+              "unit": "px",
+              "pixelWidth": 2160,
+              "pixelHeight": 3840,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-01-04"
+            },
+            {
+              "name": "Square video",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-01-05"
+            },
+            {
+              "name": "Cinema widescreen",
+              "width": 2560,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 2560,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-01-06"
+            }
+          ]
+        },
+        {
+          "name": "Production graphics",
+          "presets": [
+            {
+              "name": "Opening title",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-02-01"
+            },
+            {
+              "name": "End card",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-02-02"
+            },
+            {
+              "name": "Lower third",
+              "width": 1920,
+              "height": 240,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 240,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-02-03"
+            },
+            {
+              "name": "Subtitle card",
+              "width": 1920,
+              "height": 360,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 360,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-02-04"
+            },
+            {
+              "name": "Storyboard panel",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-02-05"
+            }
+          ]
+        },
+        {
+          "name": "Live streaming",
+          "presets": [
+            {
+              "name": "Starting soon screen",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-03-01"
+            },
+            {
+              "name": "Be right back screen",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-03-02"
+            },
+            {
+              "name": "Stream overlay",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-03-03"
+            },
+            {
+              "name": "Webcam frame",
+              "width": 1280,
+              "height": 720,
+              "unit": "px",
+              "pixelWidth": 1280,
+              "pixelHeight": 720,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-03-04"
+            },
+            {
+              "name": "Schedule graphic",
+              "width": 1080,
+              "height": 1350,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1350,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-03-05"
+            },
+            {
+              "name": "Live event backdrop",
+              "width": 3840,
+              "height": 2160,
+              "unit": "px",
+              "pixelWidth": 3840,
+              "pixelHeight": 2160,
+              "ppi": null,
+              "classification": "starter",
+              "id": "02-03-06"
+            }
+          ]
+        }
+      ],
+      "count": 17
+    },
+    {
+      "name": "Web, blog & email",
+      "subtitle": "Editorial images, site assets and email graphics.",
+      "sections": [
+        {
+          "name": "Websites",
+          "presets": [
+            {
+              "name": "Desktop hero",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-01-01"
+            },
+            {
+              "name": "Wide hero banner",
+              "width": 1920,
+              "height": 640,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 640,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-01-02"
+            },
+            {
+              "name": "Mobile hero",
+              "width": 1080,
+              "height": 1440,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1440,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-01-03"
+            },
+            {
+              "name": "Landing page section",
+              "width": 1440,
+              "height": 900,
+              "unit": "px",
+              "pixelWidth": 1440,
+              "pixelHeight": 900,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-01-04"
+            },
+            {
+              "name": "Open Graph image",
+              "width": 1200,
+              "height": 630,
+              "unit": "px",
+              "pixelWidth": 1200,
+              "pixelHeight": 630,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-01-05"
+            },
+            {
+              "name": "Website card",
+              "width": 1200,
+              "height": 800,
+              "unit": "px",
+              "pixelWidth": 1200,
+              "pixelHeight": 800,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-01-06"
+            }
+          ]
+        },
+        {
+          "name": "Blogs & newsletters",
+          "presets": [
+            {
+              "name": "Blog header",
+              "width": 2240,
+              "height": 1260,
+              "unit": "px",
+              "pixelWidth": 2240,
+              "pixelHeight": 1260,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-02-01"
+            },
+            {
+              "name": "Article feature",
+              "width": 1600,
+              "height": 900,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 900,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-02-02"
+            },
+            {
+              "name": "Portrait blog graphic",
+              "width": 800,
+              "height": 1200,
+              "unit": "px",
+              "pixelWidth": 800,
+              "pixelHeight": 1200,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-02-03"
+            },
+            {
+              "name": "Newsletter cover",
+              "width": 1200,
+              "height": 800,
+              "unit": "px",
+              "pixelWidth": 1200,
+              "pixelHeight": 800,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-02-04"
+            },
+            {
+              "name": "Article thumbnail",
+              "width": 800,
+              "height": 600,
+              "unit": "px",
+              "pixelWidth": 800,
+              "pixelHeight": 600,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-02-05"
+            },
+            {
+              "name": "Author portrait",
+              "width": 800,
+              "height": 800,
+              "unit": "px",
+              "pixelWidth": 800,
+              "pixelHeight": 800,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-02-06"
+            }
+          ]
+        },
+        {
+          "name": "Email & product assets",
+          "presets": [
+            {
+              "name": "Email header",
+              "width": 600,
+              "height": 200,
+              "unit": "px",
+              "pixelWidth": 600,
+              "pixelHeight": 200,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-03-01"
+            },
+            {
+              "name": "Email hero",
+              "width": 1200,
+              "height": 600,
+              "unit": "px",
+              "pixelWidth": 1200,
+              "pixelHeight": 600,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-03-02"
+            },
+            {
+              "name": "Email promotion",
+              "width": 600,
+              "height": 600,
+              "unit": "px",
+              "pixelWidth": 600,
+              "pixelHeight": 600,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-03-03"
+            },
+            {
+              "name": "Email footer",
+              "width": 600,
+              "height": 150,
+              "unit": "px",
+              "pixelWidth": 600,
+              "pixelHeight": 150,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-03-04"
+            },
+            {
+              "name": "Email signature",
+              "width": 600,
+              "height": 160,
+              "unit": "px",
+              "pixelWidth": 600,
+              "pixelHeight": 160,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-03-05"
+            },
+            {
+              "name": "Favicon source",
+              "width": 512,
+              "height": 512,
+              "unit": "px",
+              "pixelWidth": 512,
+              "pixelHeight": 512,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-03-06"
+            },
+            {
+              "name": "App icon source",
+              "width": 1024,
+              "height": 1024,
+              "unit": "px",
+              "pixelWidth": 1024,
+              "pixelHeight": 1024,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-03-07"
+            },
+            {
+              "name": "Documentation banner",
+              "width": 1600,
+              "height": 400,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 400,
+              "ppi": null,
+              "classification": "starter",
+              "id": "03-03-08"
+            }
+          ]
+        }
+      ],
+      "count": 20
+    },
+    {
+      "name": "Presentations & learning",
+      "subtitle": "Slides, course material and classroom handouts.",
+      "sections": [
+        {
+          "name": "Presentations",
+          "presets": [
+            {
+              "name": "Widescreen slide",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "04-01-01"
+            },
+            {
+              "name": "Classic slide",
+              "width": 1600,
+              "height": 1200,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 1200,
+              "ppi": null,
+              "classification": "starter",
+              "id": "04-01-02"
+            },
+            {
+              "name": "Portrait presentation",
+              "width": 1080,
+              "height": 1920,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1920,
+              "ppi": null,
+              "classification": "starter",
+              "id": "04-01-03"
+            },
+            {
+              "name": "Pitch deck slide",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "04-01-04"
+            },
+            {
+              "name": "Webinar slide",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "04-01-05"
+            },
+            {
+              "name": "Conference screen",
+              "width": 3840,
+              "height": 2160,
+              "unit": "px",
+              "pixelWidth": 3840,
+              "pixelHeight": 2160,
+              "ppi": null,
+              "classification": "starter",
+              "id": "04-01-06"
+            }
+          ]
+        },
+        {
+          "name": "Teaching & courses",
+          "presets": [
+            {
+              "name": "Course cover",
+              "width": 1600,
+              "height": 900,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 900,
+              "ppi": null,
+              "classification": "starter",
+              "id": "04-02-01"
+            },
+            {
+              "name": "Lesson title",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "04-02-02"
+            },
+            {
+              "name": "Classroom banner",
+              "width": 1000,
+              "height": 250,
+              "unit": "px",
+              "pixelWidth": 1000,
+              "pixelHeight": 250,
+              "ppi": null,
+              "classification": "starter",
+              "id": "04-02-03"
+            },
+            {
+              "name": "Flash card",
+              "width": 5,
+              "height": 3,
+              "unit": "in",
+              "pixelWidth": 1500,
+              "pixelHeight": 900,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "04-02-04"
+            },
+            {
+              "name": "Worksheet · A4",
+              "width": 210,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "04-02-05"
+            },
+            {
+              "name": "Worksheet · Letter",
+              "width": 8.5,
+              "height": 11,
+              "unit": "in",
+              "pixelWidth": 2550,
+              "pixelHeight": 3300,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "04-02-06"
+            },
+            {
+              "name": "Class schedule",
+              "width": 11,
+              "height": 8.5,
+              "unit": "in",
+              "pixelWidth": 3300,
+              "pixelHeight": 2550,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "04-02-07"
+            }
+          ]
+        },
+        {
+          "name": "Assignments & awards",
+          "presets": [
+            {
+              "name": "Certificate · A4",
+              "width": 297,
+              "height": 210,
+              "unit": "mm",
+              "pixelWidth": 3508,
+              "pixelHeight": 2480,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "04-03-01"
+            },
+            {
+              "name": "Certificate · Letter",
+              "width": 11,
+              "height": 8.5,
+              "unit": "in",
+              "pixelWidth": 3300,
+              "pixelHeight": 2550,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "04-03-02"
+            },
+            {
+              "name": "Research poster · A0",
+              "width": 841,
+              "height": 1189,
+              "unit": "mm",
+              "pixelWidth": 9933,
+              "pixelHeight": 14043,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "04-03-03"
+            },
+            {
+              "name": "Assignment cover",
+              "width": 210,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "04-03-04"
+            }
+          ]
+        }
+      ],
+      "count": 17
+    },
+    {
+      "name": "Publishing",
+      "subtitle": "Book covers, publication pages and editorial layouts.",
+      "sections": [
+        {
+          "name": "Books & covers",
+          "presets": [
+            {
+              "name": "Ebook cover",
+              "width": 1600,
+              "height": 2560,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 2560,
+              "ppi": null,
+              "classification": "starter",
+              "id": "05-01-01"
+            },
+            {
+              "name": "Digital book cover",
+              "width": 1410,
+              "height": 2250,
+              "unit": "px",
+              "pixelWidth": 1410,
+              "pixelHeight": 2250,
+              "ppi": null,
+              "classification": "starter",
+              "id": "05-01-02"
+            },
+            {
+              "name": "Paperback front · 6 × 9",
+              "width": 6,
+              "height": 9,
+              "unit": "in",
+              "pixelWidth": 1800,
+              "pixelHeight": 2700,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "05-01-03"
+            },
+            {
+              "name": "Paperback front · 5 × 8",
+              "width": 5,
+              "height": 8,
+              "unit": "in",
+              "pixelWidth": 1500,
+              "pixelHeight": 2400,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "05-01-04"
+            },
+            {
+              "name": "A5 book front",
+              "width": 148,
+              "height": 210,
+              "unit": "mm",
+              "pixelWidth": 1748,
+              "pixelHeight": 2480,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "05-01-05"
+            },
+            {
+              "name": "Square book front",
+              "width": 210,
+              "height": 210,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 2480,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "05-01-06"
+            },
+            {
+              "name": "Audiobook cover",
+              "width": 3000,
+              "height": 3000,
+              "unit": "px",
+              "pixelWidth": 3000,
+              "pixelHeight": 3000,
+              "ppi": null,
+              "classification": "starter",
+              "id": "05-01-07"
+            }
+          ]
+        },
+        {
+          "name": "Editorial pages",
+          "presets": [
+            {
+              "name": "Magazine page · A4",
+              "width": 210,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "05-02-01"
+            },
+            {
+              "name": "Magazine spread · A4",
+              "width": 420,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 4961,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "05-02-02"
+            },
+            {
+              "name": "Book page · A5",
+              "width": 148,
+              "height": 210,
+              "unit": "mm",
+              "pixelWidth": 1748,
+              "pixelHeight": 2480,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "05-02-03"
+            },
+            {
+              "name": "Book spread · A5",
+              "width": 296,
+              "height": 210,
+              "unit": "mm",
+              "pixelWidth": 3496,
+              "pixelHeight": 2480,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "05-02-04"
+            },
+            {
+              "name": "Zine page · A6",
+              "width": 105,
+              "height": 148,
+              "unit": "mm",
+              "pixelWidth": 1240,
+              "pixelHeight": 1748,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "05-02-05"
+            },
+            {
+              "name": "US digest page",
+              "width": 5.5,
+              "height": 8.5,
+              "unit": "in",
+              "pixelWidth": 1650,
+              "pixelHeight": 2550,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "05-02-06"
+            },
+            {
+              "name": "US Letter page",
+              "width": 8.5,
+              "height": 11,
+              "unit": "in",
+              "pixelWidth": 2550,
+              "pixelHeight": 3300,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "05-02-07"
+            }
+          ]
+        },
+        {
+          "name": "Reports & inserts",
+          "presets": [
+            {
+              "name": "Report cover · A4",
+              "width": 210,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "05-03-01"
+            },
+            {
+              "name": "White paper · Letter",
+              "width": 8.5,
+              "height": 11,
+              "unit": "in",
+              "pixelWidth": 2550,
+              "pixelHeight": 3300,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "05-03-02"
+            },
+            {
+              "name": "Annual report spread",
+              "width": 420,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 4961,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "05-03-03"
+            },
+            {
+              "name": "Journal cover · B5",
+              "width": 176,
+              "height": 250,
+              "unit": "mm",
+              "pixelWidth": 2079,
+              "pixelHeight": 2953,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "05-03-04"
+            },
+            {
+              "name": "Bookmark",
+              "width": 2,
+              "height": 6,
+              "unit": "in",
+              "pixelWidth": 600,
+              "pixelHeight": 1800,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "05-03-05"
+            },
+            {
+              "name": "Editorial illustration",
+              "width": 1600,
+              "height": 1200,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 1200,
+              "ppi": null,
+              "classification": "starter",
+              "id": "05-03-06"
+            }
+          ]
+        }
+      ],
+      "count": 20
+    },
+    {
+      "name": "Print & events",
+      "subtitle": "Printed promotion, event stationery and venue graphics.",
+      "sections": [
+        {
+          "name": "Posters & flyers",
+          "presets": [
+            {
+              "name": "Poster · A0",
+              "width": 841,
+              "height": 1189,
+              "unit": "mm",
+              "pixelWidth": 9933,
+              "pixelHeight": 14043,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-01-01"
+            },
+            {
+              "name": "Poster · A1",
+              "width": 594,
+              "height": 841,
+              "unit": "mm",
+              "pixelWidth": 7016,
+              "pixelHeight": 9933,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-01-02"
+            },
+            {
+              "name": "Poster · A2",
+              "width": 420,
+              "height": 594,
+              "unit": "mm",
+              "pixelWidth": 4961,
+              "pixelHeight": 7016,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-01-03"
+            },
+            {
+              "name": "Poster · A3",
+              "width": 297,
+              "height": 420,
+              "unit": "mm",
+              "pixelWidth": 3508,
+              "pixelHeight": 4961,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-01-04"
+            },
+            {
+              "name": "Flyer · A4",
+              "width": 210,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-01-05"
+            },
+            {
+              "name": "Flyer · A5",
+              "width": 148,
+              "height": 210,
+              "unit": "mm",
+              "pixelWidth": 1748,
+              "pixelHeight": 2480,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-01-06"
+            },
+            {
+              "name": "Flyer · Letter",
+              "width": 8.5,
+              "height": 11,
+              "unit": "in",
+              "pixelWidth": 2550,
+              "pixelHeight": 3300,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-01-07"
+            },
+            {
+              "name": "US poster",
+              "width": 18,
+              "height": 24,
+              "unit": "in",
+              "pixelWidth": 5400,
+              "pixelHeight": 7200,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-01-08"
+            }
+          ]
+        },
+        {
+          "name": "Events & stationery",
+          "presets": [
+            {
+              "name": "Invitation",
+              "width": 5,
+              "height": 7,
+              "unit": "in",
+              "pixelWidth": 1500,
+              "pixelHeight": 2100,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-02-01"
+            },
+            {
+              "name": "Greeting card",
+              "width": 5,
+              "height": 7,
+              "unit": "in",
+              "pixelWidth": 1500,
+              "pixelHeight": 2100,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-02-02"
+            },
+            {
+              "name": "Postcard · A6",
+              "width": 148,
+              "height": 105,
+              "unit": "mm",
+              "pixelWidth": 1748,
+              "pixelHeight": 1240,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-02-03"
+            },
+            {
+              "name": "Event ticket",
+              "width": 210,
+              "height": 74,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 874,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-02-04"
+            },
+            {
+              "name": "Name badge",
+              "width": 90,
+              "height": 120,
+              "unit": "mm",
+              "pixelWidth": 1063,
+              "pixelHeight": 1417,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-02-05"
+            },
+            {
+              "name": "Place card",
+              "width": 90,
+              "height": 50,
+              "unit": "mm",
+              "pixelWidth": 1063,
+              "pixelHeight": 591,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-02-06"
+            },
+            {
+              "name": "Table number",
+              "width": 148,
+              "height": 210,
+              "unit": "mm",
+              "pixelWidth": 1748,
+              "pixelHeight": 2480,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-02-07"
+            },
+            {
+              "name": "Wedding program",
+              "width": 148,
+              "height": 210,
+              "unit": "mm",
+              "pixelWidth": 1748,
+              "pixelHeight": 2480,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-02-08"
+            }
+          ]
+        },
+        {
+          "name": "Venue & signage",
+          "presets": [
+            {
+              "name": "Roll-up banner",
+              "width": 850,
+              "height": 2000,
+              "unit": "mm",
+              "pixelWidth": 10039,
+              "pixelHeight": 23622,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-03-01"
+            },
+            {
+              "name": "Event banner",
+              "width": 72,
+              "height": 36,
+              "unit": "in",
+              "pixelWidth": 21600,
+              "pixelHeight": 10800,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-03-02"
+            },
+            {
+              "name": "Wayfinding sign",
+              "width": 420,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 4961,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-03-03"
+            },
+            {
+              "name": "Table tent · face",
+              "width": 100,
+              "height": 150,
+              "unit": "mm",
+              "pixelWidth": 1181,
+              "pixelHeight": 1772,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-03-04"
+            },
+            {
+              "name": "Restaurant menu",
+              "width": 210,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-03-05"
+            },
+            {
+              "name": "Menu board",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "06-03-06"
+            },
+            {
+              "name": "Donation card",
+              "width": 148,
+              "height": 105,
+              "unit": "mm",
+              "pixelWidth": 1748,
+              "pixelHeight": 1240,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-03-07"
+            },
+            {
+              "name": "Thank-you card",
+              "width": 105,
+              "height": 148,
+              "unit": "mm",
+              "pixelWidth": 1240,
+              "pixelHeight": 1748,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "06-03-08"
+            }
+          ]
+        }
+      ],
+      "count": 24
+    },
+    {
+      "name": "Ads & campaigns",
+      "subtitle": "Display placements and campaign creative formats.",
+      "sections": [
+        {
+          "name": "Display advertising",
+          "presets": [
+            {
+              "name": "Medium rectangle",
+              "width": 300,
+              "height": 250,
+              "unit": "px",
+              "pixelWidth": 300,
+              "pixelHeight": 250,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-01-01"
+            },
+            {
+              "name": "Large rectangle",
+              "width": 336,
+              "height": 280,
+              "unit": "px",
+              "pixelWidth": 336,
+              "pixelHeight": 280,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-01-02"
+            },
+            {
+              "name": "Leaderboard",
+              "width": 728,
+              "height": 90,
+              "unit": "px",
+              "pixelWidth": 728,
+              "pixelHeight": 90,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-01-03"
+            },
+            {
+              "name": "Large leaderboard",
+              "width": 970,
+              "height": 90,
+              "unit": "px",
+              "pixelWidth": 970,
+              "pixelHeight": 90,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-01-04"
+            },
+            {
+              "name": "Billboard",
+              "width": 970,
+              "height": 250,
+              "unit": "px",
+              "pixelWidth": 970,
+              "pixelHeight": 250,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-01-05"
+            },
+            {
+              "name": "Wide skyscraper",
+              "width": 160,
+              "height": 600,
+              "unit": "px",
+              "pixelWidth": 160,
+              "pixelHeight": 600,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-01-06"
+            },
+            {
+              "name": "Half page",
+              "width": 300,
+              "height": 600,
+              "unit": "px",
+              "pixelWidth": 300,
+              "pixelHeight": 600,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-01-07"
+            },
+            {
+              "name": "Skyscraper",
+              "width": 120,
+              "height": 600,
+              "unit": "px",
+              "pixelWidth": 120,
+              "pixelHeight": 600,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-01-08"
+            },
+            {
+              "name": "Square",
+              "width": 250,
+              "height": 250,
+              "unit": "px",
+              "pixelWidth": 250,
+              "pixelHeight": 250,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-01-09"
+            },
+            {
+              "name": "Small square",
+              "width": 200,
+              "height": 200,
+              "unit": "px",
+              "pixelWidth": 200,
+              "pixelHeight": 200,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-01-10"
+            },
+            {
+              "name": "Mobile banner",
+              "width": 320,
+              "height": 50,
+              "unit": "px",
+              "pixelWidth": 320,
+              "pixelHeight": 50,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-01-11"
+            },
+            {
+              "name": "Large mobile banner",
+              "width": 320,
+              "height": 100,
+              "unit": "px",
+              "pixelWidth": 320,
+              "pixelHeight": 100,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-01-12"
+            }
+          ]
+        },
+        {
+          "name": "Campaign creative",
+          "presets": [
+            {
+              "name": "Landscape campaign",
+              "width": 1200,
+              "height": 628,
+              "unit": "px",
+              "pixelWidth": 1200,
+              "pixelHeight": 628,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-02-01"
+            },
+            {
+              "name": "Square campaign",
+              "width": 1200,
+              "height": 1200,
+              "unit": "px",
+              "pixelWidth": 1200,
+              "pixelHeight": 1200,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-02-02"
+            },
+            {
+              "name": "Portrait campaign",
+              "width": 960,
+              "height": 1200,
+              "unit": "px",
+              "pixelWidth": 960,
+              "pixelHeight": 1200,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-02-03"
+            },
+            {
+              "name": "Vertical campaign",
+              "width": 1080,
+              "height": 1920,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1920,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-02-04"
+            },
+            {
+              "name": "Carousel card",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-02-05"
+            },
+            {
+              "name": "Sponsored content",
+              "width": 1200,
+              "height": 627,
+              "unit": "px",
+              "pixelWidth": 1200,
+              "pixelHeight": 627,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-02-06"
+            },
+            {
+              "name": "App-install creative",
+              "width": 1080,
+              "height": 1920,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1920,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-02-07"
+            },
+            {
+              "name": "Campaign landing hero",
+              "width": 1920,
+              "height": 800,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 800,
+              "ppi": null,
+              "classification": "starter",
+              "id": "07-02-08"
+            }
+          ]
+        }
+      ],
+      "count": 20
+    },
+    {
+      "name": "Brand & business",
+      "subtitle": "Identity assets, business stationery and working documents.",
+      "sections": [
+        {
+          "name": "Brand identity",
+          "presets": [
+            {
+              "name": "Logo canvas",
+              "width": 1000,
+              "height": 1000,
+              "unit": "px",
+              "pixelWidth": 1000,
+              "pixelHeight": 1000,
+              "ppi": null,
+              "classification": "starter",
+              "id": "08-01-01"
+            },
+            {
+              "name": "Wordmark canvas",
+              "width": 1600,
+              "height": 600,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 600,
+              "ppi": null,
+              "classification": "starter",
+              "id": "08-01-02"
+            },
+            {
+              "name": "Brand board",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "08-01-03"
+            },
+            {
+              "name": "Brand guide page",
+              "width": 210,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "08-01-04"
+            },
+            {
+              "name": "Letterhead · A4",
+              "width": 210,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "08-01-05"
+            },
+            {
+              "name": "Letterhead · Letter",
+              "width": 8.5,
+              "height": 11,
+              "unit": "in",
+              "pixelWidth": 2550,
+              "pixelHeight": 3300,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "08-01-06"
+            }
+          ]
+        },
+        {
+          "name": "Business stationery",
+          "presets": [
+            {
+              "name": "Business card · US",
+              "width": 3.5,
+              "height": 2,
+              "unit": "in",
+              "pixelWidth": 1050,
+              "pixelHeight": 600,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "08-02-01"
+            },
+            {
+              "name": "Business card · EU",
+              "width": 85,
+              "height": 55,
+              "unit": "mm",
+              "pixelWidth": 1004,
+              "pixelHeight": 650,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "08-02-02"
+            },
+            {
+              "name": "Business card · KR",
+              "width": 90,
+              "height": 50,
+              "unit": "mm",
+              "pixelWidth": 1063,
+              "pixelHeight": 591,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "08-02-03"
+            },
+            {
+              "name": "Appointment card",
+              "width": 90,
+              "height": 50,
+              "unit": "mm",
+              "pixelWidth": 1063,
+              "pixelHeight": 591,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "08-02-04"
+            },
+            {
+              "name": "DL envelope front",
+              "width": 220,
+              "height": 110,
+              "unit": "mm",
+              "pixelWidth": 2598,
+              "pixelHeight": 1299,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "08-02-05"
+            },
+            {
+              "name": "ID card",
+              "width": 3.375,
+              "height": 2.125,
+              "unit": "in",
+              "pixelWidth": 1012,
+              "pixelHeight": 638,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "08-02-06"
+            }
+          ]
+        },
+        {
+          "name": "Business documents",
+          "presets": [
+            {
+              "name": "Invoice · A4",
+              "width": 210,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "08-03-01"
+            },
+            {
+              "name": "Proposal cover",
+              "width": 210,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "08-03-02"
+            },
+            {
+              "name": "Resume · A4",
+              "width": 210,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "08-03-03"
+            },
+            {
+              "name": "Resume · Letter",
+              "width": 8.5,
+              "height": 11,
+              "unit": "in",
+              "pixelWidth": 2550,
+              "pixelHeight": 3300,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "08-03-04"
+            },
+            {
+              "name": "Price list",
+              "width": 210,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "08-03-05"
+            },
+            {
+              "name": "Company one-pager",
+              "width": 210,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "08-03-06"
+            },
+            {
+              "name": "Service brochure spread",
+              "width": 11,
+              "height": 8.5,
+              "unit": "in",
+              "pixelWidth": 3300,
+              "pixelHeight": 2550,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "08-03-07"
+            }
+          ]
+        }
+      ],
+      "count": 19
+    },
+    {
+      "name": "Commerce",
+      "subtitle": "Product listings, storefront assets and sales collateral.",
+      "sections": [
+        {
+          "name": "Product listings",
+          "presets": [
+            {
+              "name": "Square product image",
+              "width": 2000,
+              "height": 2000,
+              "unit": "px",
+              "pixelWidth": 2000,
+              "pixelHeight": 2000,
+              "ppi": null,
+              "classification": "starter",
+              "id": "09-01-01"
+            },
+            {
+              "name": "Portrait product image",
+              "width": 1600,
+              "height": 2000,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 2000,
+              "ppi": null,
+              "classification": "starter",
+              "id": "09-01-02"
+            },
+            {
+              "name": "Landscape product image",
+              "width": 2400,
+              "height": 1600,
+              "unit": "px",
+              "pixelWidth": 2400,
+              "pixelHeight": 1600,
+              "ppi": null,
+              "classification": "starter",
+              "id": "09-01-03"
+            },
+            {
+              "name": "Product detail graphic",
+              "width": 1200,
+              "height": 1800,
+              "unit": "px",
+              "pixelWidth": 1200,
+              "pixelHeight": 1800,
+              "ppi": null,
+              "classification": "starter",
+              "id": "09-01-04"
+            },
+            {
+              "name": "Size chart",
+              "width": 1600,
+              "height": 1200,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 1200,
+              "ppi": null,
+              "classification": "starter",
+              "id": "09-01-05"
+            },
+            {
+              "name": "Comparison graphic",
+              "width": 2000,
+              "height": 1500,
+              "unit": "px",
+              "pixelWidth": 2000,
+              "pixelHeight": 1500,
+              "ppi": null,
+              "classification": "starter",
+              "id": "09-01-06"
+            }
+          ]
+        },
+        {
+          "name": "Storefronts",
+          "presets": [
+            {
+              "name": "Store hero",
+              "width": 1920,
+              "height": 800,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 800,
+              "ppi": null,
+              "classification": "starter",
+              "id": "09-02-01"
+            },
+            {
+              "name": "Mobile store hero",
+              "width": 1080,
+              "height": 1440,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1440,
+              "ppi": null,
+              "classification": "starter",
+              "id": "09-02-02"
+            },
+            {
+              "name": "Collection cover",
+              "width": 1600,
+              "height": 900,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 900,
+              "ppi": null,
+              "classification": "starter",
+              "id": "09-02-03"
+            },
+            {
+              "name": "Etsy cover",
+              "width": 1600,
+              "height": 400,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 400,
+              "ppi": null,
+              "classification": "starter",
+              "id": "09-02-04"
+            },
+            {
+              "name": "Etsy shop banner",
+              "width": 1600,
+              "height": 213,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 213,
+              "ppi": null,
+              "classification": "starter",
+              "id": "09-02-05"
+            },
+            {
+              "name": "Marketplace promotion",
+              "width": 1200,
+              "height": 600,
+              "unit": "px",
+              "pixelWidth": 1200,
+              "pixelHeight": 600,
+              "ppi": null,
+              "classification": "starter",
+              "id": "09-02-06"
+            }
+          ]
+        },
+        {
+          "name": "Sales material",
+          "presets": [
+            {
+              "name": "Digital product cover",
+              "width": 1600,
+              "height": 2400,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 2400,
+              "ppi": null,
+              "classification": "starter",
+              "id": "09-03-01"
+            },
+            {
+              "name": "Gift voucher",
+              "width": 8,
+              "height": 3.75,
+              "unit": "in",
+              "pixelWidth": 2400,
+              "pixelHeight": 1125,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "09-03-02"
+            },
+            {
+              "name": "Discount coupon",
+              "width": 150,
+              "height": 70,
+              "unit": "mm",
+              "pixelWidth": 1772,
+              "pixelHeight": 827,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "09-03-03"
+            },
+            {
+              "name": "Product insert",
+              "width": 148,
+              "height": 105,
+              "unit": "mm",
+              "pixelWidth": 1748,
+              "pixelHeight": 1240,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "09-03-04"
+            },
+            {
+              "name": "Thank-you insert",
+              "width": 100,
+              "height": 100,
+              "unit": "mm",
+              "pixelWidth": 1181,
+              "pixelHeight": 1181,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "09-03-05"
+            }
+          ]
+        }
+      ],
+      "count": 17
+    },
+    {
+      "name": "Packaging & labels",
+      "subtitle": "Artwork areas for labels, inserts and packaging surfaces.",
+      "sections": [
+        {
+          "name": "Labels & stickers",
+          "presets": [
+            {
+              "name": "Square sticker",
+              "width": 50,
+              "height": 50,
+              "unit": "mm",
+              "pixelWidth": 591,
+              "pixelHeight": 591,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "10-01-01"
+            },
+            {
+              "name": "Round sticker · canvas",
+              "width": 50,
+              "height": 50,
+              "unit": "mm",
+              "pixelWidth": 591,
+              "pixelHeight": 591,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "10-01-02"
+            },
+            {
+              "name": "Rectangular label",
+              "width": 100,
+              "height": 50,
+              "unit": "mm",
+              "pixelWidth": 1181,
+              "pixelHeight": 591,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "10-01-03"
+            },
+            {
+              "name": "Bottle label",
+              "width": 200,
+              "height": 80,
+              "unit": "mm",
+              "pixelWidth": 2362,
+              "pixelHeight": 945,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "10-01-04"
+            },
+            {
+              "name": "Jar label",
+              "width": 80,
+              "height": 40,
+              "unit": "mm",
+              "pixelWidth": 945,
+              "pixelHeight": 472,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "10-01-05"
+            },
+            {
+              "name": "Cosmetic label",
+              "width": 60,
+              "height": 40,
+              "unit": "mm",
+              "pixelWidth": 709,
+              "pixelHeight": 472,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "10-01-06"
+            }
+          ]
+        },
+        {
+          "name": "Packaging surfaces",
+          "presets": [
+            {
+              "name": "Box front artwork",
+              "width": 150,
+              "height": 100,
+              "unit": "mm",
+              "pixelWidth": 1772,
+              "pixelHeight": 1181,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "10-02-01"
+            },
+            {
+              "name": "Pouch front artwork",
+              "width": 160,
+              "height": 230,
+              "unit": "mm",
+              "pixelWidth": 1890,
+              "pixelHeight": 2717,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "10-02-02"
+            },
+            {
+              "name": "Coffee bag label",
+              "width": 90,
+              "height": 120,
+              "unit": "mm",
+              "pixelWidth": 1063,
+              "pixelHeight": 1417,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "10-02-03"
+            },
+            {
+              "name": "Shipping label",
+              "width": 4,
+              "height": 6,
+              "unit": "in",
+              "pixelWidth": 1200,
+              "pixelHeight": 1800,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "10-02-04"
+            },
+            {
+              "name": "Product sleeve front",
+              "width": 210,
+              "height": 100,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 1181,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "10-02-05"
+            }
+          ]
+        },
+        {
+          "name": "Tags & inserts",
+          "presets": [
+            {
+              "name": "Hang tag",
+              "width": 50,
+              "height": 90,
+              "unit": "mm",
+              "pixelWidth": 591,
+              "pixelHeight": 1063,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "10-03-01"
+            },
+            {
+              "name": "Gift tag",
+              "width": 3.5,
+              "height": 2,
+              "unit": "in",
+              "pixelWidth": 1050,
+              "pixelHeight": 600,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "10-03-02"
+            },
+            {
+              "name": "Care instruction card",
+              "width": 90,
+              "height": 120,
+              "unit": "mm",
+              "pixelWidth": 1063,
+              "pixelHeight": 1417,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "10-03-03"
+            },
+            {
+              "name": "Packaging insert",
+              "width": 148,
+              "height": 105,
+              "unit": "mm",
+              "pixelWidth": 1748,
+              "pixelHeight": 1240,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "10-03-04"
+            }
+          ]
+        }
+      ],
+      "count": 15
+    },
+    {
+      "name": "Art & illustration",
+      "subtitle": "Illustration, comics, photo prints and graphic artwork.",
+      "sections": [
+        {
+          "name": "Illustration",
+          "presets": [
+            {
+              "name": "Square illustration",
+              "width": 2048,
+              "height": 2048,
+              "unit": "px",
+              "pixelWidth": 2048,
+              "pixelHeight": 2048,
+              "ppi": null,
+              "classification": "starter",
+              "id": "11-01-01"
+            },
+            {
+              "name": "Portrait illustration",
+              "width": 2048,
+              "height": 2732,
+              "unit": "px",
+              "pixelWidth": 2048,
+              "pixelHeight": 2732,
+              "ppi": null,
+              "classification": "starter",
+              "id": "11-01-02"
+            },
+            {
+              "name": "Landscape illustration",
+              "width": 2732,
+              "height": 2048,
+              "unit": "px",
+              "pixelWidth": 2732,
+              "pixelHeight": 2048,
+              "ppi": null,
+              "classification": "starter",
+              "id": "11-01-03"
+            },
+            {
+              "name": "Panoramic artwork",
+              "width": 4096,
+              "height": 1536,
+              "unit": "px",
+              "pixelWidth": 4096,
+              "pixelHeight": 1536,
+              "ppi": null,
+              "classification": "starter",
+              "id": "11-01-04"
+            },
+            {
+              "name": "Concept art",
+              "width": 3840,
+              "height": 2160,
+              "unit": "px",
+              "pixelWidth": 3840,
+              "pixelHeight": 2160,
+              "ppi": null,
+              "classification": "starter",
+              "id": "11-01-05"
+            },
+            {
+              "name": "Character sheet",
+              "width": 3000,
+              "height": 2000,
+              "unit": "px",
+              "pixelWidth": 3000,
+              "pixelHeight": 2000,
+              "ppi": null,
+              "classification": "starter",
+              "id": "11-01-06"
+            }
+          ]
+        },
+        {
+          "name": "Comics & graphics",
+          "presets": [
+            {
+              "name": "Comic page · A4",
+              "width": 210,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "11-02-01"
+            },
+            {
+              "name": "Comic strip",
+              "width": 2400,
+              "height": 800,
+              "unit": "px",
+              "pixelWidth": 2400,
+              "pixelHeight": 800,
+              "ppi": null,
+              "classification": "starter",
+              "id": "11-02-02"
+            },
+            {
+              "name": "Webcomic episode",
+              "width": 800,
+              "height": 3200,
+              "unit": "px",
+              "pixelWidth": 800,
+              "pixelHeight": 3200,
+              "ppi": null,
+              "classification": "starter",
+              "id": "11-02-03"
+            },
+            {
+              "name": "Meme canvas",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "11-02-04"
+            },
+            {
+              "name": "Trading card",
+              "width": 63,
+              "height": 88,
+              "unit": "mm",
+              "pixelWidth": 744,
+              "pixelHeight": 1039,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "11-02-05"
+            },
+            {
+              "name": "Board-game card",
+              "width": 70,
+              "height": 120,
+              "unit": "mm",
+              "pixelWidth": 827,
+              "pixelHeight": 1417,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "11-02-06"
+            }
+          ]
+        },
+        {
+          "name": "Photo & art prints",
+          "presets": [
+            {
+              "name": "Photo print · 4 × 6",
+              "width": 4,
+              "height": 6,
+              "unit": "in",
+              "pixelWidth": 1200,
+              "pixelHeight": 1800,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "11-03-01"
+            },
+            {
+              "name": "Photo print · 5 × 7",
+              "width": 5,
+              "height": 7,
+              "unit": "in",
+              "pixelWidth": 1500,
+              "pixelHeight": 2100,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "11-03-02"
+            },
+            {
+              "name": "Photo print · 8 × 10",
+              "width": 8,
+              "height": 10,
+              "unit": "in",
+              "pixelWidth": 2400,
+              "pixelHeight": 3000,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "11-03-03"
+            },
+            {
+              "name": "Art print · A3",
+              "width": 297,
+              "height": 420,
+              "unit": "mm",
+              "pixelWidth": 3508,
+              "pixelHeight": 4961,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "11-03-04"
+            },
+            {
+              "name": "Square art print",
+              "width": 300,
+              "height": 300,
+              "unit": "mm",
+              "pixelWidth": 3543,
+              "pixelHeight": 3543,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "11-03-05"
+            },
+            {
+              "name": "Panoramic photo",
+              "width": 12,
+              "height": 4,
+              "unit": "in",
+              "pixelWidth": 3600,
+              "pixelHeight": 1200,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "11-03-06"
+            }
+          ]
+        }
+      ],
+      "count": 18
+    },
+    {
+      "name": "Wallpapers & devices",
+      "subtitle": "Screen artwork for desktop, mobile and display surfaces.",
+      "sections": [
+        {
+          "name": "Desktop displays",
+          "presets": [
+            {
+              "name": "Full HD desktop",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-01-01"
+            },
+            {
+              "name": "QHD desktop",
+              "width": 2560,
+              "height": 1440,
+              "unit": "px",
+              "pixelWidth": 2560,
+              "pixelHeight": 1440,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-01-02"
+            },
+            {
+              "name": "4K desktop",
+              "width": 3840,
+              "height": 2160,
+              "unit": "px",
+              "pixelWidth": 3840,
+              "pixelHeight": 2160,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-01-03"
+            },
+            {
+              "name": "5K desktop",
+              "width": 5120,
+              "height": 2880,
+              "unit": "px",
+              "pixelWidth": 5120,
+              "pixelHeight": 2880,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-01-04"
+            },
+            {
+              "name": "Ultrawide desktop",
+              "width": 3440,
+              "height": 1440,
+              "unit": "px",
+              "pixelWidth": 3440,
+              "pixelHeight": 1440,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-01-05"
+            },
+            {
+              "name": "Super ultrawide",
+              "width": 5120,
+              "height": 1440,
+              "unit": "px",
+              "pixelWidth": 5120,
+              "pixelHeight": 1440,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-01-06"
+            },
+            {
+              "name": "16:10 laptop",
+              "width": 2560,
+              "height": 1600,
+              "unit": "px",
+              "pixelWidth": 2560,
+              "pixelHeight": 1600,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-01-07"
+            }
+          ]
+        },
+        {
+          "name": "Mobile & tablet",
+          "presets": [
+            {
+              "name": "Phone · 9:16",
+              "width": 1080,
+              "height": 1920,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1920,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-02-01"
+            },
+            {
+              "name": "Phone · 9:19.5",
+              "width": 1080,
+              "height": 2340,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 2340,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-02-02"
+            },
+            {
+              "name": "Phone · 9:20",
+              "width": 1440,
+              "height": 3200,
+              "unit": "px",
+              "pixelWidth": 1440,
+              "pixelHeight": 3200,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-02-03"
+            },
+            {
+              "name": "Tablet · 3:4",
+              "width": 1536,
+              "height": 2048,
+              "unit": "px",
+              "pixelWidth": 1536,
+              "pixelHeight": 2048,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-02-04"
+            },
+            {
+              "name": "Tablet · 4:3",
+              "width": 2048,
+              "height": 1536,
+              "unit": "px",
+              "pixelWidth": 2048,
+              "pixelHeight": 1536,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-02-05"
+            },
+            {
+              "name": "Tablet · 10:16",
+              "width": 1600,
+              "height": 2560,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 2560,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-02-06"
+            }
+          ]
+        },
+        {
+          "name": "Other screens",
+          "presets": [
+            {
+              "name": "Watch · square",
+              "width": 512,
+              "height": 512,
+              "unit": "px",
+              "pixelWidth": 512,
+              "pixelHeight": 512,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-03-01"
+            },
+            {
+              "name": "TV artwork · 4K",
+              "width": 3840,
+              "height": 2160,
+              "unit": "px",
+              "pixelWidth": 3840,
+              "pixelHeight": 2160,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-03-02"
+            },
+            {
+              "name": "Digital frame",
+              "width": 1920,
+              "height": 1200,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1200,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-03-03"
+            },
+            {
+              "name": "Portrait kiosk",
+              "width": 1080,
+              "height": 1920,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1920,
+              "ppi": null,
+              "classification": "starter",
+              "id": "12-03-04"
+            }
+          ]
+        }
+      ],
+      "count": 17
+    },
+    {
+      "name": "Music & podcasts",
+      "subtitle": "Release artwork, episode graphics and music promotion.",
+      "sections": [
+        {
+          "name": "Music releases",
+          "presets": [
+            {
+              "name": "Album cover",
+              "width": 3000,
+              "height": 3000,
+              "unit": "px",
+              "pixelWidth": 3000,
+              "pixelHeight": 3000,
+              "ppi": null,
+              "classification": "starter",
+              "id": "13-01-01"
+            },
+            {
+              "name": "Single cover",
+              "width": 3000,
+              "height": 3000,
+              "unit": "px",
+              "pixelWidth": 3000,
+              "pixelHeight": 3000,
+              "ppi": null,
+              "classification": "starter",
+              "id": "13-01-02"
+            },
+            {
+              "name": "Playlist cover",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "13-01-03"
+            },
+            {
+              "name": "CD booklet front",
+              "width": 120,
+              "height": 120,
+              "unit": "mm",
+              "pixelWidth": 1417,
+              "pixelHeight": 1417,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "13-01-04"
+            },
+            {
+              "name": "Vinyl sleeve front",
+              "width": 315,
+              "height": 315,
+              "unit": "mm",
+              "pixelWidth": 3720,
+              "pixelHeight": 3720,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "13-01-05"
+            }
+          ]
+        },
+        {
+          "name": "Podcasts",
+          "presets": [
+            {
+              "name": "Podcast show cover",
+              "width": 3000,
+              "height": 3000,
+              "unit": "px",
+              "pixelWidth": 3000,
+              "pixelHeight": 3000,
+              "ppi": null,
+              "classification": "starter",
+              "id": "13-02-01"
+            },
+            {
+              "name": "Episode artwork",
+              "width": 3000,
+              "height": 3000,
+              "unit": "px",
+              "pixelWidth": 3000,
+              "pixelHeight": 3000,
+              "ppi": null,
+              "classification": "starter",
+              "id": "13-02-02"
+            },
+            {
+              "name": "Episode thumbnail",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "13-02-03"
+            },
+            {
+              "name": "Audiogram cover",
+              "width": 1080,
+              "height": 1920,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1920,
+              "ppi": null,
+              "classification": "starter",
+              "id": "13-02-04"
+            },
+            {
+              "name": "Guest announcement",
+              "width": 1080,
+              "height": 1350,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1350,
+              "ppi": null,
+              "classification": "starter",
+              "id": "13-02-05"
+            }
+          ]
+        },
+        {
+          "name": "Promotion",
+          "presets": [
+            {
+              "name": "Music release banner",
+              "width": 1920,
+              "height": 640,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 640,
+              "ppi": null,
+              "classification": "starter",
+              "id": "13-03-01"
+            },
+            {
+              "name": "Tour announcement",
+              "width": 1080,
+              "height": 1350,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1350,
+              "ppi": null,
+              "classification": "starter",
+              "id": "13-03-02"
+            },
+            {
+              "name": "Concert poster",
+              "width": 297,
+              "height": 420,
+              "unit": "mm",
+              "pixelWidth": 3508,
+              "pixelHeight": 4961,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "13-03-03"
+            },
+            {
+              "name": "Artist press photo",
+              "width": 2400,
+              "height": 1600,
+              "unit": "px",
+              "pixelWidth": 2400,
+              "pixelHeight": 1600,
+              "ppi": null,
+              "classification": "starter",
+              "id": "13-03-04"
+            }
+          ]
+        }
+      ],
+      "count": 14
+    },
+    {
+      "name": "Infographics & diagrams",
+      "subtitle": "Visual explanations, charts and practical planning boards.",
+      "sections": [
+        {
+          "name": "Visual explanations",
+          "presets": [
+            {
+              "name": "Tall infographic",
+              "width": 800,
+              "height": 2000,
+              "unit": "px",
+              "pixelWidth": 800,
+              "pixelHeight": 2000,
+              "ppi": null,
+              "classification": "starter",
+              "id": "14-01-01"
+            },
+            {
+              "name": "Long infographic",
+              "width": 1080,
+              "height": 3240,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 3240,
+              "ppi": null,
+              "classification": "starter",
+              "id": "14-01-02"
+            },
+            {
+              "name": "Square infographic",
+              "width": 1080,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1080,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "14-01-03"
+            },
+            {
+              "name": "Comparison chart",
+              "width": 1600,
+              "height": 1200,
+              "unit": "px",
+              "pixelWidth": 1600,
+              "pixelHeight": 1200,
+              "ppi": null,
+              "classification": "starter",
+              "id": "14-01-04"
+            },
+            {
+              "name": "Timeline",
+              "width": 2400,
+              "height": 800,
+              "unit": "px",
+              "pixelWidth": 2400,
+              "pixelHeight": 800,
+              "ppi": null,
+              "classification": "starter",
+              "id": "14-01-05"
+            },
+            {
+              "name": "Process diagram",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "14-01-06"
+            }
+          ]
+        },
+        {
+          "name": "Planning & information",
+          "presets": [
+            {
+              "name": "Concept map",
+              "width": 1024,
+              "height": 768,
+              "unit": "px",
+              "pixelWidth": 1024,
+              "pixelHeight": 768,
+              "ppi": null,
+              "classification": "starter",
+              "id": "14-02-01"
+            },
+            {
+              "name": "Mind map",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "14-02-02"
+            },
+            {
+              "name": "Organization chart",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "14-02-03"
+            },
+            {
+              "name": "Roadmap",
+              "width": 2400,
+              "height": 1350,
+              "unit": "px",
+              "pixelWidth": 2400,
+              "pixelHeight": 1350,
+              "ppi": null,
+              "classification": "starter",
+              "id": "14-02-04"
+            },
+            {
+              "name": "Checklist · A4",
+              "width": 210,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 2480,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "14-02-05"
+            },
+            {
+              "name": "Calendar · A3",
+              "width": 420,
+              "height": 297,
+              "unit": "mm",
+              "pixelWidth": 4961,
+              "pixelHeight": 3508,
+              "ppi": 300,
+              "classification": "starter",
+              "id": "14-02-06"
+            },
+            {
+              "name": "Dashboard graphic",
+              "width": 1920,
+              "height": 1080,
+              "unit": "px",
+              "pixelWidth": 1920,
+              "pixelHeight": 1080,
+              "ppi": null,
+              "classification": "starter",
+              "id": "14-02-07"
+            }
+          ]
+        }
+      ],
+      "count": 13
+    }
+  ],
+  "total": 300,
+  "sources": {
+    "X": "https://help.x.com/en/managing-your-account/common-issues-when-uploading-profile-photo",
+    "Instagram": "https://www.adobe.com/express/discover/sizes/instagram",
+    "Facebook": "https://www.adobe.com/express/discover/sizes/facebook",
+    "LinkedIn": "https://www.linkedin.com/help/linkedin/answer/a563309/image-specifications-for-your-linkedin-pages-and-career-pages",
+    "Pinterest": "https://help.pinterest.com/en-gb/business/article/pinterest-product-specs",
+    "YouTube": "https://support.google.com/youtube/answer/72431?hl=en",
+    "Adobe canvas starters": "https://developer.adobe.com/express/embed-sdk/docs/reference/types/",
+    "Google display ads": "https://support.google.com/google-ads/answer/1722096?hl=en"
+  },
+  "notes": [
+    "All deliverable nodes are ordinary frames and editable text; no components or instances.",
+    "Suggested canvas sizes are starting points, not upload constraints.",
+    "Print presets are trim sizes at 300 PPI; bleed and supplier dielines are outside this catalogue.",
+    "LinkedIn Page cover uses the directly opened English help page: 1512 x 256, despite stale search snippets showing 4200 x 700."
+  ]
+}

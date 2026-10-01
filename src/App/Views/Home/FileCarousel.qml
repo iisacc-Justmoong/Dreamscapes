@@ -12,12 +12,14 @@ LV.VStack {
     property string itemObjectNamePrefix: "fileCard"
     property string cardsObjectName: "fileCards"
     property bool loading: false
+    property bool wrapCards: false
     property string emptyText: qsTr("No files yet")
     readonly property var visibleFiles: Array.prototype.slice.call(files || [], 0, maximumItems)
     signal viewAllRequested()
     signal fileRequested(var file)
 
-    implicitHeight: LV.Theme.scaleMetric(194)
+    implicitHeight: LV.Theme.controlHeightSm + spacing
+        + (wrapCards && visibleFiles.length > 0 ? wrappedCards.implicitHeight : LV.Theme.scaleMetric(160))
     spacing: LV.Theme.gap12
 
     LV.HStack {
@@ -45,7 +47,7 @@ LV.VStack {
         objectName: root.cardsObjectName
         Layout.fillWidth: true
         Layout.preferredHeight: LV.Theme.scaleMetric(160)
-        visible: count > 0
+        visible: !root.wrapCards && count > 0
         model: root.visibleFiles
         orientation: ListView.Horizontal
         spacing: LV.Theme.gap8
@@ -101,6 +103,34 @@ LV.VStack {
             onActiveFocusChanged: if (activeFocus) {
                 cards.currentIndex = index
                 cards.positionViewAtIndex(index, ListView.Contain)
+            }
+        }
+    }
+
+    Flow {
+        id: wrappedCards
+        objectName: root.objectName + "Grid"
+        Layout.fillWidth: true
+        Layout.preferredHeight: implicitHeight
+        visible: root.wrapCards && root.visibleFiles.length > 0
+        spacing: LV.Theme.gap12
+        Repeater {
+            model: root.wrapCards ? root.visibleFiles : []
+            delegate: LV.Card {
+                required property int index
+                required property var modelData
+                objectName: root.itemObjectNamePrefix + index
+                type: LV.Card.File
+                size: LV.Card.Small
+                detail: LV.Card.Brief
+                width: LV.Theme.scaleMetric(140)
+                height: LV.Theme.scaleMetric(160)
+                filename: modelData.name || ""
+                metadata: modelData.dateText || ""
+                previewSource: modelData.previewSource || ""
+                selectable: false
+                showMenu: false
+                onClicked: root.fileRequested(modelData)
             }
         }
     }

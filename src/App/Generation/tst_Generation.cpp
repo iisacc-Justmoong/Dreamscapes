@@ -1,4 +1,6 @@
 #include "GenerationController.h"
+#include "AdvancedImageParameters.h"
+#include <Generation/NativePose.hpp>
 #include <StorageMap.h>
 #include <QDir>
 #include <QDirIterator>
@@ -55,6 +57,392 @@ class GenerationTests : public QObject
 {
     Q_OBJECT
 private slots:
+    void advancedWatermarkIsAppliedAtPublication_data()
+    {
+        QTest::addColumn<bool>("native");
+        QTest::newRow("native") << true;
+        QTest::newRow("worker") << false;
+    }
+    void advancedWatermarkIsAppliedAtPublication()
+    {
+        QFETCH(bool, native);
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/watermark-queue-XXXXXX"); QVERIFY(prepare(root));
+        auto runtime = fakeRuntime(); runtime.nativeInference = native;
+        runtime.nativeGenerateAdvanced = [](const auto &request, const auto &, const auto &, const auto &,
+            const auto &, const auto &, const auto &) {
+            iiLocalDiffusion::NativeGenerationResult result;
+            result.width = request.width; result.height = request.height;
+            result.rgb.resize(request.width * request.height * 3, 100);
+            return result;
+        };
+        GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
+        AdvancedImageParameters draft(root.filePath("presets.json"));
+        QVERIFY(draft.updateParameters({{"prompt", "watermark"}, {"model", "first model.safetensor"},
+            {"width", 128}, {"height", 128}, {"outputCount", 2}, {"steps", 1}, {"seed", 42},
+            {"watermark", true}, {"preserveMetadata", false}}));
+        const auto markedId = controller.enqueueAdvanced(draft.parameters());
+        QVERIFY2(!markedId.isEmpty(), qPrintable(controller.errorString()));
+        QVERIFY(draft.updateParameters({{"watermark", false}, {"outputCount", 1}}));
+        const auto plainId = controller.enqueueAdvanced(draft.parameters()); QVERIFY(!plainId.isEmpty());
+        controller.setForeground(true);
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, plainId), QString("completed"), 15000);
+        const QImage plain(controller.latestImage().toLocalFile()); QVERIFY(!plain.isNull());
+        int markedCount = 0;
+        for (const auto &entry : controller.jobs()) {
+            const auto job = QJsonObject::fromVariantMap(entry.toMap());
+            const bool marked = job.value("advancedParameters").toObject().value("watermark").toBool();
+            const QImage output(root.filePath(job.value("image").toString())); QVERIFY(!output.isNull());
+            QCOMPARE(output.size(), QSize(128, 128)); QVERIFY(output.textKeys().isEmpty());
+            if (!marked) continue;
+            ++markedCount;
+            QCOMPARE(job.value("state").toString(), QString("completed"));
+            int changed = 0;
+            for (int y = 0; y < 128; ++y) for (int x = 0; x < 128; ++x) {
+                if (output.pixelColor(x, y) != plain.pixelColor(x, y)) {
+                    QVERIFY(QRect(118, 118, 8, 8).contains(x, y)); ++changed;
+                }
+            }
+            QVERIFY(changed > 0);
+        }
+        QCOMPARE(markedCount, 2); // Later draft edits cannot disable queued watermarks.
+    }
+    void homeCanvasOwnsReferencesAndForwardsNativePixels()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/home-inputs-XXXXXX");
+        QVERIFY(prepare(root));
+        QImage reference(80,40,QImage::Format_RGB888); reference.fill(QColor(11,12,13));
+        const auto original = root.filePath("Files/reference.png"); QVERIFY(reference.save(original));
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        iiLocalDiffusion::NativeAdvancedControls received;
+        runtime.nativeGenerateAdvanced = [&](const auto &r, const auto &, const auto &, const auto &s,
+            const auto &, const auto &, const auto &) {
+            received = s;
+            iiLocalDiffusion::NativeGenerationResult result;
+            result.width = r.width; result.height = r.height; result.rgb.resize(r.width*r.height*3,100);
+            return result;
+        };
+        GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
+        AdvancedImageParameters draft(root.filePath("presets.json"));
+        QVERIFY(draft.updateParameters({{"prompt","home canvas"},{"model","first model.safetensor"},
+            {"width",1824},{"height",1024},{"outputCount",1},{"steps",1},
+            {"referenceImages",QVariantList{QUrl::fromLocalFile(original).toString()}}}));
+        const auto id = controller.enqueueHomeCanvas(draft.parameters(),"16:9");
+        QVERIFY2(!id.isEmpty(),qPrintable(controller.errorString()));
+        const auto job = recordedJob(controller,id);
+        QCOMPARE(job.value("aspectRatio").toString(),QString("16:9"));
+        const auto referencePath = job.value("advancedParameters").toObject().value("referenceImages").toArray()[0].toString();
+        const auto owned = QUrl(referencePath).isLocalFile() ? QUrl(referencePath).toLocalFile() : referencePath;
+        QVERIFY(owned != original); QVERIFY(QFileInfo::exists(owned));
+        QVERIFY(QFile::remove(original));
+        controller.setForeground(true);
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller,id),QString("completed"),15000);
+        QCOMPARE(received.references.size(),size_t(1));
+        QCOMPARE(received.references[0].width,80); QCOMPARE(received.references[0].height,40);
+        QCOMPARE(received.references[0].rgb[0],quint8(11));
+        QCOMPARE(received.references[0].rgb[1],quint8(12));
+        QCOMPARE(received.references[0].rgb[2],quint8(13));
+    }
+
+    void advancedSubmissionSnapshotsAndForwardsParameters()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/advanced-worker-XXXXXX");
+        QVERIFY(prepare(root));
+        QVERIFY(write(root.filePath("Models/style.safetensors"), "test adapter"));
+        GenerationController controller(fakeRuntime());
+        QVERIFY(controller.connectStorage(root.path()));
+        AdvancedImageParameters draft(root.filePath("presets.json"));
+        QVERIFY(draft.updateParameters({{"prompt", "slow advanced"}, {"negativePrompt", "noise, blur"},
+            {"model", "first model.safetensor"}, {"width", 64}, {"height", 128},
+            {"outputCount", 2}, {"steps", 23}, {"seed", 100}, {"cfgScale", 4.5}, {"sampler", "heun"}}));
+        const auto lora = draft.addLora(root.filePath("Models/style.safetensors"), "Style"); QVERIFY(!lora.isEmpty());
+        QVERIFY(draft.updateLora(lora, {{"weight", 0.35}}));
+        const auto id = controller.enqueueAdvanced(draft.parameters());
+        QVERIFY2(!id.isEmpty(), qPrintable(controller.errorString()));
+        QString second;
+        for (const auto &value : controller.jobs()) {
+            const auto candidate = value.toMap().value("id").toString();
+            if (candidate != id) second = candidate;
+        }
+        QVERIFY(!second.isEmpty());
+        QVERIFY(draft.updateParameters({{"prompt", "later edit"}, {"steps", 99}, {"cfgScale", 1.0}}));
+        controller.setSelectedModel("second.SAFETENSORS");
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, second), QString("completed"), 15000);
+        const auto job = recordedJob(controller, id);
+        const auto generation = job.value("generation").toObject();
+        QCOMPARE(job.value("prompt").toString(), QString("slow advanced"));
+        QCOMPARE(job.value("steps").toInt(), 23);
+        QCOMPARE(job.value("width").toInt(), 64); QCOMPARE(job.value("height").toInt(), 128);
+        QCOMPARE(job.value("model").toObject().value("path").toString(), QString("first model.safetensor"));
+        QCOMPARE(generation.value("negative_prompt").toString(), QString("noise, blur"));
+        QCOMPARE(generation.value("guidance_scale").toDouble(), 4.5);
+        QCOMPARE(generation.value("native_sampler").toString(), QString("heun"));
+        QCOMPARE(generation.value("lora_scale").toDouble(), 0.35);
+        QCOMPARE(generation.value("engine").toString(), QString("native"));
+        QCOMPARE(recordedJob(controller, second).value("seed").toInteger(), qint64(101));
+        const auto snapshot = job.value("advancedParameters").toObject();
+        QCOMPARE(snapshot.value("cfgScale").toDouble(), 4.5);
+        QVERIFY(!snapshot.value("loras").toArray().isEmpty());
+        QVERIFY(draft.updateParameters({{"transparentBackground", true}}));
+        QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty());
+        QVERIFY(controller.errorString().contains("transparentBackground"));
+        QCOMPARE(controller.jobs().size(), 2);
+        QVERIFY(draft.updateParameters({{"transparentBackground", false}}));
+        QVERIFY(draft.addReferenceImage("reference.png"));
+        QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty());
+        QVERIFY(controller.errorString().contains("referenceImages"));
+        QCOMPARE(controller.jobs().size(), 2);
+    }
+
+    void advancedPoseResourcesReachNativeQueue()
+    {
+        if (!iiLocalDiffusion::nativePoseAvailable()) QSKIP("Pose backend disabled");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/advanced-pose-XXXXXX");
+        QVERIFY(prepare(root));
+        QVERIFY(write(root.filePath("Models/control.safetensors"), "control fixture"));
+        QVERIFY(write(root.filePath("Models/detector.onnx"), "detector fixture"));
+        QVERIFY(write(root.filePath("Models/pose.onnx"), "pose fixture"));
+        QImage reference(3, 2, QImage::Format_RGB888); reference.fill(QColor(11, 12, 13));
+        QVERIFY(reference.save(root.filePath("Files/reference.png")));
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        iiLocalDiffusion::NativeAdvancedControls received;
+        runtime.nativeGenerateAdvanced = [&](const auto &r, const auto &, const auto &, const auto &s,
+            const auto &, const auto &, const auto &) {
+            received = s;
+            iiLocalDiffusion::NativeGenerationResult result;
+            result.width = r.width; result.height = r.height; result.rgb.resize(r.width * r.height * 3, 100);
+            return result;
+        };
+        GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
+        AdvancedImageParameters draft(root.filePath("presets.json"));
+        QVERIFY(draft.updateParameters({{"prompt", "pose queue"}, {"model", "first model.safetensor"},
+            {"width", 64}, {"height", 64}, {"outputCount", 1}}));
+        const auto controlId = draft.addControlNet("Pose");
+        QVERIFY(draft.updateControlNet(controlId, {{"imageSource", "reference.png"},
+            {"model", "control.safetensors"}, {"poseDetector", "detector.onnx"}, {"poseModel", "pose.onnx"}}));
+        QVERIFY(draft.applyControlNet(controlId));
+        const auto id = controller.enqueueAdvanced(draft.parameters());
+        QVERIFY2(!id.isEmpty(), qPrintable(controller.errorString()));
+        QVERIFY(draft.updateControlNet(controlId, {{"poseModel", "missing.onnx"}}));
+        controller.setForeground(true);
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 15000);
+        QCOMPARE(received.controls.size(), size_t(1));
+        QCOMPARE(received.controls.front().process, std::string("Pose"));
+        QCOMPARE(QString::fromStdString(received.controls.front().poseDetector.string()),
+            QFileInfo(root.filePath("Models/detector.onnx")).canonicalFilePath());
+        QCOMPARE(QString::fromStdString(received.controls.front().poseModel.string()),
+            QFileInfo(root.filePath("Models/pose.onnx")).canonicalFilePath());
+        QVERIFY(draft.applyControlNet(controlId));
+        QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty());
+        QCOMPARE(controller.jobs().size(), 1);
+    }
+
+    void advancedNativeReceivesSamplingComponentsAndAdapters()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/advanced-native-XXXXXX");
+        QVERIFY(prepare(root));
+        QVERIFY(QDir().mkpath(root.filePath("Models/VAE")));
+        QVERIFY(write(root.filePath("Models/VAE/custom.safetensors"), "test vae"));
+        QVERIFY(write(root.filePath("Models/style.safetensors"), "test adapter"));
+        QImage reference(3, 2, QImage::Format_RGB888); reference.fill(QColor(11, 12, 13));
+        QVERIFY(write(root.filePath("Models/detail.safetensors"), "test embedding"));
+        QVERIFY(write(root.filePath("Models/control.safetensors"), "test control"));
+        QVERIFY(write(root.filePath("Models/second-control.safetensors"), "test second control"));
+        QVERIFY(write(root.filePath("Models/ip.safetensors"), "test IP adapter"));
+        QVERIFY(write(root.filePath("Models/vision.safetensors"), "test CLIP vision"));
+        QVERIFY(write(root.filePath("Models/upscaler.safetensors"), "test upscaler"));
+        QVERIFY(write(root.filePath("Models/detector.safetensors"), "test detector"));
+        QVERIFY(write(root.filePath("Models/refiner.safetensors"), "test refiner"));
+        QVERIFY(reference.save(root.filePath("Files/reference.png")));
+        reference.fill(QColor(21, 22, 23)); QVERIFY(reference.save(root.filePath("Files/second.png")));
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        iiLocalDiffusion::NativeGenerationRequest received;
+        iiLocalDiffusion::NativeGenerationOptions options;
+        iiLocalDiffusion::NativeModelComponents components;
+        iiLocalDiffusion::NativeAdvancedControls sampling;
+        runtime.nativeGenerateAdvanced = [&](const auto &r, const auto &o, const auto &c, const auto &s,
+            const auto &, const auto &, const auto &) {
+            received = r; options = o; components = c; sampling = s;
+            iiLocalDiffusion::NativeGenerationResult result;
+            result.width = r.width; result.height = r.height; result.rgb.resize(r.width * r.height * 3, 100);
+            return result;
+        };
+        GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
+        AdvancedImageParameters draft(root.filePath("presets.json"));
+        QVERIFY(draft.updateParameters({{"prompt", "native advanced"}, {"negativePrompt", "noise"},
+            {"model", "first model.safetensor"}, {"vae", "VAE/custom.safetensors"},
+            {"width", 64}, {"height", 128}, {"outputCount", 1}, {"steps", 19}, {"seed", 42},
+            {"cfgScale", 6.5}, {"sampler", "dpmpp_2m"}, {"scheduler", "karras"}, {"clipSkip", 2},
+            {"eta", 0.65}, {"seamlessTiling", true}, {"hiresFix", true}, {"denoiseStrength", 0.4},
+            {"upscaler", "4x-ultra"}, {"upscalerModel", "upscaler.safetensors"},
+            {"detailer", true}, {"detailerModel", "detector.safetensors"},
+            {"refiner", true}, {"refinerSwitch", 0.65}, {"refinerModel", "refiner.safetensors"},
+            {"textualEmbeddings", "detail.safetensors"}, {"promptWeighting", false}, {"freeU", true}}));
+        QVERIFY(!draft.addLora(root.filePath("Models/style.safetensors")).isEmpty());
+        QVERIFY(draft.addReferenceImage(QUrl::fromLocalFile(root.filePath("Files/reference.png")).toString()));
+        QVERIFY(draft.addReferenceImage("second.png"));
+        QVERIFY(draft.updateParameters({{"imageStrength", 0.45}}));
+        const auto controlId = draft.addControlNet("Canny");
+        QVERIFY(!controlId.isEmpty());
+        QVERIFY(draft.updateControlNet(controlId, {{"imageSource", "second.png"},
+            {"model", QUrl::fromLocalFile(root.filePath("Models/control.safetensors")).toString()}, {"weight", 0.7},
+            {"regionalMask", true}, {"maskSource", "second.png"}, {"ipAdapter", true},
+            {"ipAdapterModel", "ip.safetensors"}, {"ipAdapterVision", "vision.safetensors"}}));
+        QVERIFY(draft.applyControlNet(controlId));
+        QVERIFY(!draft.addControlNet("Pose").isEmpty()); // Unapplied drafts never execute.
+        const auto secondControlId = draft.addControlNet("Tile");
+        QVERIFY(!secondControlId.isEmpty());
+        QVERIFY(draft.updateControlNet(secondControlId, {{"imageSource", "reference.png"},
+            {"model", "second-control.safetensors"}, {"weight", 1.25},
+            {"regionalMask", true}, {"maskSource", "reference.png"}}));
+        QVERIFY(draft.applyControlNet(secondControlId));
+        const auto ipOnly = draft.addControlNet("IP-Adapter");
+        QVERIFY(draft.updateControlNet(ipOnly, {{"imageSource", "reference.png"}, {"ipAdapter", true},
+            {"ipAdapterModel", QUrl::fromLocalFile(root.filePath("Models/ip.safetensors")).toString()},
+            {"ipAdapterVision", root.filePath("Models/vision.safetensors")}, {"weight", 0.4}}));
+        QVERIFY(draft.applyControlNet(ipOnly));
+        const auto id = controller.enqueueAdvanced(draft.parameters());
+        QVERIFY2(!id.isEmpty(), qPrintable(controller.errorString()));
+        controller.setForeground(true);
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 15000);
+        QCOMPARE(received.steps, 19); QCOMPARE(received.seed, 42); QCOMPARE(received.height, 128);
+        QCOMPARE(options.negativePrompt, std::string("noise")); QCOMPARE(options.loras.size(), size_t(1));
+        QCOMPARE(components.guidanceScale, 6.5f); QVERIFY(!components.vae.empty());
+        QCOMPARE(sampling.sampler, std::string("dpmpp_2m"));
+        QCOMPARE(sampling.scheduler, std::string("karras"));
+        QCOMPARE(sampling.clipSkip, 2); QCOMPARE(sampling.eta, 0.65f);
+        QVERIFY(sampling.seamlessTiling);
+        QVERIFY(sampling.hires); QCOMPARE(sampling.denoiseStrength, 0.4f);
+        QCOMPARE(sampling.upscaler, std::string("4x-ultra"));
+        QCOMPARE(QString::fromStdString(sampling.upscalerModel.string()),
+            QFileInfo(root.filePath("Models/upscaler.safetensors")).canonicalFilePath());
+        QVERIFY(sampling.detailer);
+        QVERIFY(sampling.refiner); QCOMPARE(sampling.refinerSwitch, 0.65f);
+        QCOMPARE(QString::fromStdString(sampling.refinerModel.string()),
+            QFileInfo(root.filePath("Models/refiner.safetensors")).canonicalFilePath());
+        QCOMPARE(QString::fromStdString(sampling.detailerModel.string()),
+            QFileInfo(root.filePath("Models/detector.safetensors")).canonicalFilePath());
+        QVERIFY(!sampling.promptWeighting); QCOMPARE(sampling.embeddings.size(), size_t(1));
+        QVERIFY(sampling.freeU);
+        QCOMPARE(sampling.embeddings[0].token, std::string("user_detail"));
+        QCOMPARE(QString::fromStdString(sampling.embeddings[0].path.string()),
+            QFileInfo(root.filePath("Models/detail.safetensors")).canonicalFilePath());
+        QCOMPARE(sampling.imageStrength, 0.45f); QCOMPARE(sampling.references.size(), size_t(2));
+        QCOMPARE(sampling.references[0].width, 3); QCOMPARE(sampling.references[0].height, 2);
+        QCOMPARE(sampling.references[0].rgb.front(), uint8_t(11));
+        QCOMPARE(sampling.references[1].rgb.front(), uint8_t(21));
+        QCOMPARE(sampling.controls.size(), size_t(2));
+        QCOMPARE(sampling.ipAdapters.size(), size_t(2));
+        QCOMPARE(sampling.ipAdapters.front().weight, .7f);
+        QCOMPARE(sampling.ipAdapters.front().image.rgb.front(), uint8_t(21));
+        QCOMPARE(sampling.ipAdapters.front().mask.rgb.front(), uint8_t(22));
+        QCOMPARE(sampling.ipAdapters.back().weight, .4f);
+        QCOMPARE(sampling.ipAdapters.back().image.rgb.front(), uint8_t(11));
+        QVERIFY(sampling.ipAdapters.back().mask.rgb.empty());
+        QCOMPARE(QString::fromStdString(sampling.ipAdapters.front().model.string()),
+            QFileInfo(root.filePath("Models/ip.safetensors")).canonicalFilePath());
+        QCOMPARE(QString::fromStdString(sampling.ipAdapters.front().vision.string()),
+            QFileInfo(root.filePath("Models/vision.safetensors")).canonicalFilePath());
+        QCOMPARE(sampling.controls.front().process, std::string("Canny"));
+        QCOMPARE(sampling.controls.front().weight, 0.7f);
+        QCOMPARE(sampling.controls.front().image.width, 3);
+        QCOMPARE(sampling.controls.front().image.height, 2);
+        QCOMPARE(sampling.controls.front().image.rgb.front(), uint8_t(21));
+        QCOMPARE(sampling.controls.front().mask.width, 3);
+        QCOMPARE(sampling.controls.front().mask.height, 2);
+        QCOMPARE(sampling.controls.front().mask.rgb.front(), uint8_t(22));
+        QCOMPARE(QString::fromStdString(sampling.controls.front().model.string()),
+            QFileInfo(root.filePath("Models/control.safetensors")).canonicalFilePath());
+        QCOMPARE(sampling.controls.back().process, std::string("Tile"));
+        QCOMPARE(sampling.controls.back().weight, 1.25f);
+        QCOMPARE(sampling.controls.back().image.rgb.front(), uint8_t(11));
+        QCOMPARE(sampling.controls.back().mask.rgb.front(), uint8_t(12));
+        QCOMPARE(QString::fromStdString(sampling.controls.back().model.string()),
+            QFileInfo(root.filePath("Models/second-control.safetensors")).canonicalFilePath());
+        const auto snapshot = recordedJob(controller, id).value("advancedParameters").toObject();
+        const auto ipSnapshot = snapshot.value("controlNets").toArray()[3].toObject();
+        QCOMPARE(ipSnapshot.value("ipAdapterModel").toString(), QFileInfo(root.filePath("Models/ip.safetensors")).canonicalFilePath());
+        QCOMPARE(ipSnapshot.value("ipAdapterVision").toString(), QFileInfo(root.filePath("Models/vision.safetensors")).canonicalFilePath());
+        for (const auto &field : {"ipAdapterModel", "ipAdapterVision"}) {
+            const auto original = draft.parameters().value("controlNets").toList()[3].toMap().value(field);
+            for (const auto &bad : {"https://example.invalid/ip.safetensors", "missing-ip.safetensors"}) {
+                QVERIFY(draft.updateControlNet(ipOnly, {{field, bad}})); QVERIFY(draft.applyControlNet(ipOnly));
+                QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty()); QCOMPARE(controller.jobs().size(), 1);
+            }
+            QVERIFY(draft.updateControlNet(ipOnly, {{field, original}})); QVERIFY(draft.applyControlNet(ipOnly));
+        }
+        const auto secondControlSnapshot = snapshot.value("controlNets").toArray()[2].toObject();
+        QCOMPARE(secondControlSnapshot.value("model").toString(),
+            QFileInfo(root.filePath("Models/second-control.safetensors")).canonicalFilePath());
+        QCOMPARE(secondControlSnapshot.value("imageSource").toString(),
+            QFileInfo(root.filePath("Files/reference.png")).canonicalFilePath());
+        QCOMPARE(secondControlSnapshot.value("maskSource").toString(),
+            QFileInfo(root.filePath("Files/reference.png")).canonicalFilePath());
+        for (const auto &field : {"model", "imageSource", "maskSource"}) {
+            const auto original = draft.parameters().value("controlNets").toList()[2].toMap().value(field);
+            QVERIFY(draft.updateControlNet(secondControlId, {{field, "missing-control-resource"}}));
+            QVERIFY(draft.applyControlNet(secondControlId));
+            QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty());
+            QCOMPARE(controller.jobs().size(), 1);
+            QVERIFY(draft.updateControlNet(secondControlId, {{field, original}}));
+            QVERIFY(draft.applyControlNet(secondControlId));
+        }
+        QCOMPARE(snapshot.value("upscalerModel").toString(), QFileInfo(root.filePath("Models/upscaler.safetensors")).canonicalFilePath());
+        QCOMPARE(snapshot.value("detailerModel").toString(), QFileInfo(root.filePath("Models/detector.safetensors")).canonicalFilePath());
+        QCOMPARE(snapshot.value("refinerModel").toString(), QFileInfo(root.filePath("Models/refiner.safetensors")).canonicalFilePath());
+        QCOMPARE(snapshot.value("refinerSwitch").toDouble(), 0.65);
+        for (const auto &source : {"https://example.invalid/refiner.safetensors", "missing-refiner.safetensors", ""}) {
+            QVERIFY(draft.updateParameters({{"refinerModel", source}}));
+            QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty());
+            QCOMPARE(controller.jobs().size(), 1);
+        }
+        QVERIFY(draft.updateParameters({{"refinerModel", "refiner.safetensors"}}));
+        for (const auto &source : {"https://example.invalid/detector.safetensors", "missing-detector.safetensors", ""}) {
+            QVERIFY(draft.updateParameters({{"detailerModel", source}}));
+            QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty());
+            QCOMPARE(controller.jobs().size(), 1);
+        }
+        QVERIFY(draft.updateParameters({{"detailerModel", "detector.safetensors"}}));
+        QVERIFY(draft.updateParameters({{"upscalerModel", "https://example.invalid/upscaler.safetensors"}}));
+        QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty());
+        QCOMPARE(controller.jobs().size(), 1);
+        QVERIFY(draft.updateParameters({{"upscalerModel", "missing.safetensors"}}));
+        QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty());
+        QCOMPARE(controller.jobs().size(), 1);
+        QVERIFY(draft.updateParameters({{"upscalerModel", "upscaler.safetensors"}}));
+        QCOMPARE(snapshot.value("referenceImages").toArray()[0].toString(),
+            QFileInfo(root.filePath("Files/reference.png")).canonicalFilePath());
+        QCOMPARE(snapshot.value("textualEmbeddings").toString(), QFileInfo(root.filePath("Models/detail.safetensors")).canonicalFilePath());
+        const auto controlSnapshot = snapshot.value("controlNets").toArray()[0].toObject();
+        QCOMPARE(controlSnapshot.value("maskSource").toString(), QFileInfo(root.filePath("Files/second.png")).canonicalFilePath());
+        for (const auto &maskSource : {"https://example.invalid/mask.png", "missing-mask.png"}) {
+            QVERIFY(draft.updateControlNet(controlId, {{"maskSource", maskSource}}));
+            QVERIFY(draft.applyControlNet(controlId));
+            QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty());
+            QCOMPARE(controller.jobs().size(), 1);
+        }
+        QVERIFY(draft.updateControlNet(controlId, {{"maskSource", "second.png"}}));
+        QVERIFY(draft.applyControlNet(controlId));
+        QCOMPARE(controlSnapshot.value("imageSource").toString(), QFileInfo(root.filePath("Files/second.png")).canonicalFilePath());
+        QCOMPARE(controlSnapshot.value("model").toString(), QFileInfo(root.filePath("Models/control.safetensors")).canonicalFilePath());
+        QVERIFY(draft.updateControlNet(controlId, {{"model", "https://example.invalid/control.safetensors"}}));
+        QVERIFY(draft.applyControlNet(controlId));
+        QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty());
+        QCOMPARE(controller.jobs().size(), 1);
+        QVERIFY(draft.updateControlNet(controlId, {{"model", "control.safetensors"}, {"imageSource", "missing.png"}}));
+        QVERIFY(draft.applyControlNet(controlId));
+        QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty());
+        QCOMPARE(controller.jobs().size(), 1);
+        QVERIFY(draft.updateControlNet(controlId, {{"imageSource", "second.png"}}));
+        QVERIFY(draft.applyControlNet(controlId));
+        QVERIFY(draft.updateParameters({{"textualEmbeddings", "https://example.invalid/embedding.safetensors"}}));
+        QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty());
+        QCOMPARE(controller.jobs().size(), 1);
+        QVERIFY(draft.updateParameters({{"textualEmbeddings", "detail.safetensors"}}));
+        QVERIFY(draft.addReferenceImage("https://example.invalid/image.png"));
+        QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty());
+        QCOMPARE(controller.jobs().size(), 1);
+    }
+
     void modelInventoryFollowsSocietyOwnerAtStartupAndRefresh()
     {
         QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-inventory-XXXXXX");
@@ -163,22 +551,59 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 10000);
         QCOMPARE(received, package);
     }
-    void obsoletePreparationCannotBlockTheSelectedModelsQueue()
+    void modelSelectionKeepsThePreparingRuntimeAlive()
     {
         QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/obsolete-preparation-XXXXXX");
         QVERIFY(prepare(root));
-        QVERIFY(write(root.filePath("Models/first model.safetensor"), "prepare-hold"));
+        QVERIFY(write(root.filePath("Models/first model.safetensor"), "prepare-retain"));
         GenerationController controller(fakeRuntime());
         QVERIFY(controller.connectStorage(root.path()));
         controller.setForeground(true);
         QTRY_VERIFY(controller.inferenceStatus().contains("requestId"));
-        QTest::qWait(100); // Let the fixture enter the deliberately slow preparation.
+        const auto pidPath = root.filePath("Models/.preparation-pid");
+        QTRY_VERIFY(QFileInfo::exists(pidPath));
+        QFile pidFile(pidPath); QVERIFY(pidFile.open(QIODevice::ReadOnly));
+        const auto preparingPid = pidFile.readAll().trimmed().toLongLong();
+        QVERIFY(preparingPid > 0);
         controller.setSelectedModel(controller.models().last().toMap().value("id").toString());
         const auto id = controller.enqueue("the newly selected model must run");
         QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 5000);
         QVERIFY(recordedJob(controller, id).value("generation").toObject()
                     .value("model_path").toString().endsWith("second.SAFETENSORS"));
+        QCOMPARE(recordedJob(controller, id).value("worker").toObject().value("pid").toInteger(), preparingPid);
     }
+    void workerStallDeadlineIgnoresHeartbeats_data()
+    {
+        QTest::addColumn<bool>("progressing");
+        QTest::addColumn<QString>("prompt");
+        QTest::newRow("heartbeat-only-stalls") << false << QString("telemetry-stall");
+        QTest::newRow("real-steps-renew-deadline") << true << QString("telemetry-progress");
+        QTest::newRow("real-cpu-batches-renew-deadline") << true << QString("telemetry-computing");
+    }
+    void workerStallDeadlineIgnoresHeartbeats()
+    {
+        QFETCH(bool, progressing);
+        QFETCH(QString, prompt);
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/worker-watchdog-XXXXXX");
+        QVERIFY(prepare(root));
+        auto runtime = fakeRuntime();
+        runtime.steps = 30;
+        runtime.nativeTimeoutMilliseconds = 1500;
+        GenerationController controller(runtime);
+        QVERIFY(controller.connectStorage(root.path()));
+        const auto id = controller.enqueue(prompt);
+        QTRY_VERIFY2_WITH_TIMEOUT(state(controller, id) == (progressing ? QString("completed") : QString("failed")),
+            qPrintable(recordedJob(controller, id).value("error").toString()), 10000);
+        const auto job = recordedJob(controller, id);
+        const auto trace = job.value("telemetry").toObject();
+        QCOMPARE(trace.value("backend").toString(), QString("Metal"));
+        QVERIFY(QFileInfo::exists(trace.value("trace_path").toString()));
+        if (!progressing) {
+            QVERIFY(job.value("error").toString().contains("denoise"));
+            QVERIFY(job.value("error").toString().contains("stopped making progress"));
+        }
+    }
+
     void nativeWorkerReportsStagesWithoutInventingPreviewImages()
     {
         QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/native-worker-progress-XXXXXX");
@@ -481,12 +906,18 @@ private slots:
         controller.setForeground(true);
         QTRY_VERIFY(controller.inferenceStatus().value("ready").toBool());
         QCOMPARE(controller.inferenceStatus().value("pid"), before.value("pid"));
+        const auto resumed = controller.enqueue("reuse anonymous sources after idle transition");
+        QTRY_COMPARE(state(controller, resumed), QString("completed"));
+        const auto resumedWorker = recordedJob(controller, resumed).value("worker").toObject();
+        QCOMPARE(resumedWorker.value("pid").toVariant(), before.value("pid"));
+        QCOMPARE(resumedWorker.value("cache").toObject().value("pipeline_loads").toInt(-1), 0);
+        QTRY_VERIFY(controller.inferenceStatus().value("ready").toBool());
         QVERIFY(QFile::remove(root.filePath("Models/first model.safetensor")));
         QVERIFY(QFile::remove(root.filePath("Models/second.SAFETENSORS")));
         controller.refreshModels();
         QTRY_COMPARE(controller.inferenceStatus().value("state").toString(), QString("waiting-model"));
         QVERIFY(!controller.inferenceStatus().value("ready").toBool());
-        QCOMPARE(controller.jobs().size(), 1);
+        QCOMPARE(controller.jobs().size(), 2);
     }
 
     void foregroundModelChangesAndQueuedRequestsRemainSeparate()
@@ -553,8 +984,10 @@ private slots:
         QVERIFY(controller.connectStorage(root.path()));
         QList<int> steps;
         QList<QUrl> images;
+        QString expectedPreviewJobId;
         connect(&controller, &GenerationController::previewChanged, this, [&] {
             if (controller.previewImage().isEmpty()) return;
+            QCOMPARE(controller.previewJobId(), expectedPreviewJobId);
             QVERIFY(controller.busy());
             QVERIFY(controller.latestImage().isEmpty());
             QCOMPARE(controller.previewTotalSteps(), 3);
@@ -564,10 +997,12 @@ private slots:
             QCOMPARE(image.pixelColor(0, 0).red(), controller.previewStep() * 60);
         });
         const auto id = controller.enqueue(prompt);
+        expectedPreviewJobId = id;
         QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), expectedState, 10000);
         QCOMPARE(steps, QList<int>({1, 2, 3}));
         QCOMPARE(QSet<QUrl>(images.cbegin(), images.cend()).size(), 3);
         QVERIFY(controller.previewImage().isEmpty());
+        QVERIFY(controller.previewJobId().isEmpty());
         QCOMPARE(controller.previewStep(), 0);
         QCOMPARE(controller.previewTotalSteps(), 0);
         for (const auto &image : images) QVERIFY(!QFileInfo::exists(image.toLocalFile()));
@@ -584,10 +1019,12 @@ private slots:
         QVERIFY(controller.connectStorage(root.path()));
         const auto first = controller.enqueue("live-hold");
         QTRY_COMPARE(controller.previewStep(), 1);
+        QCOMPARE(controller.previewJobId(), first);
         const auto preview = controller.previewImage();
         QVERIFY(controller.cancel(first));
         QTRY_COMPARE(state(controller, first), QString("cancelled"));
         QVERIFY(controller.previewImage().isEmpty());
+        QVERIFY(controller.previewJobId().isEmpty());
         QVERIFY(!QFileInfo::exists(preview.toLocalFile()));
         const auto next = controller.enqueue("next");
         QTRY_COMPARE(state(controller, next), QString("completed"));

@@ -159,9 +159,8 @@ private slots:
             observedResources = QString::fromStdString(options.resourceDirectory.string());
             observedCache = QString::fromStdString(request.q8CacheDirectory.string());
             modifiers = options.defaultModifiers;
-            if (QFileInfo::exists(runtime.legacyQ8CacheDirectory)
-                || !QFileInfo::exists(QDir(observedCache).filePath("converted.gguf")))
-                throw std::runtime_error("Private cache was not migrated before inference");
+            if (!request.q8CacheDirectory.empty())
+                throw std::runtime_error("Resident inference unexpectedly used a disk-backed model cache");
             return imageResult(request);
         };
         GenerationController app(runtime);
@@ -170,9 +169,12 @@ private slots:
         const auto id = app.enqueue("use Society storage"); QVERIFY(!id.isEmpty());
         QTRY_COMPARE_WITH_TIMEOUT(app.jobs().first().toMap().value("state").toString(), QString("completed"), 10000);
         QCOMPARE(observedResources, storage.filePath("Models/.generation-resources/iiLocalDiffusion"));
-        QCOMPARE(observedCache, storage.filePath("Models/.society-runtime/iiLocalDiffusion/q8"));
+        QVERIFY(observedCache.isEmpty());
+        // Connection migrates legacy artifacts independently; resident inference
+        // must not consume them or create another disk-backed model derivative.
+        QTRY_VERIFY(QFileInfo::exists(storage.filePath("Models/.society-runtime/iiLocalDiffusion/q8/converted.gguf")));
         QCOMPARE(modifiers, hasResources); // The SDK validates the catalog contents during real inference.
-        QVERIFY(QDir(previous.path()).isEmpty());
+        QVERIFY(!QFileInfo::exists(QDir(previous.path()).filePath("q8/converted.gguf")));
         QVERIFY(app.latestImage().toLocalFile().startsWith(storage.filePath("Generation History/")));
         QVERIFY(model.open(QIODevice::ReadOnly)); QCOMPARE(model.readAll(), "source model");
         app.refreshModels(); QCOMPARE(app.models().size(), 1); // Hidden runtime data is not another selectable model.
@@ -442,8 +444,8 @@ private slots:
         runtime.screenActivity = [&](bool active) { screen.append(active); };
         runtime.nativeGenerate = [](const auto &request, const auto &, const auto &, const auto &progress, const auto &) {
             using Stage = iiLocalDiffusion::NativeGenerationStage;
-            if (request.q8CacheDirectory.string().find("Models/.society-runtime/iiLocalDiffusion/q8") == std::string::npos)
-                throw std::runtime_error("Missing Q8 cache request");
+            if (!request.q8CacheDirectory.empty())
+                throw std::runtime_error("Resident generation must not request a disk-backed Q8 cache");
             progress({Stage::Preparing, 1, 220});
             progress({Stage::Loading, 220, 220});
             progress({Stage::Encoding});
@@ -457,8 +459,8 @@ private slots:
             result.threads = 6;
             result.modelLoadMilliseconds = 0.5;
             result.generationMilliseconds = 100;
-            result.q8CacheUsed = true;
-            result.diskCacheHit = true;
+            result.q8CacheUsed = false;
+            result.diskCacheHit = false;
             result.modelBytes = 4180204992;
             result.preparationMilliseconds = 0.2;
             return result;
@@ -489,8 +491,8 @@ private slots:
         QCOMPARE(performance.value("memoryBudgetBytes").toDouble(), double(4352ull * 1024 * 1024));
         QCOMPARE(performance.value("modelLoadMilliseconds").toDouble(), 0.5);
         QCOMPARE(performance.value("generationMilliseconds").toDouble(), 100.0);
-        QCOMPARE(performance.value("q8CacheUsed").toBool(), true);
-        QCOMPARE(performance.value("diskCacheHit").toBool(), true);
+        QCOMPARE(performance.value("q8CacheUsed").toBool(), false);
+        QCOMPARE(performance.value("diskCacheHit").toBool(), false);
         QCOMPARE(performance.value("modelBytes").toDouble(), 4180204992.0);
         QCOMPARE(performance.value("preparationMilliseconds").toDouble(), 0.2);
         QVERIFY(phases.contains("preparing-model"));

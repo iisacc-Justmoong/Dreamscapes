@@ -2,12 +2,15 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import LVRS 1.0 as LV
+import Dreamscapes.Storage 1.0
 
 Item {
     id: root
     objectName: "canvasEditor"
     property url imageSource: ""
     property var generationResult: ({})
+    property var canvasSpecification: ({})
+    function createBlankCanvas(specification) { return blankCanvas.createCanvas(specification) }
     property bool mobileLayout: false
     readonly property string selectedTool: bottomToolbar.currentTool
     signal backRequested()
@@ -37,8 +40,12 @@ Item {
             Layout.fillWidth: true
         }
         LV.Label {
-            text: qsTr("Untitled Canvas")
+            text: root.canvasSpecification.pixelWidth
+                ? root.canvasSpecification.name + " · " + root.canvasSpecification.pixelWidth + " × " + root.canvasSpecification.pixelHeight + " px"
+                : qsTr("Untitled Canvas")
             style: description
+            Layout.maximumWidth: root.width * 0.6
+            elide: Text.ElideRight
         }
     }
 
@@ -52,13 +59,13 @@ Item {
         anchors.margins: LV.Theme.gap16
         clip: true
 
-        Rectangle {
+        EditorCanvas {
+            id: blankCanvas
             objectName: "editorBlankCanvas"
             visible: root.imageSource.toString().length === 0
-            anchors.centerIn: parent
-            width: Math.min(parent.width, parent.height)
-            height: width
-            color: "white"
+            anchors.fill: parent
+            onWidthChanged: if (documentReady) fitToView()
+            onHeightChanged: if (documentReady) fitToView()
         }
         Image {
             objectName: "editorCanvasImage"
