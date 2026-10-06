@@ -46,6 +46,8 @@ HomeCanvas::HomeCanvas(QQuickItem *parent):CanvasItem(parent),m_snapshots(snapsh
     connect(this,&CanvasItem::revisionChanged,this,&HomeCanvas::contentChanged);
     connect(this,&CanvasItem::documentChanged,this,&HomeCanvas::contentChanged);
 }
+HomeCanvas::~HomeCanvas() = default;
+
 void HomeCanvas::wheelEvent(QWheelEvent *event) {
     // The home document fits its layout width; wheel input scrolls its host body.
     event->ignore();

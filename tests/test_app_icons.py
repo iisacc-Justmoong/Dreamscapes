@@ -127,7 +127,7 @@ class AppIconsTest(unittest.TestCase):
                 'add_library(Dreamscapes INTERFACE)\n'
                 'set_property(TARGET Dreamscapes PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR '
                 '"${CMAKE_CURRENT_SOURCE_DIR}/src/platform/android")\n'
-                f'include("{ROOT / "cmake/AppIcons.cmake"}")\n'
+                f'include("{(ROOT / "cmake/AppIcons.cmake").as_posix()}")\n'
                 'dreamscapes_add_app_icons(Dreamscapes)\n')
             binary = Path(temporary) / 'build'
             subprocess.run(['cmake', '-S', str(source), '-B', str(binary)], check=True, capture_output=True)

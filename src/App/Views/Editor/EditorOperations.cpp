@@ -24,7 +24,7 @@ bool EditorCanvas::exportImage(const QUrl &source, const QString &format) {
     if (format == "IISC") {
         Document flat; flat.extent = document()->extent;
         flat.assets.emplace_back(RasterAsset{"export.frame", rendered.pixels});
-        flat.layers.emplace_back(BitmapLayer{{"export.layer", "Exported frame"}, StaticSource{"export.frame"}});
+        flat.layers.emplace_back(StaticBitmapLayer{{"export.layer", "Exported frame"}, StaticSource{"export.frame"}});
         DocumentFile file; const auto result = file.create(source.toLocalFile().toStdString(), flat);
         if (!result.ok()) return fail(QString::fromStdString(result.message)); clearError(); return true;
     }
@@ -141,7 +141,7 @@ bool EditorCanvas::eraseVector(const QVariantMap &v) {
     if (m_pixelLocks.contains(selectedLayerId())) return fail(tr("Unlock the selected layer's pixels first."));
     if (m_selection.alpha.empty()) return fail(tr("Draw the vector eraser region first."));
     const auto id = selectedLayerId(); const auto *layer = findLayer(*document(), id.toStdString());
-    if (!layer || !std::holds_alternative<VectorLayer>(*layer)) return fail(tr("Select a native vector layer."));
+    if (!layer || !std::holds_alternative<StaticVectorLayer>(*layer)) return fail(tr("Select a native vector layer."));
     const auto *asset = resolveAssetAt(*document(), *layer, frame()); const auto *vector = asset ? std::get_if<VectorAsset>(asset) : nullptr;
     if (!vector) return fail(tr("Select vector geometry at the current frame."));
     QPainterPath area; int runs = 0;
@@ -207,7 +207,7 @@ bool EditorCanvas::moveVectorPath(int index, qreal x, qreal y) {
     const auto id = selectedLayerId();
     return commit([&](Document &d) {
         auto *layer = findLayer(d, id.toStdString()); if (!layer) return false;
-        const auto *source = std::get_if<StaticSource>(&layerSource(*layer)); if (!source) return false;
+        const auto sourceValue = layerSource(*layer); const auto *source = std::get_if<StaticSource>(&sourceValue); if (!source) return false;
         auto *asset = findVectorAsset(d, source->assetId); if (!asset || index < 0 || index >= int(asset->paths.size())) return false;
         for (auto &command : asset->paths[index].commands) std::visit([&](auto &c) { using T = std::decay_t<decltype(c)>; const auto move = [&](Point &p) { p.x += x; p.y += y; };
             if constexpr (std::is_same_v<T, MoveTo> || std::is_same_v<T, LineTo>) move(c.point);

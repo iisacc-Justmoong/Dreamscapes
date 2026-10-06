@@ -18,7 +18,7 @@ bool EditorCanvas::createCanvas(const QVariantMap &specification) {
                          LineTo{{0, height}}, ClosePath{}};
         path.fill = SolidPaint{background == "Black" ? 0xff000000U : 0xffffffffU};
         canvas.assets.emplace_back(VectorAsset{"canvas.background", canvas.extent, {path}});
-        canvas.layers.emplace_back(VectorLayer{
+        canvas.layers.emplace_back(StaticVectorLayer{
             {"canvas.background.layer", "Background", true, 1.0, {}, RasterBlendMode::SourceOver},
             StaticSource{"canvas.background"}});
     }

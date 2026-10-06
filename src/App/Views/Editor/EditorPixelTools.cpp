@@ -18,7 +18,7 @@ bool EditorCanvas::rasterizeSelected() {
     const auto rendered = renderFrame(single, frame()); if (!rendered.ok()) return fail(QString::fromStdString(rendered.message));
     const auto assetId = unique("rasterized.asset.");
     if (!commit([&](Document &d) { auto *selected = findLayer(d, id.toStdString()); auto properties = layerProperties(*selected); properties.transform = {};
-        d.assets.emplace_back(RasterAsset{assetId, rendered.pixels}); *selected = BitmapLayer{properties, StaticSource{assetId}}; return true; })) return false;
+        d.assets.emplace_back(RasterAsset{assetId, rendered.pixels}); *selected = StaticBitmapLayer{properties, StaticSource{assetId}}; return true; })) return false;
     return selectLayer(id);
 }
 bool EditorCanvas::applyPixelTool(const QString &tool, const QString &field, const QVariant &value) {
@@ -97,8 +97,8 @@ bool EditorCanvas::updateBackground() {
     auto filled = fillRaster(document()->extent, f); if (!filled.ok()) return fail(QString::fromStdString(filled.error));
     return commit([&](Document &d) { const std::string id = "canvas.background";
         if (auto *asset = findAsset(d, id)) *asset = RasterAsset{id, filled.pixels}; else d.assets.emplace_back(RasterAsset{id, filled.pixels});
-        if (auto *layer = findLayer(d, "canvas.background.layer")) *layer = BitmapLayer{{"canvas.background.layer", "Background"}, StaticSource{id}};
-        else d.layers.insert(d.layers.begin(), BitmapLayer{{"canvas.background.layer", "Background"}, StaticSource{id}}); return true; });
+        if (auto *layer = findLayer(d, "canvas.background.layer")) *layer = StaticBitmapLayer{{"canvas.background.layer", "Background"}, StaticSource{id}};
+        else d.layers.insert(d.layers.begin(), StaticBitmapLayer{{"canvas.background.layer", "Background"}, StaticSource{id}}); return true; });
 }
 bool EditorCanvas::fillAt(const QPointF &position) {
     if (m_toolValues.value("selector").toString() == "Generative") {

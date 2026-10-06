@@ -77,11 +77,11 @@ bool EditorCanvas::createElement(const QRectF &requested) {
         LayerProperties p{layerId, m_toolValues.value("selector", "Rectangle").toString().toStdString()};
         p.opacity = std::clamp(number(m_toolValues, 14, 100) / 100, 0.0, 1.0); p.blendMode = blend(text(m_toolValues, 15));
         if (rasterFill) {
-            Document outlines; outlines.extent = d.extent; outlines.assets.emplace_back(vector); outlines.layers.emplace_back(VectorLayer{{"outline", "Outline"}, StaticSource{assetId}});
+            Document outlines; outlines.extent = d.extent; outlines.assets.emplace_back(vector); outlines.layers.emplace_back(StaticVectorLayer{{"outline", "Outline"}, StaticSource{assetId}});
             const auto rendered = renderFrame(outlines, 0); if (!rendered.ok()) return false;
             auto image = editorTools::image(*rasterFill); QPainter paint(&image); paint.drawImage(0, 0, editorTools::image(rendered.pixels)); paint.end();
-            d.assets.emplace_back(RasterAsset{assetId, raster(image)}); d.layers.emplace_back(BitmapLayer{p, StaticSource{assetId}});
-        } else { d.assets.emplace_back(std::move(vector)); d.layers.emplace_back(VectorLayer{p, StaticSource{assetId}}); }
+            d.assets.emplace_back(RasterAsset{assetId, raster(image)}); d.layers.emplace_back(StaticBitmapLayer{p, StaticSource{assetId}});
+        } else { d.assets.emplace_back(std::move(vector)); d.layers.emplace_back(StaticVectorLayer{p, StaticSource{assetId}}); }
         return true;
     })) return false;
     const auto id = QString::fromStdString(layerId); m_elementBounds[id] = bounds; m_elementSettings[id] = m_toolValues;
@@ -92,7 +92,7 @@ bool EditorCanvas::updateElement() {
     auto bounds = m_elementBounds[id]; const auto size = m_toolValues.value("field-0").toList();
     if (m_lastEditedField == "field-0" && size.size() == 2) bounds.setSize({size[0].toDouble(), size[1].toDouble()});
     const auto *layer = findLayer(*document(), id.toStdString()); if (!layer) return false;
-    const auto *source = std::get_if<StaticSource>(&layerSource(*layer)); if (!source) return fail(tr("Select a static element."));
+    const auto sourceValue = layerSource(*layer); const auto *source = std::get_if<StaticSource>(&sourceValue); if (!source) return fail(tr("Select a static element."));
     const auto assetId = source->assetId;
     if (!commit([&](Document &d) {
         auto *asset = findAsset(d, assetId); if (!asset) return false;
@@ -104,10 +104,10 @@ bool EditorCanvas::updateElement() {
             QImage pixels(d.extent.width, d.extent.height, QImage::Format_ARGB32); pixels.fill(Qt::transparent); QPainter painter(&pixels); painter.setRenderHint(QPainter::Antialiasing); painter.setPen(Qt::NoPen);
             if (fill == "Gradient") { const QColor color(text(m_toolValues, 16, "#8B7CFF")); QLinearGradient gradient(bounds.topLeft(), bounds.bottomRight()); gradient.setColorAt(0, color); gradient.setColorAt(1, color.lighter(170)); painter.setBrush(gradient); } else painter.setBrush(QBrush(m_patternImage));
             painter.drawPath(elementPath(bounds, m_toolValues)); painter.end();
-            Document outlines; outlines.extent = d.extent; outlines.assets.emplace_back(geometry); outlines.layers.emplace_back(VectorLayer{{"outline", "Outline"}, StaticSource{assetId}});
+            Document outlines; outlines.extent = d.extent; outlines.assets.emplace_back(geometry); outlines.layers.emplace_back(StaticVectorLayer{{"outline", "Outline"}, StaticSource{assetId}});
             const auto rendered = renderFrame(outlines, 0); if (!rendered.ok()) return false;
-            QPainter outline(&pixels); outline.drawImage(0, 0, image(rendered.pixels)); outline.end(); *asset = RasterAsset{assetId, raster(pixels)}; *selected = BitmapLayer{priorProperties, StaticSource{assetId}};
-        } else { *asset = geometry; *selected = VectorLayer{priorProperties, StaticSource{assetId}}; }
+            QPainter outline(&pixels); outline.drawImage(0, 0, image(rendered.pixels)); outline.end(); *asset = RasterAsset{assetId, raster(pixels)}; *selected = StaticBitmapLayer{priorProperties, StaticSource{assetId}};
+        } else { *asset = geometry; *selected = StaticVectorLayer{priorProperties, StaticSource{assetId}}; }
         auto &properties = layerProperties(*findLayer(d, id.toStdString()));
         properties.opacity = std::clamp(number(m_toolValues, 14, 100) / 100, 0.0, 1.0); properties.blendMode = blend(text(m_toolValues, 15));
         return true;
@@ -119,7 +119,7 @@ bool EditorCanvas::createText(const QPointF &position) {
     const auto id = QString::fromStdString(unique("text.layer."));
     m_textOrigins[id] = position; m_textSettings[id] = m_toolValues;
     const auto assetId = unique("text.asset.");
-    if (!commit([&](Document &d) { d.assets.emplace_back(VectorAsset{assetId, d.extent, {}}); d.layers.emplace_back(VectorLayer{{id.toStdString(), "Text"}, StaticSource{assetId}}); return true; })) return false;
+    if (!commit([&](Document &d) { d.assets.emplace_back(VectorAsset{assetId, d.extent, {}}); d.layers.emplace_back(StaticVectorLayer{{id.toStdString(), "Text"}, StaticSource{assetId}}); return true; })) return false;
     if (!selectLayer(id)) return false; return updateText();
 }
 bool EditorCanvas::updateText() {
@@ -148,7 +148,7 @@ bool EditorCanvas::updateText() {
         paths.push_back(nativePath(bubble, std::uint32_t(alpha) << 24));
     }
     paths.push_back(nativePath(textPath, brushColor().rgba()));
-    if (!commit([&](Document &d) { auto *layer = findLayer(d, id.toStdString()); const auto *source = std::get_if<StaticSource>(&layerSource(*layer)); if (!source) return false;
+    if (!commit([&](Document &d) { auto *layer = findLayer(d, id.toStdString()); const auto sourceValue = layerSource(*layer); const auto *source = std::get_if<StaticSource>(&sourceValue); if (!source) return false;
         auto *asset = std::get_if<VectorAsset>(findAsset(d, source->assetId)); if (!asset) return false; asset->paths = paths;
         layerProperties(*layer).name = ("Text: " + content.left(80)).toStdString();
         if (mode == "Caption") { const auto range = timeRange(text(v, 4)); if (range.first >= 0 && range.second > range.first) { const double rate = double(d.timeline.frameRate.numerator) / d.timeline.frameRate.denominator;

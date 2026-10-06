@@ -1,3 +1,4 @@
+#include "../../../tests/native_link.h"
 #include "GenerationController.h"
 #include "VideoGeneration.h"
 #include "AdvancedImageParameters.h"
@@ -779,6 +780,17 @@ private slots:
         QVERIFY(!controller.errorString().isEmpty());
     }
 
+    void pythonLauncherAvailabilityChecksInterpreter()
+    {
+#ifdef Q_OS_WIN
+        GenerationController available(fakeRuntime());
+        QVERIFY(available.runtimeAvailable());
+        auto missing = fakeRuntime();
+        missing.pythonExecutable = QStringLiteral("C:/missing-dreamscapes-python/python.exe");
+        GenerationController unavailable(missing);
+        QVERIFY(!unavailable.runtimeAvailable());
+#endif
+    }
     void driveLocationSelectionPersistsAndRejectsInvalidFolders()
     {
         QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/drive-location-XXXXXX");
@@ -993,7 +1005,7 @@ private slots:
         const auto firstPath = results.first().toMap().value("imageSource").toUrl().toLocalFile();
         QVERIFY(QFile::remove(firstPath));
         QCOMPARE(controller.property("completedResults").toList().size(), 2);
-        QVERIFY(QFile::link(results.last().toMap().value("imageSource").toUrl().toLocalFile(), firstPath));
+        QVERIFY(createNativeTestLink(results.last().toMap().value("imageSource").toUrl().toLocalFile(), firstPath));
         QCOMPARE(controller.property("completedResults").toList().size(), 2);
         QTemporaryDir other(DREAMSCAPES_TEST_DIRECTORY "/gallery-other-storage-XXXXXX");
         QVERIFY(prepare(other));
@@ -1333,15 +1345,16 @@ private slots:
         QCOMPARE(firstOutput.value("width").toInt(), 88);
         QCOMPARE(firstOutput.value("height").toInt(), 64);
         for (const auto &key : {"work_dir", "cache_dir", "output_dir", "preview_dir"}) {
-            const auto path = firstOutput.value(key).toString();
+            const auto path = QDir::fromNativeSeparators(firstOutput.value(key).toString());
             QVERIFY(!path.isEmpty());
             QVERIFY(path.startsWith(root.filePath("Models/.society-runtime/iiLocalDiffusion/")));
             QVERIFY(!QFileInfo::exists(path));
         }
         QVERIFY(!QFileInfo::exists(root.filePath(".dreamscapes")));
         QCOMPARE(firstOutput.value("backend").toString(), QString("local"));
-        QCOMPARE(firstOutput.value("generation_resources").toString(), root.filePath("Models/.generation-resources/iiLocalDiffusion"));
-        QCOMPARE(firstOutput.value("resource_environment"), firstOutput.value("generation_resources"));
+        QCOMPARE(QDir::fromNativeSeparators(firstOutput.value("generation_resources").toString()), root.filePath("Models/.generation-resources/iiLocalDiffusion"));
+        QCOMPARE(QDir::fromNativeSeparators(firstOutput.value("resource_environment").toString()),
+            QDir::fromNativeSeparators(firstOutput.value("generation_resources").toString()));
         QVERIFY(!firstOutput.value("default_modifiers").toBool());
         QVERIFY(firstOutput.value("hf_home").toString().startsWith(root.filePath("Models/.society-runtime/iiLocalDiffusion/")));
         QCOMPARE(firstOutput.value("hf_offline").toString(), QString("1"));
@@ -1484,7 +1497,7 @@ private slots:
             id = queued.enqueue("outside must remain empty");
         }
         QVERIFY(QDir().rmdir(root.filePath("Generation History")));
-        QVERIFY(QFile::link(root.filePath("Files"), root.filePath("Generation History")));
+        QVERIFY(createNativeTestLink(root.filePath("Files"), root.filePath("Generation History")));
         GenerationController controller(fakeRuntime());
         QVERIFY(!controller.connectStorage(root.path()));
         QVERIFY(!QDirIterator(root.filePath("Files"), QDir::Files | QDir::Hidden | QDir::System,
@@ -1591,12 +1604,12 @@ private slots:
         QVERIFY(QDir().mkpath(legacy + "/Runtime Cache"));
         QVERIFY(write(legacy + "/request.json", "{\"state\":\"queued\"}"));
         QVERIFY(write(legacy + "/Runtime Cache/temporary.bin", "disposable"));
-        QVERIFY(QFile::link(root.filePath("Models"), legacy + "/Runtime Cache/model-link"));
+        QVERIFY(createNativeTestLink(root.filePath("Models"), legacy + "/Runtime Cache/model-link"));
         QImage completed(16, 16, QImage::Format_RGB32);
         completed.fill(Qt::red);
         QVERIFY(completed.save(root.filePath("Generation History/existing.png")));
         GenerationController controller(fakeRuntime());
-        QVERIFY(controller.connectStorage(root.path()));
+        QVERIFY2(controller.connectStorage(root.path()), qPrintable(controller.errorString()));
         QVERIFY(controller.jobs().isEmpty());
         QVERIFY(!QFileInfo::exists(root.filePath(".dreamscapes")));
         QVERIFY(QFileInfo::exists(root.filePath("Models/first model.safetensor")));
@@ -1612,7 +1625,7 @@ private slots:
         QVERIFY(outside.isValid());
         QVERIFY(QDir().mkpath(outside.filePath("generation")));
         QVERIFY(write(outside.filePath("generation/preserved.txt"), "preserve foreign data"));
-        QVERIFY(QFile::link(outside.path(), root.filePath(".dreamscapes")));
+        QVERIFY(createNativeTestLink(outside.path(), root.filePath(".dreamscapes")));
         GenerationController controller(fakeRuntime());
         QVERIFY(!controller.connectStorage(root.path()));
         QVERIFY(QFileInfo(root.filePath(".dreamscapes")).isSymLink());
@@ -1701,7 +1714,7 @@ private slots:
         GenerationController controller(runtime);
         QVERIFY(controller.connectStorage(root.path()));
         QTemporaryDir outside(DREAMSCAPES_TEST_DIRECTORY "/outside-runtime-XXXXXX");
-        QVERIFY(QFile::link(outside.path(), root.filePath(directory)));
+        QVERIFY(createNativeTestLink(outside.path(), root.filePath(directory)));
         const auto id = controller.enqueue("must not follow redirected runtime storage");
         QTRY_COMPARE(state(controller, id), QString("failed"));
         QVERIFY(QDir(outside.path()).isEmpty());

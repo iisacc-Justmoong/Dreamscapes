@@ -31,6 +31,12 @@
 #include <algorithm>
 #include <limits>
 #include <numeric>
+#ifdef Q_OS_WIN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 #if defined(Q_OS_UNIX) && !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
 #include <signal.h>
 #endif
@@ -41,6 +47,21 @@ QString now() { return QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithM
 bool jobId(const QString &value)
 {
     return !QUuid(value).isNull() && QUuid(value).toString(QUuid::WithoutBraces) == value;
+}
+bool removeObsoleteEntry(const QFileInfo &entry)
+{
+    if (entry.isSymLink() || entry.isJunction()) {
+#ifdef Q_OS_WIN
+        if (entry.isDir())
+            return RemoveDirectoryW(reinterpret_cast<LPCWSTR>(entry.filePath().utf16())) != 0;
+#endif
+        return QFile::remove(entry.filePath());
+    }
+    if (!entry.isDir()) return QFile::remove(entry.filePath());
+    for (const auto &child : QDir(entry.filePath()).entryInfoList(
+             QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System))
+        if (!removeObsoleteEntry(child)) return false;
+    return QDir().rmdir(entry.filePath());
 }
 QSize imageSize(const QString &ratio, int extent)
 {
@@ -68,6 +89,8 @@ GenerationRuntime defaultRuntime()
 #elif defined(Q_OS_MACOS)
     // Native inference is the desktop default; respect an explicit process runtime.
     runtime.nativeInference = runtime.executable.isEmpty();
+#elif defined(Q_OS_WIN)
+    runtime.nativeInference = runtime.executable.isEmpty() && iiLocalDiffusion::nativeDiffusionAvailable();
 #endif
 #if defined(Q_OS_IOS)
     runtime.screenActivity = nativeGenerationScreenActivity();
@@ -106,6 +129,10 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
     std::string preferenceError;
     dreamscapes::readModelPreferences(preferencePath(m_runtime.modelPreferencesFile), m_modelPreferences, preferenceError);
     m_modelPreferencesError = QString::fromStdString(preferenceError);
+#ifdef Q_OS_WIN
+    if (m_runtime.pythonExecutable.isEmpty())
+        m_runtime.pythonExecutable = QStringLiteral(DREAMSCAPES_DIFFUSION_PYTHON_EXECUTABLE);
+#endif
     if (!m_runtime.nativeExecutionControl)
         m_runtime.nativeExecutionControl = std::make_shared<iiLocalDiffusion::NativeExecutionControl>();
     m_storagePoll.setInterval(2000);
@@ -361,6 +388,11 @@ bool GenerationController::runtimeAvailable() const
 #if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
     return false;
 #else
+#ifdef Q_OS_WIN
+    if (!m_runtime.executable.endsWith(".exe", Qt::CaseInsensitive))
+        return QFileInfo(m_runtime.executable).isFile() && QFileInfo(m_runtime.pythonExecutable).isFile()
+            && QFileInfo(m_runtime.pythonExecutable).isExecutable();
+#endif
     return QFileInfo(m_runtime.executable).isExecutable() && QFileInfo(m_runtime.executable).isFile();
 #endif
 }
@@ -379,6 +411,11 @@ bool GenerationController::videoRuntimeAvailable() const
 #if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
     return false;
 #else
+#ifdef Q_OS_WIN
+    if (!m_runtime.executable.endsWith(".exe", Qt::CaseInsensitive))
+        return QFileInfo(m_runtime.executable).isFile() && QFileInfo(m_runtime.pythonExecutable).isFile()
+            && QFileInfo(m_runtime.pythonExecutable).isExecutable();
+#endif
     return QFileInfo(m_runtime.executable).isExecutable() && QFileInfo(m_runtime.executable).isFile();
 #endif
 }
@@ -728,8 +765,7 @@ bool GenerationController::discardLegacyStorage()
         }
         for (const auto &entry : QDir(directory).entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System)) {
             if (entry.fileName() == ".worker.lock") continue;
-            const bool removed = entry.isDir() && !entry.isSymLink() && !entry.isJunction()
-                ? QDir(entry.filePath()).removeRecursively() : QFile::remove(entry.filePath());
+            const bool removed = removeObsoleteEntry(entry);
             if (!removed) return fail(tr("Cannot remove the obsolete generation working files."));
         }
         legacyWorker.unlock();
@@ -1018,8 +1054,8 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
             const QUrl url(source);
             QString path;
             if (url.isLocalFile()) path = url.toLocalFile();
-            else if (!url.scheme().isEmpty()) { fail(tr("LoRA sources must be local files.")); return {}; }
             else if (QFileInfo(source).isAbsolute()) path = source;
+            else if (!url.scheme().isEmpty()) { fail(tr("LoRA sources must be local files.")); return {}; }
             else path = m_storage->filePath(StoreSection::Models, source, &error);
             const QFileInfo info(path);
             if (!info.isFile() || info.size() == 0
@@ -1035,8 +1071,8 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
             const QUrl url(source);
             QString path;
             if (url.isLocalFile()) path = url.toLocalFile();
-            else if (!url.scheme().isEmpty()) { fail(tr("Reference images must be local files.")); return {}; }
             else if (QFileInfo(source).isAbsolute()) path = source;
+            else if (!url.scheme().isEmpty()) { fail(tr("Reference images must be local files.")); return {}; }
             else path = m_storage->filePath(StoreSection::Files, source, &error);
             const QFileInfo info(path);
             QImageReader reader(info.canonicalFilePath());
@@ -1065,8 +1101,8 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
                     const QUrl url(source);
                     QString path;
                     if (url.isLocalFile()) path = url.toLocalFile();
-                    else if (!url.scheme().isEmpty()) { fail(tr("ControlNet sources must be local files.")); return {}; }
                     else if (QFileInfo(source).isAbsolute()) path = source;
+                    else if (!url.scheme().isEmpty()) { fail(tr("ControlNet sources must be local files.")); return {}; }
                     else path = m_storage->filePath(weightFile ? StoreSection::Models : StoreSection::Files, source, &error);
                     const QFileInfo info(path);
                     if (!info.isFile() || info.size() < 1) { fail(tr("Choose an available local ControlNet source: %1").arg(source)); return {}; }
@@ -1105,8 +1141,8 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
             const QUrl url(source);
             QString path;
             if (url.isLocalFile()) path = url.toLocalFile();
-            else if (!url.scheme().isEmpty()) { fail(tr("%1 weights must be local files.").arg(label)); return {}; }
             else if (QFileInfo(source).isAbsolute()) path = source;
+            else if (!url.scheme().isEmpty()) { fail(tr("%1 weights must be local files.").arg(label)); return {}; }
             else path = m_storage->filePath(StoreSection::Models, source, &error);
             const QFileInfo info(path);
             if (!info.isFile() || info.size() < 1
@@ -1120,8 +1156,8 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
             const QUrl url(embeddingSource);
             QString path;
             if (url.isLocalFile()) path = url.toLocalFile();
-            else if (!url.scheme().isEmpty()) { fail(tr("Textual embeddings must be local files.")); return {}; }
             else if (QFileInfo(embeddingSource).isAbsolute()) path = embeddingSource;
+            else if (!url.scheme().isEmpty()) { fail(tr("Textual embeddings must be local files.")); return {}; }
             else path = m_storage->filePath(StoreSection::Models, embeddingSource, &error);
             const QFileInfo info(path);
             if (!info.isFile() || info.size() < 1 || info.size() > 100 * 1024 * 1024
@@ -1596,7 +1632,12 @@ bool GenerationController::startWorker(QString *error)
         m_workerForegroundSupported = false;
         m_pendingOutput.clear();
         if (busy()) m_workerDeadline.start(std::max(1, m_runtime.nativeTimeoutMilliseconds));
-        m_process.start(m_runtime.executable, {"--worker"});
+#ifdef Q_OS_WIN
+        if (!m_runtime.executable.endsWith(".exe", Qt::CaseInsensitive))
+            m_process.start(m_runtime.pythonExecutable, {m_runtime.executable, "--worker"});
+        else
+#endif
+            m_process.start(m_runtime.executable, {"--worker"});
     } else {
         sendWorkerRequest();
     }

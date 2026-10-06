@@ -1,3 +1,4 @@
+#include "../../../tests/native_link.h"
 #include "GenerationController.h"
 #include "SocietyGenerationStorage.h"
 #include "GenerationWorkProgress.h"
@@ -183,11 +184,11 @@ private slots:
         QTemporaryDir source(DREAMSCAPES_TEST_DIRECTORY "/cache-source-XXXXXX");
         QTemporaryDir destination(DREAMSCAPES_TEST_DIRECTORY "/cache-target-XXXXXX");
         QTemporaryDir outside(DREAMSCAPES_TEST_DIRECTORY "/cache-outside-XXXXXX");
-        QVERIFY(QFile::link(outside.path(), source.filePath("redirect")));
+        QVERIFY(createNativeTestLink(outside.path(), source.filePath("redirect")));
         std::atomic_bool cancelled{false}; QString error;
         QVERIFY(!dreamscapes::migrateLegacyQ8Cache(source.path(), destination.path(), cancelled, &error));
         QVERIFY(QFileInfo(source.filePath("redirect")).isSymLink());
-        QVERIFY(QFile::remove(source.filePath("redirect")));
+        QVERIFY(removeNativeTestLink(source.filePath("redirect")));
         QFile original(source.filePath("model.gguf")), existing(destination.filePath("model.gguf"));
         QVERIFY(original.open(QIODevice::WriteOnly)); original.write("original"); original.close();
         QVERIFY(existing.open(QIODevice::WriteOnly)); existing.write("different"); existing.close();

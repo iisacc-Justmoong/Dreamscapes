@@ -145,7 +145,7 @@ private slots:
         Document d; d.extent = {32, 32};
         auto box = [](double x) { VectorPath p; p.commands = {MoveTo{{x, 4}}, LineTo{{x + 16, 4}}, LineTo{{x + 16, 20}}, LineTo{{x, 20}}, ClosePath{}}; p.fill = SolidPaint{0xffff0000}; return p; };
         d.assets.emplace_back(VectorAsset{"boxes", d.extent, {box(4), box(12)}});
-        d.layers.emplace_back(VectorLayer{{"boxes.layer", "Boxes"}, StaticSource{"boxes"}});
+        d.layers.emplace_back(StaticVectorLayer{{"boxes.layer", "Boxes"}, StaticSource{"boxes"}});
         const auto filePath = dir.filePath("boxes.iisc"); DocumentFile file; QVERIFY(file.create(filePath.toStdString(), d).ok()); file.close();
         EditorCanvas c; QVERIFY(c.openDocumentSource(QUrl::fromLocalFile(filePath))); QVERIFY(c.selectLayer("boxes.layer"));
         const auto before = renderFrame(*c.document(), 0).pixels.pixels;
@@ -267,7 +267,7 @@ private slots:
         Document document; document.extent = {32, 32};
         VectorPath path; path.commands = {MoveTo{{2, 16}}, LineTo{{30, 16}}}; path.stroke = StrokeStyle{SolidPaint{0xffff0000}, 4};
         document.assets.emplace_back(VectorAsset{"line.asset", document.extent, {path}});
-        document.layers.emplace_back(VectorLayer{{"line.layer", "Line"}, StaticSource{"line.asset"}});
+        document.layers.emplace_back(StaticVectorLayer{{"line.layer", "Line"}, StaticSource{"line.asset"}});
         DocumentFile file; const auto source = dir.filePath("line.iisc"); QVERIFY(file.create(source.toStdString(), document).ok()); file.close();
         EditorCanvas c; QVERIFY(c.openDocumentSource(QUrl::fromLocalFile(source))); QVERIFY(c.selectLayer("line.layer"));
         c.configureTool("select", {{"selector", "Rectangle"}, {"field-2", 0}, {"field-5", false}});
@@ -306,7 +306,7 @@ private slots:
         Document document; document.extent = {16, 16}; RasterLayer source = makeRasterLayer(4, 4); std::fill(source.pixels.begin(), source.pixels.end(), 0xff00ff00);
         document.assets.emplace_back(RasterAsset{"target.asset", source});
         LayerProperties target{"target.layer", "Target"}; target.transform.translationX = target.transform.translationY = 8;
-        document.layers.emplace_back(BitmapLayer{target, StaticSource{"target.asset"}});
+        document.layers.emplace_back(StaticBitmapLayer{target, StaticSource{"target.asset"}});
         const auto path = dir.filePath("target.iisc"); DocumentFile file; QVERIFY(file.create(path.toStdString(), document).ok()); file.close();
         EditorCanvas c; QVERIFY(c.openDocumentSource(QUrl::fromLocalFile(path))); QVERIFY(c.selectLayer("target.layer"));
         c.configureTool("select", {{"selector", "Rectangle"}, {"field-2", 0}, {"field-5", false}});
@@ -323,7 +323,7 @@ private slots:
         EditorCanvas c; create(c);
         c.configureTool("text", {{"selector", "Free Text"}, {"field-0", "Hello"}, {"field-2", 14}});
         QVERIFY(c.createText({2, 4}));
-        QVERIFY(std::holds_alternative<VectorLayer>(c.document()->layers.back()));
+        QVERIFY(std::holds_alternative<StaticVectorLayer>(c.document()->layers.back()));
         const auto id = c.selectedLayerId();
         const auto rendered = renderFrame(*c.document(), 0).pixels.pixels;
         QVERIFY(std::ranges::any_of(rendered, [](auto p) { return (p >> 24) != 0; }));

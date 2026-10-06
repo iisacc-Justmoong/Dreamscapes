@@ -3683,13 +3683,13 @@ void GuiTests::editorNativeCanvasEditsAndPersists()
     QTest::mouseMove(&window, position(28, 24), 25);
     QTest::mouseRelease(&window, Qt::LeftButton, Qt::NoModifier, position(28, 24));
     QCOMPARE(canvas->document()->layers.size(), 2u);
-    QVERIFY(std::holds_alternative<VectorLayer>(canvas->document()->layers.back()));
+    QVERIFY(std::holds_alternative<StaticVectorLayer>(canvas->document()->layers.back()));
     const auto vectorId = canvas->selectedLayerId();
     QVERIFY(observer.open(path.toStdString()).ok());
     QCOMPARE(observer.document()->layers.size(), 2u);
     QCOMPARE(layerProperties(observer.document()->layers.front()).name, std::string("Red paint"));
     QCOMPARE(layerProperties(observer.document()->layers.front()).opacity, 0.5);
-    QVERIFY(std::holds_alternative<VectorLayer>(observer.document()->layers.back()));
+    QVERIFY(std::holds_alternative<StaticVectorLayer>(observer.document()->layers.back()));
     observer.close();
     QVERIFY(selectTool(10)); // Object selection resolves the native rendered layer.
     QVERIFY(setField("selector", "Object"));

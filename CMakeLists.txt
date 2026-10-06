@@ -13,7 +13,7 @@ find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Core Gui Qml Quick QuickControl
 find_package(iiCSMIDI CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiCSMIDI")
 find_package(iiLicenseManager CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLicenseManager")
 find_package(iiLocalDiffusion 0.6.1 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLocalDiffusion")
-find_package(iiSharedCanvas 0.26.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSharedCanvas")
+find_package(iiSharedCanvas 0.28.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSharedCanvas")
 find_package(iiPaintEngine CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiPaintEngine")
 find_package(iiSocietyContainer 0.14.1 CONFIG REQUIRED COMPONENTS Gui HINTS "$ENV{HOME}/.local/SDK/iiSocietyContainer")
 find_package(iiSocietyClient 0.1.0 CONFIG REQUIRED)
@@ -38,14 +38,23 @@ if(NOT DREAMSCAPES_DIFFUSION_EXECUTABLE)
     set(DREAMSCAPES_DIFFUSION_EXECUTABLE "")
 endif()
 set(DREAMSCAPES_DIFFUSION_PYTHON_EXECUTABLE "" CACHE FILEPATH "Optional Python environment for the installed iiLocalDiffusion runtime")
+set(_dreamscapes_diffusion_command "${DREAMSCAPES_DIFFUSION_EXECUTABLE}")
+if(WIN32 AND NOT DREAMSCAPES_DIFFUSION_EXECUTABLE MATCHES "\\.[eE][xX][eE]$")
+    if(NOT DREAMSCAPES_DIFFUSION_PYTHON_EXECUTABLE)
+        find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
+        set(DREAMSCAPES_DIFFUSION_PYTHON_EXECUTABLE "${Python3_EXECUTABLE}" CACHE FILEPATH
+            "Python environment for the installed iiLocalDiffusion runtime" FORCE)
+    endif()
+    list(PREPEND _dreamscapes_diffusion_command "${DREAMSCAPES_DIFFUSION_PYTHON_EXECUTABLE}")
+endif()
 if(DREAMSCAPES_DIFFUSION_EXECUTABLE AND NOT CMAKE_CROSSCOMPILING)
-    execute_process(COMMAND "${DREAMSCAPES_DIFFUSION_EXECUTABLE}" --help
+    execute_process(COMMAND ${_dreamscapes_diffusion_command} --help
         OUTPUT_VARIABLE diffusion_help ERROR_VARIABLE diffusion_help_error
         RESULT_VARIABLE diffusion_help_result TIMEOUT 15)
     if(NOT diffusion_help_result EQUAL 0 OR NOT diffusion_help MATCHES "--model-path" OR NOT diffusion_help MATCHES "--worker" OR NOT diffusion_help MATCHES "foreground-residency")
         message(FATAL_ERROR "The installed iild-generate is outdated or unavailable. Reinstall the current iiLocalDiffusion package and set DREAMSCAPES_DIFFUSION_EXECUTABLE to its launcher. ${diffusion_help_error}")
     endif()
-    execute_process(COMMAND "${DREAMSCAPES_DIFFUSION_EXECUTABLE}" --backend local --help
+    execute_process(COMMAND ${_dreamscapes_diffusion_command} --backend local --help
         OUTPUT_VARIABLE diffusion_local_help RESULT_VARIABLE diffusion_local_result TIMEOUT 15)
     if(NOT diffusion_local_result EQUAL 0 OR NOT diffusion_local_help MATCHES "--work-dir" OR NOT diffusion_local_help MATCHES "--cache-dir" OR NOT diffusion_local_help MATCHES "--preview-dir" OR NOT diffusion_local_help MATCHES "Diffusers/PyTorch")
         message(FATAL_ERROR "The installed iiLocalDiffusion must provide the standalone Diffusers/PyTorch checkpoint runtime with --work-dir, --cache-dir and --preview-dir. Reinstall the current SDK runtime.")
@@ -526,7 +535,7 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     # Per-job watchdog assertions keep their own short deadlines. Allow the
     # complete fixture suite to finish while a real generation uses external I/O.
     set_tests_properties(Dreamscapes.Generation PROPERTIES
-        ENVIRONMENT "SOCIETY_DISABLE_SESSION_RESTORE=1" TIMEOUT 90)
+        ENVIRONMENT "SOCIETY_DISABLE_SESSION_RESTORE=1" TIMEOUT 300)
     qt_add_executable(DreamscapesImageExportTests src/App/Views/Result/tst_ImageFileExporter.cpp)
     target_link_libraries(DreamscapesImageExportTests PRIVATE DreamscapesGeneration Qt6::Test)
     target_compile_definitions(DreamscapesImageExportTests PRIVATE
@@ -572,3 +581,12 @@ product_plain_executables("${CMAKE_SOURCE_DIR}" Dreamscapes)
 cmake_language(DEFER CALL product_single_app Dreamscapes "bin")
 
 product_deploy_app(Dreamscapes "src/App")
+
+if(WIN32 AND BUILD_TESTING)
+    get_property(_dreamscapes_tests DIRECTORY PROPERTY TESTS)
+    foreach(_dreamscapes_test IN LISTS _dreamscapes_tests)
+        get_property(_test_environment TEST ${_dreamscapes_test} PROPERTY ENVIRONMENT)
+        list(TRANSFORM _test_environment REPLACE "QT_QPA_PLATFORM=offscreen" "QT_QPA_PLATFORM=windows")
+        set_tests_properties(${_dreamscapes_test} PROPERTIES ENVIRONMENT "${_test_environment}")
+    endforeach()
+endif()

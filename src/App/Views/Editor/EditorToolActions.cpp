@@ -56,10 +56,10 @@ bool EditorCanvas::insertPixels(const QImage &input, const QString &name, bool b
     if (!commit([&](Document &d) { LayerProperties p{id, name.toStdString()};
         const double scale = std::min(double(d.extent.width) / pixels.width, double(d.extent.height) / pixels.height);
         p.transform.m11 = p.transform.m22 = scale; p.transform.translationX = (d.extent.width - pixels.width * scale) / 2; p.transform.translationY = (d.extent.height - pixels.height * scale) / 2;
-        d.assets.emplace_back(RasterAsset{assetId, pixels}); auto layer = BitmapLayer{p, StaticSource{assetId}};
+        d.assets.emplace_back(RasterAsset{assetId, pixels}); auto layer = StaticBitmapLayer{p, StaticSource{assetId}};
         if (background) {
-            if (auto *existing = findLayer(d, "canvas.background.layer")) { p.id = "canvas.background.layer"; *existing = BitmapLayer{p, StaticSource{assetId}}; }
-            else { p.id = "canvas.background.layer"; d.layers.insert(d.layers.begin(), BitmapLayer{p, StaticSource{assetId}}); }
+            if (auto *existing = findLayer(d, "canvas.background.layer")) { p.id = "canvas.background.layer"; *existing = StaticBitmapLayer{p, StaticSource{assetId}}; }
+            else { p.id = "canvas.background.layer"; d.layers.insert(d.layers.begin(), StaticBitmapLayer{p, StaticSource{assetId}}); }
         } else d.layers.emplace_back(layer); return true; })) return false;
     invalidateToolPreview(); return selectLayer(background ? "canvas.background.layer" : QString::fromStdString(id));
 }
@@ -89,7 +89,7 @@ bool EditorCanvas::importToolSource(const QUrl &source, const QString &tool, con
     if (QFileInfo(path).suffix().compare("svg", Qt::CaseInsensitive) == 0) {
         VectorImportOptions options; options.assetId = unique("vector.asset."); auto imported = importSvg(path.toStdString(), options);
         if (!imported.ok()) return fail(QString::fromStdString(imported.result.message)); const auto id = unique("vector.layer.");
-        if (!commit([&](Document &d) { d.assets.emplace_back(imported.asset); d.layers.emplace_back(VectorLayer{{id, QFileInfo(path).fileName().toStdString()}, StaticSource{imported.asset.id}}); return true; })) return false;
+        if (!commit([&](Document &d) { d.assets.emplace_back(imported.asset); d.layers.emplace_back(StaticVectorLayer{{id, QFileInfo(path).fileName().toStdString()}, StaticSource{imported.asset.id}}); return true; })) return false;
         return selectLayer(QString::fromStdString(id));
     }
     auto image = QImage(path); if (image.isNull()) return fail(tr("The selected source cannot be decoded as an image. Choose an image, SVG or PCM16 WAV."));
@@ -378,7 +378,7 @@ QVariantMap EditorCanvas::toolControlState(const QString &tool, const QString &f
     if (tool == "canvas" && n == 14 && toggle(v, 13)) reason = tr("Keep text readable applies when mirroring document layers. A preview mirror reflects the complete view.");
     if (tool == "audio-track" && n >= 4 && documentReady() && document()->audioAssets.empty()) reason = tr("Import a WAV track first.");
     if (tool == "layers" && n == 23 && m_selection.alpha.empty()) reason = tr("Create a selection first to apply a pixel mask.");
-    if (tool == "eraser" && n == 10) { const auto *layer = documentReady() ? findLayer(*document(), selectedLayerId().toStdString()) : nullptr; if (!layer || !std::holds_alternative<VectorLayer>(*layer)) reason = tr("Select a vector layer and mark the eraser region first."); }
+    if (tool == "eraser" && n == 10) { const auto *layer = documentReady() ? findLayer(*document(), selectedLayerId().toStdString()) : nullptr; if (!layer || !std::holds_alternative<StaticVectorLayer>(*layer)) reason = tr("Select a vector layer and mark the eraser region first."); }
     if (tool == "select" && n == 16 && mode != "Object") reason = tr("Choose Object selection first.");
     return {{"supported", supported}, {"enabled", reason.isEmpty()}, {"reason", reason}};
 }
@@ -440,7 +440,7 @@ bool EditorCanvas::placeGenerated(const QUrl &source, const QString &operation) 
     if (operation == "Outpaint") {
         const auto assetId = unique("outpaint.asset."), layerId = unique("outpaint.layer.");
         const auto pixels = raster(input.scaled(m_generationExtent, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
-        if (!commit([&](Document &d) { d.extent = {m_generationExtent.width(), m_generationExtent.height()}; for (auto &layer : d.layers) { auto &p = layerProperties(layer); p.transform.translationX += m_generationOffset.x(); p.transform.translationY += m_generationOffset.y(); } d.assets.emplace_back(RasterAsset{assetId, pixels}); d.layers.insert(d.layers.begin(), BitmapLayer{{layerId, "Generated outpaint"}, StaticSource{assetId}}); return true; })) return false;
+        if (!commit([&](Document &d) { d.extent = {m_generationExtent.width(), m_generationExtent.height()}; for (auto &layer : d.layers) { auto &p = layerProperties(layer); p.transform.translationX += m_generationOffset.x(); p.transform.translationY += m_generationOffset.y(); } d.assets.emplace_back(RasterAsset{assetId, pixels}); d.layers.insert(d.layers.begin(), StaticBitmapLayer{{layerId, "Generated outpaint"}, StaticSource{assetId}}); return true; })) return false;
         m_specification["pixelWidth"] = canvasWidth(); m_specification["pixelHeight"] = canvasHeight(); emit specificationChanged();
         clearAreaSelection(); fitToView(); return selectLayer(QString::fromStdString(layerId));
     }

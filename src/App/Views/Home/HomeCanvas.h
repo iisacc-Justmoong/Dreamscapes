@@ -14,6 +14,7 @@ class HomeCanvas : public iiSharedCanvas::CanvasItem {
     Q_PROPERTY(QString inputError READ inputError NOTIFY inputErrorChanged)
 public:
     explicit HomeCanvas(QQuickItem *parent=nullptr);
+    ~HomeCanvas() override;
     QVariantList attachments() const { return m_attachments; }
     bool hasContent() const;
     QString inputError() const { return m_error; }

@@ -97,7 +97,7 @@ bool EditorCanvas::selectLayer(const QString &id) {
     const auto *layer = findLayer(*document(), id.toStdString());
     if (!layer) return fail(tr("Select an existing layer."));
     const auto *asset = resolveAssetAt(*document(), *layer, frame());
-    if (std::holds_alternative<BitmapLayer>(*layer) && asset && contentKind(*asset) == ContentKind::Raster) {
+    if (std::holds_alternative<StaticBitmapLayer>(*layer) && asset && contentKind(*asset) == ContentKind::Raster) {
         const auto previous = m_selectedDocumentLayer;
         m_selectedDocumentLayer.clear();
         if (!CanvasItem::selectLayer(id)) {
@@ -212,7 +212,7 @@ bool EditorCanvas::openImages(const QVariantList &sources) {
             candidate.extent.width = std::max(candidate.extent.width, pixels.width);
             candidate.extent.height = std::max(candidate.extent.height, pixels.height);
             const auto layerId = "image.layer." + QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
-            candidate.layers.emplace_back(BitmapLayer{{layerId, info.fileName().toStdString()}, StaticSource{imported.asset.id}});
+            candidate.layers.emplace_back(StaticBitmapLayer{{layerId, info.fileName().toStdString()}, StaticSource{imported.asset.id}});
             candidate.assets.emplace_back(std::move(imported.asset));
             importedPaths.insert(canonical);
             name = info.completeBaseName();
@@ -284,7 +284,7 @@ bool EditorCanvas::addPaintLayer() {
     if (!commit([&](Document &draft) {
         if (draft.canvasMode == CanvasMode::Infinite) draft.assets.emplace_back(ChunkedRasterAsset{asset, {}});
         else draft.assets.emplace_back(RasterAsset{asset, makeRasterLayer(draft.extent.width, draft.extent.height)});
-        draft.layers.emplace_back(BitmapLayer{{layer, "Paint"}, StaticSource{asset}});
+        draft.layers.emplace_back(StaticBitmapLayer{{layer, "Paint"}, StaticSource{asset}});
         return true;
     })) return false;
     return selectLayer(QString::fromStdString(layer));
@@ -306,7 +306,7 @@ bool EditorCanvas::placeImage(const QUrl &source, const QString &placement) {
         properties.transform.m11 = properties.transform.m22 = scale;
         properties.transform.translationX = (canvasWidth() - imported.asset.pixels.width * scale) / 2;
         properties.transform.translationY = (canvasHeight() - imported.asset.pixels.height * scale) / 2;
-        draft.layers.emplace_back(BitmapLayer{properties, StaticSource{imported.asset.id}});
+        draft.layers.emplace_back(StaticBitmapLayer{properties, StaticSource{imported.asset.id}});
         draft.assets.emplace_back(std::move(imported.asset));
         return true;
     })) return false;
