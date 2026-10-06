@@ -165,6 +165,19 @@ def complete_frameworks(app, qt):
             queue.append((target / relative).resolve())
 
 
+def qt_plugins(qt, libraries):
+    """Include the platform media backend when this app links Qt Multimedia."""
+    plugins = [qt / "plugins/sqldrivers/libqsqlite.dylib",
+               qt / "plugins/tls/libqsecuretransportbackend.dylib",
+               qt / "plugins/platforms/libqcocoa.dylib", qt / "plugins/platforms/libqoffscreen.dylib"]
+    categories = ["imageformats", "iconengines", "networkinformation"]
+    if any(library.name == "QtMultimedia" for library in libraries):
+        categories.append("multimedia")
+    for category in categories:
+        plugins += sorted((qt / "plugins" / category).glob("*.dylib"))
+    return plugins
+
+
 def localize(app):
     """Remove development paths, including those retained in transitive libraries."""
     for binary in binaries(app):
@@ -216,11 +229,7 @@ def deploy(args):
     sources = prepare_native(app, args.library, search)
     for helper in helpers:
         sources.update(prepare_native(app, args.library, search, helper))
-    plugins = [qt / "plugins/sqldrivers/libqsqlite.dylib",
-               qt / "plugins/tls/libqsecuretransportbackend.dylib",
-               qt / "plugins/platforms/libqcocoa.dylib", qt / "plugins/platforms/libqoffscreen.dylib"]
-    for category in ["imageformats", "iconengines", "networkinformation"]:
-        plugins += sorted((qt / "plugins" / category).glob("*.dylib"))
+    plugins = qt_plugins(qt,args.library)
     for source in plugins:
         plugin = app / "Contents/PlugIns" / source.parent.name / source.name
         plugin.parent.mkdir(parents=True, exist_ok=True)

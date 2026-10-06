@@ -5,16 +5,17 @@ import LVRS 1.0 as LV
 Rectangle {
     id: root
     objectName: "editorToolbar"
-    implicitHeight: LV.Theme.scaleMetric(84)
-    radius: LV.Theme.scaleMetric(18)
-    color: LV.Theme.panelBackground03
-    border.width: 1
+    property bool mobileLayout: false
+    implicitHeight: LV.Theme.scaleMetric(mobileLayout ? 84 : 54)
+    radius: mobileLayout ? LV.Theme.scaleMetric(18) : 0
+    color: mobileLayout ? LV.Theme.panelBackground03 : LV.Theme.surfaceSolid
+    border.width: mobileLayout ? 1 : 0
     border.color: LV.Theme.panelBackground08
     readonly property string currentTool: tools[toolList.currentIndex].key
     readonly property int currentIndex: toolList.currentIndex
     signal toolSelected(string toolId)
 
-    // Figma 143:1652: preserve the exported SVG's natural bounds inside its 22px slot.
+    // Figma 353:21758 (desktop) and 143:1652 (mobile) share the original 22px icon assets.
     readonly property var tools: [
         { key: "elements", label: qsTr("Elements"), iconWidth: 18.1, iconHeight: 18.1, iconX: 1.95, iconY: 1.95 },
         { key: "text", label: qsTr("Text"), iconWidth: 14.4333, iconHeight: 18.1, iconX: 3.7833, iconY: 1.95 },
@@ -53,7 +54,7 @@ Rectangle {
         x: LV.Theme.gap8 + root.border.width
         y: LV.Theme.gap8 + root.border.width
         width: Math.max(0, parent.width - x * 2)
-        height: LV.Theme.scaleMetric(68)
+        height: LV.Theme.scaleMetric(root.mobileLayout ? 68 : 36)
         orientation: ListView.Horizontal
         spacing: LV.Theme.gap4
         model: root.tools
@@ -70,8 +71,8 @@ Rectangle {
             required property int index
             required property var modelData
             objectName: "editorTool-" + modelData.key
-            width: LV.Theme.scaleMetric(86)
-            height: LV.Theme.scaleMetric(68)
+            width: LV.Theme.scaleMetric(root.mobileLayout ? 86 : 36)
+            height: LV.Theme.scaleMetric(root.mobileLayout ? 68 : 36)
             text: modelData.label
             selected: toolList.currentIndex === index
             navigationBar: root
@@ -88,14 +89,14 @@ Rectangle {
                 color: tool.selected ? LV.Theme.panelBackground10
                     : tool.down ? LV.Theme.panelBackground08
                     : tool.hovered ? LV.Theme.panelBackground06 : "transparent"
-                border.width: tool.selected ? 1 : 0
+                border.width: root.mobileLayout && tool.selected ? 1 : 0
                 border.color: LV.Theme.panelBackground08
             }
             contentItem: Item {
                 Item {
                     objectName: "editorToolIconSlot"
-                    x: LV.Theme.scaleMetric(32)
-                    y: LV.Theme.scaleMetric(16)
+                    x: LV.Theme.scaleMetric(root.mobileLayout ? 32 : 7)
+                    y: LV.Theme.scaleMetric(root.mobileLayout ? 16 : 8)
                     width: LV.Theme.scaleMetric(22)
                     height: width
                     Image {
@@ -112,6 +113,7 @@ Rectangle {
                 }
                 LV.Label {
                     objectName: "editorToolLabel"
+                    visible: root.mobileLayout
                     x: LV.Theme.gap4
                     y: LV.Theme.scaleMetric(43)
                     width: LV.Theme.scaleMetric(78)

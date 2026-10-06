@@ -13,6 +13,11 @@ Item {
     property string mediaType: "Image"
     property string aspectRatio: "1:1"
     property int generationCount: 1
+    property int videoDuration: 5
+    property int videoFps: 24
+    property var videoModels: []
+    property string selectedVideoModel: ""
+    signal videoModelSelected(string modelId)
     property bool submitting: false
     readonly property var generationCounts: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
         15, 20, 25, 30, 40, 50, 100, 200, 500, 1000]
@@ -46,6 +51,9 @@ Item {
         mediaMenu.close()
         ratioMenu.close()
         countMenu.close()
+        videoModelMenu.close()
+        durationMenu.close()
+        fpsMenu.close()
         platformInputMethod.hide()
     }
 
@@ -158,10 +166,12 @@ Item {
                     id: countButton
                     objectName: "generationCountButton"
                     text: root.canvasEnabled && root.width >= 520
-                        ? String(root.generationCount) + (root.generationCount === 1 ? qsTr(" image") : qsTr(" images"))
+                        ? String(root.generationCount) + (root.mediaType === "Video"
+                            ? root.generationCount === 1 ? qsTr(" video") : qsTr(" videos")
+                            : root.generationCount === 1 ? qsTr(" image") : qsTr(" images"))
                         : String(root.generationCount)
                     tone: LV.AbstractButton.Default
-                    Accessible.name: qsTr("Image count: %1").arg(root.generationCount)
+                    Accessible.name: (root.mediaType === "Video" ? qsTr("Video count: %1") : qsTr("Image count: %1")).arg(root.generationCount)
                     onClicked: root.openMenu(countMenu, countButton)
                 }
             }
@@ -185,6 +195,68 @@ Item {
             }
         }
 
+        LV.VStack {
+            objectName: "videoGenerationOptions"
+            visible: root.mediaType === "Video"
+            Layout.fillWidth: true
+            height: implicitHeight
+            spacing: LV.Theme.gap8
+            LV.LabelMenuButton {
+                id: videoModelButton
+                objectName: "videoModelButton"
+                tone: LV.AbstractButton.Default
+                Layout.fillWidth: true
+                text: root.selectedVideoModel || qsTr("Add an LTX video model in Society")
+                enabled: root.videoModels.length > 0
+                onClicked: root.openMenu(videoModelMenu, videoModelButton)
+            }
+            LV.HStack {
+                Layout.fillWidth: true
+                spacing: LV.Theme.gap8
+                ChoiceButton {
+                    id: durationButton
+                    objectName: "videoDurationButton"
+                    tone: LV.AbstractButton.Default
+                    text: qsTr("%1 s").arg(root.videoDuration)
+                    Accessible.name: qsTr("Video duration: %1 seconds").arg(root.videoDuration)
+                    onClicked: root.openMenu(durationMenu,durationButton)
+                }
+                ChoiceButton {
+                    id: fpsButton
+                    objectName: "videoFpsButton"
+                    tone: LV.AbstractButton.Default
+                    text: qsTr("%1 FPS").arg(root.videoFps)
+                    Accessible.name: qsTr("Video frame rate: %1 FPS").arg(root.videoFps)
+                    onClicked: root.openMenu(fpsMenu,fpsButton)
+                }
+                LV.Label { text: qsTr("MP4 · LTX"); style: caption }
+            }
+        }
+    }
+
+    LV.ContextMenu {
+        id: videoModelMenu
+        objectName: "videoModelMenu"
+        showIconSlot: false
+        items: root.videoModels.map(function(model) { return model.id })
+        selectedIndex: items.indexOf(root.selectedVideoModel)
+        onItemTriggered: function(index,entry) { root.videoModelSelected(String(entry)) }
+    }
+    LV.ContextMenu {
+        id: durationMenu
+        objectName: "videoDurationMenu"
+        showIconSlot: false
+        items: [qsTr("1 s"),qsTr("3 s"),qsTr("5 s"),qsTr("10 s")]
+        selectedIndex: [1,3,5,10].indexOf(root.videoDuration)
+        onItemTriggered: function(index) { root.videoDuration = [1,3,5,10][index] }
+    }
+    LV.ContextMenu {
+        id: fpsMenu
+        objectName: "videoFpsMenu"
+        showIconSlot: false
+        items: [qsTr("12 FPS"),qsTr("24 FPS"),qsTr("30 FPS")]
+        selectedIndex: [12,24,30].indexOf(root.videoFps)
+        onItemTriggered: function(index) { root.videoFps = [12,24,30][index] }
     }
 
     FileDialog {

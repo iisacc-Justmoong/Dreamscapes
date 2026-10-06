@@ -19,6 +19,8 @@ Item {
     signal viewAllPublishedRequested()
     signal viewAllGenerationHistoryRequested()
     signal fileRequested(var file)
+    signal imagesRequested(var images)
+    function showHome() { viewport.contentY = 0 }
 
     readonly property var destinations: [
         // Exact exports from Figma 103:1211, including its LVRS icon variants.
@@ -60,6 +62,15 @@ Item {
                     objectName: "mobileQuickGenerateSlot"
                     Layout.fillWidth: true
                     Layout.preferredHeight: childrenRect.height
+                }
+                LV.Label {
+                    Layout.fillWidth: true
+                    text: root.errorText
+                    visible: text.length > 0
+                    color: LV.Theme.accentRed
+                    style: caption
+                    wrapMode: Text.Wrap
+                    sizeToContentHeight: true
                 }
 
                 LV.Label {
@@ -107,6 +118,12 @@ Item {
                         iconName: "dreamscapesBoard"
                         onClicked: root.quickActionRequested("board")
                     }
+                }
+                LV.LabelButton {
+                    objectName: "mobileHomeOpenFile"
+                    text: qsTr("Open file")
+                    tone: LV.AbstractButton.Borderless
+                    onClicked: root.quickActionRequested("open")
                 }
 
                 FileCarousel {
@@ -161,6 +178,7 @@ Item {
                     Layout.fillWidth: true
                     title: qsTr("Generation history")
                     files: root.generationHistory
+                    imageSelectionEnabled: true
                     maximumItems: 20
                     loading: root.loading
                     emptyText: qsTr("No generated images yet")
@@ -168,6 +186,7 @@ Item {
                     itemObjectNamePrefix: "mobileGenerationHistoryCard"
                     onViewAllRequested: root.viewAllGenerationHistoryRequested()
                     onFileRequested: function(file) { root.fileRequested(file) }
+                    onImagesRequested: function(images) { root.imagesRequested(images) }
                 }
             }
         }

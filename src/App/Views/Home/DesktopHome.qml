@@ -19,11 +19,14 @@ Item {
     readonly property alias quickGenerateContainer: promptSlot
     readonly property alias storageContainer: storageSlot
     readonly property alias imageWorkspaceContainer: imageWorkspaceSlot
+    readonly property alias videoWorkspaceContainer: videoWorkspaceSlot
     signal quickActionRequested(string action)
     signal browseRequested()
     signal publishedRequested()
     signal historyRequested()
     signal fileRequested(var file)
+    signal openFileRequested()
+    signal imagesRequested(var images)
     signal promptRequested(string prompt)
     function choosePrompt(prompt) { showHome(); root.promptRequested(prompt) }
 
@@ -49,90 +52,21 @@ Item {
     LV.HStack {
         anchors.fill: parent
         spacing: 0
-        Flickable {
-            objectName: "desktopSidebar"
-            Layout.preferredWidth: root.compact ? LV.Theme.scaleMetric(48) : LV.Theme.scaleMetric(181)
+        DesktopHomeSidebar {
+            compact: root.compact
+            selectedAction: root.selectedAction
+            Layout.preferredWidth: listWidth
+            Layout.minimumWidth: listWidth
+            Layout.maximumWidth: listWidth
             Layout.fillHeight: true
-            contentWidth: width
-            contentHeight: sidebar.implicitHeight
-            clip: true
-            boundsBehavior: Flickable.StopAtBounds
-            LV.VStack {
-                id: sidebar
-                x: root.compact ? LV.Theme.gap8 : 0
-                width: parent.width - x * 2
-                spacing: 0
-                Repeater {
-                    model: [
-                        { key: "home", title: qsTr("Home"), asset: "home", size: 16 },
-                        { key: "divider1" },
-                        { key: "canvas", title: qsTr("New Canvas"), asset: "canvas", size: 18 },
-                        { key: "image", title: qsTr("Image"), asset: "image", size: 18 },
-                        { key: "video", title: qsTr("Video"), asset: "video", size: 18 },
-                        { key: "audio", title: qsTr("Audio"), asset: "audio", size: 18 },
-                        { key: "board", title: qsTr("Board"), asset: "board", size: 18 },
-                        { key: "tools", title: qsTr("Tools"), asset: "tools", size: 18 },
-                        { key: "divider2" },
-                        { key: "files", title: qsTr("Files"), asset: "files", size: 18 },
-                        { key: "assets", title: qsTr("Assets"), asset: "assets", size: 18 },
-                        { key: "history", title: qsTr("Generation History"), asset: "history", size: 18 }
-                    ]
-                    delegate: Item {
-                        id: entry
-                        required property var modelData
-                        readonly property bool divider: modelData.key.indexOf("divider") === 0
-                        Layout.fillWidth: true
-                        implicitHeight: divider ? LV.Theme.scaleMetric(3) : LV.Theme.scaleMetric(24)
-                        LV.MenuDivider { anchors.fill: parent; visible: entry.divider }
-                        LV.MenuItem {
-                            id: action
-                            objectName: "desktopAction_" + entry.modelData.key
-                            anchors.fill: parent
-                            visible: !entry.divider
-                            itemWidth: 0
-                            label: root.compact ? "" : entry.modelData.title || ""
-                            iconSize: 18
-                            iconName: "imagefitContent"
-                            iconSource: entry.modelData.asset && entry.modelData.key !== "files" && entry.modelData.key !== "home"
-                                ? Qt.resolvedUrl("Assets/Desktop/" + entry.modelData.asset + ".svg") : ""
-                            showIconSlot: entry.modelData.key !== "files" && entry.modelData.key !== "home"
-                            keyVisible: false
-                            showChevron: false
-                            // File SVG is a sublayer of an 18px slot; preserve its export geometry.
-                            leftPadding: entry.modelData.key === "files" || entry.modelData.key === "home" ? 30 : LV.Theme.gap4
-                            Image {
-                                visible: entry.modelData.key === "home"
-                                x: 4
-                                y: 3
-                                width: 16
-                                height: 16
-                                source: "Assets/Desktop/home.svg"
-                            }
-                            Image {
-                                visible: entry.modelData.key === "files"
-                                x: 4 + (18 - 13.375) / 2
-                                y: (parent.height - 15.6659) / 2
-                                width: 13.375
-                                height: 15.6659
-                                source: "Assets/Desktop/files.svg"
-                            }
-                            state: root.selectedAction === entry.modelData.key || hovered || activeFocus ? selectedState : defaultState
-                            Accessible.name: entry.modelData.title || ""
-                            Accessible.role: Accessible.Button
-                            Controls.ToolTip.visible: root.compact && hovered
-                            Controls.ToolTip.text: entry.modelData.title || ""
-                            onClicked: root.activate(entry.modelData.key)
-                        }
-                    }
-                }
-            }
+            onActionRequested: function(action) { root.activate(action) }
         }
         Flickable {
             id: viewport
             objectName: "desktopHomeViewport"
             Layout.fillWidth: true
             Layout.fillHeight: true
-            visible: root.selectedAction !== "image"
+            visible: root.selectedAction !== "image" && root.selectedAction !== "video"
             contentWidth: width
             contentHeight: content.y + content.implicitHeight + 32
             boundsBehavior: Flickable.StopAtBounds
@@ -169,12 +103,14 @@ Item {
                     subtitle: qsTr("Pick up a draft or open a recent project.")
                     actionText: qsTr("All files")
                     files: root.recentFiles
+                    openFileAction: true
                     loading: root.loading
                     emptyText: qsTr("No recent files")
                     cardsObjectName: "desktopRecentFileCards"
                     itemObjectNamePrefix: "desktopRecentFile"
                     onScrollRequested: function(delta) { root.scrollBy(delta) }
                     onViewAllRequested: root.browseRequested()
+                    onOpenFileRequested: root.openFileRequested()
                     onFileRequested: function(file) { root.fileRequested(file) }
                 }
                 HomeContentRow {
@@ -189,10 +125,12 @@ Item {
                     emptyObjectName: "emptyGenerationHistory"
                     emptyText: qsTr("No generated images yet")
                     files: root.generationHistory
+                    imageSelectionEnabled: true
                     loading: root.loading
                     onScrollRequested: function(delta) { root.scrollBy(delta) }
                     onViewAllRequested: root.historyRequested()
                     onFileRequested: function(file) { root.fileRequested(file) }
+                    onImagesRequested: function(images) { root.imagesRequested(images) }
                 }
                 HomeContentRow {
                     id: stylesRow
@@ -246,6 +184,13 @@ Item {
                     Layout.preferredHeight: childrenRect.height
                 }
             }
+        }
+        Item {
+            id: videoWorkspaceSlot
+            objectName: "desktopVideoWorkspaceSlot"
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: root.selectedAction === "video"
         }
         Item {
             id: imageWorkspaceSlot

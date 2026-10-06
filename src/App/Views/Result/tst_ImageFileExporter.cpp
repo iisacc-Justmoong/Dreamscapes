@@ -18,6 +18,21 @@ class ImageFileExporterTests : public QObject
 {
     Q_OBJECT
 private slots:
+    void exportsOnlyRecognizedMp4Bytes()
+    {
+        QTemporaryDir directory(DREAMSCAPES_TEST_DIRECTORY "/video-export-XXXXXX");
+        const auto source=directory.filePath("source.mp4"), target=directory.filePath("saved.mp4");
+        QFile video(source); QVERIFY(video.open(QIODevice::WriteOnly));
+        const QByteArray content=QByteArray::fromHex("000000206674797069736f6d0000020069736f6d69736f32617663316d703431");
+        video.write(content); video.close();
+        ImageFileExporter exporter;
+        QVERIFY(exporter.saveVideo(QUrl::fromLocalFile(source),QUrl::fromLocalFile(target)));
+        QCOMPARE(bytes(target),content);
+        QVERIFY(!exporter.save(QUrl::fromLocalFile(source),QUrl::fromLocalFile(target)));
+        QVERIFY(video.open(QIODevice::WriteOnly)); video.write("invalid video"); video.close();
+        QVERIFY(!exporter.saveVideo(QUrl::fromLocalFile(source),QUrl::fromLocalFile(target)));
+        QCOMPARE(bytes(target),content);
+    }
     void preservesOriginalBytesAndResolution()
     {
         QTemporaryDir directory(DREAMSCAPES_TEST_DIRECTORY "/image-export-XXXXXX");

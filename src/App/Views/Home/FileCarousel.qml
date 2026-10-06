@@ -12,11 +12,17 @@ LV.VStack {
     property string itemObjectNamePrefix: "fileCard"
     property string cardsObjectName: "fileCards"
     property bool loading: false
+    property bool imageSelectionEnabled: false
     property bool wrapCards: false
     property string emptyText: qsTr("No files yet")
     readonly property var visibleFiles: Array.prototype.slice.call(files || [], 0, maximumItems)
     signal viewAllRequested()
     signal fileRequested(var file)
+    signal imagesRequested(var images)
+    function activateFile(file) {
+        if (imageSelectionEnabled && selectionBar.selectionMode) selectionBar.toggle(file)
+        else root.fileRequested(file)
+    }
 
     implicitHeight: LV.Theme.controlHeightSm + spacing
         + (wrapCards && visibleFiles.length > 0 ? wrappedCards.implicitHeight : LV.Theme.scaleMetric(160))
@@ -34,6 +40,12 @@ LV.VStack {
             elide: Text.ElideRight
         }
 
+        ImageSelectionBar {
+            id: selectionBar
+            objectName: root.objectName + "Selection"
+            entries: root.imageSelectionEnabled ? root.visibleFiles : []
+            onOpenRequested: function(images) { root.imagesRequested(images) }
+        }
         LV.LabelButton {
             objectName: root.objectName + "ViewAll"
             text: qsTr("View all")
@@ -55,8 +67,8 @@ LV.VStack {
         boundsBehavior: Flickable.StopAtBounds
         activeFocusOnTab: true
         keyNavigationEnabled: true
-        Keys.onReturnPressed: if (currentIndex >= 0) root.fileRequested(root.visibleFiles[currentIndex])
-        Keys.onEnterPressed: if (currentIndex >= 0) root.fileRequested(root.visibleFiles[currentIndex])
+        Keys.onReturnPressed: if (currentIndex >= 0) root.activateFile(root.visibleFiles[currentIndex])
+        Keys.onEnterPressed: if (currentIndex >= 0) root.activateFile(root.visibleFiles[currentIndex])
         Keys.onPressed: function(event) {
             if (event.key === Qt.Key_Home) {
                 currentIndex = 0
@@ -96,10 +108,11 @@ LV.VStack {
             filename: modelData.name || ""
             description: modelData.description || ""
             metadata: modelData.dateText || ""
-            previewSource: modelData.previewSource || ""
+            previewSource: root.visible && width > 0 ? modelData.previewSource || "" : ""
             selectable: false
+            selected: selectionBar.isSelected(modelData)
             showMenu: false
-            onClicked: root.fileRequested(modelData)
+            onClicked: root.activateFile(modelData)
             onActiveFocusChanged: if (activeFocus) {
                 cards.currentIndex = index
                 cards.positionViewAtIndex(index, ListView.Contain)
@@ -127,10 +140,11 @@ LV.VStack {
                 height: LV.Theme.scaleMetric(160)
                 filename: modelData.name || ""
                 metadata: modelData.dateText || ""
-                previewSource: modelData.previewSource || ""
+                previewSource: root.visible && width > 0 ? modelData.previewSource || "" : ""
                 selectable: false
+                selected: selectionBar.isSelected(modelData)
                 showMenu: false
-                onClicked: root.fileRequested(modelData)
+                onClicked: root.activateFile(modelData)
             }
         }
     }

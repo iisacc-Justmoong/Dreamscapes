@@ -1,0 +1,5391 @@
+[
+  {
+    "key": "elements",
+    "figmaNode": "196:3034",
+    "width": 432.0,
+    "height": 1262.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Size",
+        "type": "Dimensions",
+        "node": "196:3061",
+        "x": 17,
+        "y": 118.0,
+        "width": 398.0,
+        "height": 71.0,
+        "textFields": [
+          "1080 px",
+          "1080 px"
+        ]
+      },
+      {
+        "id": "field-1",
+        "label": "Corner radius",
+        "type": "Slider",
+        "node": "196:3073",
+        "x": 17,
+        "y": 205.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "24 px"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Fill",
+        "type": "Choices",
+        "node": "196:3108",
+        "x": 17,
+        "y": 273.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 4,
+        "options": [
+          "Solid",
+          "Gradient",
+          "None",
+          "Image"
+        ]
+      },
+      {
+        "id": "field-3",
+        "label": "Constrain proportions",
+        "type": "Toggle",
+        "node": "196:3124",
+        "x": 17,
+        "y": 336.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-4",
+        "label": "Arc sweep",
+        "type": "Slider",
+        "node": "196:3132",
+        "x": 17,
+        "y": 374.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "360°"
+        ]
+      },
+      {
+        "id": "field-5",
+        "label": "Inner radius",
+        "type": "Slider",
+        "node": "196:3158",
+        "x": 17,
+        "y": 442.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0%"
+        ]
+      },
+      {
+        "id": "field-6",
+        "label": "Stroke location",
+        "type": "Choices",
+        "node": "196:3191",
+        "x": 17,
+        "y": 510.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Inside",
+          "Center",
+          "Outside"
+        ]
+      },
+      {
+        "id": "field-7",
+        "label": "Sides",
+        "type": "Slider",
+        "node": "196:3205",
+        "x": 17,
+        "y": 573.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "3"
+        ]
+      },
+      {
+        "id": "field-8",
+        "label": "Corner smoothing",
+        "type": "Slider",
+        "node": "196:3230",
+        "x": 17,
+        "y": 641.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "18%"
+        ]
+      },
+      {
+        "id": "field-9",
+        "label": "Star mode",
+        "type": "Toggle",
+        "node": "196:3266",
+        "x": 17,
+        "y": 709.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-10",
+        "label": "Stroke width",
+        "type": "Slider",
+        "node": "196:3274",
+        "x": 17,
+        "y": 747.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "4 px"
+        ]
+      },
+      {
+        "id": "field-11",
+        "label": "Cap",
+        "type": "Segmented",
+        "node": "196:3299",
+        "x": 17,
+        "y": 815.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Round",
+          "Square",
+          "Butt"
+        ]
+      },
+      {
+        "id": "field-12",
+        "label": "Start",
+        "type": "Choices",
+        "node": "196:3312",
+        "x": 17,
+        "y": 878.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "None",
+          "Dot",
+          "Arrow"
+        ]
+      },
+      {
+        "id": "field-13",
+        "label": "End",
+        "type": "Choices",
+        "node": "196:3325",
+        "x": 17,
+        "y": 941.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Arrow",
+          "Dot",
+          "None"
+        ]
+      },
+      {
+        "id": "field-14",
+        "label": "Opacity",
+        "type": "Slider",
+        "node": "196:3339",
+        "x": 17,
+        "y": 1004.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "100%"
+        ]
+      },
+      {
+        "id": "field-15",
+        "label": "Blend",
+        "type": "Segmented",
+        "node": "196:3374",
+        "x": 17,
+        "y": 1072.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Normal",
+          "Multiply",
+          "Screen"
+        ]
+      },
+      {
+        "id": "field-16",
+        "label": "Fill color",
+        "type": "Color",
+        "node": "196:3387",
+        "x": 17,
+        "y": 1135.0,
+        "width": 398.0,
+        "height": 47.0,
+        "textFields": [
+          "#8B7CFF"
+        ]
+      },
+      {
+        "id": "field-17",
+        "label": "Stroke color",
+        "type": "Color",
+        "node": "196:3400",
+        "x": 17,
+        "y": 1198.0,
+        "width": 398.0,
+        "height": 47.0,
+        "textFields": [
+          "#FFFFFF"
+        ]
+      }
+    ],
+    "selector": {
+      "x": 17,
+      "y": 55.0,
+      "width": 398,
+      "height": 47.0,
+      "columns": 4,
+      "options": [
+        "Rectangle",
+        "Ellipse",
+        "Polygon",
+        "Line / Arrow"
+      ]
+    }
+  },
+  {
+    "key": "text",
+    "figmaNode": "196:3413",
+    "width": 432.0,
+    "height": 1082.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Free Text · Content",
+        "type": "Field",
+        "node": "196:3440",
+        "x": 17,
+        "y": 148.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "Enter your text…"
+        ]
+      },
+      {
+        "id": "field-1",
+        "label": "Typeface",
+        "type": "Choices",
+        "node": "196:3448",
+        "x": 17,
+        "y": 186.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Pretendard",
+          "Serif",
+          "Mono"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Font size",
+        "type": "Slider",
+        "node": "196:3462",
+        "x": 17,
+        "y": 249.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "48 pt"
+        ]
+      },
+      {
+        "id": "field-3",
+        "label": "Alignment",
+        "type": "Segmented",
+        "node": "196:3487",
+        "x": 17,
+        "y": 317.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Left",
+          "Center",
+          "Right"
+        ]
+      },
+      {
+        "id": "field-4",
+        "label": "Time range",
+        "type": "Field",
+        "node": "196:3500",
+        "x": 17,
+        "y": 380.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "00:02.4 — 00:06.8"
+        ]
+      },
+      {
+        "id": "field-5",
+        "label": "Placement",
+        "type": "Segmented",
+        "node": "196:3508",
+        "x": 17,
+        "y": 418.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Bottom",
+          "Center",
+          "Top"
+        ]
+      },
+      {
+        "id": "field-6",
+        "label": "Backdrop",
+        "type": "Slider",
+        "node": "196:3522",
+        "x": 17,
+        "y": 481.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "72%"
+        ]
+      },
+      {
+        "id": "field-7",
+        "label": "Scale",
+        "type": "Choices",
+        "node": "196:3557",
+        "x": 17,
+        "y": 549.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Display",
+          "H1",
+          "H2"
+        ]
+      },
+      {
+        "id": "field-8",
+        "label": "Tracking",
+        "type": "Slider",
+        "node": "196:3571",
+        "x": 17,
+        "y": 612.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "12"
+        ]
+      },
+      {
+        "id": "field-9",
+        "label": "Auto fit width",
+        "type": "Toggle",
+        "node": "196:3596",
+        "x": 17,
+        "y": 680.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-10",
+        "label": "Bubble",
+        "type": "Segmented",
+        "node": "196:3604",
+        "x": 17,
+        "y": 718.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Round",
+          "Sharp",
+          "Cloud"
+        ]
+      },
+      {
+        "id": "field-11",
+        "label": "Pointer",
+        "type": "Segmented",
+        "node": "196:3617",
+        "x": 17,
+        "y": 781.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Left",
+          "Bottom",
+          "Right"
+        ]
+      },
+      {
+        "id": "field-12",
+        "label": "Padding",
+        "type": "Slider",
+        "node": "196:3631",
+        "x": 17,
+        "y": 844.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "20 px"
+        ]
+      },
+      {
+        "id": "field-13",
+        "label": "Footer · Content",
+        "type": "Segmented",
+        "node": "196:3656",
+        "x": 17,
+        "y": 912.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Custom",
+          "Page no.",
+          "Metadata"
+        ]
+      },
+      {
+        "id": "field-14",
+        "label": "Bottom inset",
+        "type": "Slider",
+        "node": "196:3670",
+        "x": 17,
+        "y": 975.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "32 px"
+        ]
+      },
+      {
+        "id": "field-15",
+        "label": "Repeat on pages",
+        "type": "Toggle",
+        "node": "196:3695",
+        "x": 17,
+        "y": 1043.0,
+        "width": 398.0,
+        "height": 22.0
+      }
+    ],
+    "selector": {
+      "x": 17,
+      "y": 55.0,
+      "width": 398,
+      "height": 77.0,
+      "columns": 4,
+      "options": [
+        "Free Text",
+        "Caption",
+        "Header Title",
+        "Callout",
+        "Footer"
+      ]
+    }
+  },
+  {
+    "key": "camera-photo",
+    "figmaNode": "196:3703",
+    "width": 432.0,
+    "height": 883.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Lens",
+        "type": "Segmented",
+        "node": "196:3728",
+        "x": 17,
+        "y": 148.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "0.5×",
+          "1×",
+          "3×"
+        ]
+      },
+      {
+        "id": "field-1",
+        "label": "Exposure",
+        "type": "Slider",
+        "node": "196:3742",
+        "x": 17,
+        "y": 211.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0.0 EV"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "AE/AF lock",
+        "type": "Toggle",
+        "node": "196:3767",
+        "x": 17,
+        "y": 279.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-4",
+        "label": "Source",
+        "type": "Choices",
+        "node": "196:3775",
+        "x": 17,
+        "y": 317.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Recents",
+          "Favorites",
+          "RAW"
+        ]
+      },
+      {
+        "id": "field-5",
+        "label": "Sort",
+        "type": "Segmented",
+        "node": "196:3788",
+        "x": 17,
+        "y": 380.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Newest",
+          "Oldest",
+          "Name"
+        ]
+      },
+      {
+        "id": "field-6",
+        "label": "Include metadata",
+        "type": "Toggle",
+        "node": "196:3802",
+        "x": 17,
+        "y": 443.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-8",
+        "label": "Auto capture",
+        "type": "Toggle",
+        "node": "196:3810",
+        "x": 17,
+        "y": 481.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-9",
+        "label": "Color",
+        "type": "Segmented",
+        "node": "196:3818",
+        "x": 17,
+        "y": 519.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Color",
+          "Gray",
+          "B&W"
+        ]
+      },
+      {
+        "id": "field-10",
+        "label": "Scan contrast",
+        "type": "Slider",
+        "node": "196:3832",
+        "x": 17,
+        "y": 582.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "68%"
+        ]
+      },
+      {
+        "id": "field-12",
+        "label": "Format",
+        "type": "Segmented",
+        "node": "196:3867",
+        "x": 17,
+        "y": 650.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "DNG",
+          "ProRAW",
+          "RAW+"
+        ]
+      },
+      {
+        "id": "field-13",
+        "label": "Bit depth",
+        "type": "Choices",
+        "node": "196:3880",
+        "x": 17,
+        "y": 713.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "12-bit",
+          "14-bit",
+          "16-bit"
+        ]
+      },
+      {
+        "id": "field-14",
+        "label": "Long exposure NR",
+        "type": "Toggle",
+        "node": "196:3894",
+        "x": 17,
+        "y": 776.0,
+        "width": 398.0,
+        "height": 22.0
+      }
+    ],
+    "selector": {
+      "x": 17,
+      "y": 55.0,
+      "width": 398,
+      "height": 77.0,
+      "columns": 2,
+      "options": [
+        "Camera",
+        "Photo Library",
+        "Document Scan",
+        "RAW Capture"
+      ]
+    },
+    "actions": {
+      "x": 17,
+      "y": 814.0,
+      "width": 398,
+      "height": 52.0,
+      "columns": 2,
+      "labels": [
+        "Capture photo",
+        "Place selected",
+        "Scan page",
+        "Capture RAW"
+      ]
+    }
+  },
+  {
+    "key": "asset",
+    "figmaNode": "196:3911",
+    "width": 432.0,
+    "height": 784.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Search",
+        "type": "Field",
+        "node": "196:3921",
+        "x": 17,
+        "y": 55.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          ""
+        ]
+      },
+      {
+        "id": "field-1",
+        "label": "Type",
+        "type": "Choices",
+        "node": "196:3929",
+        "x": 17,
+        "y": 93.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 4,
+        "options": [
+          "All",
+          "Image",
+          "Vector",
+          "Audio"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Library Browser · License",
+        "type": "Segmented",
+        "node": "196:3944",
+        "x": 17,
+        "y": 156.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Owned",
+          "Free",
+          "Premium"
+        ]
+      },
+      {
+        "id": "field-3",
+        "label": "Asset results",
+        "type": "Visual",
+        "node": "196:3957",
+        "x": 17,
+        "y": 219.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-4",
+        "label": "Collection",
+        "type": "Field",
+        "node": "196:3970",
+        "x": 17,
+        "y": 279.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "Campaign 2026"
+        ]
+      },
+      {
+        "id": "field-5",
+        "label": "Sort",
+        "type": "Segmented",
+        "node": "196:3978",
+        "x": 17,
+        "y": 317.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Manual",
+          "Recent",
+          "Name"
+        ]
+      },
+      {
+        "id": "field-6",
+        "label": "Shared collection",
+        "type": "Toggle",
+        "node": "196:3992",
+        "x": 17,
+        "y": 380.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-8",
+        "label": "Source",
+        "type": "Field",
+        "node": "196:4000",
+        "x": 17,
+        "y": 418.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          ""
+        ]
+      },
+      {
+        "id": "field-9",
+        "label": "Auto update",
+        "type": "Toggle",
+        "node": "196:4009",
+        "x": 17,
+        "y": 456.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-10",
+        "label": "On conflict",
+        "type": "Segmented",
+        "node": "196:4017",
+        "x": 17,
+        "y": 494.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Ask",
+          "Keep local",
+          "Replace"
+        ]
+      },
+      {
+        "id": "field-12",
+        "label": "Version",
+        "type": "Segmented",
+        "node": "196:4030",
+        "x": 17,
+        "y": 557.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Latest",
+          "v12",
+          "v11"
+        ]
+      },
+      {
+        "id": "field-13",
+        "label": "License & Version · License",
+        "type": "Field",
+        "node": "196:4043",
+        "x": 17,
+        "y": 620.0,
+        "width": 398.0,
+        "height": 41.0,
+        "textFields": [
+          "Commercial / Global"
+        ]
+      },
+      {
+        "id": "field-14",
+        "label": "Pin version",
+        "type": "Toggle",
+        "node": "196:4052",
+        "x": 17,
+        "y": 677.0,
+        "width": 398.0,
+        "height": 22.0
+      }
+    ],
+    "actions": {
+      "x": 17,
+      "y": 715.0,
+      "width": 398,
+      "height": 52.0,
+      "columns": 2,
+      "labels": [
+        "Create collection",
+        "Relink source",
+        "Inspect local files"
+      ]
+    }
+  },
+  {
+    "key": "file",
+    "figmaNode": "197:3529",
+    "width": 432.0,
+    "height": 566.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "File location",
+        "type": "Field",
+        "node": "197:3541",
+        "x": 17,
+        "y": 55.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "iCloud Drive / Dreamscapes"
+        ]
+      },
+      {
+        "id": "field-1",
+        "label": "Format",
+        "type": "Choices",
+        "node": "197:3549",
+        "x": 17,
+        "y": 93.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 4,
+        "options": [
+          "IISC",
+          "PNG",
+          "JPEG",
+          "TIFF"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Open as copy",
+        "type": "Toggle",
+        "node": "197:3567",
+        "x": 17,
+        "y": 156.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-4",
+        "label": "Placement",
+        "type": "Segmented",
+        "node": "197:3575",
+        "x": 17,
+        "y": 194.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Fit",
+          "Fill",
+          "1:1"
+        ]
+      },
+      {
+        "id": "field-5",
+        "label": "Mode",
+        "type": "Choices",
+        "node": "197:3588",
+        "x": 17,
+        "y": 257.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Embed",
+          "Link",
+          "Smart"
+        ]
+      },
+      {
+        "id": "field-7",
+        "label": "Watch changes",
+        "type": "Toggle",
+        "node": "197:3602",
+        "x": 17,
+        "y": 320.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-8",
+        "label": "Missing file",
+        "type": "Segmented",
+        "node": "197:3610",
+        "x": 17,
+        "y": 358.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Locate",
+          "Ignore",
+          "Embed"
+        ]
+      },
+      {
+        "id": "field-10",
+        "label": "Name",
+        "type": "Field",
+        "node": "197:3623",
+        "x": 17,
+        "y": 421.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "dreamscape-final"
+        ]
+      },
+      {
+        "id": "field-11",
+        "label": "Preserve layers",
+        "type": "Toggle",
+        "node": "197:3632",
+        "x": 17,
+        "y": 459.0,
+        "width": 398.0,
+        "height": 22.0
+      }
+    ],
+    "actions": {
+      "x": 17,
+      "y": 497.0,
+      "width": 398,
+      "height": 52.0,
+      "columns": 2,
+      "labels": [
+        "Choose file…",
+        "Place into canvas",
+        "Update now",
+        "Save document"
+      ]
+    }
+  },
+  {
+    "key": "background",
+    "figmaNode": "197:3649",
+    "width": 432.0,
+    "height": 860.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Fill",
+        "type": "Choices",
+        "node": "197:3659",
+        "x": 17,
+        "y": 55.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Solid",
+          "Linear",
+          "Radial"
+        ]
+      },
+      {
+        "id": "field-1",
+        "label": "Hex",
+        "type": "Field",
+        "node": "197:3672",
+        "x": 17,
+        "y": 118.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "#12131A"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Opacity",
+        "type": "Slider",
+        "node": "197:3681",
+        "x": 17,
+        "y": 156.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "100%"
+        ]
+      },
+      {
+        "id": "field-3",
+        "label": "Extend to bleed",
+        "type": "Toggle",
+        "node": "197:3716",
+        "x": 17,
+        "y": 224.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-4",
+        "label": "Quality",
+        "type": "Segmented",
+        "node": "197:3724",
+        "x": 17,
+        "y": 262.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Fast",
+          "Balanced",
+          "Precise"
+        ]
+      },
+      {
+        "id": "field-5",
+        "label": "Edge refinement",
+        "type": "Slider",
+        "node": "197:3738",
+        "x": 17,
+        "y": 325.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "42%"
+        ]
+      },
+      {
+        "id": "field-6",
+        "label": "Decontaminate color",
+        "type": "Toggle",
+        "node": "197:3773",
+        "x": 17,
+        "y": 393.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-8",
+        "label": "Detected regions",
+        "type": "Visual",
+        "node": "197:3781",
+        "x": 17,
+        "y": 431.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-9",
+        "label": "Confidence",
+        "type": "Slider",
+        "node": "197:3795",
+        "x": 17,
+        "y": 491.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "76%"
+        ]
+      },
+      {
+        "id": "field-10",
+        "label": "Target",
+        "type": "Choices",
+        "node": "197:3830",
+        "x": 17,
+        "y": 559.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Background",
+          "Sky",
+          "Ground"
+        ]
+      },
+      {
+        "id": "field-12",
+        "label": "Prompt",
+        "type": "Field",
+        "node": "197:3843",
+        "x": 17,
+        "y": 622.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "Soft studio, warm daylight"
+        ]
+      },
+      {
+        "id": "field-13",
+        "label": "Source",
+        "type": "Choices",
+        "node": "197:3851",
+        "x": 17,
+        "y": 660.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Generate",
+          "Asset",
+          "Photo"
+        ]
+      },
+      {
+        "id": "field-14",
+        "label": "Subject match",
+        "type": "Slider",
+        "node": "197:3865",
+        "x": 17,
+        "y": 723.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "84%"
+        ]
+      }
+    ],
+    "actions": {
+      "x": 17,
+      "y": 791.0,
+      "width": 398,
+      "height": 52.0,
+      "columns": 2,
+      "labels": [
+        "Remove background",
+        "Create masks",
+        "Generate replacement"
+      ]
+    }
+  },
+  {
+    "key": "audio-track",
+    "figmaNode": "197:3907",
+    "width": 432.0,
+    "height": 903.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "File",
+        "type": "Field",
+        "node": "197:3917",
+        "x": 17,
+        "y": 55.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "music-bed.wav"
+        ]
+      },
+      {
+        "id": "field-1",
+        "label": "Channels",
+        "type": "Choices",
+        "node": "197:3925",
+        "x": 17,
+        "y": 93.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Stereo",
+          "Mono",
+          "Split"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Sample rate",
+        "type": "Segmented",
+        "node": "197:3938",
+        "x": 17,
+        "y": 156.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "44.1k",
+          "48k",
+          "96k"
+        ]
+      },
+      {
+        "id": "field-4",
+        "label": "Waveform / selection",
+        "type": "Visual",
+        "node": "197:3951",
+        "x": 17,
+        "y": 219.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-5",
+        "label": "Range",
+        "type": "Field",
+        "node": "197:3964",
+        "x": 17,
+        "y": 279.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "Auto"
+        ]
+      },
+      {
+        "id": "field-6",
+        "label": "Fade in",
+        "type": "Slider",
+        "node": "197:3973",
+        "x": 17,
+        "y": 317.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0.8 s"
+        ]
+      },
+      {
+        "id": "field-7",
+        "label": "Fade out",
+        "type": "Slider",
+        "node": "197:3998",
+        "x": 17,
+        "y": 385.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "1.2 s"
+        ]
+      },
+      {
+        "id": "field-8",
+        "label": "Volume",
+        "type": "Slider",
+        "node": "197:4024",
+        "x": 17,
+        "y": 453.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "−3.0 dB"
+        ]
+      },
+      {
+        "id": "field-9",
+        "label": "Pan",
+        "type": "Slider",
+        "node": "197:4049",
+        "x": 17,
+        "y": 521.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "Center"
+        ]
+      },
+      {
+        "id": "field-10",
+        "label": "Auto ducking",
+        "type": "Toggle",
+        "node": "197:4075",
+        "x": 17,
+        "y": 589.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-11",
+        "label": "Ducking amount",
+        "type": "Slider",
+        "node": "197:4083",
+        "x": 17,
+        "y": 627.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "−12 dB"
+        ]
+      },
+      {
+        "id": "field-12",
+        "label": "Sync to",
+        "type": "Segmented",
+        "node": "197:4108",
+        "x": 17,
+        "y": 695.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Timeline",
+          "Beat"
+        ]
+      },
+      {
+        "id": "field-13",
+        "label": "Offset",
+        "type": "Slider",
+        "node": "197:4122",
+        "x": 17,
+        "y": 758.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "+120 ms"
+        ]
+      },
+      {
+        "id": "field-14",
+        "label": "Stretch to fit",
+        "type": "Toggle",
+        "node": "197:4147",
+        "x": 17,
+        "y": 826.0,
+        "width": 398.0,
+        "height": 22.0
+      }
+    ],
+    "actions": {
+      "x": 17,
+      "y": 864.0,
+      "width": 398,
+      "height": 22.0,
+      "columns": 2,
+      "labels": [
+        "Import track",
+        "Analyze & sync"
+      ]
+    }
+  },
+  {
+    "key": "canvas",
+    "figmaNode": "197:4160",
+    "width": 432.0,
+    "height": 999.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Dimensions",
+        "type": "Dimensions",
+        "node": "197:4170",
+        "x": 17,
+        "y": 55.0,
+        "width": 398.0,
+        "height": 71.0,
+        "textFields": [
+          "2048 px",
+          "2732 px"
+        ]
+      },
+      {
+        "id": "field-1",
+        "label": "Resolution",
+        "type": "Field",
+        "node": "197:4181",
+        "x": 17,
+        "y": 142.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "300 ppi"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Resample",
+        "type": "Toggle",
+        "node": "197:4190",
+        "x": 17,
+        "y": 180.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-3",
+        "label": "Anchor",
+        "type": "Segmented",
+        "node": "197:4198",
+        "x": 17,
+        "y": 218.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Center",
+          "Top-left",
+          "Bottom-right"
+        ]
+      },
+      {
+        "id": "field-4",
+        "label": "Profile",
+        "type": "Choices",
+        "node": "197:4211",
+        "x": 17,
+        "y": 281.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Display P3",
+          "sRGB",
+          "Adobe RGB"
+        ]
+      },
+      {
+        "id": "field-5",
+        "label": "Intent",
+        "type": "Segmented",
+        "node": "197:4224",
+        "x": 17,
+        "y": 344.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Relative",
+          "Perceptual",
+          "Absolute"
+        ]
+      },
+      {
+        "id": "field-6",
+        "label": "Black point compensation",
+        "type": "Toggle",
+        "node": "197:4238",
+        "x": 17,
+        "y": 407.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-8",
+        "label": "Angle",
+        "type": "Segmented",
+        "node": "197:4246",
+        "x": 17,
+        "y": 445.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "90° L",
+          "180°",
+          "90° R"
+        ]
+      },
+      {
+        "id": "field-9",
+        "label": "Custom angle",
+        "type": "Slider",
+        "node": "197:4260",
+        "x": 17,
+        "y": 508.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0.0°"
+        ]
+      },
+      {
+        "id": "field-10",
+        "label": "Rotate layers",
+        "type": "Toggle",
+        "node": "197:4285",
+        "x": 17,
+        "y": 576.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-12",
+        "label": "Axis",
+        "type": "Segmented",
+        "node": "197:4293",
+        "x": 17,
+        "y": 614.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 2,
+        "options": [
+          "Horizontal",
+          "Vertical"
+        ]
+      },
+      {
+        "id": "field-13",
+        "label": "Mirror canvas only",
+        "type": "Toggle",
+        "node": "197:4305",
+        "x": 17,
+        "y": 677.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-14",
+        "label": "Keep text readable",
+        "type": "Toggle",
+        "node": "197:4313",
+        "x": 17,
+        "y": 715.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-16",
+        "label": "Overlay",
+        "type": "Segmented",
+        "node": "197:4321",
+        "x": 17,
+        "y": 753.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Crop",
+          "Bleed",
+          "Safe"
+        ]
+      },
+      {
+        "id": "field-17",
+        "label": "Bleed",
+        "type": "Field",
+        "node": "197:4334",
+        "x": 17,
+        "y": 816.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "3 mm"
+        ]
+      },
+      {
+        "id": "field-18",
+        "label": "Safe inset",
+        "type": "Field",
+        "node": "197:4342",
+        "x": 17,
+        "y": 854.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "5%"
+        ]
+      },
+      {
+        "id": "field-19",
+        "label": "Delete cropped pixels",
+        "type": "Toggle",
+        "node": "197:4351",
+        "x": 17,
+        "y": 892.0,
+        "width": 398.0,
+        "height": 22.0
+      }
+    ],
+    "actions": {
+      "x": 17,
+      "y": 930.0,
+      "width": 398,
+      "height": 52.0,
+      "columns": 2,
+      "labels": [
+        "Convert profile",
+        "Apply rotation",
+        "Mirror canvas"
+      ]
+    }
+  },
+  {
+    "key": "generative",
+    "figmaNode": "197:4366",
+    "width": 432.0,
+    "height": 1609.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Prompt",
+        "type": "Field",
+        "node": "197:4391",
+        "x": 17,
+        "y": 148.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "Cinematic glass garden at dusk"
+        ]
+      },
+      {
+        "id": "field-1",
+        "label": "Negative",
+        "type": "Field",
+        "node": "197:4399",
+        "x": 17,
+        "y": 186.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "text, watermark, artifacts"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Model",
+        "type": "Choices",
+        "node": "197:4407",
+        "x": 17,
+        "y": 224.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Standard",
+          "Artwork",
+          "Photo"
+        ]
+      },
+      {
+        "id": "field-4",
+        "label": "Reference",
+        "type": "Field",
+        "node": "197:4420",
+        "x": 17,
+        "y": 287.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "Current layer"
+        ]
+      },
+      {
+        "id": "field-5",
+        "label": "Denoise strength",
+        "type": "Slider",
+        "node": "197:4429",
+        "x": 17,
+        "y": 325.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "58%"
+        ]
+      },
+      {
+        "id": "field-6",
+        "label": "Structure lock",
+        "type": "Slider",
+        "node": "197:4464",
+        "x": 17,
+        "y": 393.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "72%"
+        ]
+      },
+      {
+        "id": "field-8",
+        "label": "Inpaint mask",
+        "type": "Visual",
+        "node": "197:4499",
+        "x": 17,
+        "y": 461.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-9",
+        "label": "Mask feather",
+        "type": "Slider",
+        "node": "197:4513",
+        "x": 17,
+        "y": 521.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "18 px"
+        ]
+      },
+      {
+        "id": "field-11",
+        "label": "Direction",
+        "type": "Segmented",
+        "node": "197:4538",
+        "x": 17,
+        "y": 589.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "All",
+          "Left/Right",
+          "Top/Bottom"
+        ]
+      },
+      {
+        "id": "field-12",
+        "label": "Expansion",
+        "type": "Field",
+        "node": "197:4551",
+        "x": 17,
+        "y": 652.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "512 px"
+        ]
+      },
+      {
+        "id": "field-13",
+        "label": "Match perspective",
+        "type": "Toggle",
+        "node": "197:4560",
+        "x": 17,
+        "y": 690.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-15",
+        "label": "Control",
+        "type": "Choices",
+        "node": "197:4568",
+        "x": 17,
+        "y": 728.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 4,
+        "options": [
+          "Canny",
+          "Depth",
+          "Pose",
+          "Lineart"
+        ]
+      },
+      {
+        "id": "field-16",
+        "label": "Weight",
+        "type": "Slider",
+        "node": "197:4584",
+        "x": 17,
+        "y": 791.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0.85"
+        ]
+      },
+      {
+        "id": "field-17",
+        "label": "Guidance range",
+        "type": "Field",
+        "node": "197:4609",
+        "x": 17,
+        "y": 859.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "0.05 — 0.90"
+        ]
+      },
+      {
+        "id": "field-18",
+        "label": "Pixel perfect",
+        "type": "Toggle",
+        "node": "197:4618",
+        "x": 17,
+        "y": 897.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-19",
+        "label": "Mode",
+        "type": "Choices",
+        "node": "197:4626",
+        "x": 17,
+        "y": 935.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Image",
+          "Face",
+          "Style"
+        ]
+      },
+      {
+        "id": "field-20",
+        "label": "Reference weight",
+        "type": "Slider",
+        "node": "197:4640",
+        "x": 17,
+        "y": 998.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0.70"
+        ]
+      },
+      {
+        "id": "field-21",
+        "label": "Style fidelity",
+        "type": "Slider",
+        "node": "197:4665",
+        "x": 17,
+        "y": 1066.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0.55"
+        ]
+      },
+      {
+        "id": "field-23",
+        "label": "LoRA file",
+        "type": "Field",
+        "node": "197:4690",
+        "x": 17,
+        "y": 1134.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          ""
+        ]
+      },
+      {
+        "id": "field-24",
+        "label": "LoRA weight",
+        "type": "Slider",
+        "node": "197:4699",
+        "x": 17,
+        "y": 1172.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0.82"
+        ]
+      },
+      {
+        "id": "field-25",
+        "label": "VAE",
+        "type": "Field",
+        "node": "197:4724",
+        "x": 17,
+        "y": 1240.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "Auto / model default"
+        ]
+      },
+      {
+        "id": "field-26",
+        "label": "Bake into result",
+        "type": "Toggle",
+        "node": "197:4733",
+        "x": 17,
+        "y": 1278.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-27",
+        "label": "Scale",
+        "type": "Segmented",
+        "node": "197:4741",
+        "x": 17,
+        "y": 1316.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "2×",
+          "4×",
+          "8×"
+        ]
+      },
+      {
+        "id": "field-28",
+        "label": "Resampling",
+        "type": "Choices",
+        "node": "197:4754",
+        "x": 17,
+        "y": 1379.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 2,
+        "options": [
+          "Nearest",
+          "Smooth"
+        ]
+      },
+      {
+        "id": "field-29",
+        "label": "Refiner strength",
+        "type": "Slider",
+        "node": "197:4768",
+        "x": 17,
+        "y": 1442.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "32%"
+        ]
+      }
+    ],
+    "selector": {
+      "x": 17,
+      "y": 55.0,
+      "width": 398,
+      "height": 77.0,
+      "columns": 2,
+      "options": [
+        "Text-to-image",
+        "Image-to-image",
+        "Inpaint",
+        "Outpaint"
+      ]
+    },
+    "actions": {
+      "x": 17,
+      "y": 1510.0,
+      "width": 398,
+      "height": 82.0,
+      "columns": 2,
+      "labels": [
+        "Generate 4 variations",
+        "Generate from image",
+        "Inpaint selection",
+        "Expand canvas",
+        "Add reference",
+        "Upscale layer"
+      ]
+    }
+  },
+  {
+    "key": "layers",
+    "figmaNode": "197:4816",
+    "width": 432.0,
+    "height": 1439.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Generation lineage",
+        "type": "Visual",
+        "node": "197:4847",
+        "x": 17,
+        "y": 148.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-1",
+        "label": "Seed",
+        "type": "Field",
+        "node": "197:4860",
+        "x": 17,
+        "y": 208.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "Unknown"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Regenerate non-destructively",
+        "type": "Toggle",
+        "node": "197:4868",
+        "x": 17,
+        "y": 246.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-4",
+        "label": "Source",
+        "type": "Field",
+        "node": "197:4876",
+        "x": 17,
+        "y": 284.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "Linked photo / hero"
+        ]
+      },
+      {
+        "id": "field-5",
+        "label": "Live effects",
+        "type": "Toggle",
+        "node": "197:4885",
+        "x": 17,
+        "y": 322.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-6",
+        "label": "Cache",
+        "type": "Segmented",
+        "node": "197:4893",
+        "x": 17,
+        "y": 360.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Auto",
+          "Full",
+          "Off"
+        ]
+      },
+      {
+        "id": "field-8",
+        "label": "Lock",
+        "type": "Segmented",
+        "node": "197:4906",
+        "x": 17,
+        "y": 423.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "None",
+          "Pixels",
+          "Position"
+        ]
+      },
+      {
+        "id": "field-9",
+        "label": "Preserve alpha",
+        "type": "Toggle",
+        "node": "197:4920",
+        "x": 17,
+        "y": 486.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-10",
+        "label": "Opacity",
+        "type": "Slider",
+        "node": "197:4928",
+        "x": 17,
+        "y": 524.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "100%"
+        ]
+      },
+      {
+        "id": "field-12",
+        "label": "Path hierarchy",
+        "type": "Visual",
+        "node": "197:4963",
+        "x": 17,
+        "y": 592.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-13",
+        "label": "Boolean",
+        "type": "Segmented",
+        "node": "197:4976",
+        "x": 17,
+        "y": 652.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Union",
+          "Subtract",
+          "Intersect"
+        ]
+      },
+      {
+        "id": "field-14",
+        "label": "Scale strokes",
+        "type": "Toggle",
+        "node": "197:4990",
+        "x": 17,
+        "y": 715.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-16",
+        "label": "Adjustment",
+        "type": "Choices",
+        "node": "197:4998",
+        "x": 17,
+        "y": 753.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Curves",
+          "HSL",
+          "Exposure"
+        ]
+      },
+      {
+        "id": "field-17",
+        "label": "Scope",
+        "type": "Segmented",
+        "node": "197:5011",
+        "x": 17,
+        "y": 816.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Below",
+          "Clipped",
+          "Group"
+        ]
+      },
+      {
+        "id": "field-19",
+        "label": "Group name",
+        "type": "Field",
+        "node": "197:5024",
+        "x": 17,
+        "y": 879.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "Hero composite"
+        ]
+      },
+      {
+        "id": "field-20",
+        "label": "Blend",
+        "type": "Segmented",
+        "node": "197:5032",
+        "x": 17,
+        "y": 917.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Normal",
+          "Multiply",
+          "Screen"
+        ]
+      },
+      {
+        "id": "field-21",
+        "label": "Label",
+        "type": "Choices",
+        "node": "197:5045",
+        "x": 17,
+        "y": 980.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Violet",
+          "Mint",
+          "Amber"
+        ]
+      },
+      {
+        "id": "field-22",
+        "label": "Collapse on close",
+        "type": "Toggle",
+        "node": "197:5059",
+        "x": 17,
+        "y": 1043.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-23",
+        "label": "Mask preview",
+        "type": "Visual",
+        "node": "197:5067",
+        "x": 17,
+        "y": 1081.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-24",
+        "label": "Type",
+        "type": "Segmented",
+        "node": "197:5080",
+        "x": 17,
+        "y": 1141.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Pixel"
+        ]
+      },
+      {
+        "id": "field-25",
+        "label": "Density",
+        "type": "Slider",
+        "node": "197:5094",
+        "x": 17,
+        "y": 1204.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "100%"
+        ]
+      },
+      {
+        "id": "field-26",
+        "label": "Feather",
+        "type": "Slider",
+        "node": "197:5129",
+        "x": 17,
+        "y": 1272.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "12 px"
+        ]
+      }
+    ],
+    "selector": {
+      "x": 17,
+      "y": 55.0,
+      "width": 398,
+      "height": 77.0,
+      "columns": 4,
+      "options": [
+        "Generated",
+        "Dynamic",
+        "Pixel",
+        "Vector",
+        "Adjustment",
+        "Group",
+        "Mask"
+      ]
+    },
+    "actions": {
+      "x": 17,
+      "y": 1340.0,
+      "width": 398,
+      "height": 82.0,
+      "columns": 2,
+      "labels": [
+        "Generate variation",
+        "Convert to static",
+        "Raster operations",
+        "Edit paths",
+        "Apply adjustment"
+      ]
+    }
+  },
+  {
+    "key": "select",
+    "figmaNode": "197:5165",
+    "width": 432.0,
+    "height": 1102.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Mode",
+        "type": "Segmented",
+        "node": "197:5192",
+        "x": 17,
+        "y": 148.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "New",
+          "Add",
+          "Subtract"
+        ]
+      },
+      {
+        "id": "field-1",
+        "label": "Smoothing",
+        "type": "Slider",
+        "node": "197:5206",
+        "x": 17,
+        "y": 211.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "36%"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Feather",
+        "type": "Slider",
+        "node": "197:5241",
+        "x": 17,
+        "y": 279.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "8 px"
+        ]
+      },
+      {
+        "id": "field-3",
+        "label": "Close automatically",
+        "type": "Toggle",
+        "node": "197:5267",
+        "x": 17,
+        "y": 347.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-4",
+        "label": "Ratio",
+        "type": "Choices",
+        "node": "197:5275",
+        "x": 17,
+        "y": 385.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Free",
+          "1:1",
+          "4:5"
+        ]
+      },
+      {
+        "id": "field-5",
+        "label": "From center",
+        "type": "Toggle",
+        "node": "197:5289",
+        "x": 17,
+        "y": 448.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-6",
+        "label": "Rotation",
+        "type": "Slider",
+        "node": "197:5297",
+        "x": 17,
+        "y": 486.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0°"
+        ]
+      },
+      {
+        "id": "field-7",
+        "label": "Snap vertices",
+        "type": "Toggle",
+        "node": "197:5323",
+        "x": 17,
+        "y": 554.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-8",
+        "label": "Corner roundness",
+        "type": "Slider",
+        "node": "197:5331",
+        "x": 17,
+        "y": 592.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0%"
+        ]
+      },
+      {
+        "id": "field-9",
+        "label": "Tolerance",
+        "type": "Slider",
+        "node": "197:5365",
+        "x": 17,
+        "y": 660.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "32"
+        ]
+      },
+      {
+        "id": "field-10",
+        "label": "Contiguous",
+        "type": "Toggle",
+        "node": "197:5390",
+        "x": 17,
+        "y": 728.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-11",
+        "label": "Sample all layers",
+        "type": "Toggle",
+        "node": "197:5399",
+        "x": 17,
+        "y": 766.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-12",
+        "label": "Edge refine",
+        "type": "Slider",
+        "node": "197:5407",
+        "x": 17,
+        "y": 804.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "18%"
+        ]
+      },
+      {
+        "id": "field-13",
+        "label": "Target",
+        "type": "Choices",
+        "node": "197:5442",
+        "x": 17,
+        "y": 872.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Object",
+          "Person",
+          "Part"
+        ]
+      },
+      {
+        "id": "field-14",
+        "label": "Detected objects",
+        "type": "Visual",
+        "node": "197:5455",
+        "x": 17,
+        "y": 935.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-15",
+        "label": "Confidence",
+        "type": "Slider",
+        "node": "197:5469",
+        "x": 17,
+        "y": 995.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "82%"
+        ]
+      }
+    ],
+    "selector": {
+      "x": 17,
+      "y": 55.0,
+      "width": 398,
+      "height": 77.0,
+      "columns": 4,
+      "options": [
+        "Lasso",
+        "Rectangle",
+        "Triangle",
+        "Magic Wand",
+        "Object"
+      ]
+    },
+    "actions": {
+      "x": 17,
+      "y": 1063.0,
+      "width": 398,
+      "height": 22.0,
+      "columns": 1,
+      "labels": [
+        "Select detected"
+      ]
+    }
+  },
+  {
+    "key": "color",
+    "figmaNode": "197:5507",
+    "width": 432.0,
+    "height": 2874.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Luminance histogram",
+        "type": "Visual",
+        "node": "197:5517",
+        "x": 17,
+        "y": 55.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-1",
+        "label": "Exposure",
+        "type": "Slider",
+        "node": "197:5531",
+        "x": 17,
+        "y": 115.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "+0.35 EV"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Offset",
+        "type": "Slider",
+        "node": "197:5556",
+        "x": 17,
+        "y": 183.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0.00"
+        ]
+      },
+      {
+        "id": "field-3",
+        "label": "Protect highlights",
+        "type": "Toggle",
+        "node": "197:5582",
+        "x": 17,
+        "y": 251.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-4",
+        "label": "Contrast",
+        "type": "Slider",
+        "node": "197:5590",
+        "x": 17,
+        "y": 289.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "+18"
+        ]
+      },
+      {
+        "id": "field-5",
+        "label": "Pivot",
+        "type": "Slider",
+        "node": "197:5616",
+        "x": 17,
+        "y": 357.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "50%"
+        ]
+      },
+      {
+        "id": "field-6",
+        "label": "Linear light",
+        "type": "Toggle",
+        "node": "197:5641",
+        "x": 17,
+        "y": 425.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-7",
+        "label": "Contrast response",
+        "type": "Visual",
+        "node": "197:5649",
+        "x": 17,
+        "y": 463.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-8",
+        "label": "Highlights",
+        "type": "Slider",
+        "node": "197:5663",
+        "x": 17,
+        "y": 523.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "−24"
+        ]
+      },
+      {
+        "id": "field-9",
+        "label": "Highlights · Range",
+        "type": "Slider",
+        "node": "197:5688",
+        "x": 17,
+        "y": 591.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "72%"
+        ]
+      },
+      {
+        "id": "field-10",
+        "label": "Rolloff",
+        "type": "Slider",
+        "node": "197:5724",
+        "x": 17,
+        "y": 659.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "28%"
+        ]
+      },
+      {
+        "id": "field-11",
+        "label": "Preserve color",
+        "type": "Toggle",
+        "node": "197:5759",
+        "x": 17,
+        "y": 727.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-12",
+        "label": "Shadows",
+        "type": "Slider",
+        "node": "197:5768",
+        "x": 17,
+        "y": 765.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "+32"
+        ],
+        "liveVerified": true
+      },
+      {
+        "id": "field-13",
+        "label": "Shadows · Range",
+        "type": "Slider",
+        "node": "197:5793",
+        "x": 17,
+        "y": 833.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "38%"
+        ],
+        "liveVerified": true
+      },
+      {
+        "id": "field-14",
+        "label": "Black protect",
+        "type": "Slider",
+        "node": "197:5829",
+        "x": 17,
+        "y": 901.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "16%"
+        ]
+      },
+      {
+        "id": "field-15",
+        "label": "Adaptive",
+        "type": "Toggle",
+        "node": "197:5864",
+        "x": 17,
+        "y": 969.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-16",
+        "label": "Whites",
+        "type": "Slider",
+        "node": "197:5873",
+        "x": 17,
+        "y": 1007.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "+12"
+        ]
+      },
+      {
+        "id": "field-17",
+        "label": "Whites · Clip threshold",
+        "type": "Slider",
+        "node": "197:5898",
+        "x": 17,
+        "y": 1075.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "98.5%"
+        ]
+      },
+      {
+        "id": "field-18",
+        "label": "Show clipping",
+        "type": "Toggle",
+        "node": "197:5924",
+        "x": 17,
+        "y": 1143.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-19",
+        "label": "Upper tone range",
+        "type": "Visual",
+        "node": "197:5932",
+        "x": 17,
+        "y": 1181.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-20",
+        "label": "Blacks",
+        "type": "Slider",
+        "node": "197:5946",
+        "x": 17,
+        "y": 1241.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "−8"
+        ]
+      },
+      {
+        "id": "field-21",
+        "label": "Blacks · Clip threshold",
+        "type": "Slider",
+        "node": "197:5971",
+        "x": 17,
+        "y": 1309.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "1.2%"
+        ]
+      },
+      {
+        "id": "field-22",
+        "label": "Lift blacks",
+        "type": "Toggle",
+        "node": "197:5997",
+        "x": 17,
+        "y": 1377.0,
+        "width": 398.0,
+        "height": 22.0,
+        "liveVerified": true
+      },
+      {
+        "id": "field-23",
+        "label": "Lower tone range",
+        "type": "Visual",
+        "node": "197:6005",
+        "x": 17,
+        "y": 1415.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-24",
+        "label": "Unit",
+        "type": "Segmented",
+        "node": "197:6018",
+        "x": 17,
+        "y": 1475.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 2,
+        "options": [
+          "Kelvin",
+          "Relative"
+        ]
+      },
+      {
+        "id": "field-25",
+        "label": "Temperature",
+        "type": "Slider",
+        "node": "197:6030",
+        "x": 17,
+        "y": 1538.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "5600 K"
+        ]
+      },
+      {
+        "id": "field-26",
+        "label": "Illuminant",
+        "type": "Choices",
+        "node": "197:6055",
+        "x": 17,
+        "y": 1606.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Daylight",
+          "Tungsten",
+          "Shade"
+        ],
+        "liveVerified": true
+      },
+      {
+        "id": "field-27",
+        "label": "Neutralize picker",
+        "type": "Toggle",
+        "node": "197:6069",
+        "x": 17,
+        "y": 1669.0,
+        "width": 398.0,
+        "height": 22.0,
+        "liveVerified": true
+      },
+      {
+        "id": "field-28",
+        "label": "Tint",
+        "type": "Slider",
+        "node": "197:6077",
+        "x": 17,
+        "y": 1707.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "+6"
+        ],
+        "liveVerified": true
+      },
+      {
+        "id": "field-29",
+        "label": "Tint spectrum",
+        "type": "Visual",
+        "node": "197:6102",
+        "x": 17,
+        "y": 1775.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-30",
+        "label": "Tint · Skin protection",
+        "type": "Toggle",
+        "node": "197:6116",
+        "x": 17,
+        "y": 1835.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-32",
+        "label": "Vibrance",
+        "type": "Slider",
+        "node": "197:6124",
+        "x": 17,
+        "y": 1873.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "+22"
+        ]
+      },
+      {
+        "id": "field-33",
+        "label": "Vibrance · Skin protection",
+        "type": "Slider",
+        "node": "197:6149",
+        "x": 17,
+        "y": 1941.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "68%"
+        ]
+      },
+      {
+        "id": "field-34",
+        "label": "Low-sat bias",
+        "type": "Slider",
+        "node": "197:6185",
+        "x": 17,
+        "y": 2009.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "74%"
+        ],
+        "liveVerified": true
+      },
+      {
+        "id": "field-35",
+        "label": "Gamut limit",
+        "type": "Toggle",
+        "node": "197:6220",
+        "x": 17,
+        "y": 2077.0,
+        "width": 398.0,
+        "height": 22.0,
+        "liveVerified": true
+      },
+      {
+        "id": "field-36",
+        "label": "Master saturation",
+        "type": "Slider",
+        "node": "197:6229",
+        "x": 17,
+        "y": 2115.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "+8"
+        ],
+        "liveVerified": true
+      },
+      {
+        "id": "field-37",
+        "label": "Saturation · Channel",
+        "type": "Choices",
+        "node": "197:6254",
+        "x": 17,
+        "y": 2183.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Master",
+          "Red",
+          "Blue"
+        ],
+        "liveVerified": true
+      },
+      {
+        "id": "field-38",
+        "label": "Channel amount",
+        "type": "Slider",
+        "node": "197:6268",
+        "x": 17,
+        "y": 2246.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0"
+        ],
+        "liveVerified": true
+      },
+      {
+        "id": "field-39",
+        "label": "Colorize",
+        "type": "Toggle",
+        "node": "197:6293",
+        "x": 17,
+        "y": 2314.0,
+        "width": 398.0,
+        "height": 22.0,
+        "liveVerified": true
+      },
+      {
+        "id": "field-40",
+        "label": "Three-way wheels",
+        "type": "Visual",
+        "node": "197:6301",
+        "x": 17,
+        "y": 2352.0,
+        "width": 398.0,
+        "height": 44.0,
+        "liveVerified": true
+      },
+      {
+        "id": "field-41",
+        "label": "Grading · Range",
+        "type": "Segmented",
+        "node": "197:6314",
+        "x": 17,
+        "y": 2412.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Shadows",
+          "Midtones",
+          "Highlights"
+        ],
+        "liveVerified": true
+      },
+      {
+        "id": "field-42",
+        "label": "Hue",
+        "type": "Slider",
+        "node": "197:6328",
+        "x": 17,
+        "y": 2475.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "214°"
+        ]
+      },
+      {
+        "id": "field-43",
+        "label": "Balance",
+        "type": "Slider",
+        "node": "197:6353",
+        "x": 17,
+        "y": 2543.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "+8"
+        ]
+      },
+      {
+        "id": "field-44",
+        "label": "Tone curve",
+        "type": "Visual",
+        "node": "197:6378",
+        "x": 17,
+        "y": 2611.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-45",
+        "label": "Curve · Channel",
+        "type": "Choices",
+        "node": "197:6391",
+        "x": 17,
+        "y": 2671.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 4,
+        "options": [
+          "RGB",
+          "Red",
+          "Green",
+          "Blue"
+        ]
+      },
+      {
+        "id": "field-46",
+        "label": "Interpolation",
+        "type": "Segmented",
+        "node": "197:6406",
+        "x": 17,
+        "y": 2734.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 2,
+        "options": [
+          "Smooth",
+          "Linear"
+        ],
+        "liveVerified": true
+      },
+      {
+        "id": "field-47",
+        "label": "Histogram overlay",
+        "type": "Toggle",
+        "node": "197:6418",
+        "x": 17,
+        "y": 2797.0,
+        "width": 398.0,
+        "height": 22.0,
+        "liveVerified": true
+      }
+    ],
+    "actions": {
+      "x": 17,
+      "y": 2835.0,
+      "width": 398,
+      "height": 22.0,
+      "columns": 1,
+      "labels": [
+        "Pick neutral point"
+      ]
+    }
+  },
+  {
+    "key": "effects",
+    "figmaNode": "197:6429",
+    "width": 432.0,
+    "height": 2971.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Filter presets",
+        "type": "Visual",
+        "node": "197:6439",
+        "x": 17,
+        "y": 55.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-1",
+        "label": "Category",
+        "type": "Choices",
+        "node": "197:6452",
+        "x": 17,
+        "y": 115.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Featured",
+          "Film",
+          "B&W"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Filter · Amount",
+        "type": "Slider",
+        "node": "197:6466",
+        "x": 17,
+        "y": 178.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "72%"
+        ]
+      },
+      {
+        "id": "field-3",
+        "label": "Preserve skin",
+        "type": "Toggle",
+        "node": "197:6501",
+        "x": 17,
+        "y": 246.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-4",
+        "label": "Blur · Type",
+        "type": "Choices",
+        "node": "197:6509",
+        "x": 17,
+        "y": 284.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Gaussian",
+          "Motion"
+        ]
+      },
+      {
+        "id": "field-5",
+        "label": "Blur · Radius",
+        "type": "Slider",
+        "node": "197:6523",
+        "x": 17,
+        "y": 347.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "18 px"
+        ]
+      },
+      {
+        "id": "field-6",
+        "label": "Angle",
+        "type": "Slider",
+        "node": "197:6548",
+        "x": 17,
+        "y": 415.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0°"
+        ]
+      },
+      {
+        "id": "field-7",
+        "label": "Edge-aware",
+        "type": "Toggle",
+        "node": "197:6574",
+        "x": 17,
+        "y": 483.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-8",
+        "label": "Texture",
+        "type": "Slider",
+        "node": "197:6582",
+        "x": 17,
+        "y": 521.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "+16"
+        ]
+      },
+      {
+        "id": "field-9",
+        "label": "Texture · Scale",
+        "type": "Slider",
+        "node": "197:6608",
+        "x": 17,
+        "y": 589.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "42%"
+        ]
+      },
+      {
+        "id": "field-10",
+        "label": "Target",
+        "type": "Segmented",
+        "node": "197:6643",
+        "x": 17,
+        "y": 657.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "All",
+          "Skin",
+          "Background"
+        ]
+      },
+      {
+        "id": "field-11",
+        "label": "Protect edges",
+        "type": "Toggle",
+        "node": "197:6657",
+        "x": 17,
+        "y": 720.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-12",
+        "label": "Clarity",
+        "type": "Slider",
+        "node": "197:6665",
+        "x": 17,
+        "y": 758.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "+24"
+        ]
+      },
+      {
+        "id": "field-13",
+        "label": "Clarity · Radius",
+        "type": "Slider",
+        "node": "197:6691",
+        "x": 17,
+        "y": 826.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "36 px"
+        ]
+      },
+      {
+        "id": "field-14",
+        "label": "Natural mode",
+        "type": "Toggle",
+        "node": "197:6716",
+        "x": 17,
+        "y": 894.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-15",
+        "label": "Edge mask",
+        "type": "Slider",
+        "node": "197:6725",
+        "x": 17,
+        "y": 932.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "44%"
+        ]
+      },
+      {
+        "id": "field-16",
+        "label": "Dehaze",
+        "type": "Slider",
+        "node": "197:6760",
+        "x": 17,
+        "y": 1000.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "+28"
+        ]
+      },
+      {
+        "id": "field-17",
+        "label": "Depth bias",
+        "type": "Slider",
+        "node": "197:6786",
+        "x": 17,
+        "y": 1068.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "58%"
+        ],
+        "liveVerified": true
+      },
+      {
+        "id": "field-18",
+        "label": "Auto color restore",
+        "type": "Toggle",
+        "node": "197:6821",
+        "x": 17,
+        "y": 1136.0,
+        "width": 398.0,
+        "height": 22.0,
+        "liveVerified": true
+      },
+      {
+        "id": "field-19",
+        "label": "Atmospheric range",
+        "type": "Visual",
+        "node": "197:6829",
+        "x": 17,
+        "y": 1174.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-20",
+        "label": "Vignette · Amount",
+        "type": "Slider",
+        "node": "197:6843",
+        "x": 17,
+        "y": 1234.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "−22"
+        ],
+        "liveVerified": true
+      },
+      {
+        "id": "field-21",
+        "label": "Midpoint",
+        "type": "Slider",
+        "node": "197:6868",
+        "x": 17,
+        "y": 1302.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "46%"
+        ],
+        "liveVerified": true
+      },
+      {
+        "id": "field-22",
+        "label": "Roundness",
+        "type": "Slider",
+        "node": "197:6894",
+        "x": 17,
+        "y": 1370.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "+18"
+        ]
+      },
+      {
+        "id": "field-23",
+        "label": "Feather",
+        "type": "Slider",
+        "node": "197:6919",
+        "x": 17,
+        "y": 1438.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "72%"
+        ]
+      },
+      {
+        "id": "field-24",
+        "label": "Grain · Amount",
+        "type": "Slider",
+        "node": "197:6955",
+        "x": 17,
+        "y": 1506.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "24"
+        ]
+      },
+      {
+        "id": "field-25",
+        "label": "Size",
+        "type": "Slider",
+        "node": "197:6980",
+        "x": 17,
+        "y": 1574.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "32"
+        ]
+      },
+      {
+        "id": "field-26",
+        "label": "Roughness",
+        "type": "Slider",
+        "node": "197:7006",
+        "x": 17,
+        "y": 1642.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "58"
+        ]
+      },
+      {
+        "id": "field-27",
+        "label": "Response",
+        "type": "Choices",
+        "node": "197:7031",
+        "x": 17,
+        "y": 1710.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Film",
+          "Digital",
+          "Mono"
+        ]
+      },
+      {
+        "id": "field-28",
+        "label": "Sharpening · Amount",
+        "type": "Slider",
+        "node": "197:7045",
+        "x": 17,
+        "y": 1773.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "64"
+        ]
+      },
+      {
+        "id": "field-29",
+        "label": "Sharpening · Radius",
+        "type": "Slider",
+        "node": "197:7070",
+        "x": 17,
+        "y": 1841.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "1.0 px"
+        ]
+      },
+      {
+        "id": "field-30",
+        "label": "Sharpening · Detail",
+        "type": "Slider",
+        "node": "197:7096",
+        "x": 17,
+        "y": 1909.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "28"
+        ],
+        "liveVerified": true
+      },
+      {
+        "id": "field-31",
+        "label": "Masking",
+        "type": "Slider",
+        "node": "197:7121",
+        "x": 17,
+        "y": 1977.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "42"
+        ],
+        "liveVerified": true
+      },
+      {
+        "id": "field-32",
+        "label": "Noise · Type",
+        "type": "Choices",
+        "node": "197:7146",
+        "x": 17,
+        "y": 2045.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Uniform",
+          "Film"
+        ]
+      },
+      {
+        "id": "field-33",
+        "label": "Noise · Amount",
+        "type": "Slider",
+        "node": "197:7160",
+        "x": 17,
+        "y": 2108.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "12%"
+        ]
+      },
+      {
+        "id": "field-34",
+        "label": "Noise · Scale",
+        "type": "Slider",
+        "node": "197:7195",
+        "x": 17,
+        "y": 2176.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "1.0"
+        ]
+      },
+      {
+        "id": "field-35",
+        "label": "Monochromatic",
+        "type": "Toggle",
+        "node": "197:7221",
+        "x": 17,
+        "y": 2244.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-36",
+        "label": "Luminance",
+        "type": "Slider",
+        "node": "197:7229",
+        "x": 17,
+        "y": 2282.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "28"
+        ]
+      },
+      {
+        "id": "field-37",
+        "label": "Luminance NR · Detail",
+        "type": "Slider",
+        "node": "197:7255",
+        "x": 17,
+        "y": 2350.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "54"
+        ]
+      },
+      {
+        "id": "field-38",
+        "label": "Contrast",
+        "type": "Slider",
+        "node": "197:7280",
+        "x": 17,
+        "y": 2418.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "12"
+        ]
+      },
+      {
+        "id": "field-39",
+        "label": "Noise frequency",
+        "type": "Visual",
+        "node": "197:7305",
+        "x": 17,
+        "y": 2486.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-40",
+        "label": "Color",
+        "type": "Slider",
+        "node": "197:7319",
+        "x": 17,
+        "y": 2546.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "32"
+        ]
+      },
+      {
+        "id": "field-41",
+        "label": "Color NR · Detail",
+        "type": "Slider",
+        "node": "197:7344",
+        "x": 17,
+        "y": 2614.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "48"
+        ]
+      },
+      {
+        "id": "field-42",
+        "label": "Smoothness",
+        "type": "Slider",
+        "node": "197:7370",
+        "x": 17,
+        "y": 2682.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "56"
+        ]
+      },
+      {
+        "id": "field-43",
+        "label": "Remove color speckles",
+        "type": "Toggle",
+        "node": "197:7395",
+        "x": 17,
+        "y": 2750.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-44",
+        "label": "Profile",
+        "type": "Field",
+        "node": "197:7403",
+        "x": 17,
+        "y": 2788.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "Auto / 24 mm F1.8"
+        ],
+        "liveVerified": true
+      },
+      {
+        "id": "field-45",
+        "label": "Distortion",
+        "type": "Toggle",
+        "node": "197:7412",
+        "x": 17,
+        "y": 2826.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-46",
+        "label": "Chromatic aberration",
+        "type": "Toggle",
+        "node": "197:7420",
+        "x": 17,
+        "y": 2864.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-47",
+        "label": "Manual vignette",
+        "type": "Slider",
+        "node": "197:7429",
+        "x": 17,
+        "y": 2902.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "+6"
+        ]
+      }
+    ]
+  },
+  {
+    "key": "retouch",
+    "figmaNode": "197:7454",
+    "width": 432.0,
+    "height": 1323.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Brush size",
+        "type": "Slider",
+        "node": "197:7484",
+        "x": 17,
+        "y": 148.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "84 px"
+        ]
+      },
+      {
+        "id": "field-1",
+        "label": "Detect object",
+        "type": "Toggle",
+        "node": "197:7509",
+        "x": 17,
+        "y": 216.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-2",
+        "label": "Fill",
+        "type": "Segmented",
+        "node": "197:7517",
+        "x": 17,
+        "y": 254.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Auto",
+          "Content",
+          "Generate"
+        ]
+      },
+      {
+        "id": "field-4",
+        "label": "Repair mask",
+        "type": "Visual",
+        "node": "197:7530",
+        "x": 17,
+        "y": 317.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-5",
+        "label": "Prompt",
+        "type": "Field",
+        "node": "197:7543",
+        "x": 17,
+        "y": 377.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "Clean wall texture"
+        ]
+      },
+      {
+        "id": "field-6",
+        "label": "Context strength",
+        "type": "Slider",
+        "node": "197:7552",
+        "x": 17,
+        "y": 415.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "76%"
+        ]
+      },
+      {
+        "id": "field-8",
+        "label": "Feather",
+        "type": "Slider",
+        "node": "197:7587",
+        "x": 17,
+        "y": 483.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "62%"
+        ]
+      },
+      {
+        "id": "field-9",
+        "label": "Source",
+        "type": "Segmented",
+        "node": "197:7622",
+        "x": 17,
+        "y": 551.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Auto",
+          "Pick",
+          "Pattern"
+        ]
+      },
+      {
+        "id": "field-10",
+        "label": "Sample all layers",
+        "type": "Toggle",
+        "node": "197:7636",
+        "x": 17,
+        "y": 614.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-12",
+        "label": "Scale",
+        "type": "Slider",
+        "node": "197:7644",
+        "x": 17,
+        "y": 652.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "100%"
+        ]
+      },
+      {
+        "id": "field-13",
+        "label": "Rotation",
+        "type": "Slider",
+        "node": "197:7680",
+        "x": 17,
+        "y": 720.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0°"
+        ]
+      },
+      {
+        "id": "field-14",
+        "label": "Aligned",
+        "type": "Toggle",
+        "node": "197:7705",
+        "x": 17,
+        "y": 788.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-15",
+        "label": "Sampling overlay",
+        "type": "Visual",
+        "node": "197:7713",
+        "x": 17,
+        "y": 826.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-16",
+        "label": "Adaptation",
+        "type": "Segmented",
+        "node": "197:7726",
+        "x": 17,
+        "y": 886.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Auto",
+          "Color",
+          "Rotation"
+        ]
+      },
+      {
+        "id": "field-17",
+        "label": "Color adaptation",
+        "type": "Slider",
+        "node": "197:7740",
+        "x": 17,
+        "y": 949.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "68%"
+        ]
+      },
+      {
+        "id": "field-19",
+        "label": "Region",
+        "type": "Choices",
+        "node": "197:7775",
+        "x": 17,
+        "y": 1017.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Skin",
+          "Eyes",
+          "Teeth"
+        ]
+      },
+      {
+        "id": "field-20",
+        "label": "Skin smoothing",
+        "type": "Slider",
+        "node": "197:7789",
+        "x": 17,
+        "y": 1080.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "18"
+        ]
+      },
+      {
+        "id": "field-21",
+        "label": "Eye detail",
+        "type": "Slider",
+        "node": "197:7814",
+        "x": 17,
+        "y": 1148.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "12"
+        ]
+      },
+      {
+        "id": "field-22",
+        "label": "Preserve identity",
+        "type": "Toggle",
+        "node": "197:7840",
+        "x": 17,
+        "y": 1216.0,
+        "width": 398.0,
+        "height": 22.0
+      }
+    ],
+    "selector": {
+      "x": 17,
+      "y": 55.0,
+      "width": 398,
+      "height": 77.0,
+      "columns": 3,
+      "options": [
+        "Remove",
+        "Inpaint",
+        "Heal",
+        "Clone",
+        "Content-aware",
+        "Face Refine"
+      ]
+    },
+    "actions": {
+      "x": 17,
+      "y": 1254.0,
+      "width": 398,
+      "height": 52.0,
+      "columns": 2,
+      "labels": [
+        "Remove marked object",
+        "Inpaint area",
+        "Set clone source",
+        "Apply repair"
+      ]
+    }
+  },
+  {
+    "key": "fill",
+    "figmaNode": "197:7857",
+    "width": 432.0,
+    "height": 993.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Color palette",
+        "type": "Visual",
+        "node": "197:7882",
+        "x": 17,
+        "y": 118.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-1",
+        "label": "Hex",
+        "type": "Field",
+        "node": "197:7895",
+        "x": 17,
+        "y": 178.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "#8B7CFF"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Opacity",
+        "type": "Slider",
+        "node": "197:7904",
+        "x": 17,
+        "y": 216.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "100%"
+        ]
+      },
+      {
+        "id": "field-3",
+        "label": "Blend",
+        "type": "Segmented",
+        "node": "197:7939",
+        "x": 17,
+        "y": 284.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Normal",
+          "Multiply",
+          "Screen"
+        ]
+      },
+      {
+        "id": "field-4",
+        "label": "Type",
+        "type": "Segmented",
+        "node": "197:7952",
+        "x": 17,
+        "y": 347.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Linear",
+          "Radial",
+          "Angular"
+        ]
+      },
+      {
+        "id": "field-5",
+        "label": "Gradient palette",
+        "type": "Visual",
+        "node": "197:7965",
+        "x": 17,
+        "y": 410.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-6",
+        "label": "Angle",
+        "type": "Slider",
+        "node": "197:7979",
+        "x": 17,
+        "y": 470.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "32°"
+        ]
+      },
+      {
+        "id": "field-7",
+        "label": "Dither",
+        "type": "Toggle",
+        "node": "197:8004",
+        "x": 17,
+        "y": 538.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-8",
+        "label": "Pattern palette",
+        "type": "Visual",
+        "node": "197:8012",
+        "x": 17,
+        "y": 576.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-9",
+        "label": "Scale",
+        "type": "Slider",
+        "node": "197:8026",
+        "x": 17,
+        "y": 636.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "82%"
+        ]
+      },
+      {
+        "id": "field-10",
+        "label": "Rotation",
+        "type": "Slider",
+        "node": "197:8061",
+        "x": 17,
+        "y": 704.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0°"
+        ]
+      },
+      {
+        "id": "field-11",
+        "label": "Seamless",
+        "type": "Toggle",
+        "node": "197:8087",
+        "x": 17,
+        "y": 772.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-12",
+        "label": "Prompt",
+        "type": "Field",
+        "node": "197:8095",
+        "x": 17,
+        "y": 810.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          "Iridescent glass petals"
+        ]
+      },
+      {
+        "id": "field-13",
+        "label": "Variation",
+        "type": "Slider",
+        "node": "197:8104",
+        "x": 17,
+        "y": 848.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "64%"
+        ]
+      },
+      {
+        "id": "field-14",
+        "label": "Match lighting",
+        "type": "Toggle",
+        "node": "197:8139",
+        "x": 17,
+        "y": 916.0,
+        "width": 398.0,
+        "height": 22.0
+      }
+    ],
+    "selector": {
+      "x": 17,
+      "y": 55.0,
+      "width": 398,
+      "height": 47.0,
+      "columns": 4,
+      "options": [
+        "Solid",
+        "Gradient",
+        "Pattern",
+        "Generative"
+      ]
+    },
+    "actions": {
+      "x": 17,
+      "y": 954.0,
+      "width": 398,
+      "height": 22.0,
+      "columns": 1,
+      "labels": [
+        "Generate fill"
+      ]
+    }
+  },
+  {
+    "key": "brush",
+    "figmaNode": "197:8150",
+    "width": 432.0,
+    "height": 1646.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Search",
+        "type": "Field",
+        "node": "197:8160",
+        "x": 17,
+        "y": 55.0,
+        "width": 398.0,
+        "height": 22.0,
+        "textFields": [
+          ""
+        ]
+      },
+      {
+        "id": "field-1",
+        "label": "Category",
+        "type": "Choices",
+        "node": "197:8168",
+        "x": 17,
+        "y": 93.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Paint",
+          "Ink",
+          "Texture"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Brush presets",
+        "type": "Visual",
+        "node": "197:8181",
+        "x": 17,
+        "y": 156.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-4",
+        "label": "Size",
+        "type": "Slider",
+        "node": "197:8195",
+        "x": 17,
+        "y": 216.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "96 px"
+        ]
+      },
+      {
+        "id": "field-5",
+        "label": "Hardness",
+        "type": "Slider",
+        "node": "197:8220",
+        "x": 17,
+        "y": 284.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "72%"
+        ]
+      },
+      {
+        "id": "field-6",
+        "label": "Relative to zoom",
+        "type": "Toggle",
+        "node": "197:8256",
+        "x": 17,
+        "y": 352.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-7",
+        "label": "Shape",
+        "type": "Choices",
+        "node": "197:8264",
+        "x": 17,
+        "y": 390.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Round",
+          "Square",
+          "Diamond"
+        ]
+      },
+      {
+        "id": "field-8",
+        "label": "Opacity",
+        "type": "Slider",
+        "node": "197:8278",
+        "x": 17,
+        "y": 453.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "82%"
+        ]
+      },
+      {
+        "id": "field-9",
+        "label": "Flow",
+        "type": "Slider",
+        "node": "197:8313",
+        "x": 17,
+        "y": 521.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "36%"
+        ]
+      },
+      {
+        "id": "field-10",
+        "label": "Build-up",
+        "type": "Toggle",
+        "node": "197:8349",
+        "x": 17,
+        "y": 589.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-11",
+        "label": "Blend",
+        "type": "Segmented",
+        "node": "197:8357",
+        "x": 17,
+        "y": 627.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 4,
+        "options": [
+          "Normal",
+          "Multiply",
+          "Screen",
+          "Overlay"
+        ]
+      },
+      {
+        "id": "field-12",
+        "label": "Pressure → Size",
+        "type": "Slider",
+        "node": "197:8375",
+        "x": 17,
+        "y": 690.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "84%"
+        ]
+      },
+      {
+        "id": "field-13",
+        "label": "Pressure → Opacity",
+        "type": "Slider",
+        "node": "197:8410",
+        "x": 17,
+        "y": 758.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "58%"
+        ]
+      },
+      {
+        "id": "field-14",
+        "label": "Tilt → Angle",
+        "type": "Slider",
+        "node": "197:8446",
+        "x": 17,
+        "y": 826.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "72%"
+        ]
+      },
+      {
+        "id": "field-15",
+        "label": "Invert pressure",
+        "type": "Toggle",
+        "node": "197:8481",
+        "x": 17,
+        "y": 894.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-16",
+        "label": "Spacing",
+        "type": "Slider",
+        "node": "197:8490",
+        "x": 17,
+        "y": 932.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "12%"
+        ]
+      },
+      {
+        "id": "field-17",
+        "label": "Smoothing",
+        "type": "Slider",
+        "node": "197:8525",
+        "x": 17,
+        "y": 1000.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "46%"
+        ]
+      },
+      {
+        "id": "field-18",
+        "label": "Streamline",
+        "type": "Slider",
+        "node": "197:8551",
+        "x": 17,
+        "y": 1068.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "34%"
+        ]
+      },
+      {
+        "id": "field-19",
+        "label": "Catch-up",
+        "type": "Toggle",
+        "node": "197:8586",
+        "x": 17,
+        "y": 1136.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-20",
+        "label": "Foreground / mix",
+        "type": "Visual",
+        "node": "197:8594",
+        "x": 17,
+        "y": 1174.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-21",
+        "label": "Wet mix",
+        "type": "Slider",
+        "node": "197:8608",
+        "x": 17,
+        "y": 1234.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "28%"
+        ]
+      },
+      {
+        "id": "field-22",
+        "label": "Color dynamics",
+        "type": "Slider",
+        "node": "197:8643",
+        "x": 17,
+        "y": 1302.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "18%"
+        ]
+      },
+      {
+        "id": "field-23",
+        "label": "Mode",
+        "type": "Segmented",
+        "node": "197:8678",
+        "x": 17,
+        "y": 1370.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Rope",
+          "Predictive",
+          "Pulled"
+        ]
+      },
+      {
+        "id": "field-24",
+        "label": "Strength",
+        "type": "Slider",
+        "node": "197:8692",
+        "x": 17,
+        "y": 1433.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "56%"
+        ]
+      },
+      {
+        "id": "field-25",
+        "label": "Delay",
+        "type": "Slider",
+        "node": "197:8727",
+        "x": 17,
+        "y": 1501.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "24 ms"
+        ]
+      },
+      {
+        "id": "field-26",
+        "label": "Angle snapping",
+        "type": "Toggle",
+        "node": "197:8753",
+        "x": 17,
+        "y": 1569.0,
+        "width": 398.0,
+        "height": 22.0
+      }
+    ],
+    "actions": {
+      "x": 17,
+      "y": 1607.0,
+      "width": 398,
+      "height": 22.0,
+      "columns": 1,
+      "labels": [
+        "Browse presets"
+      ]
+    }
+  },
+  {
+    "key": "auto-enhance",
+    "figmaNode": "197:8764",
+    "width": 432.0,
+    "height": 1003.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Before / after tone",
+        "type": "Visual",
+        "node": "197:8774",
+        "x": 17,
+        "y": 55.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-1",
+        "label": "Auto Tone · Strength",
+        "type": "Slider",
+        "node": "197:8788",
+        "x": 17,
+        "y": 115.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "72%"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Protect highlights",
+        "type": "Toggle",
+        "node": "197:8823",
+        "x": 17,
+        "y": 183.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-4",
+        "label": "Detected palette",
+        "type": "Visual",
+        "node": "197:8831",
+        "x": 17,
+        "y": 221.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-5",
+        "label": "Auto Color · Strength",
+        "type": "Slider",
+        "node": "197:8845",
+        "x": 17,
+        "y": 281.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "68%"
+        ]
+      },
+      {
+        "id": "field-6",
+        "label": "Preserve skin",
+        "type": "Toggle",
+        "node": "197:8880",
+        "x": 17,
+        "y": 349.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-8",
+        "label": "Detail recovery",
+        "type": "Slider",
+        "node": "197:8889",
+        "x": 17,
+        "y": 387.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "62%"
+        ]
+      },
+      {
+        "id": "field-9",
+        "label": "Noise balance",
+        "type": "Slider",
+        "node": "197:8924",
+        "x": 17,
+        "y": 455.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "44%"
+        ]
+      },
+      {
+        "id": "field-10",
+        "label": "Avoid halos",
+        "type": "Toggle",
+        "node": "197:8960",
+        "x": 17,
+        "y": 523.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-12",
+        "label": "Detected subject",
+        "type": "Visual",
+        "node": "197:8968",
+        "x": 17,
+        "y": 561.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-13",
+        "label": "Target",
+        "type": "Choices",
+        "node": "197:8981",
+        "x": 17,
+        "y": 621.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Face",
+          "Subject",
+          "People"
+        ]
+      },
+      {
+        "id": "field-14",
+        "label": "Enhancement",
+        "type": "Slider",
+        "node": "197:8995",
+        "x": 17,
+        "y": 684.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "46%"
+        ]
+      },
+      {
+        "id": "field-15",
+        "label": "Natural result",
+        "type": "Toggle",
+        "node": "197:9020",
+        "x": 17,
+        "y": 752.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-16",
+        "label": "Lens profile",
+        "type": "Toggle",
+        "node": "197:9029",
+        "x": 17,
+        "y": 790.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-17",
+        "label": "Auto upright",
+        "type": "Toggle",
+        "node": "197:9037",
+        "x": 17,
+        "y": 828.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-18",
+        "label": "Rotation",
+        "type": "Slider",
+        "node": "197:9046",
+        "x": 17,
+        "y": 866.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0°"
+        ]
+      }
+    ],
+    "actions": {
+      "x": 17,
+      "y": 934.0,
+      "width": 398,
+      "height": 52.0,
+      "columns": 2,
+      "labels": [
+        "Analyze tone",
+        "Analyze color",
+        "Enhance detail",
+        "Correct geometry"
+      ]
+    }
+  },
+  {
+    "key": "masking",
+    "figmaNode": "197:9090",
+    "width": 432.0,
+    "height": 1650.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Brush size",
+        "type": "Slider",
+        "node": "197:9120",
+        "x": 17,
+        "y": 148.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "84 px"
+        ]
+      },
+      {
+        "id": "field-1",
+        "label": "Brush Mask · Feather",
+        "type": "Slider",
+        "node": "197:9145",
+        "x": 17,
+        "y": 216.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "58%"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Mode",
+        "type": "Segmented",
+        "node": "197:9180",
+        "x": 17,
+        "y": 284.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Paint",
+          "Erase",
+          "Auto"
+        ]
+      },
+      {
+        "id": "field-3",
+        "label": "Auto mask",
+        "type": "Toggle",
+        "node": "197:9194",
+        "x": 17,
+        "y": 347.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-4",
+        "label": "Rotation",
+        "type": "Slider",
+        "node": "197:9202",
+        "x": 17,
+        "y": 385.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "0°"
+        ]
+      },
+      {
+        "id": "field-5",
+        "label": "Linear Gradient · Feather",
+        "type": "Slider",
+        "node": "197:9228",
+        "x": 17,
+        "y": 453.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "64%"
+        ]
+      },
+      {
+        "id": "field-6",
+        "label": "Invert",
+        "type": "Toggle",
+        "node": "197:9263",
+        "x": 17,
+        "y": 521.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-8",
+        "label": "Roundness",
+        "type": "Slider",
+        "node": "197:9272",
+        "x": 17,
+        "y": 559.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "72%"
+        ]
+      },
+      {
+        "id": "field-9",
+        "label": "Radial Gradient · Feather",
+        "type": "Slider",
+        "node": "197:9307",
+        "x": 17,
+        "y": 627.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "68%"
+        ]
+      },
+      {
+        "id": "field-10",
+        "label": "Detected subjects",
+        "type": "Visual",
+        "node": "197:9342",
+        "x": 17,
+        "y": 695.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-11",
+        "label": "Target",
+        "type": "Choices",
+        "node": "197:9355",
+        "x": 17,
+        "y": 755.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Main",
+          "Person",
+          "Object"
+        ]
+      },
+      {
+        "id": "field-12",
+        "label": "Edge refine",
+        "type": "Slider",
+        "node": "197:9369",
+        "x": 17,
+        "y": 818.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "34%"
+        ]
+      },
+      {
+        "id": "field-14",
+        "label": "Region",
+        "type": "Choices",
+        "node": "197:9404",
+        "x": 17,
+        "y": 886.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Sky",
+          "Background",
+          "Depth"
+        ]
+      },
+      {
+        "id": "field-15",
+        "label": "Semantic depth",
+        "type": "Visual",
+        "node": "197:9417",
+        "x": 17,
+        "y": 949.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-16",
+        "label": "Depth range",
+        "type": "Slider",
+        "node": "197:9431",
+        "x": 17,
+        "y": 1009.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "42 — 78%"
+        ]
+      },
+      {
+        "id": "field-17",
+        "label": "Include reflections",
+        "type": "Toggle",
+        "node": "197:9456",
+        "x": 17,
+        "y": 1077.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-18",
+        "label": "Range",
+        "type": "Segmented",
+        "node": "197:9464",
+        "x": 17,
+        "y": 1115.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 2,
+        "options": [
+          "Color",
+          "Luminance"
+        ]
+      },
+      {
+        "id": "field-19",
+        "label": "Selected range",
+        "type": "Visual",
+        "node": "197:9475",
+        "x": 17,
+        "y": 1178.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-20",
+        "label": "Range width",
+        "type": "Slider",
+        "node": "197:9489",
+        "x": 17,
+        "y": 1238.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "28%"
+        ]
+      },
+      {
+        "id": "field-21",
+        "label": "Smoothness",
+        "type": "Slider",
+        "node": "197:9524",
+        "x": 17,
+        "y": 1306.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "54%"
+        ]
+      },
+      {
+        "id": "field-22",
+        "label": "Operation",
+        "type": "Segmented",
+        "node": "197:9549",
+        "x": 17,
+        "y": 1374.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Add",
+          "Intersect",
+          "Subtract"
+        ]
+      },
+      {
+        "id": "field-23",
+        "label": "Combine · Feather",
+        "type": "Slider",
+        "node": "197:9563",
+        "x": 17,
+        "y": 1437.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "12 px"
+        ]
+      },
+      {
+        "id": "field-24",
+        "label": "Contrast",
+        "type": "Slider",
+        "node": "197:9588",
+        "x": 17,
+        "y": 1505.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "18%"
+        ]
+      },
+      {
+        "id": "field-25",
+        "label": "Decontaminate edge",
+        "type": "Toggle",
+        "node": "197:9624",
+        "x": 17,
+        "y": 1573.0,
+        "width": 398.0,
+        "height": 22.0
+      }
+    ],
+    "selector": {
+      "x": 17,
+      "y": 55.0,
+      "width": 398,
+      "height": 77.0,
+      "columns": 4,
+      "options": [
+        "Brush",
+        "Linear",
+        "Radial",
+        "Subject",
+        "Region",
+        "Range"
+      ]
+    },
+    "actions": {
+      "x": 17,
+      "y": 1611.0,
+      "width": 398,
+      "height": 22.0,
+      "columns": 2,
+      "labels": [
+        "Draw gradient",
+        "Create subject mask"
+      ]
+    }
+  },
+  {
+    "key": "eraser",
+    "figmaNode": "197:9637",
+    "width": 432.0,
+    "height": 890.0,
+    "fields": [
+      {
+        "id": "field-0",
+        "label": "Size",
+        "type": "Slider",
+        "node": "197:9663",
+        "x": 17,
+        "y": 148.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "72 px"
+        ]
+      },
+      {
+        "id": "field-1",
+        "label": "Hardness",
+        "type": "Slider",
+        "node": "197:9688",
+        "x": 17,
+        "y": 216.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "64%"
+        ]
+      },
+      {
+        "id": "field-2",
+        "label": "Opacity",
+        "type": "Slider",
+        "node": "197:9724",
+        "x": 17,
+        "y": 284.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "100%"
+        ]
+      },
+      {
+        "id": "field-3",
+        "label": "Erase to history",
+        "type": "Toggle",
+        "node": "197:9759",
+        "x": 17,
+        "y": 352.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-4",
+        "label": "Detected object",
+        "type": "Visual",
+        "node": "197:9767",
+        "x": 17,
+        "y": 390.0,
+        "width": 398.0,
+        "height": 44.0
+      },
+      {
+        "id": "field-5",
+        "label": "Boundary expand",
+        "type": "Slider",
+        "node": "197:9781",
+        "x": 17,
+        "y": 450.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "8 px"
+        ]
+      },
+      {
+        "id": "field-6",
+        "label": "Fill",
+        "type": "Segmented",
+        "node": "197:9806",
+        "x": 17,
+        "y": 518.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Content",
+          "Generate",
+          "Transparent"
+        ]
+      },
+      {
+        "id": "field-8",
+        "label": "Vector Eraser · Mode",
+        "type": "Segmented",
+        "node": "197:9819",
+        "x": 17,
+        "y": 581.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 3,
+        "options": [
+          "Split path",
+          "Erase stroke",
+          "Trim"
+        ]
+      },
+      {
+        "id": "field-9",
+        "label": "Keep closed paths",
+        "type": "Toggle",
+        "node": "197:9833",
+        "x": 17,
+        "y": 644.0,
+        "width": 398.0,
+        "height": 22.0
+      },
+      {
+        "id": "field-11",
+        "label": "Restore · Mode",
+        "type": "Segmented",
+        "node": "197:9841",
+        "x": 17,
+        "y": 682.0,
+        "width": 398.0,
+        "height": 47.0,
+        "columns": 2,
+        "options": [
+          "Restore",
+          "Protect"
+        ]
+      },
+      {
+        "id": "field-12",
+        "label": "Feather",
+        "type": "Slider",
+        "node": "197:9853",
+        "x": 17,
+        "y": 745.0,
+        "width": 398.0,
+        "height": 52.0,
+        "textFields": [
+          "52%"
+        ]
+      },
+      {
+        "id": "field-13",
+        "label": "Show erased pixels",
+        "type": "Toggle",
+        "node": "197:9878",
+        "x": 17,
+        "y": 813.0,
+        "width": 398.0,
+        "height": 22.0
+      }
+    ],
+    "selector": {
+      "x": 17,
+      "y": 55.0,
+      "width": 398,
+      "height": 77.0,
+      "columns": 2,
+      "options": [
+        "Pixel",
+        "Object",
+        "Vector",
+        "Restore / Protect"
+      ]
+    },
+    "actions": {
+      "x": 17,
+      "y": 851.0,
+      "width": 398,
+      "height": 22.0,
+      "columns": 2,
+      "labels": [
+        "Erase object",
+        "Apply vector erase"
+      ]
+    }
+  }
+]

@@ -1,134 +1,52 @@
-# Desktop Home
+<a id="desktop-home"></a>
 
-The desktop home implements Figma `bn8O4AHKr1X9DWnhR1TgEy`, node
-`261:3148` (1374 × 2231 design reference), with the installed LVRS framework. `DesktopHome.qml`
-owns presentation; `Main.qml` retains generation, storage and editor state.
-`DesktopHomeToolbar.qml` occupies the native title-bar interaction reserve.
-The desktop title bar is 48px high with 16px leading placement for the native
-macOS traffic lights. AppKit still owns the real controls, accessibility,
-fullscreen behavior and window actions. Content begins after an additional
-8px separation, while the search and button region is excluded from dragging.
-The explicit LVRS window move handle is confined to the top 40 logical pixels.
-The installed LVRS macOS backend disables AppKit's whole-window background dragging,
-so body input does not move the window through its background.
+# 데스크탑 홈
 
-The current desktop Home begins with QuickGenerate. The inline paint canvas,
-paint toolbar and canvas toggle have been removed from the composer. Reference
-image attachment and generation input handling remain available.
+데스크톱 홈은 Figma `bn8O4AHKr1X9DWnhR1TgEy`, 노드 `261:3148` (1374 × 2231 디자인 참조) 를 구현하며, 설치된 LVRS 프레임워크를 사용합니다. `DesktopHome.qml` 는 프레젠테이션을 소유하며, `Main.qml` 는 생성, 저장 및 편집기 상태를 유지합니다. `DesktopHomeToolbar.qml` 는 네이티브 제목 표시줄 상호작용 예약 영역을 차지합니다. 데스크톱 제목 표시줄은 48px 높이며, 네이티브 macOS 트래픽 라이트를 위한 16px 리딩 배치입니다. AppKit 는 여전히 실제 컨트롤, 접근성, 풀스크린 동작 및 창 동작을 소유합니다. 콘텐츠는 추가 8px 분리 이후에 시작되며, 검색 및 버튼 영역은 드래그에서 제외됩니다. 명시적인 LVRS 창 이동 핸들은 상단 40 논리적 픽셀에 제한됩니다. 설치된 LVRS macOS 백엔드는 AppKit 의 전체 창 배경 드래깅을 비활성화하므로, 본체 입력이 배경을 통해 창을 이동시키지 않습니다.
 
-## Layout and data
+현재 데스크탑 홈은 QuickGenerate로 시작됩니다. 인라인 페인트 캔버스, 페인트 도구 모음 및 캔버스 토글이 작성기에서 제거되었습니다. 참조 이미지 첨부 및 생성 입력 처리는 계속 가능합니다.
 
-- A 181px menu sidebar uses LVRS MenuItem/MenuDivider, with Home, New Canvas,
-  Image, Video, Audio, Board, Tools, Files, Assets and Generation History.
-  Below 700 logical pixels it becomes a 48px icon rail with accessible names
-  and tooltips. All menu rows remain 24px high.
-- The scrollable body has a 24px horizontal gutter and 20px top inset, with a
-  12px horizontal gutter below 700px. The 181px sidebar has no additional outer
-  inset; the compact 48px rail keeps its existing accessible icon layout.
-- QuickGenerate places the prompt first, followed by a 64px
-  attachment row when populated, and the generation controls. Desktop spacing
-  is 16px and the control row is 28px. Mobile/result composer ordering is
-  unchanged. Image / 1:1 / 1 defaults and counts through 1000 are retained.
-  Generation [prompt fields](PromptFields.md) wrap to the available width and grow
-  with their text; the focused caret remains visible in the vertical viewport.
-  Empty attachments consume no space. Adding an attachment keeps the prompt at
-  the top and does not reveal a canvas. Attachment cards retain previews and
-  Remove actions; canvas drag gestures are disabled in this composer.
-- Five full-width sections follow with 24px gaps: Continue creating, Recent
-  generations, Explore a direction, A starting point not a blank page, and
-  From your workspace. File/image cards are 224px high; five cards fill wide
-  rows with 16px gaps, and narrow rows flick horizontally. Vertical wheels
-  scroll the body even when the pointer is over a row. Keyboard Home/End and
-  horizontal touch/wheel navigation remain available.
-- Three prompt starters reflow from three columns to one. Selecting a style or
-  Use prompt scrolls back to the composer and fills its editable prompt without
-  submitting or changing ratio, count, or attachments. Browse
-  prompts opens the LVRS prompt library menu; Explore styles focuses its first
-  card for keyboard selection.
-- Model/VAE selection and the generation queue remain accessible under
-  Generation settings; the Assets sidebar action expands and scrolls there.
-- `iiSocietyContainer::DashboardFiles` supplies recent files (20), published
-  items (4) and generation history (20). Search binds directly to its `query`,
-  so filtering happens before limits and includes older matching files.
-  The SDK's asynchronous scan and file watches update the UI after changes.
-- Images and filenames come from Society. The sample recent files, generations, and
-  publications in Figma are data placeholders. Five curated style cards use the
-  four original Figma SVG illustrations, with the fluid SVG reused in its two
-  design slots.
-  Loading, empty results and storage errors are visible.
+<a id="layout-and-data"></a>
 
-## Interactions
+## 레이아웃 및 데이터
 
-Home resets scroll. Files scrolls to recent files; Assets scrolls to the Society
-model/VAE/queue area. Image and Video focus the existing prompt and preserve its
-draft. Canvas and Tools enter the existing CanvasEditor. Audio and Board report
-that generation/creation is not available yet. Video retains its existing
-unsupported-generation notice at submission.
+- 홈 사이드바는 [Figma `243:8376`](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=243-8376)의 181px 폭과 상하좌우 8px 패딩을 따른다. `DesktopHomeSidebar.qml`은 `LV.List`, `LV.VStack`, `LV.Spacer`, `LV.MenuItem`, `LV.MenuDivider`, `LV.IconButton`, `LV.Tooltip`만으로 시각 요소를 구성한다. 메뉴는 Home, New Canvas, Image, Video, Audio, Board, Tools, Files, Assets, Generation History 순서이며, Home 뒤와 Tools 뒤에 구분선이 있다. 행은 24px, 구분선 영역은 3px이며 넓은 화면의 행 너비는 165px이다.
+- 700 논리 픽셀 아래에서는 기존 48px 아이콘 레일을 유지하며 상하좌우 8px 패딩으로 행 너비가 32px이 된다. 접근 가능한 이름과 LVRS 툴팁은 전체 메뉴명을 제공한다. 작은 높이에서는 LVRS 목록이 스크롤하며, 포커스를 받은 행을 위아래 8px 안쪽에 표시한다. 실제 선택 상태와 LVRS의 hover·press·focus 표현은 독립적이다.
+- 선택·클릭 색상은 지정 노드의 `lvrs-row-fill-pressed` 값 `#25324D`와 동일한 설치된 LVRS `accentBlueMuted` 토큰을 사용한다. 입력 애니메이션과 포커스 링은 LVRS가 관리한다.
+- 스크롤 가능한 본체의 수평 인셋은 24px, 상단 인셋은 20px이며, 700px 아래에서 수평 인셋은 12px이다. 사이드바의 8px 패딩은 본체의 인셋과 별도로 적용한다.
+- QuickGenerate 는 프롬프트를 먼저 배치하고, 채워졌을 때 64px 첨부 행을 이어 붙이고 생성 제어 항목을 배치합니다. 데스크톱 간격은 16px 이며 제어 행은 28px입니다. 모바일/결과 컴포저 순서는 변경되지 않습니다. 이미지 / 1:1 / 1 기본값과 개수는 1000 까지 유지됩니다. 생성 [프롬프트 필드](PromptFields.md) 는 사용 가능한 너비로 줄이면서 텍스트에 따라 성장하며, 초점이 있는 커서는 세로 뷰포트 에서 계속 표시됩니다. 빈 첨부 파일은 공간을 차지하지 않습니다. 첨부 파일을 추가하면 프롬프트가 상단에 유지되고 캔버스가 표시되지 않습니다. 첨부 카드에는 미리보기와 제거 작업이 유지되며, 이 컴포저에서는 캔버스 드래지 제스처가 비활성화됩니다.
+- 5 전체 너비 섹션은 24px 개의 간격으로 이어지며, 계속 생성, 최근 생성물, 방향 탐색, 빈 페이지가 아닌 시작점, 작업 공간에서부터 이어집니다. 파일/이미지 카드는 224px 픽셀 높이를 가지며, 5 개의 카드는 넓은 행을 채우고 16px 개의 간격을 가지며, 좁은 행은 가로로 깜빡입니다. 수직 휠은 포인터가 행 위에 있더라도 본문이 스크롤됩니다. 키보드 홈/엔드 및 가로 터치/휠 탐색은 계속 사용 가능합니다.
+- 3 프롬프트 스타터가 3 열에서 하나로 재흐름됩니다. 스타일 또는 사용 프롬프트를 선택하면 작곡가로 스크롤되어 비율, 개수, 첨부 파일을 제출하거나 변경하지 않고 편집 가능한 프롬프트를 채웁니다. 프롬프트 탐색은 LVRS 프롬프트 라이브러리 메뉴를 엽니다; 탐색 스타일은 키보드 선택을 위한 첫 번째 카드를 집중합니다.
+- Model/ VAE 선택 및 생성 큐는 Generation 설정에서 계속 접근할 수 있으며, Assets 사이드바 작업이 해당 항목에서 확장 및 스크롤됩니다.
+- `iiSocietyContainer::DashboardFiles`는 최근 파일(20), 발행된 항목(4) 및 생성 이력(20)을 제공한다. 검색은 `query`에 직접 바인딩하므로 제한을 적용하기 전에 필터링하며 일치하는 오래된 파일도 포함한다. SDK의 비동기 스캔과 파일 감시는 변경 후 UI를 갱신한다.
+- 이미지와 파일명은 Society 에서 나옵니다. Figma 의 샘플 최근 파일, 생성물 및 출판물은 데이터 플레이스홀더입니다. 5 의 큐레이션 스타일 카드는 4 의 원래 Figma SVG 일러스트를 사용하며, 유동적인 SVG 는 2 의 디자인 슬롯에서 재사용됩니다. 로딩, 빈 결과 및 저장 오류는 표시됩니다.
 
-Accepted QuickGenerate submissions immediately open the shared result screen,
-including submissions with reference images. The composer owns a synchronous
-`submitting` flag while it emits `generateRequested`; the shell uses this origin
-to route image-reference recipes without confusing them with the advanced
-workspace's own submissions. The result screen tracks every accepted job in the
-batch before model loading or inference begins. The advanced workspace retains
-its own canvas and progress presentation.
+<a id="interactions"></a>
 
-Image cards open the existing canvas with the selected image. Other file types
-and View all files/publications open Society. History uses the shared
-`society://generation-history` SDK route. Failed Society launches surface an
-error. Account opens an Open Society / Society drive preferences menu; account
-identity remains owned by Society. Notifications show real generation-job
-states, or an empty state. Find focuses search. No remote account or publication
-API is invented by the home view.
+## 상호작용
 
-## Assets
+홈은 스크롤을 초기화합니다. 파일은 최근 파일로 스크롤하며, 자산은 Society 모델/ VAE /큐 영역으로 스크롤합니다. 이미지 및 비디오는 기존 프롬프트에 초점을 맞추고 그 초안을 유지합니다. 캔버스 및 도구는 기존 CanvasEditor 에 진입합니다. 오디오 및 보드는 생성/생성이 아직 사용 가능하지 않음을 보고합니다. 비디오는 제출 시 기존 지원되지 않는 생성 알림을 유지합니다.
 
-`Assets/Desktop/*.svg` are unchanged exports from this Figma node. The home
-icon is 16 × 16 inside the 18px menu slot; Files is the 13.375 × 15.6659 database
-sublayer inside its 18px slot. All other sidebar and toolbar icons are 18px;
-search is 12px; publication spark/chevron are 24px. New Canvas uses an unchanged SVG export of the Figma `imagefitContent` instance.
-Style previews in `Assets/Directions/*.svg` are unchanged 216 × 224 exports
-from node `261:3255`, packaged in QRC and used as previews in the corresponding
-LVRS File cards. All local files are non-empty. No temporary Figma asset URL is
-used at runtime. Recent/published/history imagery stays data supplied.
+수락된 QuickGenerate 제출물은 즉시 공유 결과 화면을 엽니다. 참고 이미지가 포함된 제출물도 포함됩니다. 컴포저는 동기 `submitting` 플래그를 소유하고 `generateRequested` 를 방출합니다; 쉘은 이 출처를 사용하여 고급 워크스페이스의 자체 제출물과 혼동하지 않고 이미지 참조 레시피를 라우팅합니다. 결과 화면은 모델 로딩이나 추론이 시작되기 전에 배치의 모든 수락된 작업을 추적합니다. 고급 워크스페이스는 자체 캔버스와 진행 상황 프레젠테이션을 유지합니다.
 
-## Verification
+이미지와 `.iisc` 카드가 실제 원본 경로로 Editor를 연다. Continue creating의 Open file은 로컬 문서·이미지 선택기를 연다. 생성 이력은 Select와 Edit를 통해 여러 이미지를 한 프로젝트의 독립적인 캔버스로 전달한다. 모든 파일/게시물 보기는 Society를 연다. 이력의 전체 보기는 공유 `society://generation-history` SDK 라우트를 사용한다. Editor 복귀는 Home 선택과 프롬프트 초안을 유지한다. 자세한 연결과 검증은 [Home에서 Editor로 진입하는 흐름](HomeEditorRoutes.md)에 정리한다. 계정·알림·검색의 기존 경로는 유지한다.
 
-`DreamscapesGuiTests desktopHomeSidebarReflowsAndRoutes` checks wide and narrow
-layouts, native control placement, title-bar and content clearance, horizontal
-gutters, section geometry, media switching, editor routing and draft
-preservation. `desktopHomeSearchesSocietyAndUpdates` checks
-all three section limits, case-insensitive matching beyond the first 20 files,
-no-result state, file creation/deletion refresh, history routing, Audio feedback,
-and both toolbar menus. `desktopHomeRendersFigmaFrame` checks every visible
-exported icon's loaded state and effective dimensions, and captures the 1374 ×
-720 frame using either the software renderer or the native macOS renderer.
-`desktopHomeContinuousRowsAndPromptStarters` verifies section order, full-width
-geometry, prompt-first ordering at desktop/compact widths, the absence of canvas
-tools and toggle, attachment addition/removal and forwarding, real empty states,
-style preview readiness and prompt-only actions.
-`Dreamscapes.DesktopHome` groups the Home regressions; `Dreamscapes.QuickGenerate`
-checks sliders, native image drop/painting/color, compact composer fit and
-existing result/mobile behavior. `homePromptDragDoesNotMoveWindow` verifies the 40px
-move boundary and Home prompt text selection with no window movement at desktop and compact
-widths; `viewsLeaveWindowChromeAvailable` retains the title-bar exclusions and view clearance.
+<a id="assets"></a>
 
-`referenceGenerateOpensResultImmediately` clicks Generate with an attached image
-for one and three outputs, verifies immediate result-screen routing and all batch
-IDs, and checks the 3:4 output dimensions. A native callback fixture receives the
-original attachment pixels even after its source file is deleted, then publishes
-all expected PNGs. It does not run a diffusion model. The existing advanced
-workspace regression verifies that its submissions remain in their own view.
+## 자산
 
-Set `DREAMSCAPES_DESKTOP_HOME_CAPTURE` to a PNG path to capture the tested home.
-The fixture image cards are intentionally synthetic Society files; they verify
-the data path without consuming generation resources or altering user files.
-Build and evidence outputs are under `build/`.
+`Assets/Desktop/*.svg`는 Figma의 원본 내보내기를 사용한다. 지정 노드가 제공한 9개 아이콘 내보내기는 현재 로컬 자산과 바이트가 동일함을 확인하였다. Home은 18px 슬롯의 좌상단에 있는 16×16 원본 이미지를 장식용 LVRS IconButton으로 표시한다. Files는 Figma의 `sqlFile`에 대응하는 설치된 LVRS 아이콘셋을 18px 슬롯에서 사용하므로 데이터베이스 하위 레이어만 확대하지 않는다. 새 캔버스는 Figma `imagefitContent` 인스턴스의 기존 18px SVG를 사용한다. 나머지 사이드바 아이콘도 18px이며, 원본 색상을 유지한다. 검색은 12px, 출판 스파크/화살표는 24px이다. `Assets/Directions/*.svg`의 스타일 미리보기는 `261:3255` 노드의 216×224 원본을 QRC에 패키징하여 LVRS 파일 카드에서 표시한다. 임시 Figma 자산 URL은 런타임에서 사용하지 않는다. 최근 파일·출판물·생성 이력 이미지는 Society의 데이터를 사용한다.
 
-GUI tests explicitly inject the existing process-protocol fixture through the
-GenerationController constructor. Production macOS native inference defaults
-must not attempt to interpret the fixture's dummy model bytes as real weights.
-This injection is confined to the test QML registration; production generation
-selection and model validation are unchanged.
-Reference-image routing tests temporarily override that registration with a
-native callback fixture, restoring the default runtime when the test ends.
+<a id="verification"></a>
+
+## 검증
+
+`desktopHomeSidebarMatchesFigmaAndScrolls`는 지정 노드의 10개 메뉴와 2개 구분선의 순서·좌표·너비·높이, 8px 패딩, 16px Home 이미지와 18px 아이콘의 실제 로딩, 13px 글꼴, 마우스와 Space 활성화, 120px 높이에서 포커스 스크롤, 48px 아이콘 레일과 접근 가능한 이름을 검사한다. 사이드바 소스에 원시 Qt 시각 요소가 추가되지 않는지도 검사한다.
+
+`DreamscapesGuiTests desktopHomeSidebarReflowsAndRoutes` 는 넓고 좁은 레이아웃, 네이티브 컨트롤 배치, 제목 표시줄 및 콘텐츠 여백, 수평 간격, 섹션 기하학, 미디어 전환, 편집자 라우팅 및 초안 보존을 확인합니다. `desktopHomeSearchesSocietyAndUpdates` 는 모든 3 섹션 제한, 첫 번째 20 파일 이후의 대문자/소문자 구분 없는 매칭, 결과 없음 상태, 파일 생성/삭제 새로고침, 역사 라우팅, 오디오 피드백, 및 두 개의 도구바 메뉴를 확인합니다. `desktopHomeRendersFigmaFrame` 는 모든 가시성 내보내기 아이콘의 로드 상태와 유효한 차원을 확인하며, 소프트웨어 렌더러 또는 네이티브 macOS 렌더러를 사용하여 1374 × 720 프레임을 캡처합니다. `desktopHomeContinuousRowsAndPromptStarters` 는 섹션 순서, 전체 너비 기하학, 데스크톱/컴팩트 너비에서의 프롬프트 우선 순서, 캔버스 도구 및 토글의 부재, 첨부 파일 추가/제거 및 전달, 실제 빈 상태, 스타일 미리보기 준비 상태 및 프롬프트 전용 작업을 확인합니다. `Dreamscapes.DesktopHome` 그룹은 홈 회귀를 그룹화하며, `Dreamscapes.QuickGenerate` 는 슬라이더, 네이티브 이미지 드롭/페인팅/색상, 콤팩트 컴포저터 적합성 및 기존 결과/모바일 동작을 확인합니다. `homePromptDragDoesNotMoveWindow` 는 데스크톱 및 콤팩트 너비에서 40px 이동 경계와 홈 프롬프트 텍스트 선택을 윈도우 이동 없이 검증하며, `viewsLeaveWindowChromeAvailable` 는 제목 표시줄 제외 및 뷰 클리어런스를 유지합니다.
+
+`referenceGenerateOpensResultImmediately` 는 첨부된 이미지가 있는 Generate 를 클릭하여 하나와 세 개의 출력을 생성하고, 즉시 결과 화면 라우팅 및 모든 배치 ID 를 검증하며, 3:4 출력 차원을 확인합니다. 네이티브 콜백 픽스처 은 소스 파일이 삭제된 후에도 원래 첨부 파일 픽셀을 수신한 다음 모든 예상 PNG 를 게시합니다. 확산 모델은 실행되지 않습니다. 기존 고급 워크스페이스 회귀 는 제출물이 자신의 뷰에 그대로 유지되는지 검증합니다.
+
+테스트된 홈을 캡처하려면 `DREAMSCAPES_DESKTOP_HOME_CAPTURE`를 PNG 경로로 설정하세요. 픽스처 이미지 카드는 의도적으로 합성된 Society 파일입니다. 생성 리소스를 소비하거나 사용자 파일을 변경하지 않고 데이터 경로를 확인합니다. 빌드 및 증거 출력은 `build/` 아래에 있습니다.
+
+GUI 는 명시적으로 기존 프로토콜 프로토콜 픽스처 를 GenerationController 생성자를 통해 주입합니다. 프로덕션 macOS 네이티브 추론 기본값은 픽스처 의 가짜 모델 바이트를 실제 가중치로 해석하려고 시도해서는 안 됩니다. 이 주입은 테스트 QML 등록에만 제한되며, 프로덕션 생성 선택 및 모델 검증은 변경되지 않습니다. 참조 이미지 라우팅 테스트는 테스트 종료 시 기본 런타임 를 복원하기 위해 네이티브 콜백 픽스처 로 해당 등록을 일시적으로 덮어씁니다.

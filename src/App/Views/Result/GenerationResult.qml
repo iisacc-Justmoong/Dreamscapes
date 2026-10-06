@@ -2,11 +2,13 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Window
+import QtMultimedia
 import QtQuick.Controls as Controls
 import QtQuick.Dialogs as Dialogs
 import QtCore
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
+import "../Home"
 
 Item {
     id: root
@@ -21,7 +23,7 @@ Item {
     readonly property var selectedResult: galleryResults.find(function(entry) {
         return entry.imageSource.toString() === selectedImageSource
     }) || result
-    readonly property bool galleryVisible: galleryModel.count > 1 && !detailVisible
+    readonly property bool galleryVisible: (galleryModel.count > 1 || imageSelection.selectionMode) && !detailVisible
     property string statusText: ""
     property string errorText: ""
     property url previewSource: ""
@@ -30,11 +32,13 @@ Item {
     property bool generationCancellable: false
     readonly property bool showingPreview: !galleryVisible && !detailVisible && previewSource.toString().length > 0
     readonly property url imageSource: showingPreview ? previewSource : selectedResult.imageSource || ""
+    readonly property bool selectedIsVideo: !showingPreview && selectedResult.mediaType === "Video"
+    readonly property url mediaSource: selectedIsVideo ? selectedResult.mediaSource || "" : imageSource
     readonly property var selectedTile: gallery.currentItem
     readonly property int imageStatus: galleryVisible
         ? selectedTile ? selectedTile.imageStatus : Image.Null : generatedImage.status
     readonly property bool imageReady: imageStatus === Image.Ready
-    readonly property bool canSaveImage: visible && imageReady && !showingPreview
+    readonly property bool canSaveImage: visible && (selectedIsVideo ? mediaSource.toString().length > 0 : imageReady) && !showingPreview
     property string saveFeedback: ""
     property PhotoLibraryExporter photoLibrary: PhotoLibraryExporter {
         objectName: "photoLibraryExporter"
@@ -42,6 +46,7 @@ Item {
     signal backRequested()
     signal cancelRequested()
     signal newProjectRequested(url imageSource, var generationResult)
+    signal imagesRequested(var images)
 
     // QuickGenerate derives its height from the shared 22 px controls.
     implicitWidth: 402
@@ -60,6 +65,10 @@ Item {
         if (openDetail) root.forceActiveFocus()
         else gallery.forceActiveFocus()
     }
+    function activateImage(index, modifiers) {
+        imageSelection.selectAt(index, modifiers, gallery.currentIndex)
+        root.selectImage(index, false)
+    }
 
     function goBack() {
         if (detailVisible && galleryModel.count > 1) {
@@ -71,7 +80,9 @@ Item {
     }
 
     function resetPresentation() {
+        videoPlayer.stop()
         selectedImageSource = ""
+        imageSelection.reset()
         detailVisible = false
         saveFeedback = ""
         imageMenu.close()
@@ -108,7 +119,7 @@ Item {
     onGalleryResultsChanged: syncGallery()
     onGenerationPendingChanged: syncGallery()
     Component.onCompleted: syncGallery()
-    Keys.onEscapePressed: goBack()
+    Keys.onEscapePressed: { if (imageSelection.selectionMode) imageSelection.reset(); else goBack() }
 
     ListModel { id: galleryModel }
 
@@ -117,17 +128,18 @@ Item {
             return
         saveFeedback = ""
         // Keep the chosen image even if another generation finishes during the dialog.
-        saveDialog.sourceImage = imageSource
-        const name = fileExporter.suggestedFileName(imageSource)
+        saveDialog.sourceImage = mediaSource
+        saveDialog.sourceIsVideo = selectedIsVideo
+        const name = fileExporter.suggestedFileName(mediaSource)
         const suffix = name.lastIndexOf(".") >= 0 ? name.substring(name.lastIndexOf(".") + 1) : "png"
         saveDialog.defaultSuffix = suffix
-        saveDialog.nameFilters = [qsTr("Image files (*.%1)").arg(suffix)]
+        saveDialog.nameFilters = [selectedIsVideo ? qsTr("Video files (*.mp4)") : qsTr("Image files (*.%1)").arg(suffix)]
         saveDialog.selectedFile = saveDialog.currentFolder.toString().replace(/\/$/, "") + "/" + encodeURIComponent(name)
         saveDialog.open()
     }
 
     function saveImageToPhotos() {
-        if (!canSaveImage || !photoLibrary.supported || photoLibrary.busy)
+        if (selectedIsVideo || !canSaveImage || !photoLibrary.supported || photoLibrary.busy)
             return
         saveFeedback = qsTr("Saving to Photos…")
         photoLibrary.save(imageSource)
@@ -156,10 +168,11 @@ Item {
         id: saveDialog
         objectName: "saveImageDialog"
         property url sourceImage: ""
+        property bool sourceIsVideo: false
         title: qsTr("Save to File")
         fileMode: Dialogs.FileDialog.SaveFile
         currentFolder: StandardPaths.writableLocation(StandardPaths.PicturesLocation)
-        onAccepted: fileExporter.save(sourceImage, selectedFile)
+        onAccepted: sourceIsVideo ? fileExporter.saveVideo(sourceImage, selectedFile) : fileExporter.save(sourceImage, selectedFile)
     }
 
     LV.ContextMenu {
@@ -168,7 +181,7 @@ Item {
         showIconSlot: false
         itemWidth: Math.max(0, Math.min(LV.Theme.scaleMetric(145),
             root.width - leftPadding - rightPadding - edgeMargin * 2))
-        items: root.photoLibrary.supported
+        items: root.photoLibrary.supported && !root.selectedIsVideo
             ? [{ label: qsTr("Save to File") },
                { label: qsTr("Save to Photos"), enabled: !root.photoLibrary.busy }]
             : [{ label: qsTr("Save to File") }]
@@ -199,7 +212,7 @@ Item {
         LV.Label {
             objectName: "galleryImageCount"
             visible: galleryModel.count > 1
-            text: root.galleryResults.length === 1 ? qsTr("1 image") : qsTr("%1 images").arg(root.galleryResults.length)
+            text: qsTr("%1 results").arg(root.galleryResults.length)
             style: caption
             Layout.leftMargin: LV.Theme.gap8
         }
@@ -216,12 +229,31 @@ Item {
         }
 
         LV.LabelButton {
+            objectName: "saveVideoButton"
+            text: qsTr("Save video")
+            visible: root.selectedIsVideo
+            enabled: root.canSaveImage
+            onClicked: root.saveImageToFile()
+        }
+        LV.LabelButton {
             objectName: "newProjectButton"
+            visible: !root.selectedIsVideo && !imageSelection.selectionMode
             text: qsTr("New Canvas")
             tone: LV.AbstractButton.Primary
-            enabled: root.imageReady && !root.generationPending && !root.showingPreview
+            enabled: root.imageReady && !root.selectedIsVideo && !root.generationPending && !root.showingPreview
             Accessible.name: qsTr("New canvas from generated image")
             onClicked: root.newProjectRequested(root.imageSource, root.selectedResult)
+        }
+        ImageSelectionBar {
+            id: imageSelection
+            objectName: "resultImageSelection"
+            entries: root.galleryResults
+            onSelectionModeChanged: if (selectionMode) {
+                root.detailVisible = false
+                imageMenu.close()
+                Qt.callLater(() => gallery.forceActiveFocus())
+            }
+            onOpenRequested: function(images) { root.imagesRequested(images) }
         }
     }
 
@@ -254,6 +286,9 @@ Item {
             keyNavigationEnabled: false
             Keys.onPressed: function(event) {
                 let index = currentIndex < 0 ? 0 : currentIndex
+                if (event.key === Qt.Key_A && (event.modifiers & (Qt.ControlModifier | Qt.MetaModifier))) {
+                    imageSelection.selectAll(); event.accepted = true; return
+                }
                 if (event.key === Qt.Key_Left) --index
                 else if (event.key === Qt.Key_Right) ++index
                 else if (event.key === Qt.Key_Up) index -= columns
@@ -261,11 +296,16 @@ Item {
                 else if (event.key === Qt.Key_Home) index = 0
                 else if (event.key === Qt.Key_End) index = root.galleryResults.length - 1
                 else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                    root.selectImage(index, true)
+                    if (imageSelection.selectionMode) imageSelection.toggle(root.galleryResults[index])
+                    else root.selectImage(index, true)
                     event.accepted = true
                     return
                 } else return
                 index = Math.max(0, Math.min(root.galleryResults.length - 1, index))
+                if (event.modifiers & (Qt.ControlModifier | Qt.MetaModifier | Qt.ShiftModifier))
+                    imageSelection.selectAt(index, event.modifiers, currentIndex)
+                else if (imageSelection.selectionMode && !imageSelection.toggleOnClick)
+                    imageSelection.selectAt(index, 0, currentIndex)
                 root.selectImage(index, false)
                 positionViewAtIndex(index, GridView.Contain)
                 event.accepted = true
@@ -292,6 +332,7 @@ Item {
                 required property string imageSource
                 required property string prompt
                 required property bool isPreview
+                objectName: "resultImageTile" + index
                 readonly property int imageStatus: thumbnail.status
                 readonly property bool imageReady: thumbnail.status === Image.Ready && !isPreview
                 width: gallery.cellWidth
@@ -299,7 +340,10 @@ Item {
                 Accessible.role: Accessible.Button
                 Accessible.name: isPreview ? qsTr("Generating image") : qsTr("Generated image %1").arg(index + 1)
                 Accessible.description: isPreview ? root.previewPrompt : prompt
-                Accessible.onPressAction: { if (!tile.isPreview) root.selectImage(tile.index, true) }
+                Accessible.onPressAction: {
+                    if (tile.isPreview) return
+                    root.activateImage(tile.index, 0)
+                }
 
                 Rectangle {
                     anchors.fill: parent
@@ -331,28 +375,91 @@ Item {
                             : tile.isPreview ? qsTr("Generating…") : qsTr("Loading image…")
                     }
 
+                    LV.Label {
+                        anchors.left: parent.left
+                        anchors.bottom: parent.bottom
+                        anchors.margins: LV.Theme.gap8
+                        visible: Boolean(!tile.isPreview && root.galleryResults[tile.index] && root.galleryResults[tile.index].mediaType === "Video")
+                        text: qsTr("Video · Play")
+                        style: caption
+                    }
                     Rectangle {
                         anchors.fill: parent
                         color: "transparent"
-                        border.width: tile.GridView.isCurrentItem ? LV.Theme.gap2 : 0
+                        border.width: imageSelection.isSelected(root.galleryResults[tile.index]) || tile.GridView.isCurrentItem ? LV.Theme.gap2 : 0
                         border.color: LV.Theme.accent
                     }
 
                     TapHandler {
+                        id: tileTap
                         acceptedButtons: Qt.LeftButton | Qt.RightButton
                         enabled: !tile.isPreview
                         onTapped: function(eventPoint, button) {
-                            root.selectImage(tile.index, button !== Qt.RightButton)
+                            if (button !== Qt.RightButton) root.activateImage(tile.index, tileTap.point.modifiers)
+                            else root.selectImage(tile.index, false)
                             if (button === Qt.RightButton)
                                 root.openImageMenu(tile, eventPoint.position.x, eventPoint.position.y)
                         }
+                        onDoubleTapped: if (!imageSelection.selectionMode) root.selectImage(tile.index, true)
                         onLongPressed: {
+                            if (imageSelection.selectionMode) { imageSelection.toggle(root.galleryResults[tile.index]); return }
                             root.selectImage(tile.index, false)
                             root.openImageMenu(tile, point.position.x, point.position.y)
                         }
                     }
                 }
             }
+        }
+
+        Item {
+            id: videoArea
+            objectName: "generatedVideo"
+            anchors.fill: parent
+            visible: root.selectedIsVideo && !root.galleryVisible
+            VideoOutput {
+                id: videoOutput
+                anchors.fill: parent
+                anchors.bottomMargin: videoControls.height
+                fillMode: VideoOutput.PreserveAspectFit
+            }
+            Image {
+                objectName: "videoPoster"
+                anchors.fill: parent
+                anchors.bottomMargin: videoControls.height
+                source: videoArea.visible && root.visible ? root.imageSource : ""
+                visible: videoPlayer.playbackState === MediaPlayer.StoppedState && videoPlayer.position === 0
+                asynchronous: true
+                fillMode: Image.PreserveAspectFit
+            }
+            LV.HStack {
+                id: videoControls
+                anchors.bottom: parent.bottom
+                anchors.horizontalCenter: parent.horizontalCenter
+                height: implicitHeight
+                spacing: LV.Theme.gap8
+                LV.LabelButton {
+                    objectName: "videoPlayButton"
+                    text: videoPlayer.playbackState === MediaPlayer.PlayingState ? qsTr("Pause") : qsTr("Play")
+                    onClicked: videoPlayer.playbackState === MediaPlayer.PlayingState ? videoPlayer.pause() : videoPlayer.play()
+                }
+                LV.LabelButton {
+                    objectName: "videoReplayButton"
+                    text: qsTr("Replay")
+                    onClicked: { videoPlayer.position = 0; videoPlayer.play() }
+                }
+                LV.Label {
+                    text: qsTr("%1 / %2 s").arg((videoPlayer.position/1000).toFixed(1)).arg((videoPlayer.duration/1000).toFixed(1))
+                    style: caption
+                }
+            }
+        }
+        MediaPlayer {
+            id: videoPlayer
+            objectName: "generatedVideoPlayer"
+            source: videoArea.visible && root.visible ? root.mediaSource : ""
+            videoOutput: videoOutput
+            audioOutput: AudioOutput {}
+            onErrorOccurred: function(error,errorString) { root.saveFeedback = errorString }
         }
 
         Image {
@@ -362,8 +469,8 @@ Item {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             height: Math.max(0, root.detailVisible ? imageArea.height : Math.min(LV.Theme.scaleMetric(242), imageArea.height))
-            visible: !root.galleryVisible
-            source: root.galleryVisible ? "" : root.imageSource
+            visible: !root.galleryVisible && !root.selectedIsVideo
+            source: root.galleryVisible || root.selectedIsVideo ? "" : root.imageSource
             asynchronous: true
             cache: !root.showingPreview
             retainWhileLoading: true

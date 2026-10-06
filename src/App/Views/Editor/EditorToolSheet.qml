@@ -7,13 +7,44 @@ LV.Sheet {
     id: root
     objectName: "editorToolSheet"
     property string toolId: "elements"
-    readonly property var definition: Definitions.tool(toolId)
+    property var engine: null
+    property var generationRuntime: null
+    signal resetRequested(string toolId, var defaults)
+    readonly property var definition: {
+        const catalog = Definitions.tool(toolId)
+        const source = engine ? Definitions.runtimeDefinition(catalog) : catalog
+        if (!source || toolId !== "generative" || !generationRuntime) return source
+        const runtime = Object.assign({}, source)
+        runtime.fields = source.fields.map(function(field) {
+            if (field.id !== "field-2") return field
+            return Object.assign({}, field, {initial: "Auto", options: ["Auto"].concat(generationRuntime.models.map(function(model) { return model.id })), optionLabels: [qsTr("Current model")].concat(generationRuntime.models.map(function(model) { return model.name || model.id }))})
+        })
+        return runtime
+    }
     property var settingsByTool: ({})
-    readonly property var values: settingsByTool[toolId] || Definitions.defaults(definition)
+    readonly property var values: {
+        const stored = settingsByTool[toolId] || Definitions.defaults(definition)
+        if (!engine) return stored
+        const actual = Object.assign({}, stored)
+        if (toolId === "layers") {
+            actual["field-1"] = engine.generationSeed || qsTr("Unknown")
+            const layer = engine.selectedLayer
+            if (layer.id) {
+                actual["field-8"] = layer.lock
+                actual["field-9"] = layer.preserveAlpha
+                actual["field-10"] = layer.opacity * 100
+                actual["field-20"] = layer.blend
+                actual["field-19"] = layer.name
+            }
+        } else if (toolId === "canvas") actual["field-0"] = [engine.canvasWidth, engine.canvasHeight]
+        return actual
+    }
     property string notice: ""
     property string pendingTool: ""
     property string colorField: ""
+    readonly property bool modalActive: visible || colorSheet.visible || actionSheet.visible
     signal actionRequested(string toolId, string fieldId, var values)
+    signal valueEdited(string toolId, string fieldId, var value)
 
     presentation: LV.Sheet.Mobile
     detent: LV.Sheet.Fit
@@ -41,18 +72,31 @@ LV.Sheet {
         const all = Object.assign({}, settingsByTool)
         all[toolId] = next
         settingsByTool = all
+        valueEdited(toolId, fieldId, value)
     }
     function resetTool() {
         const all = Object.assign({}, settingsByTool)
         all[toolId] = Definitions.defaults(definition)
         settingsByTool = all
         notice = ""
+        resetRequested(toolId, Definitions.defaults(definition))
+    }
+    function chooseColor(fieldId) {
+        root.colorField = fieldId
+        colorSheet.open()
+        colorSheet.loadedContent.previousColor = root.values[fieldId]
+        colorSheet.loadedContent.setColor(root.values[fieldId])
     }
     function dismiss() {
         pendingTool = ""
         colorSheet.close()
         actionSheet.close()
         close()
+    }
+    function showActionStatus(label, message) {
+        notice = message
+        actionSheet.title = label
+        actionSheet.open()
     }
     onClosed: {
         colorSheet.close()
@@ -70,6 +114,8 @@ LV.Sheet {
     Component {
         id: panelComponent
         EditorToolPanel {
+            engine: root.engine
+            notice: root.notice
             definition: root.definition
             values: root.values
             onEdited: function(fieldId, value) { root.setValue(fieldId, value) }
@@ -77,15 +123,9 @@ LV.Sheet {
             onCloseRequested: root.dismiss()
             onActionRequested: function(fieldId, label) {
                 root.actionRequested(root.toolId, fieldId, root.values)
-                root.notice = qsTr("%1 is not connected to canvas editing yet.").arg(label)
-                actionSheet.title = label
-                actionSheet.open()
             }
             onColorRequested: function(fieldId) {
-                root.colorField = fieldId
-                colorSheet.open()
-                colorSheet.loadedContent.previousColor = root.values[fieldId]
-                colorSheet.loadedContent.setColor(root.values[fieldId])
+                root.chooseColor(fieldId)
             }
         }
     }

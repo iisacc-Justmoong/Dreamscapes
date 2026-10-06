@@ -6,7 +6,7 @@ bool EditorCanvas::createCanvas(const QVariantMap &specification) {
     const auto checked = validator.specification(specification.value("width").toDouble(),
         specification.value("height").toDouble(), specification.value("unit").toString(),
         specification.value("ppi", 300).toDouble(), specification.value("background", "White").toString());
-    if (!checked.value("valid").toBool()) return false;
+    if (!checked.value("valid").toBool()) return fail(tr("Enter valid canvas dimensions, units and resolution."));
     using namespace iiSharedCanvas;
     Document canvas;
     canvas.extent = {checked.value("pixelWidth").toInt(), checked.value("pixelHeight").toInt()};
@@ -23,12 +23,7 @@ bool EditorCanvas::createCanvas(const QVariantMap &specification) {
             StaticSource{"canvas.background"}});
     }
     // The sparse SDK renderer renders visible tiles, not a giant initial bitmap.
-    unbind();
-    m_canvas = std::move(canvas);
-    if (!bind(m_canvas)) return false;
-    m_specification = specification;
-    for (auto it = checked.cbegin(); it != checked.cend(); ++it) m_specification.insert(it.key(), it.value());
-    emit specificationChanged();
-    fitToView();
-    return true;
+    auto resolved = specification;
+    for (auto it = checked.cbegin(); it != checked.cend(); ++it) resolved.insert(it.key(), it.value());
+    return adopt(std::move(canvas), resolved);
 }

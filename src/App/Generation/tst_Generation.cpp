@@ -1,4 +1,5 @@
 #include "GenerationController.h"
+#include "VideoGeneration.h"
 #include "AdvancedImageParameters.h"
 #include <Generation/NativePose.hpp>
 #include <StorageMap.h>
@@ -57,6 +58,244 @@ class GenerationTests : public QObject
 {
     Q_OBJECT
 private slots:
+    void videoRecipeValidatesRuntimeContract()
+    {
+        const QJsonObject defaults{{"prompt","a scene"}};
+        QString error;
+        auto valid=defaults;
+        QVERIFY2(dreamscapes::normalizeVideoRecipe(&valid,&error),qPrintable(error));
+        QCOMPARE(valid.value("frames").toInt(),120);
+        QCOMPARE(valid.value("width").toInt(),1024);
+        QCOMPARE(valid.value("shots").toArray().size(),1);
+        const QList<QPair<QString,QJsonValue>> invalid{
+            {"width",65},{"height",0},{"duration",31},{"fps",25},{"outputCount",1.5},{"steps",0},
+            {"cfgScale",-1},{"seed",4294967296.},{"decodeTimestep",1.1},{"decodeNoiseScale",-.1},
+            {"imageConditionNoise",2},{"interpolationFactor",1},{"crf",52},{"cpuTextEncoding",1},
+            {"vaeTiling","true"},{"device","unknown"},{"precision","half"},{"offload","swap"},
+            {"encodingPreset","best"},{"prompt",""},{"negativePrompt",1},{"shots",QJsonObject{}}};
+        for(const auto &entry:invalid) {
+            auto recipe=defaults; recipe[entry.first]=entry.second; error.clear();
+            QVERIFY2(!dreamscapes::normalizeVideoRecipe(&recipe,&error),qPrintable(entry.first));
+            QVERIFY(!error.isEmpty());
+        }
+        auto cpu=defaults; cpu["device"]="cpu"; cpu["offload"]="model";
+        QVERIFY(!dreamscapes::normalizeVideoRecipe(&cpu,&error));
+        auto composition=defaults;
+        composition["shots"]=QJsonArray{QJsonObject{{"frames",24},{"prompt","first"}},
+            QJsonObject{{"frames",36},{"conditions",QJsonArray{QJsonObject{{"image","file:///frame.png"},{"frame",13},{"strength",.65}}}}}};
+        QVERIFY(dreamscapes::normalizeVideoRecipe(&composition,&error));
+        QCOMPARE(composition.value("frames").toInt(),60);
+        auto badShots=defaults; badShots["shots"]=QJsonArray{};
+        QVERIFY(!dreamscapes::normalizeVideoRecipe(&badShots,&error));
+        for(int frame:{-1,24}) {
+            auto bad=defaults; bad["shots"]=QJsonArray{QJsonObject{{"frames",24},{"conditions",QJsonArray{QJsonObject{{"image","file:///frame.png"},{"frame",frame}}}}}};
+            QVERIFY(!dreamscapes::normalizeVideoRecipe(&bad,&error));
+        }
+        const QJsonObject condition{{"image","file:///frame.png"},{"frame",4}};
+        auto duplicate=defaults; duplicate["shots"]=QJsonArray{QJsonObject{{"frames",24},{"conditions",QJsonArray{condition,condition}}}};
+        QVERIFY(!dreamscapes::normalizeVideoRecipe(&duplicate,&error));
+        auto excessive=defaults; excessive["shots"]=QJsonArray{QJsonObject{{"frames",4097}},QJsonObject{{"frames",2}}};
+        QVERIFY(!dreamscapes::normalizeVideoRecipe(&excessive,&error));
+    }
+    void defaultModelsPersistAndPreserveQueuedRequests()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-preferences-XXXXXX");
+        QVERIFY(prepare(root));
+        for (const auto *name : {"ltx-a", "ltx-b"}) {
+            const auto directory = "Models/" + QString::fromLatin1(name);
+            QVERIFY(QDir().mkpath(root.filePath(directory)));
+            QVERIFY(write(root.filePath(directory + "/model_index.json"), R"({"_class_name":"LTXPipeline"})"));
+        }
+        auto runtime = fakeRuntime();
+        runtime.modelPreferencesFile = root.filePath("settings/default-models.conf");
+        {
+            GenerationController controller(runtime);
+            QVERIFY(controller.connectStorage(root.path()));
+            const auto queued = controller.enqueue("queued before preference change");
+            QVERIFY(!queued.isEmpty());
+            const auto original = recordedJob(controller, queued).value("model").toObject();
+            QCOMPARE(original.value("path").toString(), controller.selectedModel());
+            QVERIFY(controller.setDefaultImageModel("second.SAFETENSORS"));
+            QVERIFY(controller.setDefaultVideoModel("ltx-b"));
+            QCOMPARE(recordedJob(controller, queued).value("model").toObject(), original);
+            QCOMPARE(controller.selectedModel(), QString("second.SAFETENSORS"));
+            QCOMPARE(controller.selectedVideoModel(), QString("ltx-b"));
+            const auto next = controller.enqueue("queued after preference change");
+            QVERIFY2(!next.isEmpty(), qPrintable(controller.errorString()));
+            QCOMPARE(recordedJob(controller, next).value("model").toObject().value("path").toString(), QString("second.SAFETENSORS"));
+            controller.setSelectedModel("first model.safetensor");
+            controller.setSelectedVideoModel("ltx-a");
+            controller.refreshModels();
+            QCOMPARE(controller.selectedModel(), QString("first model.safetensor"));
+            QCOMPARE(controller.defaultImageModel(), QString("second.SAFETENSORS"));
+            QVERIFY(!controller.setDefaultImageModel("ltx-b"));
+            QVERIFY(!controller.setDefaultVideoModel("first model.safetensor"));
+            QCOMPARE(controller.defaultVideoModel(), QString("ltx-b"));
+        }
+        GenerationController restored(runtime);
+        QVERIFY(restored.connectStorage(root.path()));
+        QCOMPARE(restored.selectedModel(), QString("second.SAFETENSORS"));
+        QCOMPARE(restored.selectedVideoModel(), QString("ltx-b"));
+        QVERIFY(QFile::remove(root.filePath("Models/second.SAFETENSORS")));
+        QVERIFY(QDir(root.filePath("Models/ltx-b")).removeRecursively());
+        restored.refreshModels();
+        QCOMPARE(restored.selectedModel(), QString("first model.safetensor"));
+        QCOMPARE(restored.selectedVideoModel(), QString("ltx-a"));
+        QCOMPARE(restored.defaultImageModel(), QString("second.SAFETENSORS"));
+        QCOMPARE(restored.defaultVideoModel(), QString("ltx-b"));
+        QVERIFY(write(root.filePath("Models/second.SAFETENSORS"), "restored model"));
+        QVERIFY(QDir().mkpath(root.filePath("Models/ltx-b")));
+        QVERIFY(write(root.filePath("Models/ltx-b/model_index.json"), R"({"_class_name":"LTXPipeline"})"));
+        restored.refreshModels();
+        QCOMPARE(restored.selectedModel(), QString("second.SAFETENSORS"));
+        QCOMPARE(restored.selectedVideoModel(), QString("ltx-b"));
+        QVERIFY(restored.setDefaultImageModel({}));
+        QVERIFY(restored.setDefaultVideoModel({}));
+        GenerationController automatic(runtime);
+        QVERIFY(automatic.connectStorage(root.path()));
+        QVERIFY(automatic.defaultImageModel().isEmpty());
+        QVERIFY(automatic.defaultVideoModel().isEmpty());
+        QCOMPARE(automatic.selectedModel(), QString("first model.safetensor"));
+        QCOMPARE(automatic.selectedVideoModel(), QString("ltx-a"));
+    }
+    void defaultModelSaveFailurePreservesSelection()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-preferences-error-XXXXXX");
+        QVERIFY(prepare(root));
+        auto runtime = fakeRuntime();
+        runtime.modelPreferencesFile = root.filePath("settings/default-models.conf");
+        GenerationController controller(runtime);
+        QVERIFY(controller.connectStorage(root.path()));
+        QVERIFY(controller.setDefaultImageModel("first model.safetensor"));
+        const auto saved = [&] { QFile file(runtime.modelPreferencesFile); file.open(QIODevice::ReadOnly); return file.readAll(); }();
+        QVERIFY(QDir().mkpath(runtime.modelPreferencesFile + ".tmp"));
+        QVERIFY(!controller.setDefaultImageModel("second.SAFETENSORS"));
+        QVERIFY(!controller.modelPreferencesError().isEmpty());
+        QCOMPARE(controller.defaultImageModel(), QString("first model.safetensor"));
+        QCOMPARE(controller.selectedModel(), QString("first model.safetensor"));
+        QFile file(runtime.modelPreferencesFile); QVERIFY(file.open(QIODevice::ReadOnly));
+        QCOMPARE(file.readAll(), saved);
+    }
+    void malformedModelPreferencesUseSafeDefaults()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-preferences-malformed-XXXXXX");
+        QVERIFY(prepare(root));
+        auto runtime = fakeRuntime(); runtime.modelPreferencesFile = root.filePath("defaults.conf");
+        QVERIFY(write(runtime.modelPreferencesFile, "invalid preferences"));
+        GenerationController controller(runtime);
+        QVERIFY(controller.connectStorage(root.path()));
+        QVERIFY(!controller.modelPreferencesError().isEmpty());
+        QVERIFY(controller.defaultImageModel().isEmpty());
+        QCOMPARE(controller.selectedModel(), QString("first model.safetensor"));
+        QVERIFY(controller.setDefaultImageModel("second.SAFETENSORS"));
+        QVERIFY(controller.modelPreferencesError().isEmpty());
+    }
+    void videoInstalledRuntimeCreatesDecodedMp4()
+    {
+        const auto model=qEnvironmentVariable("DREAMSCAPES_VIDEO_SMOKE_MODEL");
+        const auto launcher=qEnvironmentVariable("DREAMSCAPES_VIDEO_SMOKE_LAUNCHER");
+        if(model.isEmpty() || launcher.isEmpty()) QSKIP("Set a local LTX fixture/model and installed SDK launcher for real video inference.");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/real-video-XXXXXX");
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(root.path()));
+        const auto target=root.filePath("Models/Checkpoint/LTX-runtime-smoke");
+        QVERIFY(QDir().mkpath(target));
+        QDirIterator iterator(model,QDir::Files,QDirIterator::Subdirectories);
+        while(iterator.hasNext()) {
+            iterator.next();
+            const auto relative=QDir(model).relativeFilePath(iterator.filePath());
+            const auto destination=QDir(target).filePath(relative);
+            QVERIFY(QDir().mkpath(QFileInfo(destination).absolutePath()));
+            QVERIFY(QFile::copy(iterator.filePath(),destination));
+        }
+        auto runtime=fakeRuntime(); runtime.executable=launcher; runtime.device="mps"; runtime.nativeInference=true;
+        GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
+        QCOMPARE(controller.videoModels().size(),1);
+        const auto id=controller.enqueueVideo("A red cube rotates slowly.","1:1",1,{},1,24,42);
+        QVERIFY2(!id.isEmpty(),qPrintable(controller.errorString()));
+        connect(&controller,&GenerationController::inferenceStatusChanged,&controller,[&controller] {
+            qInfo() << "Video runtime:" << controller.inferenceStatus();
+        });
+        controller.setForeground(true);
+        QTRY_VERIFY_WITH_TIMEOUT(state(controller,id)=="completed" || state(controller,id)=="failed",360000);
+        QVERIFY2(state(controller,id)=="completed",qPrintable(controller.errorString()));
+        const auto result=controller.latestResult();
+        const auto generation=result.value("generation").toMap();
+        QCOMPARE(generation.value("video").toMap().value("frame_count").toInt(),24);
+        QVERIFY(generation.value("video").toMap().value("verified_decode").toBool());
+        QCOMPARE(generation.value("stages").toList().size(),2);
+        QVERIFY(result.value("mediaSource").toUrl().isLocalFile());
+        root.setAutoRemove(false);
+        QVERIFY(write(QStringLiteral(DREAMSCAPES_TEST_DIRECTORY "/video-verification/runtime-result.json"),
+            QJsonDocument(QJsonObject::fromVariantMap(result)).toJson(QJsonDocument::Indented)));
+    }
+    void videoQueuePreservesInputsAndPublishesAllResults()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/video-queue-XXXXXX"); QVERIFY(prepare(root));
+        QVERIFY(QDir().mkpath(root.filePath("Models/Checkpoint/ltx")));
+        QVERIFY(write(root.filePath("Models/Checkpoint/ltx/model_index.json"),
+            R"({"_class_name":"LTXConditionPipeline"})"));
+        QImage image(80,40,QImage::Format_RGB32); image.fill(Qt::red);
+        const auto source = QUrl::fromLocalFile(root.filePath("Files/keyframe.png")); QVERIFY(image.save(source.toLocalFile()));
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
+        QCOMPARE(controller.videoModels().size(),1);
+        QCOMPARE(controller.selectedVideoModel(),QString("Checkpoint/ltx"));
+        QVERIFY(controller.models().size() == 2);
+        QSignalSpy submitted(&controller,&GenerationController::submissionQueued);
+        const auto id = controller.enqueueVideo("video","16:9",2,source,1,24,42);
+        QVERIFY2(!id.isEmpty(),qPrintable(controller.errorString()));
+        QCOMPARE(submitted.size(),1); QCOMPARE(submitted[0][0].toStringList().size(),2);
+        const auto queued = recordedJob(controller,id);
+        QCOMPARE(queued.value("mediaType").toString(),QString("Video"));
+        QCOMPARE(queued.value("width").toInt(),1024); QCOMPARE(queued.value("height").toInt(),576);
+        const auto owned = queued.value("videoParameters").toObject().value("firstFrame").toString();
+        QVERIFY(owned != source.toLocalFile()); QVERIFY(QFileInfo::exists(owned));
+        QVERIFY(QFile::remove(source.toLocalFile()));
+        controller.setForeground(true);
+        QTRY_COMPARE_WITH_TIMEOUT(controller.completedResults().size(),2,15000);
+        QCOMPARE(state(controller,id),QString("completed"));
+        for(const auto &entry:controller.completedResults()) {
+            const auto result=entry.toMap();
+            QCOMPARE(result.value("mediaType").toString(),QString("Video"));
+            QVERIFY(QFileInfo(result.value("mediaSource").toUrl().toLocalFile()).isFile());
+            QVERIFY(!QImage(result.value("imageSource").toUrl().toLocalFile()).isNull());
+            QCOMPARE(result.value("generation").toMap().value("configuration").toMap().value("first_frame").toString(),owned);
+            QCOMPARE(result.value("generation").toMap().value("configuration").toMap().value("fps").toInt(),24);
+        }
+        QVERIFY(QDir(root.filePath("Generation History")).entryList({"*.json"},QDir::Files).isEmpty());
+        QCOMPARE(QDir(root.filePath("Generation History")).entryList({"*.mp4"},QDir::Files).size(),2);
+        QCOMPARE(controller.latestResult().value("mediaType").toString(),QString("Video"));
+        QVERIFY(write(root.filePath("Models/Checkpoint/ltx/model_index.json"),R"({"_class_name":"StableDiffusionPipeline"})"));
+        controller.refreshModels(); QVERIFY(controller.videoModels().isEmpty());
+        QVERIFY(controller.enqueueVideo("video").isEmpty());
+    }
+    void videoRejectsBadOutputAndCancelsWorker_data()
+    {
+        QTest::addColumn<QString>("prompt"); QTest::addColumn<QString>("expected");
+        QTest::newRow("bad-hash") << QString("video-corrupt") << QString("failed");
+        QTest::newRow("bad-size") << QString("video-size") << QString("failed");
+        QTest::newRow("bad-report") << QString("video-report") << QString("failed");
+        QTest::newRow("cancel") << QString("video-hold") << QString("cancelled");
+    }
+    void videoRejectsBadOutputAndCancelsWorker()
+    {
+        QFETCH(QString,prompt); QFETCH(QString,expected);
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/video-errors-XXXXXX"); QVERIFY(prepare(root));
+        QVERIFY(QDir().mkpath(root.filePath("Models/ltx")));
+        QVERIFY(write(root.filePath("Models/ltx/model_index.json"),R"({"_class_name":"LTXPipeline"})"));
+        auto runtime=fakeRuntime(); runtime.nativeInference=true;
+        GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
+        QVERIFY(controller.enqueueVideo("video","invalid").isEmpty());
+        QVERIFY(controller.enqueueVideo("video","1:1",0).isEmpty());
+        QVERIFY(controller.enqueueVideo("video","1:1",1,{},0).isEmpty());
+        QVERIFY(controller.enqueueVideo("video","1:1",1,{},5,0).isEmpty());
+        const auto id=controller.enqueueVideo(prompt); QVERIFY2(!id.isEmpty(),qPrintable(controller.errorString()));
+        controller.setForeground(true);
+        if(expected=="cancelled") { QTRY_COMPARE_WITH_TIMEOUT(state(controller,id),QString("running"),5000); QVERIFY(controller.cancel(id)); }
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller,id),expected,15000);
+        QVERIFY(controller.completedResults().isEmpty());
+        QVERIFY(QDir(root.filePath("Generation History")).entryList(QDir::Files).isEmpty());
+    }
     void advancedWatermarkIsAppliedAtPublication_data()
     {
         QTest::addColumn<bool>("native");
@@ -141,6 +380,44 @@ private slots:
         QCOMPARE(received.references[0].rgb[0],quint8(11));
         QCOMPARE(received.references[0].rgb[1],quint8(12));
         QCOMPARE(received.references[0].rgb[2],quint8(13));
+    }
+
+    void homeKreaDefaultsAndAdvancedOverrides()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/home-krea-XXXXXX"); QVERIFY(prepare(root));
+        // Recognizable metadata under a neutral filename; no pretrained tensor compute.
+        const QByteArray header = R"({"model.diffusion_model.txtfusion.projector.weight":{"dtype":"F32","shape":[1],"data_offsets":[0,4]}})";
+        const quint64 size = header.size();
+        QByteArray weights(reinterpret_cast<const char *>(&size), sizeof(size));
+        weights += header; weights += QByteArray(4, 0);
+        QVERIFY(write(root.filePath("Models/first model.safetensor"), weights));
+        QImage image(80, 40, QImage::Format_RGB888); image.fill(QColor(11, 12, 13));
+        const auto input = root.filePath("Files/reference.png"); QVERIFY(image.save(input));
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        int steps = 0; float cfg = 0;
+        runtime.nativeGenerateAdvanced = [&](const auto &request, const auto &, const auto &components,
+            const auto &sampling, const auto &, const auto &, const auto &) {
+            steps = request.steps; cfg = components.guidanceScale;
+            if (sampling.references.size() != 1) return iiLocalDiffusion::NativeGenerationResult{};
+            iiLocalDiffusion::NativeGenerationResult result;
+            result.width = request.width; result.height = request.height;
+            result.rgb.resize(request.width * request.height * 3, 100); return result;
+        };
+        GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
+        auto parameters = dreamscapes::imageParametersToMap(iiLocalDiffusion::ImageParameters::defaults());
+        parameters["prompt"] = "Krea reference"; parameters["model"] = "first model.safetensor";
+        parameters["width"] = 1024; parameters["height"] = 1368; parameters["outputCount"] = 1;
+        parameters["referenceImages"] = QVariantList{QUrl::fromLocalFile(input).toString()};
+        const auto home = controller.enqueueHomeCanvas(parameters, "3:4"); QVERIFY(!home.isEmpty());
+        controller.setForeground(true);
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, home), QString("completed"), 15000);
+        QCOMPARE(steps, 52); QCOMPARE(cfg, 7.0f);
+        const auto recipe = recordedJob(controller, home).value("advancedParameters").toObject();
+        QCOMPARE(recipe.value("steps").toInt(), 52); QCOMPARE(recipe.value("cfgScale").toDouble(), 7.0);
+        parameters["steps"] = 9; parameters["cfgScale"] = 2.0;
+        const auto advanced = controller.enqueueAdvanced(parameters); QVERIFY(!advanced.isEmpty());
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, advanced), QString("completed"), 15000);
+        QCOMPARE(steps, 9); QCOMPARE(cfg, 2.0f);
     }
 
     void advancedSubmissionSnapshotsAndForwardsParameters()

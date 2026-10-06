@@ -1,408 +1,130 @@
-# Advanced image parameters and desktop workspace
+<a id="advanced-image-parameters-and-desktop-workspace"></a>
 
-Design source: [Dreamscapes / Image Generation · Advanced · Expanded](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=59-229).
+# 고급 이미지 매개변수 및 데스크탑 작업 공간
 
-## View-independent parameter contract
+디자인 소스: [Dreamscapes / 이미지 생성 · 고급 · 확장](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=59-229).
 
-The parameter API can be used without constructing a QML view. The current
-`59:229` request is limited to parameter functionality; no new view or redesign
-is required. Existing workspace details below describe the checkout's separate
-UI integration, not a prerequisite for editing or persisting parameters.
+<a id="view-independent-parameter-contract"></a>
 
-The scalar schema covers Essentials, Composition, References, Sampling,
-Fine-tuning, Enhancement and Output. References, ControlNet entries and LoRAs
-are ordered collections with explicit add/edit/remove operations. A complete
-snapshot can be saved as a preset and restored, including inactive settings.
-Draft validity and executable backend capability are intentionally distinct:
-unsupported native options remain editable/persistable, but `submissionIssues`
-and the queue reject them instead of silently ignoring a requested effect.
+## 보기 독립적 매개변수 계약
 
-IP-Adapter now has native resource preparation and SDK/product forwarding.
-Pose additionally has a minimal native DWPose path when built with
-`IILD_ENABLE_POSE=ON`: select the inline YOLOX detector and DWPose `.onnx` resources
-as an atomic pair. Canceling either picker leaves the draft unchanged. These
-`poseDetector`/`poseModel` fields are persisted, snapshotted into the queue and
-resolved before execution; old presets default them to empty. Runtime sessions
-remain loaded until explicit release or application teardown. Reset clears both.
-Depth and other detectors beyond Canny/Tile/Pose, transparent-background generation, face restoration
-and safety classification also remain unavailable on this native route.
-Their editable fields are not a claim of finished inference functionality.
+API 매개변수는 QML 뷰를 구성하지 않고도 사용할 수 있습니다. 현재 `59:229` 요청은 매개변수 기능으로 제한되며, 새 뷰 또는 재설계가 필요하지 않습니다. 아래에 설명된 기존 워크스페이스 세부 사항은 편집 또는 매개변수 영속화를 위한 전제 조건이 아닌 체크아웃의 별도 UI 통합을 설명합니다.
 
-The latest requested scope is minimum operation only. Further detector families,
-trained-model quality validation and detailed behavior/performance tuning are
-deferred. Fixtures verify contracts, not the quality of generated artwork.
+스칼라 스키마는 Essentials, Composition, References, Sampling, Fine-tuning, Enhancement 및 Output 을 포함합니다. References, ControlNet 엔트리 및 LoRAs 는 명시적인 추가/편집/제거 작업을 가진 순서 집합입니다. 완전한 스냅샷은 비활성 설정을 포함하여 프리셋으로 저장되고 복원될 수 있습니다. 드래프트 유효성과 실행 가능한 백엔드 기능은 의도적으로 구별됩니다: 지원되지 않는 네이티브 옵션은 편집 가능/영속 가능으로 유지되지만, `submissionIssues` 와 큐는 요청된 효과를 아무런 알림 없이 무시하는 대신 거부합니다.
 
-### Minimum-operation verification (2026-09-29)
+IP -Adapter 는 이제 네이티브 리소스 준비 및 SDK /제품 포워딩을 갖습니다. Pose 는 `IILD_ENABLE_POSE=ON` 로 빌드될 때 최소 네이티브 DWPose 경로도 추가로 갖습니다: 인라인 YOLOX 검출기와 DWPose `.onnx` 리소스를 원자 쌍으로 선택합니다. 어떤 선택기 취소도 드래프트를 변경하지 않습니다. 이 `poseDetector` / `poseModel` 필드는 영속화되어 큐에 스냅샷으로 저장되고 실행 전에 해결되며, 오래된 프리셋은 이를 기본값으로 빈 값으로 설정합니다. 런타임 세션은 명시적 해제 또는 애플리케이션 해체까지 로딩된 상태를 유지합니다. 재설정은 둘 다 지웁니다. Canny/Tile/Pose 를 넘어선 Depth 와 기타 감지기는, 투명 배경 생성, 얼굴 복원 및 안전 분류도 이 네이티브 경로에서 여전히 사용 불가능합니다. 수정 가능한 필드는 완료된 추론 기능의 주장을 의미하지 않습니다.
 
-The updated parameter and generation targets rebuilt; both suites passed
-(14 parameter and 64 generation checks including setup/cleanup, two opt-in
-real-model checks skipped). The new queue fixture verifies canonical Pose
-resources reach native controls and later draft edits cannot change the queued
-request. Logs: `build/advanced-minimum-build.log` and
-`build/advanced-minimum-tests.log`. No installed-app replacement is part of this
-minimum completion. Detailed behavior and learned-model quality remain deferred.
+최근에 요청한 범위는 최소 작업에만 적용됩니다. 추가 감지기 제품군, 훈련된 모델 품질 검증 및 세부적인 동작/성능 조정은 연기됩니다. 픽스처는 생성된 작품의 품질이 아닌 계약을 확인합니다.
 
-Canonical macOS app packaging and GUI-test build also succeeded. The selected
-GUI run passed all three behavior cases (five passes including setup/cleanup):
-basic advanced controls/picker cancellation, draft retention/scrolling, and real
-packaged entry-point startup with one window. Log:
-`build/advanced-minimum-gui.log`. Offscreen tests report missing fixture-file
-selection warnings and an unavailable native menu warning; they do not validate
-native menu presentation. The installed `/Applications` app was not replaced.
+<a id="minimum-operation-verification-2026-09-29"></a>
 
-### View-independent edit verification (2026-09-29)
+### 최소 동작 검증(2026-09-29)
 
-The ControlNet no-op edit regression was reproduced before the fix: an empty
-patch cleared an already-applied control. Typed comparison now preserves Apply
-for identical values without weakening strict type validation or preventing
-required-source removal in a draft. No view or installed app was changed.
+업데이트된 매개변수와 생성 목표가 재구성되었으며, 두 세트 모두 통과했습니다 ( 14 매개변수 및 64 생성 확인, 설정/정리 포함, 2 옵인 실모델 확인은 건너뜀). 새로운 큐 픽스처 는 표준 Pose 리소스가 네이티브 컨트롤에 도달했는지 확인하며, 이후 초안 편집은 큐잉된 요청을 변경할 수 없습니다. 로그: `build/advanced-minimum-build.log` 와 `build/advanced-minimum-tests.log` 입니다. 최소 완료의 일부로 설치된 앱 대체는 포함되지 않습니다. 상세한 동작과 학습된 모델의 품질은 여전히 연기됩니다.
 
-`DreamscapesAdvancedParametersTests` and `DreamscapesGenerationTests` rebuilt
-successfully. CTest passed both suites in 39.32 seconds (14 parameter test passes,
-63 generation test passes, including QtTest setup/cleanup; two opt-in real-model
-tests skipped). These are contract/fixture checks, not proof of real-model image
-quality or generation speed. Logs: `build/advanced-backend-contract-red.log`,
-`build/advanced-backend-contract-build.log`, and
-`build/advanced-backend-contract-tests.log`.
+표준 macOS 앱 패키징과 GUI -테스트 빌드도 성공했습니다. 선택된 GUI 실행은 모든 3 동작 사례 ( 5 통과 포함 설정/정리) 를 통과했습니다: 기본 고급 컨트롤/피커 취소, 초안 유지/스크롤링, 그리고 하나의 창으로 구성된 실제 패키징 진입점 시작. 로그: `build/advanced-minimum-gui.log` 입니다. 오프스크린 테스트는 누락된 픽스처 파일 선택 경고와 사용 불가능한 네이티브 메뉴 경고가 보고되며, 네이티브 메뉴 프레젠테이션을 검증하지 않습니다. 설치된 `/Applications` 앱은 대체되지 않았습니다.
 
-The desktop workspace follows Figma node `237:5543`: selecting sidebar Image
-retains the sidebar and toolbar, replaces the home content with a central image
-canvas and a 402-unit right parameter column. `AdvancedGenerate.qml` owns an
-independent `AdvancedImageParameters` draft. Its vertical viewport scrolls without
-moving the canvas or pinned Generate/Reset/Cancel controls. Narrow windows have
-a horizontal workspace viewport instead of clipping parameter controls.
-`QuickGenerate` keeps its existing draft, defaults and API. No app reinstall or
-restart is performed by this implementation.
+<a id="view-independent-edit-verification-2026-09-29"></a>
 
-Scalar rows, references, ControlNet drafts, LoRA weights and full presets are
-connected to the document API. Control images/models/masks use local file dialogs;
-models and VAEs use the existing Society inventory. Control edits invalidate Apply.
-Displayed example files from Figma are not bundled as fake user content.
-Submission snapshots are tracked separately from QuickGenerate. Advanced jobs
-stay in the workspace, showing actual previews, completed-image selection and
-errors. Cancel affects only this workspace's pending batch; Open in canvas uses
-the existing CanvasEditor route. Returning Home does not discard either draft.
-The workspace is instantiated only after the first Image selection and then
-retained; initial Home/mobile loading does not construct the large parameter UI.
-Transient incomplete numeric text stays in the view while the typed document
-retains its last valid value. Invalid input blocks Generate and preset Save;
-Reset/preset replacement restores a coherent valid document and clears errors.
-An invalid-input submission message clears once all transient inputs are valid;
-backend submission/job errors remain distinct and are not erased by that transition.
-LoRA cards and their weight controls form vertically repeated groups.
+### 보기 독립적인 편집 검증(2026-09-29)
 
-### Optional ControlNet panels
+ControlNet의 무변경 편집 회귀는 수정 전에 재현하였다. 빈 패치가 이미 적용된 제어를 지웠다. 타입 기반 비교는 이제 엄격한 타입 검증을 약화하거나 초안에서 필수 소스를 제거하는 것을 막지 않으면서 동일한 값의 Apply를 유지한다. 뷰나 설치된 앱은 변경하지 않았다.
 
-Figma [Add control / `243:8784`](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=243-8784)
-is implemented with the installed LVRS Navigation ListItem: `Add control`, no
-leading icon or description, an empty value slot and the existing `generaladd`
-trailing icon. The library's default dimensions, padding, typography and radius
-remain unchanged; only component properties and parent layout are configured.
+`DreamscapesAdvancedParametersTests` 와 `DreamscapesGenerationTests` 가 성공적으로 재구성되었습니다. CTest 는 39.32 초 동안 두 가지 시트 ( 14 파라미터 테스트 통과, 63 생성 테스트 통과, QtTest 설정/정리 포함; 2 옵인 실모델 테스트 생략) 를 모두 통과했습니다. 이는 계약/ 픽스처 픽스처 점검이며, 실모델 이미지 품질이나 생성 속도의 증거가 아닙니다. 로그: `build/advanced-backend-contract-red.log`, `build/advanced-backend-contract-build.log`, `build/advanced-backend-contract-tests.log` 입니다.
 
-Constructing the advanced view no longer creates example Pose/Canny controls.
-An empty document shows the Add control row without any Control editor. Clicking
-the row explicitly appends one unapplied `None` draft with a stable ID and displays
-the existing expanded editor inline in the parameter panel. Its image/model,
-process, weight, IP-Adapter, mask, Init and Apply behavior is unchanged. The row
-remains available for further additions. Controls restored from a user-saved
-preset are displayed from the same document collection; Reset or removing its
-last entry clears the editors without removing the Add control row.
+데스크톱 작업 공간은 Figma 노드 `237:5543`를 따른다. 사이드바에서 Image를 선택하면 사이드바와 도구 모음은 유지하고 홈 콘텐츠를 중앙 이미지 캔버스와 402단위의 오른쪽 매개변수 열로 교체한다. `AdvancedGenerate.qml`는 독립된 `AdvancedImageParameters` 초안을 소유한다. 세로 뷰포트는 캔버스와 고정된 Generate/Reset/Cancel 제어를 움직이지 않고 스크롤한다. 좁은 창에서는 매개변수 제어를 잘라내는 대신 가로 작업 공간 뷰포트를 사용한다. `QuickGenerate`는 기존 초안, 기본값과 API를 유지한다. 이 구현으로 앱을 재설치하거나 재시작하지 않는다.
 
-`advancedControlsAppearOnlyAfterAdd` verifies the empty view, real pointer clicks
-on the LVRS row, its 402 × 44 layout at 1×, expanded editors, independent IDs,
-collapse/reopen without losing edits, removal, preset restoration and Reset.
-Existing picker regressions now explicitly add their own Pose/Canny fixtures
-instead of depending on view-construction side effects. Set
-`DREAMSCAPES_ADD_CONTROL_CAPTURE` to a PNG path to capture the actual Add row.
+스칼라 행, 참조, ControlNet 시안, LoRA 가중치 및 전체 프리셋은 문서 API 에 연결됩니다. 제어 이미지/모델/마스크는 로컬 파일 대화 상자를 사용하며, 모델과 VAE 는 기존 Society 재고 목록을 사용합니다. 제어 편집은 적용을 무효화합니다. Figma 에서 표시된 예제 파일은 가짜 사용자 콘텐츠로 번들되지 않습니다. 제출 스냅샷은 QuickGenerate 와 별도로 추적됩니다. 고급 작업은 워크스페이스에 남아 실제 미리보기, 완료된 이미지 선택 및 오류를 표시합니다. 취소는 이 워크스페이스의 대기 중인 배치에만 영향을 미칩니다; 캔버스에서 열기 는 기존 CanvasEditor 경로를 사용합니다. '홈으로'로 돌아갈 때 초안도 삭제하지 않습니다. 작업 공간은 첫 이미지 선택 후에만 인스턴스화되고 이후 유지되며, 초기 홈/모바일 로딩은 대용량 매개변수 UI 를 생성하지 않습니다. 일시적으로 불완전한 숫자 텍스트는 입력된 문서가 마지막 유효한 값을 유지하는 동안 뷰에 그대로 남아 있습니다. 잘못된 입력은 Generate 와 preset Save 를 차단합니다; Reset/preset replacement 는 일관된 유효한 문서를 복원하고 오류를 지웁니다. 무효 입력 제출 메시지는 모든 일시적 입력이 유효해지면 한 번에 지워지지만, 백엔드 제출/작업 오류는 구별되어 유지되며 그 전이로 인해 지워지지 않습니다. LoRA 카드와 그 무게 조절은 수직으로 반복되는 그룹을 형성합니다.
 
-Verification on 2026-09-30: the new regression first failed on the original view
-because it constructed two controls (`build/add-control-red.log`). After the
-change, all four selected GUI behavior cases passed, including the retained
-workspace and canvas-streaming regressions (six passes including setup/cleanup;
-`build/add-control-gui-tests.log`). The parameter document suite passed 14/14
-including setup/cleanup (`build/add-control-parameter-tests.log`). The canonical
-app build and QML lint completed; lint retains an existing Main.qml dynamic
-`parameterPanel` property warning outside the changed component.
+<a id="optional-controlnet-panels"></a>
 
-The idle installed app was normally quit, updated from the canonical bundle and
-relaunched. Both bundles passed deep strict signature verification and their
-executables matched SHA-256
-`b1020b422802feba8418de365822afa749d1076d67b74020072ef2ae91a767f8`.
-Native UI observation confirmed no Control editor before addition, the LVRS Add
-control row with a plus icon, the expanded Control 1 editor after an actual click,
-and removal of that editor on Reset. Initial UI discovery timed out while the app
-was starting; subsequent native discovery and interactions succeeded. This is
-not a startup-performance improvement claim. The verification-only draft was
-reset and the installed app remains on the Image workspace at the Add row. No
-real-model inference was submitted for this UI change.
+### 옵션 ControlNet 패널
 
-### Generation canvas resolution and streaming
+Figma   [컨트롤 추가 /  `243:8784`](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=243-8784) 는 설치된  LVRS 네비게이션  ListItem :  `Add control` 에 구현되며, 앞쪽 아이콘이나 설명이 없고, 빈 값 슬롯과 기존  `generaladd` 뒤쪽 아이콘만 있습니다. 라이브러리의 기본 치수, 패딩, 타이포그래피 및 반경은 그대로 유지되며, 오직 구성 요소 속성과 부모 레이아웃만 구성됩니다.
 
-The Image workspace canvas uses the validated document's `width` and `height`
-even before an image exists. A single fit scale maps both pixel dimensions into
-the available viewport, preserving the ratio in square, portrait and landscape
-layouts and during window resize. The resolution caption reports document pixels;
-the display size is a zoomed fit, not a change to generated pixel dimensions.
-Invalid partial input keeps the last validated canvas, and Reset/preset loading
-updates the canvas through the same document binding.
+고급 뷰를 구성하는 것은 더 이상 예시 포즈/캐니 컨트롤을 생성하지 않습니다. 빈 문서는 컨트롤 편집기 없이 컨트롤 행을 표시합니다. 행에 명시적으로 클릭하면 안정된 ID 을 가진 적용되지 않은 `None` 초안을 하나 추가하고 파라미터 패널에 기존 확장 편집기를 내선으로 표시합니다. 그 이미지/모델, 프로세스, 가중치,  IP -어댑터, 마스크, 초기화 및 적용 동작은 변경되지 않습니다. 행은 추가를 위해 계속 사용 가능합니다. 사용자가 저장한 프리셋에서 복원된 컨트롤은 동일한 문서 컬렉션에서 표시됩니다. 마지막 항목을 재설정하거나 제거하면 편집기는 제거되지 않고 행만 지워집니다.
 
-The workspace captures its own accepted submission IDs. The app shell routes
-only quick recipes into the QuickGenerate result view; advanced recipes do not
-depend on the loader's transient submitting state for routing. Native and worker
-previews expose `GenerationController.previewJobId` with `previewImage`, clearing
-both at job completion/cancellation. The canvas shows a preview only when its
-active batch job owns that frame, then displays the completed Society image in
-the same surface. Earlier jobs streaming while this batch waits cannot appear
-in the canvas. Multiple outputs remain available through thumbnail selection.
-Width/height edits remain draft changes; accepted jobs retain their immutable
-submitted dimensions, and displayed images preserve their own aspect ratio.
+`advancedControlsAppearOnlyAfterAdd` 는 빈 뷰,  LVRS 행에 대한 실제 포인터 클릭,  402 ×  44 레이아웃,  1×, 확장 편집기, 독립적인 ID, 편집 손실 없이 축소/재개, 제거, 프리셋 복원 및 재설정을 확인합니다. 기존 선택기 회귀는 이제 뷰 구성의 부수 효과에 의존하지 않고 자체  픽스처 포즈/캐니를 명시적으로 추가합니다.  `DREAMSCAPES_ADD_CONTROL_CAPTURE` 를  PNG 경로로 설정하여 실제 추가 행을 포착합니다.
 
-`advancedCanvasMatchesResolutionAndStreamsItsBatch` checks empty-canvas geometry,
-resizes, Reset/preset binding, an unrelated queued job, every decoded preview of
-two consecutive jobs, completed PNG dimensions/selection and continued workspace
-visibility without opening the quick result screen. The protocol fixture performs
-no inference; real checkpoint throughput and quality are separate observations.
-Set `DREAMSCAPES_CANVAS_CAPTURE` to a PNG path for its final workspace capture.
+2026-09-30에서 확인: 새로운  회귀 는 원래 뷰에서 처음 실패했는데,  2 컨트롤 ( `build/add-control-red.log` )을 구성했기 때문입니다. 변경 후, 유지된 워크스페이스와 캔버스 스트리밍 회귀 테스트를 포함한 모든 선택된 4 행동 사례 GUI 가 통과했으며, 설정/정리 포함 6 회 통과 ( `build/add-control-gui-tests.log` ) 입니다. 파라미터 문서 스위트는 설정/정리 포함 14/14 통과했습니다 ( `build/add-control-parameter-tests.log` ). 정규 앱 빌드와 QML 린트가 완료되었으며, 린트는 변경된 컴포넌트 외부의 기존 Main.qml 동적 `parameterPanel` 속성 경고 를 유지합니다.
 
-Verification on 2026-09-30: the canonical macOS app, GUI and generation test
-targets built successfully. Preview ordering/failure/cancellation tests passed
-7/7 including setup/cleanup (`build/canvas-preview-backend-tests.log`). The GUI
-canvas streaming, retained-workspace and QuickGenerate streaming cases all passed,
-including per-frame rendered pixel checks for two outputs. The combined log is
-`build/advanced-canvas-gui-tests.log`; its separate packaged-startup case timed out
-before root-loaded, and the unchanged startup-only retry also timed out
-(`build/advanced-canvas-package-retry.log`). A child sample captured pre-main dyld
-library initialization (`build/advanced-canvas-package-child-sample.txt`). These
-startup deadline failures are retained, not counted as passing checks or a fixed
-startup-performance issue.
+비활성 설치된 앱은 정상적으로 종료되었고, 정규 번들로 업데이트되어 다시 시작되었습니다. 두 번들이 심층 엄격한 서명 검증에 모두 통과했으며, 실행 파일은 SHA-256 `b1020b422802feba8418de365822afa749d1076d67b74020072ef2ae91a767f8` 와 일치했습니다. 네이티브 UI 관찰은 추가 전 Control 에디터가 없음을 확인했으며, 플러스 아이콘과 함께 LVRS Control 행 추가, 실제 클릭 후 확장된 Control 1 에디터, 그리고 리셋 시 해당 에디터 제거를 확인했습니다. 초기 UI 발견은 앱 시작 중 시간 초과되었고, 이후 네이티브 발견 및 상호작용은 성공했습니다. 이는 시작 성능 개선 주장이 아닙니다. 검증 전용 초안은 리셋되었고, 설치된 앱은 Add 행에 있는 이미지 워크스페이스에 그대로 유지됩니다. 이 UI 변경에 대해 실제 모델 추론이 제출되지 않았습니다.
 
-The `/Applications/Dreamscapes.app` installation passed deep strict signature
-verification and matched the canonical executable SHA-256
-`ad076ed42d19958f257706a171971a236538f28658ffc92a593932b679a4f711`.
-It was then launched normally, and its native Image workspace visibly showed a
-square canvas matching both 1024px inputs and the 1024 × 1024 canvas caption.
-The app remains on the Image workspace. No additional real-checkpoint generation
-was submitted during verification; streamed-frame evidence uses the isolated
-process-protocol fixture, while native inference reuses the existing preview
-callback through the same job-tagged controller property.
+<a id="generation-canvas-resolution-and-streaming"></a>
 
-### Production QML registration
+### 생성 캔버스 해상도 및 스트리밍
 
-`Dreamscapes.Storage` is a static `NO_PLUGIN` QML module. Its public types are
-explicitly registered in `src/main.cpp`; the production list must include
-`AdvancedImageParameters`, not only `GenerationController` and file exporters.
-The source GUI test registers a derived fixture document, so its success alone
-cannot prove that the packaged app exposes the real document type.
+The generation canvas is centered horizontally and vertically in the left canvas region for every document aspect ratio. One fit scale preserves the requested dimensions, and the resolution caption follows the fitted surface. Parameter scrolling does not move its center. The regression covers square, 16:9, 9:16, portrait and landscape dimensions in wide, short and narrow windows; it also retains streamed and completed image checks. Set `DREAMSCAPES_CENTER_CAPTURE_DIR` to an existing directory under `build/` to capture the ratio variants.
 
-An isolated 2026-09-29 startup observation continued beyond the earlier timeout
-and reproduced a terminal QML error: `AdvancedImageParameters is not a type`,
-making `AdvancedGenerate`, `ImageGenerationWorkspace` and finally `Main`
-unavailable. `build/startup-observation-kUrQzm/app.log` retains the red evidence.
-The production registration now explicitly includes the parameter document.
-`packagedApplicationStarts` also stops discovery on an explicit root-load failure
-and reports that diagnostic separately from a missing completion marker. Its
-startup/discovery deadlines are unchanged. The rebuilt canonical bundle passed
-`packagedApplicationStarts`, followed by both advanced-document and workspace
-scroll/draft GUI regressions: five passes including setup/cleanup, no failures,
-14.892 seconds (`build/startup-registration-tests.log`). The package test uses
-the actual production entry point and bundled dependencies, checks root-loaded,
-one window and mutual helper discovery, and stops only its own child. Source
-fixtures are separate checks, not a substitute for this production registration
-test. This verifies the offscreen packaged startup, not installed-app replacement
-or real-model generation. Pre-main MLX/Torch initialization still exists; no
-general startup-performance claim is made from this passing run.
+이미지 워크스페이스 캔버스는 이미지가 존재하기 전에 검증된 문서의 `width` 와 `height` 를 사용합니다. 단일 적합 스케일은 사용 가능한 뷰포트 (뷰포트) 에 두 픽셀 차원을 모두 매핑하여, 정사각형, 초상형, 가로형 레이아웃 및 윈도우 크기 조정 중 비율을 유지합니다. 해상도 캡션은 문서 픽셀을 보고하며, 표시 크기는 생성된 픽셀 차원에 대한 변경이 아닌 확대 맞춤입니다. 무효인 부분 입력은 마지막 유효한 캔버스를 유지하며, 초기화/프리셋 로딩은 동일한 문서 바인딩을 통해 캔버스를 업데이트합니다.
 
-## Layers and API
+워크스페이스는 자신의 승인된 제출 ID 를 포착합니다. 앱 쉘은 QuickGenerate 결과 뷰로 오직 빠른 레시피만 라우팅하며, 고급 레시피는 라우팅을 위해 로더의 일시적인 제출 상태에 의존하지 않습니다. 네이티브 및 워커 미리보기는 `GenerationController.previewJobId` 와 `previewImage` 를 노출하며, 작업 완료/취소 시 둘 다 지웁니다. 캔버스는 해당 프레임을 소유한 활성 배치 작업이 있을 때만 미리보기를 표시한 후, 동일한 표면에서 완료된 Society 이미지를 표시합니다. 이 배치 대기 중 스트리밍된 이전 작업은 캔버스에 나타날 수 없습니다. 다중 출력은 썸네일 선택을 통해 계속 사용 가능합니다. 너비/높이 편집은 초안 변경으로 유지되며, 승인된 작업은 불변의 제출된 차원을 유지하고, 표시된 이미지는 자신의 가로세로 비율을 보존합니다.
 
-1. iiLocalDiffusion `Generation/ImageParameters.hpp`: Qt-free C++23 values,
-   parameter catalog, structural validation, and native capability checks.
-2. `ImageParameterCodec`: strict conversion at the QML/JSON boundary. Numeric
-   strings, booleans as integers, fractions as integers and unknown fields fail.
-3. `AdvancedImageParameters` (`Dreamscapes.Storage 1.0`): observable detached
-   parameter document, collection operations, atomic edits, and durable presets.
-4. `GenerationController::enqueueAdvanced(QVariantMap)`: validated snapshot into
-   the existing serial queue; never changes the selected model or QuickGenerate.
-5. `AdvancedImageOutput`: output color profile and metadata policy.
-6. `AdvancedImageInputs`: local reference decoding on the generation worker.
-   Submission canonicalizes local paths/file URLs (relative paths resolve in
-   Society Files) and checks readable image headers before publishing any jobs.
-   Worker decoding applies orientation, bounds each input to 2048 per side,
-   rejects sources over 64 megapixels, and produces tightly packed owned RGB.
-   It honors the runtime pause/cancellation boundary between decodes and commits
-   the whole list atomically. An already-running image decode finishes first.
-   File contents are read at worker start, not snapshotted as bytes at enqueue;
-   deleting or replacing a queued file can therefore fail/change that job.
-   The first reference initializes img2img; Image Strength controls denoising.
-   Editing models also receive all ordered references. Multiple images on a
-   model without multi-reference support fail explicitly, never drop inputs.
+`advancedCanvasMatchesResolutionAndStreamsItsBatch` 는 빈 캔버스 기하학, 리사이즈, 초기화/프리셋 바인딩, 관련 없는 대기 중인 작업, 2 연속 작업의 모든 디코딩된 미리보기, 완료된 PNG 차원/선택 및 빠른 결과 화면을 열지 않고 계속된 워크스페이스 가시성을 확인합니다. 프로토콜 픽스처 는 추론을 수행하지 않으며, 실제 체크포인트 처리량과 품질은 별개의 관찰입니다. `DREAMSCAPES_CANVAS_CAPTURE` 를 PNG 경로로 설정하여 최종 워크스페이스 포착을 수행합니다.
 
-Applied ControlNet Canny/Tile entries now use the native SD 1.5/SDXL route. Up to
-64 entries are supported; unapplied drafts remain editable and are never executed.
-Submission canonicalizes the model (Society Models-relative/local URL/absolute
-safetensors or GGUF) and hint image (Society Files-relative/local URL/absolute),
-validates headers, and rejects unavailable/remote inputs before publishing jobs.
-`AdvancedImageInputs` decodes the hint on the worker with the same bounds,
-orientation and atomic-commit rules as references. The SDK performs Canny edge
-detection or passes Tile RGB, then supplies the hint and [0,2] weight to actual
-ControlNet conditioning. The model joins runtime-resident anonymous weight
-storage and its identity is part of context caching. Changing only the hint or
-weight does not reload weights. Source bytes are read at worker start.
-Other detectors remain explicitly rejected; those controls are not simulated by
-passing unprocessed RGB. IP-Adapter has a separate raw-image conditioning route.
+2026-09-30에서 검증: 표준 macOS 앱, GUI 및 생성 테스트 대상이 성공적으로 빌드되었습니다. 미리보기 정렬/실패/취소 테스트는 7/7 를 통과했으며, 설정/정리 작업 ( `build/canvas-preview-backend-tests.log` ) 을 포함합니다. The GUI 캔버스 스트리밍, 유지된 워크스페이스 및 QuickGenerate 스트리밍 사례 모두 통과했으며, 2 출력에 대한 프레임별 렌더링된 픽셀 확인을 포함합니다. 결합된 로그는 `build/advanced-canvas-gui-tests.log` 입니다; 별도의 패키징 시작 사례는 루트 로딩 전에 시간 초과되었고, 변경되지 않은 시작 전용 재시도도 시간 초과되었습니다 ( `build/advanced-canvas-package-retry.log` ). 자식 샘플은 메인 dyd 라이브러리 초기화 전에 캡처되었습니다 ( `build/advanced-canvas-package-child-sample.txt` ). 이 시작 마감 시간 실패는 유지되며, 통과된 확인 사항으로 세거나 고정된 시작 성능 문제로 간주되지 않습니다.
 
-### Per-control IP-Adapter
+`/Applications/Dreamscapes.app` 설치에 대한 심층 엄격한 서명 검증이 통과되었고, 정통 실행 파일 SHA-256 `ad076ed42d19958f257706a171971a236538f28658ffc92a593932b679a4f711` 와 일치했습니다. 그런 다음 정상적으로 실행되었으며, 네이티브 이미지 워크스페이스는 1024px 입력과 1024 × 1024 캔버스 캡션과 일치하는 사각형 캔버스를 명확히 보여주었습니다. 앱은 이미지 워크스페이스에 계속 유지됩니다. 검증 중에 추가 실제 체크포인트 생성이 제출되지 않았습니다; 스트리밍 프레임 증거는 격리된 프로토콜 픽스처 를 사용하며, 네이티브 추론은 동일한 작업 태그 컨트롤러 속성을 통해 기존 미리보기 콜백을 재사용합니다.
 
-The existing LVRS IP-Adapter toggle selects local adapter weights followed by
-CLIP vision weights. Only acceptance of both files commits enabled state and
-`ipAdapterModel`/`ipAdapterVision` together. Cancel at either stage leaves the
-previous document unchanged. Disable retains both paths; disable/re-enable
-permits replacement. The existing row/layout and LVRS styling are preserved.
+<a id="production-qml-registration"></a>
 
-Apply with process `IP-Adapter` or `None` plus the IP toggle performs image
-conditioning without requiring a ControlNet checkpoint. With `Canny` or `Tile`,
-both kinds of conditioning execute independently. The reference RGB goes to
-IP-Adapter before any Canny preprocessing, and the row's [0,2] weight and optional
-regional mask apply independently to both branches. A different detector is not
-silently bypassed just because IP is enabled. Editing invalidates Apply.
+### 생산 QML 등록
 
-Submission requires both selected IP weight sources, accepts local URLs,
-absolute paths and Society Models-relative safetensors/GGUF files, canonicalizes
-them in the immutable snapshot and rejects missing/remote resources before any
-job is created. Disabled IP paths are retained but not read/validated. The worker
-decodes all applied images/masks atomically; failure cannot replace just one of
-the ControlNet/IP input vectors. Unsupported old preset effects remain editable;
-old presets without the additive IP fields get empty defaults and must select
-resources before active IP can be submitted.
+`Dreamscapes.Storage` 는 정적 `NO_PLUGIN` QML 모듈입니다. 공개 타입은 `src/main.cpp` 에 명시적으로 등록되어 있으며, 프로덕션 목록에는 `AdvancedImageParameters` 뿐만 아니라 `GenerationController` 와 파일 익스포터가 포함되어야 합니다. 소스 GUI 테스트는 파생 픽스처 문서를 등록하므로, 성공만으로는 패키징된 앱이 실제 문서 타입을 노출한다는 것을 증명할 수 없습니다.
 
-The SDK prepares ordered adapter/vision slots in anonymous model memory, uses
-the same image and mask bounds as ControlNet, checks SD 1.5/SDXL architecture,
-and rejects any resource/preparation failure instead of publishing an image
-without the condition. Input edits reuse resources. Turning all IP inputs off
-retains their context when the Base/other resource identity is unchanged;
-legacy resident requests also explicitly clear IP inputs. Re-enabling checks
-both adapter and vision file identities. Source replacement during inference
-invalidates the result. This is source/API and fixture-test evidence, not yet
-an installed-app or real-checkpoint image-quality/performance claim.
+격리된 2026-09-29 시작 관찰은 이전 시간 초과를 넘어 계속되었으며, 터미널 QML 오류를 재현했습니다: `AdvancedImageParameters is not a type` , 이로 인해 `AdvancedGenerate` , `ImageGenerationWorkspace` 그리고 마지막으로 `Main` 가 사용 불가능해졌습니다. `build/startup-observation-kUrQzm/app.log` 는 붉은 증거를 유지합니다. 생산 등록에 이제 명시적으로 매개변수 문서가 포함됩니다. `packagedApplicationStarts` 또한 명시적인 루트 로딩 실패 시 발견을 중지하고 누락된 완료 마커와 별도로 해당 진단을 보고합니다. 시작/발견 마감일은 변경되지 않았습니다. 다시 빌드된 표준 번들이 `packagedApplicationStarts` 를 통과한 후, 고급 문서 및 워크스페이스 스크롤/초안 GUI 회귀가 발생했습니다: 5 회의 설정/정리 포함 통과, 실패 없음, 14.892 초 ( `build/startup-registration-tests.log` ). 패키지 테스트는 실제 프로덕션 진입점 및 번들된 의존성을 사용하며, 루트 로딩, 하나의 창 및 상호 보조 도구 발견을 확인하고, 오직 자신의 자식만 중지합니다. 소스 픽스처 는 별도의 확인 사항이며, 이 프로덕션 등록 테스트의 대용이 아닙니다. 이것은 오프스크린 패키징 시작을 확인하며, 설치된 앱 교체 또는 실제 모델 생성을 확인하지 않습니다. 메인 전 MLX / Torch 초기화는 여전히 존재하며, 이 통과 실행에서 일반적인 시작 성능 주장은 제기되지 않습니다.
 
-Detailer crop regeneration clears whole-image IP/ControlNet inputs and regional
-masks before inference, retaining model resources. The next request restores
-its own inputs. This prevents applying normalized whole-image masks to unrelated
-crop coordinates; a combined IP + multiple ControlNets + Detailer regression
-covers both isolation and subsequent warm reuse.
+<a id="layers-and-api"></a>
 
-Verification (2026-09-29): SDK 22/22 selected suites passed in 32.42 seconds;
-product AdvancedParameters/Generation passed 2/2 in 44.01 seconds (12 and 61
-cases respectively, two optional real-model cases skipped). Focused existing-view
-regressions passed both cases, including picker cancellation and independent
-workspace scrolling. Logs are `build/ip-forward-final-product-tests.log` and
-`build/ip-forward-final-gui-tests.log`. Source-view verification is not a claim
-that the installed app was updated. The earlier watchdog failure is retained
-in `build/ip-forward-product-tests.log`; its unchanged rerun passing does not
-establish that its timing sensitivity was fixed.
+## 레이어 및 API
 
-All applied entries are decoded in order and committed atomically: a bad image
-or mask in a later entry cannot leave a partially replaced list. Every selected
-model is prepared in resident memory before sampling. Each produces independent
-residuals, multiplied by its own resized mask and [0,2] weight, then summed without
-averaging. The UNet receives this sum with strength 1; no entry's weight is applied
-twice. Hires resizes all hints independently, and Base controls do not execute on
-Refiner steps. Failure/cancellation in any model aborts the request rather than
-generating with a successful subset. Input edits reuse weights; replacement of
-any selected model invalidates the cached context. Model resources survive
-end-of-pass scratch cleanup. Existing row editing/apply contracts are unchanged.
+1. iiLocalDiffusion `Generation/ImageParameters.hpp` : Qt - 무료 C++23 값, 파라미터 카탈로그, 구조 검증 및 네이티브 능력 검사.
+2. `ImageParameterCodec` : QML / JSON 경계에서 엄격한 변환. 숫자 문자열, 불리언을 정수로, 분수를 정수로, 그리고 알 수 없는 필드가 실패합니다.
+3. `AdvancedImageParameters` ( `Dreamscapes.Storage 1.0` ): 관찰 가능한 분리형 파라미터 문서, 컬렉션 작업, 원자 편집 및 내구성 프리셋.
+4. `GenerationController::enqueueAdvanced(QVariantMap)` : 검증된 스냅샷을 기존 시리얼 큐에 입력합니다; 선택된 모델이나 QuickGenerate는 절대 변경하지 않습니다.
+5. `AdvancedImageOutput`: 출력 색상 프로필 및 메타데이터 정책.
+6. `AdvancedImageInputs` : 생성 작업자에서의 로컬 참조 디코딩. 제출은 로컬 경로/파일 URL 을 정규화하며 (상대 경로는 Society 파일에서 해결됨), 모든 작업을 게시하기 전에 읽을 수 있는 이미지 헤더를 확인합니다. 작업자 디코딩은 방향성을 적용하고 각 입력을 2048 측면마다 제한하며, 64 메가픽셀을 초과하는 소스를 거부하고 밀집된 소유 RGB 를 생성합니다. 그것은 디코드와 커밋 사이의 런타임 일시 중지/취소 경계를 존중하며 전체 목록을 원자적으로 커밋합니다. 이미 실행 중인 이미지 디코딩이 먼저 완료됩니다. 파일 내용은 작업자 시작 시점에 읽히며, 대기열에 추가할 때 바이트로 스냅샷으로 저장되지 않습니다. 따라서 대기열에 있는 파일을 삭제하거나 교체하면 해당 작업이 실패하거나 변경될 수 있습니다. 이미 초기화된 참조는 img2img 를 초기화하며, 이미지 강도가 노이즈 제거를 제어합니다. 모델 편집도 모든 순서 참조를 받습니다. 다중 참조 지원이 없는 모델에 여러 이미지가 있으면 명시적으로 실패하며, 입력을 떨어뜨리지 않습니다.
 
-The existing regional-mask toggle and source picker now execute on the supported
-Canny/Tile ControlNet. Applying requires a mask source; submission canonicalizes
-it as a local image with the same 64-megapixel safety bound before creating jobs.
-Worker decoding retains orientation and limits each side to 2048. RGB luminance
-multiplied by alpha becomes grayscale coverage, rounded to 8 bits. Mask decode
-failure/cancellation cannot commit a partial replacement. Disabled masks retain
-their saved path but neither validate nor read it during execution.
+적용된 ControlNet Canny/Tile 항목은 이제 네이티브 SD 1.5/SDXL 라우트를 사용합니다. 64 개 항목까지 지원되며, 적용되지 않은 초안은 편집 가능하며 절대 실행되지 않습니다. 제출은 모델을 표준화하며 ( Society 모델-로컬 URL /절대 safetensors 또는 GGUF ) 힌트 이미지 ( Society 파일-로컬 URL /절대) 를 확인하고, 작업 제출 전에 사용 불가능/원격 입력을 거부합니다. `AdvancedImageInputs` 는 참조와 동일한 범위, 방향 및 원자 커밋 규칙을 가진 워커에서 힌트를 디코딩합니다. SDK 는 Canny 에지 검출을 수행하거나 Tile RGB 를 전달한 다음 힌트와 [0,2] 가중치를 실제 ControlNet 조건화에 공급합니다. 모델은 런타임 -거주 익명 가중치 저장소와 연결되며, 그 정체성은 컨텍스트 캐싱의 일부입니다. 힌트나 가중치만 변경하면 가중치를 다시 로드하지 않습니다. 소스 바이트는 작업자 시작 시 읽힙니다. 다른 검출기는 명시적으로 거부되며, 처리되지 않은 RGB 를 전달함으로써 시뮬레이션되지 않습니다. IP -어댑터는 별도의 원본 이미지 조건화 경로를 가집니다.
 
-The native engine multiplies ControlNet residuals by resized coverage: white
-applies, black excludes, gray/transparency attenuate. This is regional control
-influence, not a promise of unchanged output pixels outside the region. Masks
-follow normalized image coordinates at each base/Hires resolution. The original
-hint and final output dimensions remain unchanged. Replacing or disabling a mask
-does not reload model weights; each request resets cached mask state.
+<a id="per-control-ip-adapter"></a>
 
-Textual embeddings use an LVRS selector with None, the selected file, and Choose
-file. The file dialog accepts local safetensors/GGUF weights. Submission resolves
-file URLs, absolute paths or Society Models-relative paths and rejects missing,
-remote, empty, unsupported-format or over-100-MiB files before adding jobs.
-The snapshot stores its canonical source. Its native token is `user_` plus the
-lowercase file stem (characters outside ASCII letters, digits and underscore become `_`,
-stem limited to 100 characters). The token is appended to positive conditioning
-unless already explicitly present in either prompt; placing it in the negative
-prompt applies it there instead. Presets retain selection without copying weights.
-The native encoder validates actual compatibility before sampling; a selectable
-weight file is not a promise that every model supports textual inversion.
-Prompt weighting off preserves the literal prompt instead of interpreting its
-weight syntax; toggling does not rebuild a warm model context.
+### 제어별 IP-어댑터
 
-The FreeU toggle is now forwarded to native UNet generation. It amplifies the
-first half of backbone channels and frequency-filters skip features in the first
-two decoder stages, using the SDK's documented SD 1.5/SD 2/SDXL profiles. It composes
-with ControlNet residuals and Hires without changing the separate QuickGenerate
-draft. Each request reapplies enabled/disabled state so a cached context cannot
-leak the option into legacy generation. Unsupported model architectures fail
-before sampling rather than ignoring the toggle. No extra model is downloaded.
-The numerical CPU kernel may introduce CPU/GPU transfers; this is not a promise
-of faster inference or improved quality for every checkpoint.
+기존 LVRS IP -어댑터 토글은 로컬 어댑터 가중치를 선택한 다음 CLIP 비전 가중치를 선택합니다. 두 파일 모두 수락해야 활성화 상태와 `ipAdapterModel` / `ipAdapterVision` 가 함께 커밋됩니다. 어느 단계에서든 취소하면 이전 문서가 변경되지 않습니다. 비활성화는 두 경로를 모두 유지하며, 비활성화/재활성화는 대체를 허용합니다. 기존 행/레이아웃과 LVRS 스타일링은 보존됩니다.
 
-The existing Upscaler selector now supports learned `4× Ultra`. Choosing it opens
-a local safetensors/GGUF weight picker; accepting atomically stores `upscaler` and
-`upscalerModel`, while cancelling preserves both prior values. Choose weights
-allows replacement without adding another panel row. Presets retain the source;
-switching to a pixel mode or disabling Hires retains but does not load it.
-Submission validates/canonicalizes the active source before publishing jobs.
-The SDK validates real 4x ESRGAN compatibility and prepares anonymous-memory
-weights before base generation, reusing the cached runner on repeated requests.
-Load/inference failure is explicit, never replaced by pixel interpolation.
-The submitted output dimensions remain unchanged: learned 4x intermediate
-upscaling is fitted to the Hires canvas before the selected refinement pass.
-No checkpoint is downloaded and no particular commercial/model brand is implied.
+`IP-Adapter` 프로세스 또는 `None` 플러스 IP 토글을 적용하면 ControlNet 체크포인트 없이 이미지 조건화를 수행합니다. `Canny` 또는 `Tile` 로 설정하면 두 가지 종류의 조건화가 독립적으로 실행됩니다. 참고 RGB 는 Canny 전처리 전에 IP -어댑터로 이동하며, 행의 [0,2] 가중치와 선택적 지역 마스크는 두 가지 분기에 독립적으로 적용됩니다. IP 가 활성화되어도 다른 검출기는 아무런 알림 없이 우회되지 않습니다. 무효 편집은 적용을 무효화합니다.
 
-Enabling Detailer opens a local converted-YOLOv8 detector picker in the existing
-LVRS toggle row. Accept commits enabled state and `detailerModel` together;
-cancelling preserves the previous state. Disabling retains the source without
-loading it; enabling again permits model replacement. Presets persist both fields.
-The same local-weight validation used by learned upscaling canonicalizes the
-active detector before any job is created. Raw `.pt`/pickle files are not accepted.
+제출은 선택된 IP 중량 소스 모두를 필요로 하며, 로컬 URL, 절대 경로 및 Society 모델 - safetensors / GGUF 파일을 허용하며, 불변 스냅샷에서 이를 정규화한 후 작업 생성 전에 누락된/원격 리소스를 거부합니다. 비활성화된 IP 경로는 유지되지만 읽거나 검증되지 않습니다. 워커는 모든 적용된 이미지/마스크를 원자적으로 디코딩하며, ControlNet / IP 입력 벡터 중 하나만 대체할 수 없습니다. 지원되지 않는 오래된 프리셋 효과는 편집 가능하게 유지되며, 추가 IP 필드가 없는 오래된 프리셋은 빈 기본값을 얻고 활성 IP 을 제출하기 전에 리소스를 선택해야 합니다.
 
-The native detector is prepared in anonymous memory before base generation and
-retained in the runtime cache. After base/Hires generation it detects regions,
-creates masks, regenerates 512x512 crops using the main conditioning and submitted
-Denoise strength, and feathers them back into the full image. Whole-image
-references/ControlNet hints/Hires are not reapplied to the crops. No detections is
-a successful unchanged image, but detection/inpainting failure or cancellation
-cannot silently publish the base image. Cropped previews are suppressed rather
-than shown as if they were the whole canvas. Final output dimensions are preserved.
+SDK 는 익명 모델 메모리에서 정렬된 어댑터/비전 슬롯을 준비하며, ControlNet 와 동일한 이미지 및 마스크 경계를 사용하고, SD 1.5/SDXL 아키텍처를 확인하며, 조건 없이 이미지를 게시하는 대신 모든 리소스/준비 실패를 거부합니다. 입력 편집은 리소스를 재사용합니다. 모든 IP 입력을 끄는 것은 기본/다른 리소스 정체성이 변경되지 않을 때 그 컨텍스트를 유지하며, 레지던트 요청도 명시적으로 IP 입력을 지웁니다. 재활성화는 어댑터와 파일 정체성 모두를 확인합니다. 추론 중의 소스 교체는 결과를 무효화합니다. 이는 소스/ API 및 픽스처 -테스트 증거이며, 설치된 앱이나 실제 체크포인트 이미지 품질/성능 주장이 아닙니다.
 
-Refiner controls are also available through the document API:
-`updateParameters({{"refiner", true}, {"refinerSwitch", 0.8},
-{"refinerModel", "Refiner/sdxl-refiner.safetensors"}})`.
-Presets persist all three values. Submission accepts Society Models-relative paths,
-absolute paths or local file URLs and canonicalizes a nonempty safetensors/GGUF
-source before adding jobs. Remote/missing sources fail atomically. Generation
-forwards the immutable snapshot to the SDK's same-latent SDXL Refiner route.
-The SDK checks actual architecture, requires the Refiner bigG encoder, prepares
-the model in runtime-owned anonymous memory before sampling, and reuses it across
-switch changes and inactive requests. Explicit release and existing native failure
-cleanup govern context disposal. The raw user negative prompt is separate from
-Base-only automatic embeddings. Selected explicit embeddings must fit both encoders.
-The process worker remains unsupported.
+Detailer 크롭 재생성은 모델 리소스를 유지하면서 추론 전에 전체 이미지의 IP/ControlNet 입력과 영역 마스크를 비운다. 다음 요청은 자신의 입력을 복원한다. 이 동작은 정규화된 전체 이미지 마스크가 무관한 크롭 좌표에 적용되는 것을 막는다. IP + 다중 ControlNets + Detailer의 결합 회귀 검사는 입력 격리와 이후 준비된 상태의 재사용을 모두 다룬다.
 
-The Figma Enhancement Refiner row now uses the existing LVRS Toggle contract to
-open a local safetensors/GGUF checkpoint picker. Acceptance commits enabled state
-and source atomically, cancellation preserves the prior pair, and disabling
-retains the source. Disable/re-enable permits replacement. This does not add
-rows, override LVRS styling, or modify the Figma source. Tests cover the accepted
-signal, initial selection, replacement, disable/cancel, and checked-state binding.
-The source-workspace screenshot capture is `DREAMSCAPES_REFINER_CAPTURE`.
-Source UI tests do not establish installed-app behavior or full-model inference.
+검증(2026-09-29): SDK의 선택된 테스트 모음 22/22가 32.42초에 통과하였다. 제품 AdvancedParameters/Generation은 44.01초에 2/2를 통과하였다(각각 12개 및 61개 사례이며 선택적 실제 모델 사례 2개는 건너뛰었다). 기존 뷰의 집중 회귀 검사는 선택기 취소와 독립 작업 공간 스크롤을 포함한 두 사례 모두 통과하였다. 로그는 `build/ip-forward-final-product-tests.log`와 `build/ip-forward-final-gui-tests.log`이다. 소스 뷰 검증은 설치된 앱이 갱신되었다는 주장이 아니다. 이전 watchdog 실패는 `build/ip-forward-product-tests.log`에 보존하였다. 변경 없이 다시 실행하여 통과했다는 사실은 시간 민감성이 해결되었음을 입증하지 않는다.
 
-Example C++ usage (the equivalent methods are QML-invokable):
+모든 적용된 항목은 순서대로 디코딩되어 원자적으로 커밋됩니다: 후속 항목의 나쁜 이미지나 마스크는 부분적으로 교체된 목록을 남길 수 없습니다. 각 선택된 모델은 샘플링 전에 주거 메모리에 준비됩니다. 각각은 독립적인 잔차를 생성하며, 자신의 리사이즈된 마스크와 [0,2] 가중치를 곱한 후 평균 없이 합산합니다. UNet 는 이 합을 1 강도로 받습니다; 어떤 항목의 가중치도 두 번 적용되지 않습니다. Hires 는 모든 힌트를 독립적으로 리사이즈하며, Base 컨트롤은 Refiner 단계에서 실행되지 않습니다. 어떤 모델에서의 실패/취소는 성공적인 부분집합으로 생성하는 대신 요청을 중단시킵니다. 입력 편집은 가중치를 재사용하며, 선택된 모델의 교체는 캐시된 컨텍스트를 무효화합니다. 모델 리소스는 패스 종료 시 스크래치 정리 후에도 유지됩니다. 기존 행 편집/적용 계약은 변경되지 않습니다.
+
+기존 지역 마스크 토글 및 소스 선택기는 이제 지원되는 Canny/Tile ControlNet 에서 실행됩니다. 적용에는 마스크 소스가 필요하며, 작업 생성 전에 동일한 64메가픽셀 안전 한계를 갖는 로컬 이미지로 정형화합니다. 워커 디코딩은 방향성을 유지하며 각 변을 2048로 제한합니다. RGB 휘도 값에 알파를 곱한 값이 회색조 커버리지가 되며, 8 비트로 반올림됩니다. 마스크 디코딩 실패/취소는 부분적 교체를 확정할 수 없습니다. 비활성화된 마스크는 저장된 경로를 유지하지만 실행 중에는 검증하거나 읽지 않습니다.
+
+네이티브 엔진은 ControlNet 잔차 값을 리사이즈된 커버리지를 곱합니다: 흰색은 적용되고, 검은색은 제외되며, 회색/투명성은 감쇠됩니다. 이는 지역 제어 영향이며, 지역 바깥의 출력 픽셀이 변경되지 않을 것이라는 약속이 아닙니다. 마스크는 각 기본/고해상도에서 정규화된 이미지 좌표를 따릅니다. 원래 힌트와 최종 출력 차원은 변경되지 않습니다. 마스크를 교체하거나 비활성화하면 모델 가중치를 다시 로드하지 않으며, 각 요청은 캐시된 마스크 상태를 초기화합니다.
+
+텍스트 임베딩은 None, 선택된 파일, 파일 선택 중 하나를 선택하는 LVRS 선택기를 사용합니다. 파일 대화 상자는 로컬 safetensors / GGUF 가중치를 허용합니다. 제출은 파일 URL, 절대 경로 또는 Society 모델 경로 를 해결하고, 추가하기 전에 누락된, 원격의, 빈, 지원되지 않는 형식 또는100-MiB 파일 을 거부합니다. 스냅샷은 표준 소스를 저장합니다. 그의 네이티브 토큰은 `user_` 소문자 파일 스템 ( ASCII 문자, 숫자 및 밑줄을 제외한 문자는 `_` 로 변환되며, 스템은 100 문자로 제한됨) 입니다. 토큰은 이미 프롬프트에 명시적으로 존재하지 않는 한 양의 조건부 설정에 추가되며, 음의 프롬프트에 배치하면 해당 위치에 적용됩니다. 프리셋은 가중치를 복사하지 않고 선택 상태를 유지합니다. 네이티브 인코더는 샘플링 전에 실제 호환성을 검증하며, 선택 가능한 가중치 파일이 모든 모델이 텍스트 인버전을 지원한다는 약속이 아닙니다. 프롬프트 가중치 끄기는 그 가중치 구문을 해석하는 대신 문자 그대로의 프롬프트를 유지하며, 토글하면 온난 모델 컨텍스트를 다시 구축하지 않습니다.
+
+FreeU 토글은 이제 네이티브 UNet 생성으로 전달됩니다. 그것은 백본 채널의 첫 번째 절반을 증폭시키고, 첫 2 디코더 단계에서 주파수 필터링을 통해 스킵 기능을 유지하며, SDK 의 문서화된 SD 1.5/SD 2/SDXL 프로파일을 사용합니다. 그것은 ControlNet 잔여값과 Hires 와 함께 구성되지만 별도의 QuickGenerate 초안을 변경하지 않습니다. 각 요청은 활성화/비활성화 상태를 다시 적용하여 캐시된 컨텍스트가 옵션을 레전디 생성으로 누출할 수 없습니다. 지원되지 않는 모델 아키텍처는 샘플링 전에 토글을 무시하는 대신 안전하게 거부됩니다. 추가 모델이 다운로드되지 않습니다. 수치 CPU 커널은 CPU / GPU 전송을 도입할 수 있으며, 이는 모든 체크포인트에 대한 더 빠른 추론 또는 향상된 품질의 약속이 아닙니다.
+
+기존 업스케일러 선택기는 학습된 `4× Ultra` 를 지원하도록 업데이트되었습니다. 선택하면 로컬 safetensors / GGUF 가중치 선택기가 열리며, 수락하면 원자적으로 `upscaler` 와 `upscalerModel` 를 저장하고, 취소하면 두 이전 값이 모두 보존됩니다. 가중치 선택은 다른 패널 행을 추가하지 않고 대체할 수 있습니다. 프리셋은 소스를 유지하며, 픽셀 모드로 전환하거나 Hires 를 비활성화하면 유지되지만 로드하지는 않습니다. 제출은 작업을 게시하기 전에 활성 소스를 유효성 검사/정규화합니다. SDK 는 실제 4x ESRGAN 호환성을 유효성 검사하고 기본 생성 전에 익명 메모리 가중치를 준비하며, 반복 요청 시 캐시된 러너를 재사용합니다. 로드/추론 실패는 명시적이며, 픽셀 보간으로 대체되지 않습니다. 제출된 출력 차원은 변경되지 않으며, 학습된 4x 중간 업스케일링은 선택된 개선 패스 전에 Hires 캔버스에 맞춤됩니다. 체크포인트가 다운로드되지 않으며, 특정 상업적/모델 브랜드가 암시되지 않습니다.
+
+디테일러를 활성화하면 기존 LVRS 토글 행에 로컬 변환된 YOLOv8 탐지기 선택기가 열립니다. 수신 커밋 활성화 상태와 `detailerModel` 를 함께 적용하며, 취소는 이전 상태를 유지합니다. 비활성화는 소스를 로드하지 않고 유지합니다; 다시 활성화하면 모델 대체를 허용합니다. 프리셋은 두 필드를 모두 지속합니다. 학습된 업스케일링에 사용되는 동일한 로컬 가중치 검증은 작업이 생성되기 전에 활성 탐지기를 표준화합니다. 원본 `.pt` /pickle 파일은 허용되지 않습니다.
+
+기본 탐지기는 기본 생성 전에 익명 메모리에 준비되어 런타임 캐시에 유지됩니다. 기본/Hires 생성 후 영역을 감지하고, 마스크를 생성하며, 주요 조건부 설정과 제출된 노이즈 강도를 사용하여 512x512 컷을 재생성한 다음 전체 이미지로 부드럽게 합칩니다. 전체 이미지 참조/ ControlNet 힌트/Hires 는 컷에 다시 적용되지 않습니다. 탐지 없음은 성공적인 변경되지 않은 이미지이지만, 탐지/인페인팅 실패 또는 취소는 기본 이미지를 아무런 알림 없이 게시할 수 없습니다. 컷 미리보기는 전체 캔버스인 것처럼 표시되는 대신 숨겨집니다. 최종 출력 차원은 유지됩니다.
+
+정제기 제어는 문서 API를 통해서도 사용할 수 있습니다: `updateParameters({{"refiner", true}, {"refinerSwitch", 0.8},
+{"refinerModel", "Refiner/sdxl-refiner.safetensors"}})`. 프리셋은 모든  3  값을 유지합니다. 제출은  Society  모델 경로, 절대 경로 또는 로컬 파일 URL 을 허용하며 비어 있지 않은  safetensors / GGUF  소스를 정규화한 후 작업을 추가합니다. 원격/누락된 소스는 원자적으로 실패합니다. 생성은 불변 스냅샷을  SDK 의 동일한 잠재  SDXL 리파이너 라우트로 전달합니다. SDK 는 실제 아키텍처를 확인하고 리파이너  bigG 인코더를 요구하며 샘플링 전에  런타임 소유 익명 메모리에 모델을 준비한 다음 스위치 변경 및 비활성 요청을 가로지러 재사용합니다. 명시적 릴리스 및 기존 네이티브 실패 정리는 컨텍스트 처분을 지배합니다. 명시적 부정 프롬프트는 베이스 전용 자동 임베딩과 분리됩니다. 선택된 명시적 임베딩은 두 인코더 모두에 맞아야 합니다. 프로세스 작업자는 지원되지 않습니다.
+
+Figma 향상 리파이너 행은 기존  LVRS 토글 계약을 사용하여 로컬  safetensors / GGUF 체크포인트 선택기를 엽니다. 수용은 활성화 상태를 원자적으로 커밋하고 취소는 이전 쌍을 보존하며 비활성화는 소스를 유지합니다. 허용을 비활성화/재활성화하여 대체할 수 있습니다. 이는 행을 추가하거나, LVRS 스타일을 덮어쓰거나, Figma 소스를 수정하지 않습니다. 테스트는 허용된 신호, 초기 선택, 대체, 비활성화/취소, 그리고 체크 상태 바인딩을 모두 다룹니다. 소스 작업 공간 스크린샷 캡처는 `DREAMSCAPES_REFINER_CAPTURE` 입니다. 소스 UI 테스트는 설치된 앱 동작이나 전체 모델 추론을 확립하지 않습니다.
+
+C++ 사용 예(동등한 방법은 QML 호출 가능):
 
 ```cpp
 AdvancedImageParameters draft;
@@ -414,128 +136,47 @@ const auto errors = draft.submissionIssues(/*desktopWorker=*/false);
 if (errors.isEmpty()) generationController.enqueueAdvanced(draft.parameters());
 ```
 
-`parameters` is a value snapshot, not a mutable shared map. Use
-`updateParameters(patch)` to edit one or several fields together. All edits are
-validated before publication; invalid patches preserve the entire previous draft.
-`parametersChanged` is emitted only for effective changes. `schema` exposes the
-scalar catalog. `reset()` restores defaults and empties all collections, without
-deleting saved presets. `errorString` reports rejected operations.
+`parameters` 는 변경 가능한 공유 맵이 아닌 값 스냅샷입니다. `updateParameters(patch)` 를 사용하여 하나 또는 여러 필드를 함께 편집합니다. 모든 편집은 게시 전에 검증되며, 무효 패치는 이전 초안을 그대로 보존합니다. `parametersChanged` 는 유효한 변경 사항에만만 방출됩니다. `schema` 는 스칼라 카탈로그를 노출합니다. `reset()` 는 기본값을 복원하고 모든 컬렉션을 비우지만 저장된 프리셋은 삭제하지 않습니다. `errorString` 는 거부된 작업을 보고합니다.
 
-Collection API:
+컬렉션 API:
 
-- `addReferenceImage(source)`, `removeReferenceImage(index)` (maximum 20).
-- `addControlNet(process)` returns a stable ID; `updateControlNet(id, patch)`,
-  `applyControlNet(id)`, `resetControlNet(id)`, `removeControlNet(id)`.
-  Effective edits invalidate applied state. Empty patches and unchanged typed
-  values retain Apply and emit no `parametersChanged` signal; invalid patches
-  preserve the entire document. Numeric `1` and `1.0` are equivalent weights,
-  but bool/number coercion is rejected. Removing a required source is permitted
-  as a draft edit and requires re-Apply after correcting it.
-  Apply requires an image and a ControlNet
-  model/process or IP-only mode, and an actual mask source when masking is selected.
-  Submission additionally requires the active IP model/vision pair. Reset clears settings and sources,
-  retaining the row ID. Control-only view expansion is deliberately not stored.
-- `addLora(source, name)` returns an ID; `updateLora(id, patch)`, `removeLora(id)`.
-  Signed weights [-4,4] and zero remain actual values, not missing values.
+- `addReferenceImage(source)`, `removeReferenceImage(index)`(최대 20).
+- `addControlNet(process)` 는 안정적인 ID 를 반환하며, `updateControlNet(id, patch)`, `applyControlNet(id)`, `resetControlNet(id)`, `removeControlNet(id)` 입니다. 유효한 편집은 적용된 상태를 무효화합니다. 빈 패치와 변경되지 않은 타입화된 값은 Apply 를 유지하고 `parametersChanged` 신호를 발생시키지 않으며, 유효하지 않은 패치는 전체 문서를 유지합니다. 숫자 `1` 와 `1.0` 는 동등한 가중치이지만, bool/number 강제 변환은 거부됩니다. 필수 소스를 제거하는 것은 초안 편집으로 허용되며, 이를 수정한 후 다시 Apply 를 수행해야 합니다. Apply 는 이미지와 ControlNet 모델/프로세스 또는 IP 전용 모드가 필요하며, 마스킹이 선택된 경우 실제 마스킹 소스가 필요합니다. 제출은 추가로 활성 IP 모델/시각 쌍이 필요합니다. 리셋은 설정과 소스를 지우며, ID 행을 유지합니다. 제어 전용 뷰 확장 은 의도적으로 저장되지 않습니다.
+- `addLora(source, name)`는 ID ; `updateLora(id, patch)` , `removeLora(id)` 를 반환합니다. 서명된 가중치 [-4,4] 및 0는 누락된 값이 아니라 실제 값을 유지합니다.
 
-The scalar fields and native limitations are listed in the SDK's
-`docs/image-parameters.md`. All Figma parameter groups can be edited, validated,
-reset and saved even when the current engine does not execute their algorithms.
+스칼라 필드와 네이티브 제한 사항은 SDK의 `docs/image-parameters.md`에 나열되어 있습니다. 모든 Figma 매개변수 그룹은 현재 엔진이 해당 알고리즘을 실행하지 않는 경우에도 편집, 검증, 재설정 및 저장할 수 있습니다.
 
-## Preset storage
+<a id="preset-storage"></a>
 
-Presets contain the complete document, including collection weights and inactive
-values, not just a display name. `savePreset(name)` creates/replaces by trimmed
-name; `loadPreset(name)` replaces the full draft; `removePreset(name)` removes only
-that preset. Names are 1–100 characters; maximum 100 presets / 8 MiB.
+## 프리셋 저장
 
-Storage is `QStandardPaths::AppDataLocation/advanced-image-presets.json`, versioned
-as `{schemaVersion:1,presets:{name:parameters}}`. Writes use `QLockFile` plus
-`QSaveFile`. Each mutation re-reads under the lock, so a second editor's unrelated
-presets are preserved. Invalid/newer/corrupt files and write failures never replace
-the previous draft or overwrite the invalid file. Tests inject paths below `build/`.
+프리셋은 컬렉션 가중치와 비활성화된 값뿐만 아니라 전체 문서를 포함합니다. `savePreset(name)` 는 잘린 이름으로 생성/대체하며, `loadPreset(name)` 는 전체 초안을 대체하고, `removePreset(name)` 는 해당 프리셋만 제거합니다. 이름은 1 – 100 자이며, 최대 100 개의 프리셋 / 8 MiB 입니다.
 
-## Generation behavior
+저장소는 `QStandardPaths::AppDataLocation/advanced-image-presets.json` 로, `{schemaVersion:1,presets:{name:parameters}}` 로 버전 관리됩니다. 작성은 `QLockFile` 와 `QSaveFile` 를 사용합니다. 각 변형은 잠금 하에서 다시 읽으므로, 두 번째 편집자의 관련 없는 프리셋이 보존됩니다. 무효/새로운/부패된 파일과 작성 실패는 이전 초안을 대체하거나 무효 파일을 덮어쓰지 않습니다. 테스트는 `build/` 아래 경로에 주입합니다.
 
-- Resolve all values and collection sources before adding any batch jobs. Each
-  queued image receives its own seed; later draft or model-selector changes do
-  not change those jobs. `advancedParameters` retains the submitted recipe;
-  `seed` on each job is the actual resolved per-image seed.
-- Empty `model` uses the controller's current model at submission. Explicit model
-  and VAE values are Society inventory IDs; empty `vae` means embedded/default
-  VAE, independent of the quick-generation selector. LoRA sources may be local
-  file URLs, absolute file paths, or relative Society Models paths. No remote URLs
-  or implicit model downloads are introduced.
-- Forward prompt, negative prompt, width/height, steps, seed, CFG, native sampler,
-  VAE and LoRAs to the native execution API or native checkpoint worker. Worker
-  requests use argument arrays (no shell interpolation). The runtime retains its
-  anonymous source-memory lifetime and existing cancellation/progress behavior.
-  The existing generation-resource default-modifier policy is retained: an empty
-  explicit LoRA list may select the SDK's compatible bundled default LoRAs, and
-  compatible default negative embeddings can be appended by the engine.
-- The in-process route additionally forwards all catalog samplers/schedulers,
-  seamless tiling, CLIP skip, Eta, Hires, nearest/bilinear/bicubic/Lanczos or learned 4x ESRGAN upscaling and the chosen refinement
-  strength through `generateNativeAdvancedImage`. The worker still rejects those
-  additional controls rather than silently ignoring them. Native progress uses
-  the submitted refinement strength instead of the legacy fixed 0.35 value.
-  Textual embeddings and prompt-weighting policy also use the in-process route.
-- Native max canvas is 2048 per side. Currently unsupported active settings are
-  rejected before queue insertion. Remote Society and packaged worker routes do
-  not yet advertise this advanced contract, so they are not used as a silent
-  fallback; a model becoming remote after enqueue fails with a specific error.
-- `colorProfile`: convert pixels to sRGB or Display P3 and embed the ICC profile.
-  Untagged native RGB is treated as sRGB. `preserveMetadata=true` retains existing
-  image metadata and adds `Dreamscapes.Parameters` with the recipe and actual seed;
-  `false` writes pixel-only content plus required ICC profile. Dimensions are not
-  resized. These controls run only for advanced submissions.
-- `watermark`: the existing common Dreamscapes brand PNG is composited into the
-  bottom-right of every final image. Its square is 1/16 of the shorter side,
-  clamped to 1..128 pixels, with a 1/64 margin and 55% opacity. Tiny images fit
-  the margin to the available area. The SDK performs stride-aware, alpha-correct
-  bilinear resampling/source-over blending without Qt; the existing product
-  codec boundary decodes the asset and converts it into the selected profile.
-  This is a visible brand mark, not an invisible provenance signature. The
-  default remains off. Previews and engine output files remain untouched;
-  metadata retention is independent, so removing metadata does not remove
-  the visible mark. Missing asset/encoding failures fail publication. The queued
-  immutable switch applies to all outputs even if the draft changes meanwhile.
+<a id="generation-behavior"></a>
 
-Watermark verification (2026-09-29): all 23 selected SDK suites passed in 27.20s.
-After packaging finished, product AdvancedParameters/Generation passed 2/2 in
-56.32s (13 + 63 individual passes, two optional real-model skips), recorded in
-`build/watermark-isolated-product-tests.log`. The output test checks exact pixels,
-ICC/metadata and byte-for-byte source-file preservation; the queue test checks
-both native and worker publication and queued-toggle isolation. The original
-test-only pixel-format assertion failure and concurrent-packaging watchdog
-timeouts are retained in the earlier watermark logs; the watchdog sensitivity
-has not been changed or claimed fixed. Source and staged SDK are updated, not
-the global SDK or installed application.
+## 생성 동작
 
-The watermark-phase canonical bundle passed deployment's deep strict signature
-verification and source GUI toggle/scroll tests, but packaged startup did not
-reach root-loaded in either initial run or unchanged retry. These historical
-failures are retained; the subsequent production-registration section above
-records the missing-type cause, fix and passing rebuilt-bundle regression.
-The old retry reached root-load-request. A sampled early phase showed dyld
-initializing MLX/Torch before main, which did not establish the later load error. See
-`build/watermark-package-retry.log` and `build/watermark-package-startup-sample.txt`.
+- 배치 작업을 추가하기 전에 모든 값과 컬렉션 소스를 해결하십시오. 각 대기 중인 이미지는 자체 시드를 받으며, 이후 초안이나 모델 선택자 변경은 해당 작업을 변경하지 않습니다. `advancedParameters`는 제출된 레시피를 유지합니다; 각 작업의 `seed`는 실제 이미지당 해결된 시드입니다.
+- 빈 `model` 는 제출 시 컨트롤러의 현재 모델을 사용합니다. 명시된 모델과 VAE 값은 Society 재고 ID 이며, 빈 `vae` 는 임베디드/기본 VAE 를 의미하며, 빠른 생성 선택자와는 무관합니다. LoRA 소스는 로컬 파일 URL, 절대 파일 경로 또는 상대 Society 모델 경로일 수 있습니다. 원격 URL 또는 암시적 모델 다운로드가 도입되지 않습니다.
+- 프롬프트, 부정 프롬프트, 너비/높이, 단계, 시드, CFG, 네이티브 샘플러, VAE 및 LoRAs 를 네이티브 실행 API 또는 네이티브 체크포인트 워커로 전달합니다. 워커 요청은 인수 배열을 사용하며 (쉘 인터폴레이션 없음). 런타임 는 익명 소스 메모리 수명 및 기존 취소/진행 동작을 유지합니다. 기존 생성 리소스 기본 수정자 정책이 유지됩니다: 빈 명시적 LoRA 목록은 SDK 의 호환 기본 LoRAs 를 선택할 수 있으며, 엔진이 호환 기본 음의 임베딩을 추가할 수 있습니다.
+- 프로세스 내 라우트는 추가로 모든 카탈로그 샘플러/스케줄러, 원활 타일링, CLIP 스킵, Eta, Hires, 최근접/이선형/이중선형/랜코스 또는 학습된 4x ESRGAN 업스케일링 및 선택된 정제 강도를 `generateNativeAdvancedImage` 를 통해 전달합니다. 워커는 여전히 이러한 추가 제어를 아무런 알림 없이 무시하는 대신 거부합니다. 네이티브 진행률은 기존 고정 0.35 값 대신 제출된 정제 강도를 사용합니다. 텍스트 임베딩과 프롬프트 가중치 정책 또한 프로세스 내 라우트를 사용합니다.
+- 네이티브의 최대 캔버스는 면당 2048입니다. 현재 지원되지 않는 활성 설정은 대기열 삽입 전에 거부됩니다. 원격 Society와 패키징된 워커 라우트는 아직 이 고급 계약을 홍보하지 않으므로, 특정 오류로 인해 대기열이 실패한 후 원격으로 전환되는 무음 대체 경로로 사용되지 않습니다.
+- `colorProfile` : 픽셀을 sRGB 또는 디스플레이 P3 로 변환하고 ICC 프로필을 임베드합니다. 태그가 없는 네이티브 RGB 는 sRGB 로 취급됩니다. `preserveMetadata=true` 는 기존 이미지 메타데이터를 유지하고 레시피와 실제 시드로 `Dreamscapes.Parameters` 를 추가하며, `false` 는 픽셀만 콘텐츠와 필요한 ICC 프로필을 씁니다. 차원은 리사이즈되지 않습니다. 이러한 제어는 고급 제출에만 실행됩니다.
+- `watermark` : 기존 공통 Dreamscapes 브랜드 PNG 가 모든 최종 이미지의 오른쪽 하단에 합성됩니다. 그 정사각형은 짧은 쪽의 1/16 로, 1..128 픽셀로 제한되며, 1/64 여백과 55% 불투명도를 가집니다. 작은 이미지는 사용 가능한 영역에 맞춰 여백에 맞습니다. SDK 는 Qt 없이 스트라이드 인식, 알파 수정 이선형 재샘플링/소스 오버 블렌딩을 수행하며, 기존 제품 코덱 경계는 자산을 디코딩하고 선택된 프로필로 변환합니다. 이는 가시 브랜드 표시이며, 보이지 않는 기원 서명이 아닙니다. 기본값은 꺼져 있습니다. 미삭제 미리보기 및 엔진 출력 파일은 그대로이며, 메타데이터 보존은 독립적이므로 메타데이터를 제거하면 가시적인 표시도 제거되지 않습니다. 결측 자산/인코딩 실패는 출판을 안전하게 거부합니다. 대기 중인 불변 스위치는 초안 변경되더라도 모든 출력에 적용됩니다.
 
-Structural/API tests do not prove real model output quality or support for
-unimplemented inference features. In particular there is no connected
-additional control detector, face restoration or safety-classifier
-execution in this change; the API reports that limitation rather than dropping it.
-Multi-ControlNet numerical/production-sampler tests use controlled neural compute,
-and product tests substitute inference after checking ordered decoded inputs.
-Real multi-checkpoint image quality and throughput still require separate validation.
+워터마크 검증 (2026-09-29): 23 선택된 SDK 스위트가 27.20s에서 모두 통과했습니다. 패키징이 완료된 후, 제품 AdvancedParameters /생성은 2/2 에서 56.32s ( 13 + 63 개별 패스, 2 선택적 실제 모델 스킵) 에 기록되어 `build/watermark-isolated-product-tests.log` 에 저장됩니다. 출력 테스트는 정확한 픽셀, ICC /메타데이터 및 바이트 단위의 소스 파일 보존을 확인하며, 대기열 테스트는 네이티브 및 워커 게시와 대기열 토글 격리를 모두 확인합니다. 원래 테스트 전용 픽셀 형식 주석 실패 및 동시 패키징 감시자 시간 초과가 이전 워터마크 로그에 유지되며, 감시자 민감도는 변경되거나 수정되었다고 주장되지 않았습니다. 소스와 단계별 SDK 는 업데이트되지만 전역 SDK 또는 설치된 애플리케이션은 업데이트되지 않습니다.
 
-The 2026-09-29 multi-ControlNet verification rebuilt the SDK/native targets and
-passed 20 SDK suites plus both product suites (`AdvancedParameters`, `Generation`).
-After rebuilding stale consumer objects from an overlapping initial stage/build,
-the final product run passed in 45.59 seconds. Its optional real-model fixture
-tests were not enabled. This is source/staged-SDK validation, not installation
-or packaged-app runtime proof; no layout changes were required for this phase.
+워터마크 단계 표준 번들이 배포의 심층 엄밀 서명 검증과 소스 GUI 토글/스크롤 테스트를 통과했으나, 패키징된 시작은 초기 실행 또는 변경되지 않은 재시도 중 어느 쪽에서도 루트 로딩에 도달하지 않았습니다. 이러한 역사적 실패는 유지되며, 위의 후속 프로덕션 등록 섹션은 누락된 타입 원인, 수정 및 통과된 재구성 번들 회귀 를 기록합니다. 구체적인 재시도는 루트 로드 요청에 도달했습니다. 샘플링된 초기 단계에서 dyld 가 메인 전에 MLX / Torch 를 초기화했는데, 이는 이후 로딩 오류를 확립하지 않았습니다. `build/watermark-package-retry.log` 와 `build/watermark-package-startup-sample.txt` 를 참조하십시오.
 
-## Verification
+구조적/ API 테스트는 실제 모델 출력 품질이나 구현되지 않은 추론 기능 지원을 증명하지 않습니다. 특히 이 변경에는 연결된 추가 제어 감지기, 얼굴 복원 또는 안전 분류기 실행이 없으며, API 는 이를 제거하는 대신 해당 제한 사항을 보고합니다. 멀티 ControlNet 수치/프로덕션 샘플러 테스트는 제어된 신경 계산을 사용하며, 제품 테스트는 정렬된 디코딩된 입력을 확인한 후 추론을 대체합니다. 실제 다중 체크포인트 이미지 품질과 처리량은 여전히 별도의 검증을 필요로 합니다.
+
+다중 2026-09-29 ControlNet 검증은 SDK /native 타겟을 재구성하고 20 SDK 스위트 및 두 가지 제품 스위트 (`AdvancedParameters`, `Generation`) 를 통과시켰습니다. 중복되는 초기 단계/빌드에서 오래된 소비자 객체를 재구성한 후, 최종 제품 실행은 45.59 초 만에 완료되었습니다. 선택 사항인 실제 모델 픽스처 테스트는 활성화되지 않았습니다. 이는 소스/단계별 SDK 검증이며 설치 또는 패키지 앱 런타임 검증이 아닙니다; 이 단계에는 레이아웃 변경이 필요하지 않았습니다.
+
+<a id="verification"></a>
+
+## 검증
 
 ```sh
 env -u CPATH -u CPLUS_INCLUDE_PATH cmake --build build --target DreamscapesAdvancedParametersTests DreamscapesGenerationTests -j 4
@@ -544,22 +185,6 @@ DYLD_LIBRARY_PATH=/Volumes/Storage/Workspace/SDK/iiLocalDiffusion/build/install/
 DYLD_LIBRARY_PATH=/Volumes/Storage/Workspace/SDK/iiLocalDiffusion/build/install/lib ctest --test-dir build -R '^Dreamscapes.Generation$' --output-on-failure
 ```
 
-Coverage includes rollback, numeric/enum types, collection limits, stable IDs,
-Draft/Apply, full preset round-trip, corrupt files, concurrent editors, write
-failures, native component/sampling forwarding, worker argv/provenance, immutable
-batch snapshots, real PNG encoding, metadata removal and ICC color-space output.
-Use the updated SDK header in the configured SDK prefix when building this source.
-The shell's global `CPATH` can otherwise put an older `~/.local` SDK header before
-CMake's explicit system include directory. Clear it for this configured build;
-do not mix the staged new library with globally installed old headers.
-For this staged-prefix developer setup, the test commands also select the staged
-library explicitly: another installed Society dependency can otherwise preload
-the older global copy of the same dylib identity. Packaged app verification must
-remove these overrides and use only the bundle's own runtime.
+범위는 롤백, 숫자/열거형 타입, 컬렉션 제한, 안정적인 ID, Draft/Apply, 전체 사전 설정 왕복 변환, 손상된 파일, 동시 편집자, 쓰기 실패, 네이티브 구성 요소/샘플링 전달, 작업자 argv/출처, 불변 배치 스냅샷, 실제 PNG 인코딩, 메타데이터 제거 및 ICC 색상 공간 출력을 포함합니다. 이 소스를 빌드할 때 구성된 SDK 접두사에 업데이트된 SDK 헤더를 사용하세요. 쉘의 전역 `CPATH` 는 그렇지 않으면 CMake 의 명시적인 시스템 포함 디렉토리 앞에 오래된 `~/.local` SDK 헤더를 배치할 수 있습니다. 이 단계별 접두사 개발자 설정을 위해 이를 지우세요; 단계별 새 라이브러리를 전역으로 설치된 오래된 헤더와 섞지 마십시오. 이 단계별 접두사 개발자 설정을 위한 테스트 명령은 또한 단계별 라이브러리를 명시적으로 선택합니다: 다른 설치된 Society 의존성이 그렇지 않으면 동일한 dylib 정체성의 오래된 전역 사본을 사전에 로드할 수 있습니다. 패키지 앱 검증은 이러한 오버라이드를 제거하고 번들 자체의 런타임 만 사용해야 합니다.
 
-Verified on 2026-09-29: SDK `ImageParametersTests` and a standalone C++23 consumer
-compiled against `build/install/include` passed. Dreamscapes generation library,
-advanced-parameter, generation, and LocalSociety test targets built successfully.
-The final CTest run passed all 3 suites (`AdvancedParameters`, `Generation`,
-`LocalSociety`) in 75.59 seconds. Real-model smoke cases remain opt-in and were not
-run; no additional image generation was started in the user's installed app.
+2026-09-29에 확인됨: SDK, `ImageParametersTests` 및 독립적인 C++23 소비자가 `build/install/include` 에 대해 컴파일되어 통과했습니다. Dreamscapes 생성 라이브러리, 고급 매개변수, 생성 및 LocalSociety 테스트 대상이 성공적으로 빌드되었습니다. 최종 CTest 실행이 3 모든 `AdvancedParameters`, `Generation`, `LocalSociety` 수트를 75.59 초 내에 통과했습니다. 실제 모델 연기 사례는 옵트인 상태로 유지되며 실행되지 않았으며, 사용자의 설치된 앱에서 추가 이미지 생성이 시작되지 않았습니다.

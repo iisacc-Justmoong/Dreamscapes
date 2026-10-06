@@ -12,6 +12,7 @@ Item {
     property string requestError: ""
     property bool invalidInputSubmission: false
     property string selectedResultId: ""
+    property string selectedImageSource: ""
     property bool submitting: false
     readonly property alias parameterPanel: panel
     readonly property var jobs: generation.jobs.filter(job => root.jobIds.indexOf(job.id) >= 0)
@@ -19,7 +20,8 @@ Item {
         ? generation.completedResults.filter(result => root.jobIds.indexOf(result.id) >= 0) : []
     readonly property var activeJob: jobs.find(job => ["running", "connecting-host", "downloading"].indexOf(job.state) >= 0) || ({})
     readonly property bool pending: jobs.some(job => ["queued", "running", "connecting-host", "downloading"].indexOf(job.state) >= 0)
-    readonly property var selectedResult: results.find(result => result.id === root.selectedResultId) || results[results.length - 1] || ({})
+    readonly property var selectedResult: results.find(result => result.imageSource.toString() === root.selectedImageSource)
+        || results.find(result => result.id === root.selectedResultId) || results[results.length - 1] || ({})
     readonly property int canvasPixelWidth: panel.values.width
     readonly property int canvasPixelHeight: panel.values.height
     readonly property bool showingPreview: !!activeJob.id && generation.previewJobId === activeJob.id
@@ -28,6 +30,7 @@ Item {
         ? generation.previewImage : selectedResult.imageSource || ""
     readonly property string failure: requestError || (jobs.find(job => job.state === "failed") || {}).error || ""
     signal editImageRequested(url source, var result)
+    signal editImagesRequested(var images)
 
     function submit() {
         requestError = ""
@@ -37,7 +40,7 @@ Item {
         const firstId = generation.enqueueAdvanced(panel.parameters())
         submitting = false
         if (firstId.length === 0) requestError = generation.errorString
-        else selectedResultId = ""
+        else { selectedResultId = ""; selectedImageSource = ""; imageSelection.reset() }
     }
     function cancelBatch() {
         jobs.forEach(job => { if (["queued", "running", "connecting-host", "downloading"].indexOf(job.state) >= 0) generation.cancel(job.id) })
@@ -74,14 +77,13 @@ Item {
                 Rectangle {
                     id: surface
                     objectName: "advancedImageCanvasSurface"
-                    anchors.top: parent.top
-                    anchors.topMargin: LV.Theme.gap16
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    x: (canvas.width - width) / 2
+                    y: (canvas.height - height) / 2
                     // One fit scale preserves the document aspect ratio for an
                     // empty canvas, every streamed frame and the final image.
                     readonly property real fitScale: Math.min(
                         Math.max(0, canvas.width - LV.Theme.gap24) / root.canvasPixelWidth,
-                        Math.max(0, canvas.height * 0.7 - anchors.topMargin) / root.canvasPixelHeight)
+                        Math.max(0, canvas.height * 0.7 - LV.Theme.gap16) / root.canvasPixelHeight)
                     width: root.canvasPixelWidth * fitScale
                     height: root.canvasPixelHeight * fitScale
                     color: "white"
@@ -133,22 +135,52 @@ Item {
                             spacing: LV.Theme.gap6
                             Repeater {
                                 model: root.results
-                                delegate: Image {
+                                delegate: LV.AbstractButton {
+                                    id: resultThumbnail
+                                    required property int index
                                     required property var modelData
-                                    Layout.preferredWidth: LV.Theme.scaleMetric(64)
-                                    Layout.preferredHeight: LV.Theme.scaleMetric(64)
-                                    source: modelData.imageSource
-                                    fillMode: Image.PreserveAspectCrop
-                                    asynchronous: true
-                                    MouseArea { anchors.fill: parent; onClicked: root.selectedResultId = parent.modelData.id }
+                                    objectName: "advancedResultThumbnail" + index
+                                    implicitWidth: LV.Theme.scaleMetric(64)
+                                    implicitHeight: LV.Theme.scaleMetric(64)
+                                    Layout.minimumWidth: implicitWidth
+                                    Layout.maximumWidth: implicitWidth
+                                    Layout.minimumHeight: implicitHeight
+                                    Layout.maximumHeight: implicitHeight
+                                    activeFocusOnTab: true
+                                    Accessible.name: qsTr("Generated image %1").arg(index + 1)
+                                    contentItem: Image {
+                                        source: resultThumbnail.modelData.imageSource
+                                        fillMode: Image.PreserveAspectCrop
+                                        asynchronous: true
+                                    }
+                                    background: Rectangle {
+                                        color: "transparent"
+                                        border.width: imageSelection.isSelected(resultThumbnail.modelData) ? 2 : 0
+                                        border.color: LV.Theme.accent
+                                        z: 1
+                                    }
+                                    onClicked: {
+                                        if (imageSelection.selectionMode) imageSelection.toggle(modelData)
+                                        else { root.selectedResultId = modelData.id; root.selectedImageSource = modelData.imageSource.toString() }
+                                    }
                                 }
                             }
                         }
                     }
-                    LV.LabelButton {
-                        text: qsTr("Open in canvas")
-                        visible: !!root.selectedResult.imageSource && !root.pending
-                        onClicked: root.editImageRequested(root.selectedResult.imageSource, root.selectedResult)
+                    LV.HStack {
+                        spacing: LV.Theme.gap8
+                        ImageSelectionBar {
+                            id: imageSelection
+                            objectName: "advancedImageSelection"
+                            entries: root.results
+                            onOpenRequested: function(images) { root.editImagesRequested(images) }
+                        }
+                        LV.LabelButton {
+                            objectName: "advancedOpenCanvas"
+                            text: qsTr("Open in canvas")
+                            visible: !!root.selectedResult.imageSource && !root.pending && !imageSelection.selectionMode
+                            onClicked: root.editImageRequested(root.selectedResult.imageSource, root.selectedResult)
+                        }
                     }
                 }
             }

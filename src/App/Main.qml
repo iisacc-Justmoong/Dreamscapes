@@ -10,6 +10,8 @@ import Dreamscapes.Storage 1.0
 import "Views/Home"
 import "Views/Result"
 import "Views/Editor"
+import "Views/Preferences"
+import "Views/Home/ImageSelection.js" as ImageSelection
 
 LV.ApplicationWindow {
     id: window
@@ -27,152 +29,15 @@ LV.ApplicationWindow {
     onClosing: if (preferencesWindow) preferencesWindow.close()
     Component {
         id: preferencesComponent
-        LV.ApplicationWindow {
-            id: preferences
-            objectName: "preferencesWindow"
-            title: qsTr("Preferences — Dreamscapes")
+        PreferencesWindow {
             transientParent: window
-            width: 720
-            height: 440
-            desktopMinWidth: 360
-            desktopMinHeight: 320
-            visible: false
-            modality: Qt.NonModal
-            flags: Qt.Dialog
-            useInternalPageStack: false
-            navigationEnabled: false
-            property string locationMessage: ""
-            property bool locationFailed: false
-            function applyDriveLocation() {
-                locationFailed = !(generation.selectStorageLocation(locationField.text.trim()))
-                locationMessage = locationFailed ? generation.errorString
-                    : qsTr("Society drive location saved.")
-            }
-            FolderDialog {
-                id: locationDialog
-                title: qsTr("Choose an existing Society drive folder")
-                onAccepted: locationField.text = selectedFolder.toString()
-            }
-            RowLayout {
-                anchors.fill: parent
-                spacing: 0
-                Rectangle {
-                    Layout.preferredWidth: Math.min(180, preferences.width * 0.3)
-                    Layout.fillHeight: true
-                    color: LV.Theme.panelBackground03
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: LV.Theme.gap12
-                        spacing: LV.Theme.gap16
-                        LV.Label { text: qsTr("Preferences"); style: header2; Layout.fillWidth: true }
-                        LV.PushButton {
-                            objectName: "preferencesDriveCategory"
-                            text: qsTr("Society drive")
-                            Layout.fillWidth: true
-                            tone: LV.AbstractButton.Primary
-                            Accessible.name: qsTr("Society drive category")
-                        }
-                        Item { Layout.fillHeight: true }
-                    }
-                }
-                Controls.ScrollView {
-                    id: driveDetails
-                    objectName: "preferencesDriveDetails"
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    clip: true
-                    contentWidth: availableWidth
-                    Controls.ScrollBar.horizontal.policy: Controls.ScrollBar.AlwaysOff
-                    ColumnLayout {
-                        width: driveDetails.availableWidth
-                        spacing: LV.Theme.gap16
-                        Item { Layout.preferredHeight: LV.Theme.gap8 }
-                        LV.Label {
-                            Layout.leftMargin: LV.Theme.gap20
-                            Layout.rightMargin: LV.Theme.gap20
-                            Layout.fillWidth: true
-                            text: qsTr("Society drive")
-                            style: header
-                        }
-                        LV.Label {
-                            Layout.leftMargin: LV.Theme.gap20
-                            Layout.rightMargin: LV.Theme.gap20
-                            Layout.fillWidth: true
-                            text: qsTr("Choose the existing Society drive used for shared models and files. This does not move or delete data.")
-                            style: description
-                            wrapMode: Text.Wrap
-                            sizeToContentHeight: true
-                        }
-                        LV.Label {
-                            Layout.leftMargin: LV.Theme.gap20
-                            Layout.rightMargin: LV.Theme.gap20
-                            text: qsTr("Current location")
-                            style: header2
-                        }
-                        LV.Label {
-                            objectName: "preferencesCurrentDrive"
-                            style: body
-                            Layout.leftMargin: LV.Theme.gap20
-                            Layout.rightMargin: LV.Theme.gap20
-                            Layout.fillWidth: true
-                            text: generation.connected ? generation.containerPath : qsTr("No Society drive connected")
-                            textFormat: Text.PlainText
-                            wrapMode: Text.WrapAnywhere
-                            sizeToContentHeight: true
-                        }
-                        LV.InputField {
-                            id: locationField
-                            objectName: "preferencesDriveLocation"
-                            Layout.leftMargin: LV.Theme.gap20
-                            Layout.rightMargin: LV.Theme.gap20
-                            Layout.fillWidth: true
-                            placeholderText: qsTr("Existing Society drive folder")
-                            Accessible.name: qsTr("Society drive location")
-                            text: generation.containerPath
-                            onAccepted: if (applyLocation.enabled) preferences.applyDriveLocation()
-                        }
-                        Flow {
-                            Layout.leftMargin: LV.Theme.gap20
-                            Layout.rightMargin: LV.Theme.gap20
-                            Layout.fillWidth: true
-                            spacing: LV.Theme.gap8
-                            LV.PushButton {
-                                objectName: "browseSocietyDrive"
-                                tone: LV.AbstractButton.Default
-                                text: qsTr("Choose folder…")
-                                enabled: !generation.busy
-                                onClicked: locationDialog.open()
-                            }
-                            LV.PushButton {
-                                id: applyLocation
-                                objectName: "applySocietyDrive"
-                                text: qsTr("Apply")
-                                enabled: locationField.text.trim().length > 0 && !generation.busy
-                                onClicked: preferences.applyDriveLocation()
-                            }
-                        }
-                        LV.Label {
-                            objectName: "preferencesDriveFeedback"
-                            style: body
-                            Layout.leftMargin: LV.Theme.gap20
-                            Layout.rightMargin: LV.Theme.gap20
-                            Layout.fillWidth: true
-                            visible: text.length > 0
-                            text: preferences.locationMessage
-                            color: preferences.locationFailed ? LV.Theme.accentRed : LV.Theme.textTokenBody
-                            textFormat: Text.PlainText
-                            wrapMode: Text.WrapAnywhere
-                            sizeToContentHeight: true
-                        }
-                        Item { Layout.preferredHeight: LV.Theme.gap20 }
-                    }
-                }
-            }
-            Shortcut { sequence: "Escape"; enabled: preferences.visible; onActivated: preferences.close() }
-            Shortcut { sequences: [StandardKey.Close]; enabled: preferences.visible; onActivated: preferences.close() }
+            generation: window.generationBackend
+            account: window.generationBackend.account
+            onSocietyRequested: window.openSociety()
         }
     }
     Shortcut {
+        objectName: "preferencesShortcut"
         sequence: "Ctrl+,"
         context: Qt.ApplicationShortcut
         enabled: !window.isMobilePlatform
@@ -184,18 +49,22 @@ LV.ApplicationWindow {
         Platform.Menu {
             title: qsTr("File")
             Platform.MenuItem {
-                objectName: "globalPreferencesAction"
-                text: qsTr("Preferences…")
-                role: Platform.MenuItem.PreferencesRole
-                onTriggered: window.openPreferences()
-            }
-            Platform.MenuItem {
                 text: qsTr("Quit Dreamscapes")
                 role: Platform.MenuItem.QuitRole
                 onTriggered: Qt.quit()
             }
         }
-        Platform.Menu { title: qsTr("Edit") }
+        Platform.Menu {
+            objectName: "globalEditMenu"
+            title: qsTr("Edit")
+            Platform.MenuItem {
+                objectName: "globalPreferencesAction"
+                text: qsTr("Preferences…")
+                role: Platform.MenuItem.NoRole
+                shortcut: "Ctrl+,"
+                onTriggered: window.openPreferences()
+            }
+        }
         Platform.Menu { title: qsTr("Window") }
         Platform.Menu { title: qsTr("Help") }
     }
@@ -215,9 +84,20 @@ LV.ApplicationWindow {
     property url canvasImageSource: ""
     property var canvasSpecification: ({})
     property var canvasGenerationResult: ({})
+    property var canvasGenerationResults: []
     property var currentResult: ({})
     property var resultJobIds: []
     property string generationRequestError: ""
+    readonly property var generationHistoryEntries: historyModel.generationHistory.map(function(file) {
+        if (!/^[0-9a-f-]{36}-poster\.png$/.test(file.name || "")) return file
+        const video = Object.assign({},file)
+        video.mediaType = "Video"
+        video.imageSource = file.previewSource
+        video.mediaSource = file.previewSource.toString().replace(/-poster\.png(\?.*)?$/, "-0001.mp4")
+        video.name = file.name.replace(/-poster\.png$/, "-0001.mp4")
+        video.metadata1 = "MP4 · Video"
+        return video
+    })
     readonly property alias generationBackend: generation
     readonly property var submissionJobs: generation.jobs.filter(function(job) { return resultJobIds.indexOf(job.id) >= 0 })
     readonly property var submissionResults: generation.connected
@@ -238,7 +118,7 @@ LV.ApplicationWindow {
             return last && (last.state === "cancelled" || last.state === "interrupted") ? stateLabel(last.state) : ""
         }
         const phase = generation.inferenceStatus.state
-        const labels = { "preparing-model": qsTr("Preparing model for faster generation…"),
+        const labels = { "interpolating": qsTr("Interpolating video frames…"), "encoding-video": qsTr("Encoding video…"), "complete": qsTr("Saving video…"), "preparing-model": qsTr("Preparing model for faster generation…"),
             "waiting-host": qsTr("Connecting to Society host…"),
             "remote-queued": qsTr("Queued on Society host…"),
             "remote-running": qsTr("Generating on Society host…"),
@@ -249,13 +129,14 @@ LV.ApplicationWindow {
             "checking-model": qsTr("Checking model… %1%").arg(Math.floor(100 * (generation.inferenceStatus.completedBytes || 0)
                 / Math.max(1, generation.inferenceStatus.totalBytes || 1))),
             "loading": qsTr("Loading model…"), "encoding": qsTr("Preparing prompt…"),
-            "decoding": qsTr("Rendering image…"), "cancelling": qsTr("Stopping generation…"),
+            "decoding": window.activeGeneration.mediaType === "Video" ? qsTr("Rendering video frames…") : qsTr("Rendering image…"), "cancelling": qsTr("Stopping generation…"),
             "paused": qsTr("Paused — return to Dreamscapes to continue"),
             "waiting-engine": qsTr("Waiting for image engine…") }
         const finishedSteps = generation.previewTotalSteps > 0 && generation.previewStep === generation.previewTotalSteps
         const label = phase === "cancelling" || phase === "paused" ? labels[phase]
             : phase === "decoding" || (finishedSteps && generation.inferenceStatus.backend === "native")
-                ? qsTr("Rendering image…")
+                ? labels.decoding
+            : window.activeGeneration.mediaType === "Video" && (phase === "interpolating" || phase === "encoding-video" || phase === "complete") ? labels[phase]
             : generation.previewTotalSteps > 0
                 ? (generation.inferenceStatus.total > 0 && generation.inferenceStatus.total < (window.activeGeneration.steps || 0)
                     ? qsTr("Refining %1 / %2") : qsTr("Denoising %1 / %2"))
@@ -317,12 +198,48 @@ LV.ApplicationWindow {
     function openCanvas(imageSource, generationResult) {
         quickGenerate.dismissInput()
         modelMenu.close()
-        if (!imageSource) editorView.createBlankCanvas({width: 1024, height: 1024, unit: "px", ppi: 300, background: "White", name: qsTr("Untitled Canvas")})
+        const opened = imageSource ? editorView.openDocumentSource(imageSource)
+            : editorView.createBlankCanvas({width: 1024, height: 1024, unit: "px", ppi: 300, background: "White", name: qsTr("Untitled Canvas")})
+        if (!opened) {
+            generationRequestError = editorView.documentError
+            return false
+        }
         canvasImageSource = imageSource || ""
         canvasGenerationResult = generationResult || ({})
+        canvasGenerationResults = generationResult && imageSource ? [generationResult] : []
         canvasSpecification = ({})
+        generationRequestError = ""
         editorVisible = true
         editorView.forceActiveFocus()
+        return true
+    }
+    function openImages(entries) {
+        if (!entries || !entries.length) return false
+        const images = entries.filter(entry => ImageSelection.isImage(entry))
+        if (images.length !== entries.length) {
+            generationRequestError = qsTr("Select images to open in the editor.")
+            return false
+        }
+        const sources = images.map(entry => entry.path ? editorView.localFileSource(String(entry.path)) : ImageSelection.source(entry))
+        if (!editorView.openImages(sources)) {
+            generationRequestError = editorView.documentError
+            return false
+        }
+        quickGenerate.dismissInput()
+        modelMenu.close()
+        canvasImageSource = sources[0]
+        canvasGenerationResult = images[0]
+        canvasGenerationResults = images.slice()
+        canvasSpecification = ({})
+        generationRequestError = ""
+        editorVisible = true
+        editorView.forceActiveFocus()
+        return true
+    }
+    function openHomeFileDialog() {
+        quickGenerate.dismissInput()
+        modelMenu.close()
+        homeOpenDialog.open()
     }
     function closeCanvas() {
         editorVisible = false
@@ -388,6 +305,7 @@ LV.ApplicationWindow {
         onSubmissionQueued: function(jobIds) {
             const firstJob = generation.jobs.find(job => job.id === jobIds[0])
             // Reference images use an advanced recipe, but Home still owns the result route.
+            if (videoWorkspaceLoader.item && videoWorkspaceLoader.item.submitting) return
             if (quickGenerate.submitting || !firstJob || !firstJob.advancedParameters)
                 window.showSubmission(jobIds)
         }
@@ -418,6 +336,19 @@ LV.ApplicationWindow {
         onActivated: desktopToolbar.focusSearch()
     }
     Shortcut { sequence: StandardKey.New; enabled: !newCanvasDialog.visible; onActivated: window.openNewCanvas() }
+    Shortcut {
+        sequence: StandardKey.Open
+        enabled: !window.editorVisible && !newCanvasDialog.visible && !homeOpenDialog.visible
+        onActivated: window.openHomeFileDialog()
+    }
+    FileDialog {
+        id: homeOpenDialog
+        objectName: "homeOpenFileDialog"
+        title: qsTr("Open Canvas or Image")
+        nameFilters: [qsTr("Projects, canvases and images (*.iiscp *.iisc *.png *.jpg *.jpeg *.webp *.bmp *.tif *.tiff)")]
+        onAccepted: window.openCanvas(selectedFile, ({}))
+        onVisibleChanged: if (!visible && window.editorVisible) Qt.callLater(() => editorView.forceActiveFocus())
+    }
     NewCanvasDialog {
         id: newCanvasDialog
         availableArea: appContent
@@ -429,6 +360,8 @@ LV.ApplicationWindow {
             window.canvasSpecification = specification
             window.canvasImageSource = ""
             window.canvasGenerationResult = ({})
+            window.canvasGenerationResults = []
+            window.generationRequestError = ""
             window.editorVisible = true
             close()
             editorView.forceActiveFocus()
@@ -439,7 +372,14 @@ LV.ApplicationWindow {
             ? "" : qsTr("Could not open Society. Open Society on this device and try again.")
     }
     function openHomeFile(file) {
-        if (file.previewSource && file.previewSource.toString().length > 0) window.openCanvas(file.previewSource, file)
+        const source = file.path ? editorView.localFileSource(String(file.path)) : ImageSelection.source(file)
+        if (file.path && /\.iiscp?$/i.test(file.path)) return window.openCanvas(source, file)
+        if (file.mediaType === "Video") {
+            editorVisible = false
+            dismissResult()
+            currentResult = file
+            resultVisible = true
+        } else if (ImageSelection.source(file).length > 0) return window.openCanvas(source, file)
         else window.openSociety()
     }
 
@@ -459,12 +399,30 @@ LV.ApplicationWindow {
             visible: window.useMobileHomeLayout && !window.resultVisible && !window.editorVisible
             onQuickActionRequested: function(action) {
                 if (action === "canvas") window.openNewCanvas()
+                else if (action === "open") window.openHomeFileDialog()
+                else if (action === "image") { quickGenerate.mediaType = "Image"; quickGenerate.focusPrompt() }
+                else if (action === "video") {
+                    quickGenerate.mediaType = "Video"
+                    quickGenerate.focusPrompt()
+                    window.generationRequestError = ""
+                }
             }
             recentFiles: historyModel.recentFiles
             recentPublished: historyModel.recentPublished
-            generationHistory: historyModel.generationHistory
+            generationHistory: window.generationHistoryEntries
             loading: historyModel.loading
-            errorText: historyModel.errorString
+            errorText: window.generationRequestError || historyModel.errorString
+            onFileRequested: function(file) { window.openHomeFile(file) }
+            onImagesRequested: function(images) { window.openImages(images) }
+            onViewAllRecentFilesRequested: window.openSociety()
+            onViewAllPublishedRequested: window.openSociety()
+            onDestinationRequested: function(index) {
+                if (index === 0) mobileHome.showHome()
+                else if (index === 1) window.openCanvas("", ({}))
+                else if (index === 2) window.openHomeFileDialog()
+                else if (index === 3) societyApplication.openGenerationHistory()
+                else if (index === 4) window.openSociety()
+            }
             onViewAllGenerationHistoryRequested: {
                 const opened = societyApplication.openGenerationHistory()
                 if (!opened) console.warn(qsTr("Could not open Society. Open Society on this device and try again."))
@@ -477,9 +435,9 @@ LV.ApplicationWindow {
             visible: !window.useMobileHomeLayout && !window.resultVisible && !window.editorVisible
             recentFiles: historyModel.recentFiles
             recentPublished: historyModel.recentPublished
-            generationHistory: historyModel.generationHistory
+            generationHistory: window.generationHistoryEntries
             loading: historyModel.loading
-            errorText: historyModel.errorString
+            errorText: window.generationRequestError || historyModel.errorString
             onQuickActionRequested: function(action) {
                 if (action === "canvas") window.openNewCanvas()
                 else if (action === "tools") window.openCanvas("", ({}))
@@ -488,8 +446,9 @@ LV.ApplicationWindow {
                     if (imageWorkspaceLoader.item) imageWorkspaceLoader.item.parameterPanel.focusPrompt()
                     window.generationRequestError = ""
                 } else if (action === "video") {
-                    quickGenerate.mediaType = "Video"
-                    quickGenerate.focusPrompt()
+                    quickGenerate.dismissInput()
+                    videoWorkspaceLoader.openWorkspace()
+                    if (videoWorkspaceLoader.item) videoWorkspaceLoader.item.parameterPanel.focusPrompt()
                     window.generationRequestError = ""
                 } else {
                     window.generationRequestError = action === "audio"
@@ -504,6 +463,8 @@ LV.ApplicationWindow {
                     window.generationRequestError = qsTr("Could not open Society. Open Society on this device and try again.")
             }
             onFileRequested: function(file) { window.openHomeFile(file) }
+            onOpenFileRequested: window.openHomeFileDialog()
+            onImagesRequested: function(images) { window.openImages(images) }
             onPromptRequested: function(prompt) { quickGenerate.prompt = prompt; quickGenerate.focusPrompt() }
         }
 
@@ -519,6 +480,23 @@ LV.ApplicationWindow {
             sourceComponent: ImageGenerationWorkspace {
                 generation: window.generationBackend
                 onEditImageRequested: function(source, result) { window.openCanvas(source, result) }
+                onEditImagesRequested: function(images) { window.openImages(images) }
+            }
+        }
+
+        Loader {
+            id: videoWorkspaceLoader
+            objectName: "videoGenerationWorkspaceLoader"
+            property bool opened: false
+            active: opened
+            parent: desktopHome.videoWorkspaceContainer
+            anchors.fill: parent
+            visible: !window.useMobileHomeLayout && desktopHome.selectedAction === "video"
+            function openWorkspace() {
+                if (!opened) {
+                    setSource(Qt.resolvedUrl("Views/Video/VideoGenerationWorkspace.qml"), {generation: window.generationBackend})
+                    opened = true
+                }
             }
         }
 
@@ -548,17 +526,30 @@ LV.ApplicationWindow {
                 window.openCanvas(imageSource, generationResult)
                 window.newProjectRequested(imageSource, generationResult)
             }
+            onImagesRequested: function(images) { window.openImages(images) }
         }
 
         CanvasEditor {
             id: editorView
+            generationRuntime: generation
             mobileLayout: window.useMobileHomeLayout
             anchors.fill: parent
             visible: window.editorVisible
             imageSource: window.canvasImageSource
             generationResult: window.canvasGenerationResult
+            generationResults: window.canvasGenerationResults
             canvasSpecification: window.canvasSpecification
+            onDocumentOpened: function(source) {
+                window.canvasImageSource = source
+                window.canvasGenerationResult = ({})
+                window.canvasGenerationResults = []
+                window.canvasSpecification = ({})
+            }
             onBackRequested: window.closeCanvas()
+            onNavigationRequested: function(action) {
+                window.closeCanvas()
+                desktopHome.activate(action)
+            }
         }
 
         Flickable {
@@ -591,16 +582,29 @@ LV.ApplicationWindow {
             contentInset: window.resultVisible ? LV.Theme.gap10 : 0
             canvasEnabled: !window.useMobileHomeLayout && !window.resultVisible
             menusOpenUpward: window.resultVisible
+            videoModels: generation.videoModels
+            selectedVideoModel: generation.selectedVideoModel
+            onVideoModelSelected: function(id) { generation.selectedVideoModel = id }
             errorText: window.resultVisible ? "" : window.generationRequestError
             onGenerateRequested: function(prompt, mediaType, aspectRatio, count) {
                 window.generateRequested(prompt, mediaType, aspectRatio, count)
                 window.generationRequestError = ""
-                if (mediaType === "Video") {
-                    window.generationRequestError = qsTr("Video generation is not available yet. Your prompt is preserved; choose Image to generate an image.")
-                    return
-                }
                 let jobId
-                if (quickGenerate.hasCanvasInputs) {
+                if (mediaType === "Video") {
+                    let firstFrame = ""
+                    if (quickGenerate.hasCanvasInputs) {
+                        const parameters = quickGenerate.generationParameters(generation.selectedVideoModel)
+                        const references = parameters.referenceImages || []
+                        if (Object.keys(parameters).length === 0 || references.length !== 1) {
+                            window.generationRequestError = quickGenerate.homePaint.canvas.inputError
+                                || qsTr("Use one image or one painted canvas as the video's first frame.")
+                            return
+                        }
+                        firstFrame = references[0]
+                    }
+                    jobId = generation.enqueueVideo(prompt, aspectRatio, count, firstFrame,
+                        quickGenerate.videoDuration, quickGenerate.videoFps)
+                } else if (quickGenerate.hasCanvasInputs) {
                     const parameters = quickGenerate.generationParameters(generation.selectedModel)
                     if (Object.keys(parameters).length === 0) {
                         window.generationRequestError = quickGenerate.homePaint.canvas.inputError
@@ -648,20 +652,23 @@ LV.ApplicationWindow {
                     wrapMode: Text.Wrap
                     style: caption
                     text: generation.connected
-                        ? qsTr("Models and generated images are stored in Society on this device.")
+                        ? qsTr("Models and generated media are stored in Society on this device.")
                         : qsTr("Open Society on this device and let it finish syncing your models.")
                 }
                 LV.LabelMenuButton {
                     id: modelButton
                     objectName: "societyModelSelector"
                     Layout.fillWidth: true
-                    text: generation.selectedModel.length ? generation.selectedModel : qsTr("Add a Diffusion model in Society")
+                    text: quickGenerate.mediaType === "Video"
+                        ? generation.selectedVideoModel || qsTr("Add an LTX video model in Society")
+                        : generation.selectedModel || qsTr("Add a Diffusion model in Society")
                     tone: LV.AbstractButton.Default
-                    enabled: generation.models.length > 0
+                    enabled: quickGenerate.mediaType === "Video" ? generation.videoModels.length > 0 : generation.models.length > 0
                     onClicked: modelMenu.openFor(modelButton, 0, modelButton.height + LV.Theme.gap2)
                 }
                 LV.LabelMenuButton {
                     id: vaeButton
+                    visible: quickGenerate.mediaType !== "Video"
                     objectName: "societyVaeSelector"
                     Layout.fillWidth: true
                     text: generation.selectedVae.length ? qsTr("VAE: ") + generation.selectedVae : qsTr("VAE: Model default")
@@ -735,9 +742,12 @@ LV.ApplicationWindow {
             objectName: "societyModelMenu"
             showIconSlot: false
             itemWidth: Math.max(0, Math.min(440, storagePanel.width - leftPadding - rightPadding - edgeMargin * 2))
-            items: generation.models.map(function(model) { return model.id })
-            selectedIndex: items.indexOf(generation.selectedModel)
-            onItemTriggered: function(index, entry) { generation.selectedModel = String(entry) }
+            items: (quickGenerate.mediaType === "Video" ? generation.videoModels : generation.models).map(function(model) { return model.id })
+            selectedIndex: items.indexOf(quickGenerate.mediaType === "Video" ? generation.selectedVideoModel : generation.selectedModel)
+            onItemTriggered: function(index, entry) {
+                if (quickGenerate.mediaType === "Video") generation.selectedVideoModel = String(entry)
+                else generation.selectedModel = String(entry)
+            }
         }
     }
 }

@@ -3,6 +3,7 @@
 #include <SharedStorage.h>
 #include <iiSocietyHelper.h>
 #include <iiSocietyClient/Client.h>
+#include <iiSocietyClient/AccountSession.h>
 #include <iiSocietyGeneration/Remote.h>
 #include <Generation/NativeDiffusion.hpp>
 #include <QFutureWatcher>
@@ -20,6 +21,7 @@
 #endif
 #include <memory>
 #include "GenerationBackgroundActivity.h"
+#include "ModelPreferences.h"
 
 struct GenerationRuntime {
     QString executable;
@@ -30,6 +32,7 @@ struct GenerationRuntime {
     bool nativeInference = false;
     int nativeTimeoutMilliseconds = 900000; // Maximum active time without measurable progress.
     QString legacyQ8CacheDirectory; // Read/move-only upgrade source; never used by inference.
+    QString modelPreferencesFile; // Empty for injected runtimes; production uses app configuration.
     std::function<iiLocalDiffusion::NativeGenerationResult(const iiLocalDiffusion::NativeGenerationRequest &,
         const iiLocalDiffusion::NativeGenerationOptions &, const std::atomic_bool &,
         const iiLocalDiffusion::NativeProgressCallback &, const iiLocalDiffusion::NativePreviewCallback &)> nativeGenerate;
@@ -49,12 +52,19 @@ class GenerationController : public QObject
 {
     Q_OBJECT
     QML_ELEMENT
+    Q_PROPERTY(QObject *account READ account CONSTANT)
     Q_PROPERTY(bool connected READ connected NOTIFY storageChanged)
     Q_PROPERTY(QString containerPath READ containerPath NOTIFY storageChanged)
     Q_PROPERTY(QVariantList models READ models NOTIFY modelsChanged)
+    Q_PROPERTY(QVariantList videoModels READ videoModels NOTIFY modelsChanged)
+    Q_PROPERTY(QString selectedVideoModel READ selectedVideoModel WRITE setSelectedVideoModel NOTIFY modelsChanged)
+    Q_PROPERTY(bool videoRuntimeAvailable READ videoRuntimeAvailable NOTIFY storageChanged)
     Q_PROPERTY(QVariantList vaes READ vaes NOTIFY modelsChanged)
     Q_PROPERTY(QString selectedVae READ selectedVae WRITE setSelectedVae NOTIFY modelsChanged)
     Q_PROPERTY(QString selectedModel READ selectedModel WRITE setSelectedModel NOTIFY modelsChanged)
+    Q_PROPERTY(QString defaultImageModel READ defaultImageModel NOTIFY modelPreferencesChanged)
+    Q_PROPERTY(QString defaultVideoModel READ defaultVideoModel NOTIFY modelPreferencesChanged)
+    Q_PROPERTY(QString modelPreferencesError READ modelPreferencesError NOTIFY modelPreferencesChanged)
     Q_PROPERTY(QVariantList jobs READ jobs NOTIFY jobsChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY jobsChanged)
     Q_PROPERTY(bool runtimeAvailable READ runtimeAvailable NOTIFY storageChanged)
@@ -74,14 +84,24 @@ public:
     explicit GenerationController(GenerationRuntime runtime, QObject *parent = nullptr);
     ~GenerationController() override;
 
+    QObject *account() const { return m_accountSession.account(); }
     bool connected() const;
     QString containerPath() const;
     QVariantList models() const;
+    QVariantList videoModels() const;
+    QString selectedVideoModel() const;
+    void setSelectedVideoModel(const QString &id);
+    bool videoRuntimeAvailable() const;
     QVariantList vaes() const;
     QString selectedVae() const;
     void setSelectedVae(const QString &id);
     QString selectedModel() const;
     void setSelectedModel(const QString &id);
+    QString defaultImageModel() const;
+    QString defaultVideoModel() const;
+    QString modelPreferencesError() const;
+    Q_INVOKABLE bool setDefaultImageModel(const QString &id);
+    Q_INVOKABLE bool setDefaultVideoModel(const QString &id);
     QVariantList jobs() const;
     bool busy() const;
     bool runtimeAvailable() const;
@@ -103,6 +123,9 @@ public:
     Q_INVOKABLE bool selectStorageLocation(const QString &path);
     Q_INVOKABLE void refreshModels();
     Q_INVOKABLE QString enqueue(const QString &prompt, const QString &aspectRatio = QStringLiteral("1:1"), int count = 1, qint64 seed = -1);
+    Q_INVOKABLE QString enqueueVideo(const QString &prompt, const QString &aspectRatio = QStringLiteral("1:1"),
+        int count = 1, const QUrl &firstFrame = {}, int duration = 5, int fps = 24, qint64 seed = -1);
+    Q_INVOKABLE QString enqueueVideoRecipe(const QVariantMap &parameters);
     Q_INVOKABLE QString enqueueAdvanced(const QVariantMap &parameters);
     Q_INVOKABLE QString enqueueHomeCanvas(const QVariantMap &parameters, const QString &aspectRatio);
     Q_INVOKABLE bool cancel(const QString &id);
@@ -110,6 +133,7 @@ public:
 signals:
     void storageChanged();
     void modelsChanged();
+    void modelPreferencesChanged();
     void jobsChanged();
     void submissionQueued(const QStringList &jobIds);
     void errorChanged();
@@ -120,8 +144,9 @@ signals:
 
 private:
     QString enqueueAdvancedRequest(const QVariantMap &parameters, const QString &aspectRatio = {});
+    bool saveModelPreferences(const dreamscapes::ModelPreferences &value);
     QString enqueueRequest(const QString &prompt, const QSize &size, const QString &aspectRatio,
-        int count, qint64 seed, int steps, QJsonObject advanced = {});
+        int count, qint64 seed, int steps, QJsonObject advanced = {}, QJsonObject video = {});
     QVariantMap resultForImage(const QJsonObject &job, const QString &relative) const;
     bool fail(const QString &message);
     void pollStorage();
@@ -131,6 +156,7 @@ private:
     bool createWorkingFiles(QString *error);
     QStringList resourceArguments(QString *error);
     void clearWorkingFiles();
+    bool publishVideo(QString *error);
     bool publishImages(const QStringList &sources, QJsonObject &job, QString *error);
     void updateJob(QJsonObject job);
     void pump();
@@ -157,6 +183,8 @@ private:
 
     GenerationRuntime m_runtime;
     iiSocietyHelper::FileSystem m_fileSystem;
+    // The UI borrows the same SDK account snapshot used by the Society client.
+    AccountSession m_accountSession;
     iiSocietyClient::Client m_societyClient;
     std::shared_ptr<iiSocietyGeneration::Remote> m_remoteGeneration;
     QMap<QString, QString> m_modelDownloads;
@@ -184,6 +212,12 @@ private:
     QList<iiSocietyContainer::StoredModel> m_models;
     QString m_selected;
     QString m_selectedVae;
+    QString m_selectedVideo;
+    dreamscapes::ModelPreferences m_modelPreferences;
+    QString m_modelPreferencesError;
+    bool m_imageModelOverridden = false;
+    bool m_videoModelOverridden = false;
+    QStringList m_videoModelIds;
     QList<QJsonObject> m_jobs;
     QJsonObject m_active;
     QString m_output;

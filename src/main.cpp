@@ -1,6 +1,7 @@
 #include "App/Views/Home/HomeCanvas.h"
 #include "App/Views/Home/CanvasPresets.h"
 #include "App/Views/Editor/EditorCanvas.h"
+#include "App/Views/Editor/EditorProject.h"
 #include "App/ApplicationLifetime.h"
 #include <backend/runtime/appentry.h>
 #include "App/Generation/GenerationController.h"
@@ -50,6 +51,7 @@ int main(int argc, char *argv[])
         qmlRegisterType<HomeCanvas>("Dreamscapes.Storage", 1, 0, "HomeCanvas");
         qmlRegisterType<CanvasPresets>("Dreamscapes.Storage", 1, 0, "CanvasPresets");
         qmlRegisterType<EditorCanvas>("Dreamscapes.Storage", 1, 0, "EditorCanvas");
+        qmlRegisterType<EditorProject>("Dreamscapes.Storage", 1, 0, "EditorProject");
     qmlRegisterType<ImageFileExporter>("Dreamscapes.Storage", 1, 0, "ImageFileExporter");
         qmlRegisterType<PhotoLibraryExporter>("Dreamscapes.Storage", 1, 0, "PhotoLibraryExporter");
         auto *helper = new iiSocietyHelper::Helper(&engine);

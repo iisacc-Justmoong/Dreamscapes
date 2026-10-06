@@ -12,6 +12,10 @@ QString ImageFileExporter::suggestedFileName(const QUrl &source) const
 }
 
 bool ImageFileExporter::save(const QUrl &source, const QUrl &destination)
+{ return saveMedia(source,destination,false); }
+bool ImageFileExporter::saveVideo(const QUrl &source, const QUrl &destination)
+{ return saveMedia(source,destination,true); }
+bool ImageFileExporter::saveMedia(const QUrl &source, const QUrl &destination, bool video)
 {
     const auto fail = [this](const QString &message) {
         emit failed(message);
@@ -31,8 +35,8 @@ bool ImageFileExporter::save(const QUrl &source, const QUrl &destination)
     if (!input.open(QIODevice::ReadOnly))
         return fail(tr("Could not read the original image: %1").arg(input.errorString()));
     QImageReader reader(&input);
-    if (!reader.canRead() || !input.seek(0))
-        return fail(tr("The source file is not a readable image."));
+    if ((video ? QFileInfo(input).suffix().toLower() != "mp4" || input.peek(12).mid(4,4) != "ftyp" : !reader.canRead()) || !input.seek(0))
+        return fail(tr("The source file is not a readable media file."));
 
     if (destination.isLocalFile() && QFileInfo(target).canonicalFilePath() == QFileInfo(input).canonicalFilePath()) {
         emit saved(destination);

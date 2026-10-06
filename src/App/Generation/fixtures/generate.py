@@ -8,6 +8,8 @@ import struct
 import sys
 import time
 import zlib
+import hashlib
+import subprocess
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model-path', required=True)
@@ -24,16 +26,57 @@ parser.add_argument('--width', type=int, required=True)
 parser.add_argument('--height', type=int, required=True)
 parser.add_argument('--steps', type=int, required=True)
 parser.add_argument('--device', required=True)
-parser.add_argument('--output-dir', type=pathlib.Path, required=True)
+parser.add_argument('--output-dir', type=pathlib.Path)
+parser.add_argument('--output', type=pathlib.Path)
+parser.add_argument('--duration', type=int)
+parser.add_argument('--fps', type=int)
+parser.add_argument('--first-frame')
+parser.add_argument('--cpu-text-encoding', action=argparse.BooleanOptionalAction, default=False)
+parser.add_argument('--last-frame')
+parser.add_argument('--storyboard', type=pathlib.Path)
+parser.add_argument('--interpolation-factor', type=int, default=2)
+parser.add_argument('--dtype', default='auto')
+parser.add_argument('--offload', default='auto')
+parser.add_argument('--vae-tiling', action=argparse.BooleanOptionalAction, default=True)
+parser.add_argument('--decode-timestep', type=float, default=.05)
+parser.add_argument('--decode-noise-scale', type=float, default=.025)
+parser.add_argument('--image-cond-noise-scale', type=float, default=0)
+parser.add_argument('--video-crf', type=int, default=18)
+parser.add_argument('--video-preset', default='medium')
+parser.add_argument('--ffmpeg', default='ffmpeg')
+parser.add_argument('--ffprobe', default='ffprobe')
 parser.add_argument('--work-dir', type=pathlib.Path)
 parser.add_argument('--cache-dir', type=pathlib.Path)
 parser.add_argument('--preview-dir', type=pathlib.Path)
-parser.add_argument('--backend', choices=['local'])
-parser.add_argument('--generation-resources', type=pathlib.Path, required=True)
+parser.add_argument('--backend', choices=['local', 'video'])
+parser.add_argument('--generation-resources', type=pathlib.Path)
 parser.add_argument('--default-modifiers', action=argparse.BooleanOptionalAction, default=True)
 
 def generate(arguments, request_count=1):
     args = parser.parse_args(arguments)
+    if args.backend == 'video':
+        if args.prompt == 'video-hold': time.sleep(20)
+        shots = json.loads(args.storyboard.read_text())["shots"] if args.storyboard else []
+        frames = sum(shot["frames"] for shot in shots) if shots else args.duration * args.fps
+        args.duration = frames / args.fps
+        subprocess.run([args.ffmpeg,'-hide_banner','-loglevel','error','-f','lavfi','-i',
+            f'color=c=blue:s={args.width}x{args.height}:r={args.fps}', '-frames:v', str(frames),
+            '-c:v','libx264','-pix_fmt','yuv420p',str(args.output)],check=True)
+        poster = args.output.with_name(args.output.stem+'-frames')
+        poster.mkdir()
+        subprocess.run([args.ffmpeg,'-hide_banner','-loglevel','error','-i',str(args.output),
+            '-frames:v','1',str(poster/'frame-000000.png')],check=True)
+        content=args.output.read_bytes()
+        record={'schema':'iild-temporal-video-v1','status':'complete','configuration':dict(vars(args), shots=shots),
+            'video':{'codec':'h264','verified_decode':True,'frame_count':frames,'fps':args.fps,
+                'size':[args.width,args.height],'duration_seconds':args.duration,
+                'size_bytes':len(content),'sha256':hashlib.sha256(content).hexdigest()}}
+        record['configuration'] = {k:str(v) if isinstance(v,pathlib.Path) else v for k,v in record['configuration'].items()}
+        if args.prompt=='video-corrupt': record['video']['sha256']='0'*64
+        if args.prompt=='video-size': record['video']['size']=[32,32]
+        if args.prompt=='video-report': record['status']='running'
+        args.output.with_suffix('.json').write_text(json.dumps(record))
+        return
     if args.prompt == 'crash':
         os._exit(9)
     if args.prompt == 'long-error':
@@ -157,20 +200,20 @@ if sys.argv[1:] == ['--worker']:
                 def option(name):
                     return arguments[arguments.index(name) + 1]
                 model = pathlib.Path(option('--model-path'))
-                if model.read_bytes().startswith(b'prepare-metadata') and os.environ.get('IILD_MODEL_VALIDATION') != 'metadata':
+                if model.is_file() and model.read_bytes().startswith(b'prepare-metadata') and os.environ.get('IILD_MODEL_VALIDATION') != 'metadata':
                     raise SystemExit('worker did not receive metadata-only model validation')
                 signature = (str(model), model.stat().st_size, model.stat().st_mtime_ns)
                 loads = int(resident is None or resident[0] != signature)
                 resident = (signature, option('--device'))
                 if action == 'foreground':
-                    if model.read_bytes().startswith(b'prepare-check'):
+                    if model.is_file() and model.read_bytes().startswith(b'prepare-check'):
                         for completed in (4, 8):
                             print('IILD_MODEL_PROGRESS ' + json.dumps({'schema': 'iild-model-progress-v1',
                                 'completed_bytes': completed, 'total_bytes': 8}), flush=True)
                             time.sleep(0.1)
-                    if model.read_bytes().startswith(b'prepare-fail'):
+                    if model.is_file() and model.read_bytes().startswith(b'prepare-fail'):
                         raise SystemExit('fixture model preparation failed')
-                    if model.read_bytes().startswith(b'prepare-retain'):
+                    if model.is_file() and model.read_bytes().startswith(b'prepare-retain'):
                         model.with_name('.preparation-pid').write_text(str(os.getpid()))
                         time.sleep(1)
                     time.sleep(0.2)

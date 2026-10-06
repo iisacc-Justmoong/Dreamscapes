@@ -1,5 +1,6 @@
 #include "GenerationController.h"
 #include "ImageParameterCodec.h"
+#include "VideoGeneration.h"
 #include "AdvancedImageOutput.h"
 #include "AdvancedImageInputs.h"
 #include <Generation/NativePose.hpp>
@@ -59,8 +60,14 @@ QSize imageSize(const QString &ratio, int extent)
 GenerationRuntime defaultRuntime()
 {
     GenerationRuntime runtime;
-#if defined(Q_OS_IOS) || defined(Q_OS_ANDROID) || defined(Q_OS_MACOS)
+    runtime.modelPreferencesFile = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)
+        + "/generation-models.conf";
+    runtime.executable = qEnvironmentVariable("IILD_GENERATOR_EXECUTABLE");
+#if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
     runtime.nativeInference = true;
+#elif defined(Q_OS_MACOS)
+    // Native inference is the desktop default; respect an explicit process runtime.
+    runtime.nativeInference = runtime.executable.isEmpty();
 #endif
 #if defined(Q_OS_IOS)
     runtime.screenActivity = nativeGenerationScreenActivity();
@@ -70,7 +77,6 @@ GenerationRuntime defaultRuntime()
     runtime.legacyQ8CacheDirectory = QDir(previousCache.exists()
         ? previousCache.canonicalFilePath() : previousCache.absoluteFilePath()).filePath("iiLocalDiffusion/q8");
 #endif
-    runtime.executable = qEnvironmentVariable("IILD_GENERATOR_EXECUTABLE");
     if (runtime.executable.isEmpty())
         runtime.executable = QStringLiteral(DREAMSCAPES_DIFFUSION_EXECUTABLE);
     runtime.pythonExecutable = QStringLiteral(DREAMSCAPES_DIFFUSION_PYTHON_EXECUTABLE);
@@ -83,12 +89,23 @@ GenerationRuntime defaultRuntime()
 #endif
     return runtime;
 }
+std::filesystem::path preferencePath(const QString &path)
+{
+#ifdef Q_OS_WIN
+    return std::filesystem::path(path.toStdWString());
+#else
+    return std::filesystem::path(path.toStdString());
+#endif
+}
 }
 
 GenerationController::GenerationController(QObject *parent) : GenerationController(defaultRuntime(), parent) {}
 GenerationController::GenerationController(GenerationRuntime runtime, QObject *parent)
-    : QObject(parent), m_runtime(std::move(runtime))
+    : QObject(parent), m_runtime(std::move(runtime)), m_societyClient(&m_accountSession, nullptr)
 {
+    std::string preferenceError;
+    dreamscapes::readModelPreferences(preferencePath(m_runtime.modelPreferencesFile), m_modelPreferences, preferenceError);
+    m_modelPreferencesError = QString::fromStdString(preferenceError);
     if (!m_runtime.nativeExecutionControl)
         m_runtime.nativeExecutionControl = std::make_shared<iiLocalDiffusion::NativeExecutionControl>();
     m_storagePoll.setInterval(2000);
@@ -155,10 +172,10 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
     });
     m_workerDeadline.setSingleShot(true);
     connect(&m_workerDeadline, &QTimer::timeout, this, [this] {
-        if (!busy() || m_runtime.nativeInference || m_remoteActive || m_cancelled) return;
+        if (!busy() || (m_runtime.nativeInference && m_active.value("mediaType") != "Video") || m_remoteActive || m_cancelled) return;
         m_nativeTimedOut = true;
         const auto telemetry = m_active.value("telemetry").toObject();
-        m_active["timeoutError"] = tr("Image generation stopped making progress at %1 (%2/%3). Diagnostics: %4")
+        m_active["timeoutError"] = tr("Generation stopped making progress at %1 (%2/%3). Diagnostics: %4")
             .arg(telemetry.value("phase").toString(m_inferenceStatus.value("state").toString()))
             .arg(telemetry.value("step").toInt()).arg(telemetry.value("total").toInt())
             .arg(telemetry.value("trace_path").toString());
@@ -300,7 +317,7 @@ void GenerationController::setForeground(bool foreground)
     const bool canTransfer = foreground || (m_runtime.backgroundActivity && m_runtime.backgroundActivity->allowsBackgroundExecution());
     if (!canTransfer) m_societyClient.stop();
     if (m_remoteGeneration) m_remoteGeneration->setPaused(!canTransfer);
-    if (!foreground && m_runtime.nativeInference && !m_remoteActive && busy()) {
+    if (!foreground && m_runtime.nativeInference && !m_remoteActive && busy() && m_active.value("mediaType") != "Video") {
         if (m_runtime.backgroundActivity)
             setNativePaused(!m_runtime.backgroundActivity->allowsBackgroundExecution());
         else interruptNative();
@@ -352,10 +369,35 @@ QVariantList GenerationController::models() const
 {
     QVariantList result;
     for (const auto &model : m_models)
-        if (!model.id.startsWith("VAE/", Qt::CaseInsensitive))
+        if (!model.id.startsWith("VAE/", Qt::CaseInsensitive) && !m_videoModelIds.contains(model.id))
             result.append(QVariantMap{{"id", model.id}, {"name", model.name}, {"format", model.format},
                 {"available", model.available}, {"bytes", model.bytes}});
     return result;
+}
+bool GenerationController::videoRuntimeAvailable() const
+{
+#if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
+    return false;
+#else
+    return QFileInfo(m_runtime.executable).isExecutable() && QFileInfo(m_runtime.executable).isFile();
+#endif
+}
+QVariantList GenerationController::videoModels() const
+{
+    QVariantList result;
+    for (const auto &model : m_models)
+        if (m_videoModelIds.contains(model.id))
+            result.append(QVariantMap{{"id",model.id},{"name",model.name},{"available",model.available}});
+    return result;
+}
+QString GenerationController::selectedVideoModel() const { return m_selectedVideo; }
+void GenerationController::setSelectedVideoModel(const QString &id)
+{
+    if (!m_videoModelIds.contains(id)) return;
+    m_videoModelOverridden = true;
+    if (m_selectedVideo == id) return;
+    m_selectedVideo = id;
+    fail({}); emit modelsChanged();
 }
 QVariantList GenerationController::vaes() const
 {
@@ -379,8 +421,10 @@ void GenerationController::setSelectedVae(const QString &id)
 }
 void GenerationController::setSelectedModel(const QString &id)
 {
-    if (m_selected == id || id.startsWith("VAE/", Qt::CaseInsensitive)) return;
+    if (id.startsWith("VAE/", Qt::CaseInsensitive) || m_videoModelIds.contains(id)) return;
     if (std::none_of(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == id; })) return;
+    m_imageModelOverridden = true;
+    if (m_selected == id) return;
     m_selected = id;
     // Keep the runtime and its anonymous model sources alive. The pending
     // selection is prepared when the current preparation reaches its boundary.
@@ -388,6 +432,51 @@ void GenerationController::setSelectedModel(const QString &id)
     setInferenceStatus({{"state", "waiting-model"}, {"ready", false}});
     emit modelsChanged();
     QTimer::singleShot(0, this, &GenerationController::pump);
+}
+QString GenerationController::defaultImageModel() const { return QString::fromStdString(m_modelPreferences.imageModel); }
+QString GenerationController::defaultVideoModel() const { return QString::fromStdString(m_modelPreferences.videoModel); }
+QString GenerationController::modelPreferencesError() const { return m_modelPreferencesError; }
+bool GenerationController::saveModelPreferences(const dreamscapes::ModelPreferences &value)
+{
+    std::string error;
+    if (!dreamscapes::writeModelPreferences(preferencePath(m_runtime.modelPreferencesFile), value, error)) {
+        m_modelPreferencesError = QString::fromStdString(error);
+        emit modelPreferencesChanged();
+        return false;
+    }
+    m_modelPreferences = value;
+    m_modelPreferencesError.clear();
+    emit modelPreferencesChanged();
+    return true;
+}
+bool GenerationController::setDefaultImageModel(const QString &id)
+{
+    const auto images = models();
+    if (!id.isEmpty() && std::none_of(images.cbegin(), images.cend(), [&](const auto &model) {
+        return model.toMap().value("id").toString() == id;
+    })) {
+        m_modelPreferencesError = tr("Choose an image generation model from Society.");
+        emit modelPreferencesChanged(); return false;
+    }
+    auto value = m_modelPreferences;
+    value.imageModel = id.toStdString();
+    if (!saveModelPreferences(value)) return false;
+    setSelectedModel(id.isEmpty() && !images.isEmpty() ? images.first().toMap().value("id").toString() : id);
+    m_imageModelOverridden = false;
+    return true;
+}
+bool GenerationController::setDefaultVideoModel(const QString &id)
+{
+    if (!id.isEmpty() && !m_videoModelIds.contains(id)) {
+        m_modelPreferencesError = tr("Choose a video generation model from Society.");
+        emit modelPreferencesChanged(); return false;
+    }
+    auto value = m_modelPreferences;
+    value.videoModel = id.toStdString();
+    if (!saveModelPreferences(value)) return false;
+    setSelectedVideoModel(id.isEmpty() && !m_videoModelIds.isEmpty() ? m_videoModelIds.first() : id);
+    m_videoModelOverridden = false;
+    return true;
 }
 QVariantList GenerationController::jobs() const
 {
@@ -402,7 +491,7 @@ QUrl GenerationController::latestImage() const
 QVariantMap GenerationController::latestResult() const
 {
     for (auto job = m_jobs.crbegin(); job != m_jobs.crend(); ++job) {
-        const auto result = resultForImage(*job, job->value("image").toString());
+        const auto result = resultForImage(*job, job->value(job->value("mediaType") == "Video" ? "video" : "image").toString());
         if (!result.isEmpty()) return result;
     }
     return {};
@@ -413,7 +502,7 @@ QVariantList GenerationController::completedResults() const
     QVariantList results;
     // Keep submission/output order so newly completed images append to the gallery.
     for (const auto &job : m_jobs) {
-        for (const auto &image : job.value("images").toArray()) {
+        for (const auto &image : job.value(job.value("mediaType") == "Video" ? "videos" : "images").toArray()) {
             const auto result = resultForImage(job, image.toString());
             if (!result.isEmpty()) results.append(result);
         }
@@ -433,7 +522,16 @@ QVariantMap GenerationController::resultForImage(const QJsonObject &job, const Q
     if (!info.isFile() || info.isSymLink() || info.canonicalFilePath() != path) return {};
     auto result = job.toVariantMap();
     result.insert("image", relative);
-    result.insert("imageSource", QUrl::fromLocalFile(path));
+    result.insert("mediaType", job.value("mediaType").toString("Image"));
+    result.insert("mediaSource", QUrl::fromLocalFile(path));
+    if (job.value("mediaType") == "Video") {
+        const auto poster = job.value("poster").toString();
+        if (poster != prefix + job.value("id").toString() + "-poster.png") return {};
+        const auto posterPath = QDir(containerPath()).filePath(poster);
+        const QFileInfo posterInfo(posterPath);
+        if (!posterInfo.isFile() || posterInfo.isSymLink() || posterInfo.canonicalFilePath() != posterPath) return {};
+        result.insert("imageSource", QUrl::fromLocalFile(posterPath));
+    } else result.insert("imageSource", QUrl::fromLocalFile(path));
     return result;
 }
 
@@ -464,6 +562,8 @@ bool GenerationController::connectStorage(const QString &path)
     if (!storage) return fail(error);
     m_storage = std::move(storage);
     m_selected.clear();
+    m_selectedVideo.clear();
+    m_imageModelOverridden = m_videoModelOverridden = false;
     m_selectedVae.clear();
     m_jobs.clear();
     if (!discardLegacyStorage()) {
@@ -495,7 +595,7 @@ void GenerationController::refreshModels()
         ? SharedStorage::open(m_fileSystem.rootPath(), &error) : std::optional<SharedStorage>();
     if (!storage) {
         if (error.isEmpty()) error = m_fileSystem.errorString();
-        m_storage.reset(); m_models.clear(); m_selected.clear(); m_selectedVae.clear();
+        m_storage.reset(); m_models.clear(); m_selected.clear(); m_selectedVae.clear(); m_selectedVideo.clear(); m_videoModelIds.clear();
         emit storageChanged(); emit modelsChanged();
         fail(error);
         return;
@@ -511,8 +611,29 @@ void GenerationController::refreshModels()
     m_storage = std::move(storage);
     if (m_foreground) m_societyClient.start(m_storage->drive().rootPath());
     m_models = std::move(models);
-    if (std::none_of(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == m_selected; }))
-        m_selected = this->models().isEmpty() ? QString() : this->models().first().toMap().value("id").toString();
+    const auto previousVideoModels = m_videoModelIds;
+    m_videoModelIds.clear();
+    for (const auto &model : m_models) {
+        if (model.format == "diffusers" && dreamscapes::isVideoModel(
+            QDir(containerPath()).filePath("Models/" + model.id)))
+            m_videoModelIds.append(model.id);
+    }
+    const auto previousImage = m_selected;
+    const auto previousVideo = m_selectedVideo;
+    if (!m_videoModelOverridden || !m_videoModelIds.contains(m_selectedVideo)) {
+        m_videoModelOverridden = false;
+        m_selectedVideo = m_videoModelIds.contains(defaultVideoModel()) ? defaultVideoModel()
+            : m_videoModelIds.isEmpty() ? QString() : m_videoModelIds.first();
+    }
+    const auto images = this->models();
+    const auto hasImage = [&](const QString &id) {
+        return std::any_of(images.cbegin(), images.cend(), [&](const auto &model) { return model.toMap().value("id").toString() == id; });
+    };
+    if (!m_imageModelOverridden || !hasImage(m_selected)) {
+        m_imageModelOverridden = false;
+        m_selected = hasImage(defaultImageModel()) ? defaultImageModel()
+            : images.isEmpty() ? QString() : images.first().toMap().value("id").toString();
+    }
     if (std::none_of(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == m_selectedVae; }))
         m_selectedVae.clear();
     fail(error);
@@ -527,7 +648,7 @@ void GenerationController::refreshModels()
         emit storageChanged();
         if (!m_runtime.nativeInference) startLegacyCacheMigration();
     }
-    if (changed) {
+    if (changed || previousVideoModels != m_videoModelIds || previousImage != m_selected || previousVideo != m_selectedVideo) {
         emit modelsChanged();
         m_residencyPending = true;
         QTimer::singleShot(0, this, &GenerationController::pump);
@@ -675,6 +796,89 @@ QString GenerationController::enqueue(const QString &prompt, const QString &aspe
     return enqueueRequest(prompt, imageSize(aspectRatio, m_runtime.imageExtent), aspectRatio, count, seed, m_runtime.steps);
 }
 
+QString GenerationController::enqueueVideo(const QString &prompt, const QString &aspectRatio,
+    int count, const QUrl &firstFrame, int duration, int fps, qint64 seed)
+{
+    if (!videoRuntimeAvailable()) { fail(tr("Video generation requires the desktop iiLocalDiffusion runtime.")); return {}; }
+    if (duration < 1 || duration > 30 || (fps != 12 && fps != 24 && fps != 30)) {
+        fail(tr("Choose a video duration from 1 to 30 seconds and 12, 24 or 30 FPS.")); return {};
+    }
+    if (!connected()) { fail(tr("Open Society on this device to load its storage map.")); return {}; }
+    QJsonObject video{{"duration",duration},{"fps",fps},{"frames",duration*fps}};
+    QString directory;
+    if (!firstFrame.isEmpty()) {
+        QImageReader reader(firstFrame.toLocalFile()); reader.setAutoTransform(true);
+        const auto size = reader.size();
+        if (!firstFrame.isLocalFile() || !reader.canRead() || size.isEmpty()
+            || qint64(size.width())*size.height() > 64LL*1024*1024
+            || QFileInfo(firstFrame.toLocalFile()).size() > 256LL*1024*1024 || reader.read().isNull()) {
+            fail(tr("Choose a readable local image for the video's first frame.")); return {};
+        }
+        QString error;
+        directory = m_storage->ensureDirectory(StoreSection::AssetLibrary,
+            "Dreamscapes/GenerationInputs/" + QUuid::createUuid().toString(QUuid::WithoutBraces), &error);
+        const auto target = QDir(directory).filePath("first-frame." + QFileInfo(firstFrame.toLocalFile()).suffix());
+        if (directory.isEmpty() || !QFile::copy(firstFrame.toLocalFile(),target)) {
+            if (!directory.isEmpty()) QDir(directory).removeRecursively();
+            fail(error.isEmpty() ? tr("Cannot preserve the video's first frame.") : error); return {};
+        }
+        video["firstFrame"] = target;
+    }
+    const auto id = enqueueRequest(prompt,dreamscapes::videoSize(aspectRatio),aspectRatio,count,seed,30,{},video);
+    if (id.isEmpty() && !directory.isEmpty()) QDir(directory).removeRecursively();
+    return id;
+}
+
+QString GenerationController::enqueueVideoRecipe(const QVariantMap &parameters)
+{
+    if (!videoRuntimeAvailable()) { fail(tr("Video generation requires the desktop iiLocalDiffusion runtime.")); return {}; }
+    if (!connected()) { fail(tr("Open Society on this device to load its storage map.")); return {}; }
+    auto video = QJsonObject::fromVariantMap(parameters);
+    QString error;
+    if (!dreamscapes::normalizeVideoRecipe(&video, &error)) { fail(error); return {}; }
+    // Own every submitted image before publishing any job. Cancelling the file
+    // picker or changing the draft cannot mutate accepted image conditions.
+    QString directory;
+    int imageIndex = 0;
+    auto preserve = [&](QJsonArray *conditions) {
+        QJsonArray owned;
+        for (const auto &entry : *conditions) {
+            auto condition = entry.toObject();
+            const QUrl source(condition.value("image").toString());
+            QImageReader reader(source.toLocalFile()); reader.setAutoTransform(true);
+            const auto size = reader.size();
+            if (!source.isLocalFile() || !reader.canRead() || size.isEmpty()
+                || qint64(size.width()) * size.height() > 64LL * 1024 * 1024
+                || QFileInfo(source.toLocalFile()).size() > 256LL * 1024 * 1024 || reader.read().isNull()) {
+                error = tr("Choose readable local images for video keyframes."); return false;
+            }
+            if (directory.isEmpty()) directory = m_storage->ensureDirectory(StoreSection::AssetLibrary,
+                "Dreamscapes/GenerationInputs/" + QUuid::createUuid().toString(QUuid::WithoutBraces), &error);
+            const auto target = QDir(directory).filePath(QString::number(imageIndex++) + "." + QFileInfo(source.toLocalFile()).suffix());
+            if (directory.isEmpty() || !QFile::copy(source.toLocalFile(), target)) {
+                if (error.isEmpty()) error = tr("Cannot preserve video image conditions."); return false;
+            }
+            condition["image"] = target; owned.append(condition);
+        }
+        *conditions = owned; return true;
+    };
+    auto shots = video.value("shots").toArray();
+    for (int index = 0; index < shots.size(); ++index) {
+        auto shot = shots[index].toObject(); auto conditions = shot.value("conditions").toArray();
+        if (!preserve(&conditions)) { if (!directory.isEmpty()) QDir(directory).removeRecursively(); fail(error); return {}; }
+        shot["conditions"] = conditions; shots[index] = shot;
+    }
+    video["shots"] = shots;
+    video["recipe"] = true;
+    const QSize size(video.value("width").toInt(), video.value("height").toInt());
+    const auto divisor = std::gcd(size.width(), size.height());
+    const auto id = enqueueRequest(video.value("prompt").toString(), size,
+        QString::number(size.width() / divisor) + ":" + QString::number(size.height() / divisor),
+        video.value("outputCount").toInt(), video.value("seed").toInteger(), video.value("steps").toInt(), {}, video);
+    if (id.isEmpty() && !directory.isEmpty()) QDir(directory).removeRecursively();
+    return id;
+}
+
 QString GenerationController::enqueueAdvanced(const QVariantMap &parameters)
 {
     return enqueueAdvancedRequest(parameters);
@@ -689,6 +893,23 @@ QString GenerationController::enqueueHomeCanvas(const QVariantMap &parameters, c
     if (!connected()) { fail(tr("Open Society on this device to load its storage map.")); return {}; }
     // Own immutable inputs before enqueueing: queued jobs survive draft edits and removal.
     auto snapshot = parameters;
+    // QuickGenerate owns these defaults; the advanced form owns explicit values.
+    // Resolve from model tensor metadata rather than its user-editable filename.
+    const auto requestedModel = snapshot.value("model").toString();
+    const auto modelId = requestedModel.isEmpty() ? m_selected : requestedModel;
+    const auto selected = std::find_if(m_models.cbegin(), m_models.cend(), [&](const auto &model) {
+        return model.id == modelId;
+    });
+    if (m_runtime.nativeInference && selected != m_models.cend() && selected->available) {
+        QString modelError;
+        const auto path = m_storage->resolveModel(selected->reference(m_storage->drive().identifier()), &modelError);
+        if (!path.isEmpty()) {
+            const auto defaults = dreamscapes::imageParametersToMap(
+                iiLocalDiffusion::nativeImageParameterDefaults(QFile::encodeName(path).toStdString()));
+            snapshot["steps"] = defaults.value("steps");
+            snapshot["cfgScale"] = defaults.value("cfgScale");
+        }
+    }
     const auto references = parameters.value("referenceImages").toList();
     if (references.isEmpty()) return enqueueAdvancedRequest(snapshot, aspectRatio);
     QString error;
@@ -741,35 +962,40 @@ QString GenerationController::enqueueAdvancedRequest(const QVariantMap &paramete
 }
 
 QString GenerationController::enqueueRequest(const QString &prompt, const QSize &size, const QString &aspectRatio,
-    int count, qint64 seed, int steps, QJsonObject advanced)
+    int count, qint64 seed, int steps, QJsonObject advanced, QJsonObject video)
 {
+    const bool isVideo = !video.isEmpty();
 #if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
     if (!runtimeAvailable()) { fail(tr("Local image generation is unavailable in this build.")); return {}; }
 #endif
-    if (count < 1 || count > 1000) { fail(tr("Choose an image count from 1 to 1000.")); return {}; }
+    if (count < 1 || count > 1000) { fail(tr("Choose a generation count from 1 to 1000.")); return {}; }
     if (seed < -1 || seed > std::numeric_limits<quint32>::max() - qint64(count - 1)) {
-        fail(tr("Choose a seed from 0 to 4294967295, with room for the image count.")); return {};
+        fail(tr("Choose a seed from 0 to 4294967295, with room for the generation count.")); return {};
     }
     if (!connected()) { fail(tr("Open Society on this device to load its storage map.")); return {}; }
     const auto trimmed = prompt.trimmed();
     if (trimmed.isEmpty() || trimmed.size() > 32000 || size.isEmpty() || size.width() > 4096 || size.height() > 4096
         || steps < 1 || steps > 1000) { fail(tr("Enter a prompt and a supported image size.")); return {}; }
     const auto requestedModel = advanced.value("model").toString();
-    const auto modelId = requestedModel.isEmpty() ? m_selected : requestedModel;
+    const auto modelId = requestedModel.isEmpty() ? (isVideo ? m_selectedVideo : m_selected) : requestedModel;
     auto selected = std::find_if(m_models.cbegin(), m_models.cend(), [&](const auto &model) { return model.id == modelId; });
-    if (selected == m_models.cend()) { fail(tr("Add a Diffusion model to Society, then refresh the model list.")); return {}; }
+    if (selected == m_models.cend() || (isVideo && !m_videoModelIds.contains(modelId))) {
+        fail(isVideo ? tr("Add a local LTX Diffusers model package to Society's Models folder, then refresh models.")
+            : tr("Add a Diffusion model to Society, then refresh the model list.")); return {};
+    }
     const StorageMap map(m_storage->drive());
     auto required = map.files("models/" + selected->id);
-    required.append(map.files("models/.generation-resources/iiLocalDiffusion")); required.removeDuplicates();
+    if (!isVideo) required.append(map.files("models/.generation-resources/iiLocalDiffusion")); required.removeDuplicates();
     const bool localReady = required.isEmpty() ? selected->available : map.available(required);
+    if (isVideo && !localReady) { fail(tr("Download the selected LTX model in Society before generating video.")); return {}; }
     if (!advanced.isEmpty() && (!localReady || selected->format != "safetensors")) {
         fail(tr("Advanced parameters require a locally available native model. Remote and packaged worker routes do not advertise this contract yet.")); return {};
     }
-    if (localReady && m_runtime.nativeInference && selected->format != "safetensors" && selected->format != "unified") {
+    if (!isVideo && localReady && m_runtime.nativeInference && selected->format != "safetensors" && selected->format != "unified") {
         fail(tr("Choose a checkpoint or unified model for on-device generation.")); return {};
     }
     QJsonObject vaeReference;
-    const auto vaeId = advanced.isEmpty() ? m_selectedVae : advanced.value("vae").toString();
+    const auto vaeId = isVideo ? QString() : advanced.isEmpty() ? m_selectedVae : advanced.value("vae").toString();
     if (!vaeId.isEmpty()) {
         const auto vae = std::find_if(m_models.cbegin(), m_models.cend(), [&](const auto &value) { return value.id == vaeId; });
         if (vae == m_models.cend() || !vae->available || !localReady || (m_runtime.nativeInference && advanced.isEmpty())) {
@@ -923,6 +1149,8 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
             {"aspectRatio", aspectRatio}, {"width", size.width()}, {"height", size.height()},
             {"steps", steps}, {"seed", double(seed < 0 ? QRandomGenerator::global()->generate() : seed + index)},
             {"device", m_runtime.device}, {"model", reference}, {"modelName", selected->name}, {"vae", vaeReference}};
+        job["mediaType"] = isVideo ? "Video" : "Image";
+        if (isVideo) job["videoParameters"] = video;
         if (!advanced.isEmpty()) job["advancedParameters"] = advanced;
         m_jobs.append(job);
     }
@@ -952,7 +1180,7 @@ void GenerationController::pump()
     iiSocietyContainer::StorageMap map(m_storage->drive());
     auto required = map.files("models/" + m_active.value("model").toObject().value("path").toString());
     const auto resources = map.files("models/.generation-resources/iiLocalDiffusion");
-    required.append(resources); required.removeDuplicates();
+    if (m_active.value("mediaType") != "Video") required.append(resources); required.removeDuplicates();
     if (m_active.value("execution") == "host" || (!required.isEmpty() && !map.available(required))) {
         if (m_active.contains("advancedParameters")) {
             finish("failed", tr("The local model became unavailable. Advanced parameters cannot be silently forwarded to an unsupported host.")); return;
@@ -975,7 +1203,7 @@ void GenerationController::pump()
     m_active["startedAt"] = now();
     m_active["output"] = "Generation History";
     updateJob(m_active);
-    if (m_runtime.nativeInference) { startNative(model); return; }
+    if (m_runtime.nativeInference && m_active.value("mediaType") != "Video") { startNative(model); return; }
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
     setInferenceStatus({{"state", "loading"}, {"ready", false}, {"model", model}});
     if (m_cancelled) { finish("cancelled"); return; }
@@ -984,6 +1212,53 @@ void GenerationController::pump()
         "--steps", QString::number(m_active.value("steps").toInt()),
         "--seed", QString::number(m_active.value("seed").toInteger()), "--device", m_active.value("device").toString(),
         "--output-dir", m_output};
+    if (m_active.value("mediaType") == "Video") {
+        if (m_runtime.nativeInference) iiLocalDiffusion::releaseNativeDiffusionCache();
+        arguments.removeLast(); arguments.removeLast();
+        const auto video = m_active.value("videoParameters").toObject();
+        arguments.append({"--backend","video","--output",QDir(m_output).filePath("video.mp4"),
+            "--duration",QString::number(video.value("duration").toInt()),"--fps",QString::number(video.value("fps").toInt()),
+            "--cache-dir",m_workDirectory->filePath("cache"),"--cpu-text-encoding",
+            "--ffmpeg",QStringLiteral(DREAMSCAPES_FFMPEG_EXECUTABLE),"--ffprobe",QStringLiteral(DREAMSCAPES_FFPROBE_EXECUTABLE)});
+        if (video.value("recipe").toBool()) {
+            // The SDK stitches kept shots in order; frames are measured in output
+            // FPS and per-shot image keys are relative to that shot's first frame.
+            arguments.removeAt(arguments.indexOf("--duration") + 1);
+            arguments.removeOne("--duration");
+            arguments.removeOne("--cpu-text-encoding");
+            const auto storyPath = m_workDirectory->filePath("storyboard.json");
+            QFile story(storyPath);
+            auto shots = video.value("shots").toArray();
+            for (int index = 0; index < shots.size(); ++index) {
+                auto shot = shots[index].toObject();
+                shot["seed"] = double((m_active.value("seed").toInteger() + index) % 4294967296LL);
+                shots[index] = shot;
+            }
+            const auto bytes = QJsonDocument(QJsonObject{{"shots", shots}}).toJson(QJsonDocument::Compact);
+            if (!story.open(QIODevice::WriteOnly) || story.write(bytes) != bytes.size()) {
+                finish("failed", tr("Cannot write the submitted video storyboard.")); return;
+            }
+            story.close();
+            arguments[arguments.indexOf("--device") + 1] = video.value("device").toString();
+            arguments.append({"--storyboard", storyPath, "--negative-prompt", video.value("negativePrompt").toString(),
+                "--guidance-scale", QString::number(video.value("cfgScale").toDouble()),
+                "--interpolation-factor", QString::number(video.value("interpolationFactor").toInt()),
+                "--dtype", video.value("precision").toString(), "--offload", video.value("offload").toString(),
+                video.value("cpuTextEncoding").toBool() ? "--cpu-text-encoding" : "--no-cpu-text-encoding",
+                video.value("vaeTiling").toBool() ? "--vae-tiling" : "--no-vae-tiling",
+                "--decode-timestep", QString::number(video.value("decodeTimestep").toDouble()),
+                "--decode-noise-scale", QString::number(video.value("decodeNoiseScale").toDouble()),
+                "--image-cond-noise-scale", QString::number(video.value("imageConditionNoise").toDouble()),
+                "--video-crf", QString::number(video.value("crf").toInt()),
+                "--video-preset", video.value("encodingPreset").toString()});
+        }
+        const auto firstFrame = video.value("firstFrame").toString();
+        if (!firstFrame.isEmpty()) arguments.append({"--first-frame",firstFrame});
+        m_workerRequest = QJsonDocument(QJsonObject{{"schema","iild-worker-request-v1"},{"id",m_active.value("id")},
+            {"arguments",QJsonArray::fromStringList(arguments)}}).toJson(QJsonDocument::Compact) + '\n';
+        if (!startWorker(&error)) finish("failed",error);
+        return;
+    }
     arguments.append({"--cache-dir", m_workDirectory->filePath("cache"),
         "--preview-dir", m_previewDirectory->path()});
     const auto vaeReference = m_active.value("vae").toObject();
@@ -1399,6 +1674,7 @@ bool GenerationController::collectResult(QString *error)
         *error = tr("The temporary generation output was redirected.");
         return false;
     }
+    if (m_active.value("mediaType") == "Video") return publishVideo(error);
     const QFileInfo provenance(m_output + "/generation.json");
     QFile record(provenance.filePath());
     if (!provenance.isFile() || provenance.isSymLink() || provenance.size() > 16 * 1024 * 1024
@@ -1414,6 +1690,56 @@ bool GenerationController::collectResult(QString *error)
         if (QStringList{"png", "jpg", "jpeg", "webp"}.contains(file.suffix().toLower()))
             sources.append(file.filePath());
     return publishImages(sources, m_active, error);
+}
+
+bool GenerationController::publishVideo(QString *error)
+{
+    const auto path = QDir(m_output).filePath("video.mp4");
+    const auto reportPath = QDir(m_output).filePath("video.json");
+    const QFileInfo reportInfo(reportPath);
+    QFile report(reportPath);
+    if (!reportInfo.isFile() || reportInfo.isSymLink() || reportInfo.canonicalFilePath() != reportPath
+        || reportInfo.size() > 16*1024*1024 || !report.open(QIODevice::ReadOnly)) {
+        *error = tr("The engine exited without a readable video generation record."); return false;
+    }
+    const auto generation = QJsonDocument::fromJson(report.readAll()).object();
+    const auto parameters = m_active.value("videoParameters").toObject();
+    const QSize size(m_active.value("width").toInt(),m_active.value("height").toInt());
+    if (!dreamscapes::validateVideoOutput(path,generation,size,parameters.value("frames").toInt(),parameters.value("fps").toInt(),error)) return false;
+    const auto posterPath = QDir(m_output).filePath("video-frames/frame-000000.png");
+    const QFileInfo posterInfo(posterPath);
+    QImageReader reader(posterPath);
+    if (!posterInfo.isFile() || posterInfo.isSymLink() || posterInfo.canonicalFilePath() != posterPath
+        || reader.size() != size || reader.read().isNull()) {
+        *error = tr("The engine returned an unreadable video preview frame."); return false;
+    }
+    const auto id = m_active.value("id").toString();
+    const QStringList names{id + "-0001.mp4",id + "-poster.png"};
+    const QStringList sources{path,posterPath};
+    QStringList destinations;
+    for (const auto &name:names) {
+        const auto destination = m_storage->filePath(StoreSection::GenerationHistory,name,error);
+        if (destination.isEmpty()) return false;
+        if (QFileInfo::exists(destination)) { *error = tr("A video result with this name already exists."); return false; }
+        destinations.append(destination);
+    }
+    for (int index=0; index<sources.size(); ++index) {
+        QFile input(sources[index]); QSaveFile output(destinations[index]);
+        bool copied = input.open(QIODevice::ReadOnly) && output.open(QIODevice::WriteOnly);
+        while (copied && !input.atEnd()) {
+            const auto bytes=input.read(1024*1024);
+            copied=input.error()==QFile::NoError && output.write(bytes)==bytes.size();
+        }
+        if (!copied || !output.commit()) {
+            for (int previous=0; previous<index; ++previous) QFile::remove(destinations[previous]);
+            *error=tr("Cannot save the generated video in Society."); return false;
+        }
+    }
+    m_active["generation"]=generation;
+    m_active["video"]="Generation History/"+names[0];
+    m_active["videos"]=QJsonArray{m_active.value("video")};
+    m_active["poster"]="Generation History/"+names[1];
+    return true;
 }
 
 bool GenerationController::publishImages(const QStringList &sources, QJsonObject &job, QString *error)
@@ -1518,6 +1844,23 @@ void GenerationController::readProcessOutput()
         // Progress bars can leave a carriage-return prefix on the merged stream.
         const auto start = line.indexOf("IILD_PREVIEW ");
         if (start >= 0 && line.size() - start <= 4096) acceptPreview(line.mid(start + 13));
+        const auto videoProgress = line.indexOf("IILD_VIDEO_PROGRESS ");
+        if (videoProgress >= 0 && line.size()-videoProgress <= 4096 && busy()
+            && m_active.value("mediaType") == "Video" && !m_cancelled && !m_nativeTimedOut) {
+            const auto event = QJsonDocument::fromJson(line.mid(videoProgress+20)).object();
+            const auto stage = event.value("stage").toString();
+            const int step=event.value("step").toInt(-1), total=event.value("total").toInt(-1);
+            if (event.value("schema") == "iild-video-progress-v1" && step >= 0 && total >= step
+                && QStringList{"loading","encoding","denoising","decoding","interpolating","encoding-video","complete"}.contains(stage)) {
+                const auto key = stage+':'+QString::number(step)+'/'+QString::number(total);
+                if (key != m_workerProgressKey) {
+                    m_workerProgressKey=key;
+                    m_workerDeadline.start(std::max(1,m_runtime.nativeTimeoutMilliseconds));
+                }
+                setInferenceStatus({{"state",stage},{"ready",false},{"backend","video"},{"step",step},{"total",total}});
+                if (stage == "denoising") { m_previewStep=step; m_previewTotalSteps=total; emit previewChanged(); }
+            }
+        }
         const auto nativeProgress = line.indexOf("IILD_NATIVE_PROGRESS ");
         if (nativeProgress >= 0 && line.size() - nativeProgress <= 4096)
             acceptNativeWorkerProgress(line.mid(nativeProgress + 21));
@@ -1736,7 +2079,7 @@ bool GenerationController::cancel(const QString &id)
         m_cancelled = true;
         m_nativeCancelled = true;
         if (m_runtime.nativeInference)
-            setInferenceStatus({{"state", "cancelling"}, {"ready", false}, {"backend", "native"}});
+            setInferenceStatus({{"state", "cancelling"}, {"ready", false}, {"backend", m_active.value("mediaType") == "Video" ? "video" : "native"}});
         stopProcess(false);
         QTimer::singleShot(2000, this, [this, id] { if (m_active.value("id") == id) stopProcess(true); });
         return true;

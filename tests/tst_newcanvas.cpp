@@ -10,7 +10,7 @@ private slots:
     void catalogueContainsEveryDesignedFormat() {
         CanvasPresets catalogue;
         QCOMPARE(catalogue.categories().size(), 14);
-        QCOMPARE(catalogue.count(), 300);
+        QCOMPARE(catalogue.count(), 289);
         QSet<QString> ids;
         for (int category = 0; category < 14; ++category) {
             const auto groups = catalogue.sections(category);
@@ -32,8 +32,9 @@ private slots:
             }
             QCOMPARE(count, catalogue.categories()[category].toMap().value("count").toInt());
         }
-        QCOMPARE(ids.size(), 300);
-        QCOMPARE(catalogue.sections(0).size(), 16); // Platform-only SNS sections.
+        QCOMPARE(ids.size(), 289);
+        QCOMPARE(catalogue.sections(0).size(), 13); // Platform-only SNS sections.
+        QCOMPARE(catalogue.categories()[0].toMap().value("count").toInt(), 58);
         QVERIFY(catalogue.preset("missing").isEmpty());
     }
     void globalSearchAndPhysicalUnits() {
@@ -44,7 +45,8 @@ private slots:
         QCOMPARE(count, 11);
         QVERIFY(!catalogue.sections(0, "1920 × 1080").isEmpty());
         QVERIFY(!catalogue.sections(0, "Threads").isEmpty());
-        QVERIFY(!catalogue.sections(0, "KakaoTalk").isEmpty());
+        for (const auto &platform : {QString("TikTok"), QString("KakaoTalk"), QString("LINE rich menu")})
+            QVERIFY2(catalogue.sections(0, platform).isEmpty(), qPrintable(platform));
         QCOMPARE(catalogue.sections(0, "X").size(), 1);
         QCOMPARE(catalogue.sections(0, "X").first().toMap().value("name").toString(), "Social media · X");
         QVERIFY(catalogue.sections(0, "does-not-exist").isEmpty());
@@ -56,6 +58,20 @@ private slots:
         QCOMPARE(letter.value("pixelHeight").toInt(), 3300);
         QCOMPARE(catalogue.convert(25.4, "mm", "in", 300), 1.0);
         QCOMPARE(catalogue.convert(300, "px", "in", 300), 1.0);
+    }
+    void removedPlatformsCannotBeSelectedById() {
+        CanvasPresets catalogue;
+        for (const auto &group : catalogue.sections(0))
+            QVERIFY((!QStringList{"TikTok", "LINE", "KakaoTalk"}.contains(group.toMap().value("name").toString())));
+        for (const auto &prefix : {QString("01-07-"), QString("01-15-"), QString("01-16-")})
+            for (int index = 1; index <= (prefix == "01-07-" ? 3 : 4); ++index) {
+                const auto id = prefix + QString::number(index).rightJustified(2, '0');
+                QVERIFY2(catalogue.preset(id).isEmpty(), qPrintable(id));
+            }
+        // Removal must not shift identities already stored in other canvases.
+        QCOMPARE(catalogue.preset("01-08-01").value("section").toString(), "YouTube");
+        QCOMPARE(catalogue.preset("14-02-07").value("name").toString(), "Dashboard graphic");
+        QVERIFY(!catalogue.sections(0, "Timeline").isEmpty());
     }
     void invalidInputCannotAllocateADocument() {
         CanvasPresets catalogue;

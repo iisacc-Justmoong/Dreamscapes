@@ -1,145 +1,57 @@
-# Home paint canvas
+<a id="home-paint-canvas"></a>
 
-Dreamscapes implements Figma `bn8O4AHKr1X9DWnhR1TgEy`, node `261:3206`,
-with the installed LVRS controls and iiSharedCanvas editing engine. The requested
-icon toolbar replaces the design's text buttons. `HomePaintCanvas.qml` owns the
-presentation, `HomeCanvas` owns the consumer's attachment and input conversion,
-and iiSharedCanvas owns raster pixels, strokes, rendering and undo history.
+# 홈 페인트 캔버스
 
-The current desktop Home removes the inline paint canvas and its toggle, placing
-QuickGenerate's prompt first. QuickGenerate keeps the existing hidden component
-as its reference-image backing state; its attachment cards render in the external
-slot below the prompt, with canvas drag gestures disabled. Validation errors appear
-in the composer notice. The standalone component's painting behavior described
-below remains available for component-level use and tests.
+Dreamscapes 는 Figma `bn8O4AHKr1X9DWnhR1TgEy`, 노드 `261:3206` 를 구현하며, 설치된 LVRS 컨트롤과 iiSharedCanvas 편집 엔진을 사용합니다. 요청된 아이콘 도구대는 디자인의 텍스트 버튼을 대체합니다. `HomePaintCanvas.qml` 가 프레젠테이션을 담당하고, `HomeCanvas` 가 소비자의 첨부 파일 및 입력 변환을 담당하며, iiSharedCanvas 는 래스터 픽셀, 스트로크, 렌더링 및 되돌리기 이력을 담당합니다.
 
-The plus button to the
-left of Image opens a multiple-image file picker. Attached images appear between the prompt and generation controls; dragging a thumbnail into the canvas composites its decoded
-pixels into the selected raster layer at the drop location. The image is centered
-at the pointer and kept within the canvas. Small inputs retain their native pixel
-size; oversized inputs shrink to fit without changing their ratio. A paste is one
-undoable edit, supports redo and subsequent brush/eraser edits, and remains after
-the source attachment is removed. Removing the reference does not erase pixels.
-An empty attachment list consumes no space.
+현재 데스크톱 홈은 인라인 페인트 캔버스와 그 토글을 제거하여 QuickGenerate 의 프롬프트를 먼저 배치합니다. QuickGenerate 는 기존 숨겨진 컴포넌트를 참조 이미지 백킹 상태로 유지하며, 첨부 파일 카드들은 프롬프트 아래의 외부 슬롯에서 렌더링되고 캔버스 드래지 제스처는 비활성화됩니다. 유효성 검사 오류는 컴포저 공지사항에 표시됩니다. 아래에 설명된 독립형 컴포넌트의 페인팅 동작은 컴포넌트 수준의 사용 및 테스트를 위해 여전히 사용 가능합니다.
 
-The 22px toolbar has an 18px exported Figma brush icon and installed LVRS eraser,
-undo, redo and clear icons. LVRS ColorPickerButton opens the native
-LVRS wheel ColorPicker; Apply commits the brush color and Cancel preserves it.
-The toolbar displays unchanged fixed-width LVRS Mini Slider controls to the left of the color wheel:
-brush size is 1–500 px in 1 px steps, and opacity is 0–100% in 1% steps (mapped
-to the SDK's 0–1 value). Icons identify size and opacity; numerical readouts show their current values.
-At narrow widths the fixed-width control groups wrap. A 0% stroke paints no pixels.
-Hover tooltips and accessible names identify the icon actions. Narrow homes keep the plus button and use a
-22px Generate arrow to avoid squeezing the ratio and quantity controls.
+이미지 왼쪽의 플러스 버튼을 누르면 여러 이미지 파일 선택기가 열립니다. 프롬프트와 생성 컨트롤 사이에 첨부된 이미지가 나타나며, 썸네일을 캔버스에 드래그하면 디코딩된 픽셀이 선택된 래스터 레이어에 드롭 위치로 합성됩니다. 이미지는 포인터 중앙에 정렬되며 캔버스 내에 유지됩니다. 작은 입력은 원래 픽셀 크기를 유지하고, 과도하게 큰 입력은 비율을 변경하지 않고 캔버스에 맞게 축소됩니다. 붙여넣기는 하나의 되돌릴 수 있는 편집으로, 되실행과 이후 브러시/지우개 편집을 지원하며, 소스 첨부물이 제거되더라도 유지됩니다. 참조를 제거하면 픽셀이 지워지지 않습니다. 빈 첨부물 목록은 공간을 차지하지 않습니다.
 
-Canvas output dimensions follow QuickGenerate: 1:1 = 1024 × 1024, 4:3 = 1368 ×
-1024, 3:4 = 1024 × 1368, 16:9 = 1824 × 1024, 9:16 = 1024 × 1824. Changing ratio
-fits existing pixels into the centered new document without stretching. This
-creates a new document and resets previous undo history. The displayed canvas is
-limited to **1080 logical pixels wide**, and scales down to fit narrower panels:
-`displayWidth = min(1080, panelContentWidth)` and
-`displayHeight = displayWidth * canvasHeight / canvasWidth`.
-Wider panels center the canvas; narrower panels show the complete document without
-horizontal scrolling. The existing 12px panel padding remains outside the viewport.
-Painting temporarily disables flicking so a brush stroke cannot become a scroll gesture. There is no fixed
-stage height. Portrait ratios extend the scrolling home body;
-they do not resize the application window. HomeCanvas passes wheel input to its
-scrolling host instead of zooming the fitted document, keeping the prompt and
-generation controls below it reachable. The SDK's general editor zoom behavior
-is unchanged. Display scale never changes output dimensions. Draft pixels
-and attachments belong to the shared QuickGenerate instance and survive route
-changes. Mobile and the result composer retain their compact presentation.
+22px 도구 모음에는 18px 내보낸 Figma 브러시 아이콘과 설치된 LVRS 지우개, 되돌리기, 되실행 및 지우기 아이콘이 있습니다. LVRS ColorPickerButton 는 네이티브 LVRS 휠 ColorPicker 을 엽니다. 적용은 브러시 색상을 확정하고, 취소는 색상을 유지합니다. 도구 모음은 왼쪽에 너비가 고정된 LVRS 미니 슬라이더 컨트롤을 표시하며, 브러시 크기는 1 – 500 픽셀로 1 픽셀 간격으로, 불투명도는 0 – 100% 로 1% 단계로 ( SDK 의 0 – 1 값으로 매핑됩니다). 아이콘은 크기와 불투명도를 식별하며, 수치 읽기창은 현재 값을 표시합니다. 좁은 너비에서는 고정 너비 컨트롤 그룹이 줄바꿈됩니다. 0% 스트로크는 픽셀을 그리지 않습니다. 마우스 오버 툴팁과 접근성 이름은 아이콘 동작을 식별합니다. 좁은 홈은 플러스 버튼을 유지하고 비율 및 양 조절을 누그러뜨리지 않기 위해 22px 생성 화살표를 사용합니다.
 
-The application window's move handle is limited to its top 40 logical pixels. LVRS's
-macOS solid-chrome backend disables native whole-window background movement, so
-canvas strokes remain canvas input rather than moving the window. The existing
-48px native control layout and 8px content separation remain in place.
+캔버스 출력 크기는 QuickGenerate를 따른다. 1:1 = 1024 × 1024, 4:3 = 1368 × 1024, 3:4 = 1024 × 1368, 16:9 = 1824 × 1024, 9:16 = 1024 × 1824이다. 비율 변경은 기존 픽셀을 늘이지 않고 중앙에 정렬된 새 문서에 맞춘다. 새 문서를 생성하며 이전 실행 취소 이력은 초기화한다. 표시 캔버스는 **너비1080 논리 픽셀**로 제한하고, 더 좁은 패널에서는 `displayWidth = min(1080, panelContentWidth)`와 `displayHeight = displayWidth * canvasHeight / canvasWidth`에 따라 축소한다. 넓은 패널은 캔버스를 중앙에 놓으며 좁은 패널은 가로 스크롤 없이 문서 전체를 보여 준다. 기존 12px 패널 패딩은 뷰포트 바깥에 유지한다. 그리는 동안 flicking을 임시 비활성화하여 브러시 획이 스크롤 제스처로 바뀌지 않도록 한다. 고정 stage 높이는 없다. 세로 비율은 스크롤되는 Home 본문을 늘리며 애플리케이션 창 크기를 바꾸지 않는다. HomeCanvas는 맞춘 문서를 확대/축소하는 대신 스크롤 호스트에 휠 입력을 전달하여 아래의 프롬프트와 생성 제어에 접근할 수 있게 한다. SDK의 일반 편집기 확대/축소 동작은 바꾸지 않는다. 표시 배율은 출력 크기를 변경하지 않는다. 초안 픽셀과 첨부는 공유 QuickGenerate 인스턴스에 속하며 경로 전환 뒤에도 유지한다. 모바일과 결과 작성기는 간결한 표시를 유지한다.
 
-## Generation inputs
+애플리케이션 창의 이동 핸들은 상단 40 논리 픽셀로 제한됩니다. LVRS 의 macOS 솔리드 크롬 백엔드는 네이티브 전체 창 배경 이동을 비활성화하므로 캔버스 스트로크는 창 이동이 아닌 캔버스 입력으로 유지됩니다. 기존 48px 네이티브 컨트롤 레이아웃과 8px 콘텐츠 분리는 그대로 유지됩니다.
 
-A nonempty canvas is exported as an immutable PNG at output resolution with the
-same cream background shown in the UI. It is the first `referenceImages` entry;
-attached source images follow it. Empty canvas pixels add no image. If both are
-empty, the original text-only `enqueue` path remains in use. The existing native
-advanced generation path receives image references, prompt, model, output size
-and count. Process-only runtimes reject unsupported image references explicitly.
-`enqueueHomeCanvas` preserves the selected ratio label and copies every reference
-into a unique Society AssetLibrary `Dreamscapes/GenerationInputs` directory before
-enqueueing, so queued jobs are unaffected by draft edits or deleting the original.
-Failed submissions remove their input directory; successful jobs retain inputs
-for reproducibility alongside their recorded parameters.
+<a id="generation-inputs"></a>
 
-QuickGenerate identifies its active submission independently of the recipe type.
-Home reference submissions therefore open the shared result screen immediately,
-showing all accepted jobs while the model loads. Advanced-workspace submissions
-continue to use that workspace's own progress view.
+## 생성 입력
 
-Only readable local images are accepted, with a 256 MiB / 64 megapixel limit.
-Up to 19 attachments leave one slot for the canvas within the SDK's 20-reference
-limit. Unsupported or removed files surface an input error without changing
-canvas pixels. No placeholder scene or sample file is installed in the app.
+비어 있지 않은 캔버스는 UI 에 표시된 동일한 크림 배경을 가진 출력 해상도의 불변 PNG 로 내보내집니다. 그것은 첫 번째 `referenceImages` 항목이며, 첨부된 소스 이미지가 그 뒤에 따릅니다. 비어 있는 캔버스 픽셀은 이미지를 추가하지 않습니다. 둘 다 비어 있으면 기존 텍스트 전용 `enqueue` 경로가 계속 사용됩니다. 기존 네이티브 고급 생성 경로는 이미지 참조, 프롬프트, 모델, 출력 크기와 개수를 받습니다. 프로세스 전용 런타임은 지원되지 않는 이미지 참조를 명시적으로 거부합니다. `enqueueHomeCanvas` 는 선택된 비율 레이블을 보존하며 모든 참조를 고유한 Society AssetLibrary `Dreamscapes/GenerationInputs` 디렉토리에 복사한 후 대기열에 추가하므로, 대기 중인 작업은 초안 편집이나 원본 삭제로 인해 영향을 받지 않습니다. 실패한 제출은 입력 디렉토리를 제거하며, 성공적인 작업은 재현성을 위해 기록된 파라미터와 함께 입력을 유지합니다.
 
-## Verification
+QuickGenerate는 레시피 유형과 관계없이 활성 제출을 식별합니다. 따라서 홈 참조 제출은 공유 결과 화면을 즉시 열어 모델이 로드되는 동안 허용된 모든 작업을 표시합니다. 고급 작업 영역 제출은 해당 작업 영역의 자체 진행률 보기를 계속 사용합니다.
 
-- `DreamscapesGuiTests homeCanvasMaxWidthAndAutoHeight` covers all five ratios at
-  panel widths 248, 432, 1103, 1104, 1105, 1121 and 1600px. It verifies the 1080px maximum,
-  scaling below that limit, both edges within the frame, centering, automatic
-  stage height, output dimensions, and that resizing preserves pasted pixels and undo.
-- `homeCanvasScalesToFramePreservingPainting` verifies that the right edge is visible
-  without horizontal scrolling, wheel input does not change zoom, painting stays
-  responsive, and undo/redo plus resizing narrow/wide/narrow preserve pixels.
-- `homePromptDragDoesNotMoveWindow` loads the real Main/Home hierarchy at desktop and
-  compact widths, checks the 39px/40px move boundary, selects prompt text without
-  changing the draft or moving the window, and verifies the top-strip move handler.
-- Home interaction tests scroll controls into view before pointer input when a
-  auto-height canvas extends beyond the window's visible body.
-- `desktopHomeContinuousRowsAndPromptStarters` verifies that the prompt is first,
-  the canvas and toggle are absent, and reference attachments remain visible,
-  removable and included in generation inputs without revealing the paint area.
-- `Dreamscapes.HomeCanvas` checks actual pixels, drop validation, undo/redo/clear,
-  removal semantics, ratio preservation and the exported generation PNG.
-- `DreamscapesGuiTests homeCanvasSliderRanges` verifies both slider limits, SDK brush
-  updates, mouse input, 0% strokes and narrow layout.
-- `DreamscapesGuiTests homeCanvasDragPaintAndColorPicker` uses mouse events to
-  drag a thumbnail, undo/redo, select a color, paint and erase raster pixels.
-  Set `DREAMSCAPES_HOME_CANVAS_CAPTURE` to a PNG path for a rendered capture.
-- `DreamscapesGenerationTests homeCanvasOwnsReferencesAndForwardsNativePixels`
-  deletes an original after enqueue and verifies that the native callback receives
-  its original RGB pixels from the owned snapshot and that the job completes.
-  The native callback is a fixture; it does not run a diffusion model.
-- Existing QuickGenerate, home, navigation and generation regressions cover the
-  shared draft, compact layout, count and result contracts.
-- `referenceGenerateOpensResultImmediately` covers actual Generate clicks with
-  attached images for single and batch outputs, immediate feedback, owned input
-  pixels and final 3:4 PNG dimensions through a native callback fixture.
+읽을 수 있는 로컬 이미지만 허용되며, 256 MiB / 64 메가픽셀 제한이 있습니다. 최대 19 개의 첨부 파일은 캔버스에 한 개의 슬롯을 남겨 SDK 의 20참조 제한 내에서 작동합니다. 지원되지 않거나 제거된 파일은 캔버스 픽셀을 변경하지 않고 입력 오류를 표시합니다. 앱에는 플레이스홀더 장면이나 샘플 파일이 설치되어 있지 않습니다.
 
-Use `cmake -S . -B build`, `cmake --build build`, and `ctest --test-dir build`.
-The product remains the single canonical `build/bin/Dreamscapes.app` bundle.
+<a id="verification"></a>
 
-## Home body layout (Figma 261:3148)
+## 검증
 
-Figma `261:3217` supplies the ratio-aware paint stage and automatic height. The
-standalone paint component caps its width at 1080px and scales it to narrower frames;
-the current desktop Home does not display this stage.
-The existing 12px panel padding
-stays outside the canvas; the document covers the complete stage. Empty-state
-instructions wrap within the visible viewport. The illustrative Figma landscape is editable sample content, not
-an installed default drawing or generated result.
+- `DreamscapesGuiTests homeCanvasMaxWidthAndAutoHeight` 는 5 의 모든 비율을 248, 432, 1103, 1104, 1105, 1121 및 1600px의 패널 너비에서 다룹니다. 1080px 의 최대치를 확인하고 그 한도 아래로 축소하며, 프레임 내 양쪽 가장자리, 중앙 정렬, 자동 스테이지 높이, 출력 차원 및 리사이징이 붙여넣은 픽셀과 되돌림을 보존하는지 확인합니다.
+- `homeCanvasScalesToFramePreservingPainting`는 오른쪽 가장자리가 수평 스크롤 없이 보이는지 확인하고, 휠 입력이 확대/축소를 변경하지 않으며, 페인팅이 반응성을 유지하고, 반대로 실행 취소/재시도와 축소·넓이·좁은 크기 조정으로 픽셀을 보존합니다.
+- `homePromptDragDoesNotMoveWindow`는 데스크톱 및 컴팩트 폭에서 실제 메인/홈 계층 구조를 로드하고, 39px/40px 이동 경계를 확인하며, 초안을 변경하거나 창을 이동하지 않고 프롬프트 텍스트를 선택하고, 상단 스트립 이동 핸들러를 검증합니다.
+- 홈 인터랙션은 자동 높이 캔버스가 창의 보이는 본문을 넘어 확장될 때 포인터 입력보다 먼저 스크롤 컨트롤을 화면에 표시하도록 테스트합니다.
+- `desktopHomeContinuousRowsAndPromptStarters`는 프롬프트가 첫 번째이고 캔버스와 토글이 없으며 참조 첨부 파일이 계속 표시되고 제거 가능하며 페인트 영역을 드러내지 않은 채 생성 입력에 포함되는지 검증한다.
+- `Dreamscapes.HomeCanvas` 는 실제 픽셀, 드롭 검증, 되돌림/다시 실행/지우기, 제거 의미론, 비율 보존 및 내보낸 생성물 PNG 를 확인합니다.
+- `DreamscapesGuiTests homeCanvasSliderRanges`는 슬라이더 제한, SDK 브러시 업데이트, 마우스 입력, 0% 스트로크 및 좁은 레이아웃을 모두 검증합니다.
+- `DreamscapesGuiTests homeCanvasDragPaintAndColorPicker`는 마우스 이벤트를 사용하여 썸네일을 드래그하고, 실행 취소/다시 실행하고, 색상을 선택하고, 래스터 픽셀을 색칠하고 지웁니다. 렌더링된 캡처를 위해 `DREAMSCAPES_HOME_CANVAS_CAPTURE`를 PNG 경로로 설정하십시오.
+- `DreamscapesGenerationTests homeCanvasOwnsReferencesAndForwardsNativePixels`는 대기열 후에 원본을 삭제하고, 네이티브 콜백이 소유 스냅샷으로부터 원본 RGB 픽셀을 수신하고 작업이 완료되는지 확인합니다. 네이티브 콜백은 픽스처이며, 확산 모델을 실행하지 않습니다.
+- 기존 QuickGenerate , 홈, 탐색 및 생성물 회귀는 공유 초안, 컴팩트 레이아웃, 카운트 및 결과 계약을 다룹니다.
+- `referenceGenerateOpensResultImmediately` 는 단일 및 배치 출력에 첨부된 이미지가 있는 실제 생성 클릭, 즉각적인 피드백, 소유된 입력 픽셀 및 네이티브 콜백 픽스처 를 통한 최종 3:4 PNG 차원을 다룹니다.
 
-The current Home omits the canvas and begins with the prompt. In the standalone
-paint component, brush and eraser are followed by the
-brush-size icon plus fixed 120px LVRS Mini slider (1–500px), the opacity icon
-plus fixed 120px LVRS Mini slider (0–100%), and the LVRS color wheel. Numerical
-readouts remain visible; word labels are replaced by the installed LVRS SVGs.
-The toolbar wraps groups at narrow widths and keeps undo/redo/clear accessible.
-The ratio status reports actual canvas dimensions. The initial brush stays
-24px; the design's 51px value is an example rather than a changed default.
+`cmake -S . -B build`, `cmake --build build` 및 `ctest --test-dir build`를 사용합니다. 제품은 단일 표준 `build/bin/Dreamscapes.app` 번들로 유지됩니다.
 
-Attachments are 340 × 64 cards with a 48px image preview, filename, size and
-Remove action. In the shared desktop composer their visual host sits between
-prompt and controls. HomePaintCanvas continues owning the existing HomeCanvas
-and native drag/drop logic, so moving the attachment host does not recreate or
-lose the draft. A standalone HomePaintCanvas retains attachments below its
-canvas. The existing reference-image generation path is unchanged. Attachments
-are supported image formats; the illustrative PDF in Figma is not passed to an
-image-only inference API.
+<a id="home-body-layout-figma-2613148"></a>
+
+## 홈 본체 레이아웃(Figma 261:3148)
+
+Figma `261:3217` 는 비율 인식 페인팅 단계를 제공하고 자동으로 높이를 설정합니다. 독립형 페인팅 컴포넌트는 너비를 1080px 로 제한하고 좁은 프레임에 맞게 조정하며, 현재 데스크톱 홈에는 이 단계를 표시하지 않습니다. 기존 12px 패널 패딩은 캔버스 바깥에 유지되며, 문서는 전체 단계를 덮습니다. 빈 상태 지침은 가시적인 뷰포트 내에서 감싸집니다. 시각적인 Figma 풍경은 설치된 기본 그림이나 생성된 결과가 아닌 편집 가능한 샘플 콘텐츠입니다.
+
+현재 홈은 캔버스를 생략하고 프롬프트로 시작합니다. 독립형 페인팅 컴포넌트에서 브러시와 지우개는 브러시 크기 아이콘과 고정 120px LVRS 미니 슬라이더 (1 – 500px), 불투명도 아이콘과 고정 120px LVRS 미니 슬라이더 (0 – 100%), 그리고 LVRS 색상 휠에 이어집니다. 수치 읽기 표시는 가시적으로 유지되며, 단어 레이블은 설치된 LVRS SVG 로 대체됩니다. 도구 모드는 좁은 너비에서 그룹을 감싸며, 취소/다시 실행/지우기 기능을 접근 가능하게 유지합니다. 비율 상태는 실제 캔버스 차원을 보고합니다. 초기 브러시는 24px 로 유지되며, 디자인의 51px 값은 변경된 기본값이 아닌 예시입니다.
+
+첨부 파일은 340 × 64 카드이며 48px 이미지 미리보기, 파일명, 크기와 제거 동작을 포함합니다. 공유 데스크톱 컴포저에서 시각적 호스트는 프롬프트와 컨트롤 사이에 위치합니다. HomePaintCanvas 는 기존 HomeCanvas 와 네이티브 드래그/드롭 로직을 계속 소유하므로 첨부 파일 호스트를 이동해도 초안을 다시 생성하거나 잃지 않습니다. 독립형 HomePaintCanvas 는 캔버스 아래에 첨부 파일을 유지합니다. 기존 참조 이미지 생성 경로는 변경되지 않습니다. 첨부 파일은 지원되는 이미지 형식이며, Figma 에 표시된 설명적 PDF 는 이미지 전용 추론 API 에 전달되지 않습니다.
+
+## 첨부 이미지 생성의 모델별 설정
+
+QuickGenerate의 첨부·캔버스 요청은 enqueue 시점에 iiLocalDiffusion의 `nativeImageParameterDefaults`로 모델 텐서 메타데이터를 확인한다. Krea2에는 52 steps·native CFG 7을 적용하고, 실제 적용한 값을 작업 스냅샷과 출력 PNG 메타데이터에 저장한다. 고급 생성 폼의 명시적 설정은 변경하지 않는다. 이미지 강도 0.65와 사용자가 선택한 출력 비율·크기·개수는 유지한다. SDK는 Krea2의 단일 입력을 img2img 시작 이미지로 처리하고 별도 편집 모델용 참조 조건을 중복 적용하지 않는다. `homeKreaDefaultsAndAdvancedOverrides` 회귀 검사는 중립적인 파일명의 Krea2 메타데이터, 기본값 저장, 고급 설정 보존을 확인한다.

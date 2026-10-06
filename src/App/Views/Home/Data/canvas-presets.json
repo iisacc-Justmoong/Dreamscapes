@@ -1,5 +1,5 @@
 {
-  "revision": 2,
+  "revision": 3,
   "checkedAt": "2026-09-30",
   "categories": [
     {
@@ -380,44 +380,6 @@
           ]
         },
         {
-          "name": "TikTok",
-          "presets": [
-            {
-              "name": "Video / Story cover",
-              "width": 1080,
-              "height": 1920,
-              "unit": "px",
-              "pixelWidth": 1080,
-              "pixelHeight": 1920,
-              "ppi": null,
-              "classification": "starter",
-              "id": "01-07-01"
-            },
-            {
-              "name": "Photo post",
-              "width": 1080,
-              "height": 1350,
-              "unit": "px",
-              "pixelWidth": 1080,
-              "pixelHeight": 1350,
-              "ppi": null,
-              "classification": "starter",
-              "id": "01-07-02"
-            },
-            {
-              "name": "Profile image",
-              "width": 1080,
-              "height": 1080,
-              "unit": "px",
-              "pixelWidth": 1080,
-              "pixelHeight": 1080,
-              "ppi": null,
-              "classification": "starter",
-              "id": "01-07-03"
-            }
-          ]
-        },
-        {
           "name": "YouTube",
           "presets": [
             {
@@ -761,107 +723,9 @@
               "id": "01-14-04"
             }
           ]
-        },
-        {
-          "name": "LINE",
-          "presets": [
-            {
-              "name": "Square message",
-              "width": 1040,
-              "height": 1040,
-              "unit": "px",
-              "pixelWidth": 1040,
-              "pixelHeight": 1040,
-              "ppi": null,
-              "classification": "starter",
-              "id": "01-15-01"
-            },
-            {
-              "name": "Portrait message",
-              "width": 1040,
-              "height": 1850,
-              "unit": "px",
-              "pixelWidth": 1040,
-              "pixelHeight": 1850,
-              "ppi": null,
-              "classification": "starter",
-              "id": "01-15-02"
-            },
-            {
-              "name": "Rich menu · large",
-              "width": 2500,
-              "height": 1686,
-              "unit": "px",
-              "pixelWidth": 2500,
-              "pixelHeight": 1686,
-              "ppi": null,
-              "classification": "starter",
-              "id": "01-15-03"
-            },
-            {
-              "name": "Rich menu · compact",
-              "width": 2500,
-              "height": 843,
-              "unit": "px",
-              "pixelWidth": 2500,
-              "pixelHeight": 843,
-              "ppi": null,
-              "classification": "starter",
-              "id": "01-15-04"
-            }
-          ]
-        },
-        {
-          "name": "KakaoTalk",
-          "presets": [
-            {
-              "name": "Square channel post",
-              "width": 1080,
-              "height": 1080,
-              "unit": "px",
-              "pixelWidth": 1080,
-              "pixelHeight": 1080,
-              "ppi": null,
-              "classification": "starter",
-              "id": "01-16-01"
-            },
-            {
-              "name": "Portrait channel post",
-              "width": 1080,
-              "height": 1350,
-              "unit": "px",
-              "pixelWidth": 1080,
-              "pixelHeight": 1350,
-              "ppi": null,
-              "classification": "starter",
-              "id": "01-16-02"
-            },
-            {
-              "name": "Channel cover",
-              "width": 1920,
-              "height": 1080,
-              "unit": "px",
-              "pixelWidth": 1920,
-              "pixelHeight": 1080,
-              "ppi": null,
-              "classification": "starter",
-              "id": "01-16-03"
-            },
-            {
-              "name": "Profile image",
-              "width": 1080,
-              "height": 1080,
-              "unit": "px",
-              "pixelWidth": 1080,
-              "pixelHeight": 1080,
-              "ppi": null,
-              "classification": "starter",
-              "id": "01-16-04"
-            }
-          ]
         }
       ],
-      "count": 69
+      "count": 58
     },
     {
       "name": "Video & streaming",
@@ -3681,7 +3545,7 @@
       "count": 13
     }
   ],
-  "total": 300,
+  "total": 289,
   "sources": {
     "X": "https://help.x.com/en/managing-your-account/common-issues-when-uploading-profile-photo",
     "Instagram": "https://www.adobe.com/express/discover/sizes/instagram",
@@ -3696,6 +3560,8 @@
     "All deliverable nodes are ordinary frames and editable text; no components or instances.",
     "Suggested canvas sizes are starting points, not upload constraints.",
     "Print presets are trim sizes at 300 PPI; bleed and supplier dielines are outside this catalogue.",
-    "LinkedIn Page cover uses the directly opened English help page: 1512 x 256, despite stale search snippets showing 4200 x 700."
-  ]
+    "LinkedIn Page cover uses the directly opened English help page: 1512 x 256, despite stale search snippets showing 4200 x 700.",
+    "2026-10-06: Removed TikTok, KakaoTalk and NAVER-origin LINE presets. Surviving preset IDs and dimensions are unchanged."
+  ],
+  "updatedAt": "2026-10-06"
 }
