@@ -28,8 +28,8 @@ private slots:
         canvas->setZoom(0.45); canvas->setPanX(13); canvas->setPanY(17);
         project.attachCanvas(&surface);
         QCOMPARE(canvas->zoom(), 0.45);
-        QCOMPARE(canvas->panX(), 13.0);
-        QCOMPARE(canvas->panY(), 17.0);
+        QCOMPARE(canvas->panX(), (480 - 1024 * 0.45) / 2);
+        QCOMPARE(canvas->panY(), (360 - 768 * 0.45) / 2);
         project.attachCanvas(nullptr);
         QCOMPARE(canvas->parentItem(), &surface);
     }

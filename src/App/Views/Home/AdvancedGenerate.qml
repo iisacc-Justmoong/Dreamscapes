@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import QtQuick.Dialogs as Dialogs
 import LVRS 1.0 as LV
+import ".." as Views
 import Dreamscapes.Storage 1.0
 
 Item {
@@ -118,7 +119,7 @@ Item {
     function parameters() { return draft.parameters }
     function focusPrompt() { promptField.forceActiveFocus() }
 
-    component SectionHeader: LV.ListItem {
+    component SectionHeader: Views.PanelRow {
         type: LV.ListItem.Navigation
         Layout.fillWidth: true
         showLeadingIcon: false
@@ -127,7 +128,7 @@ Item {
         showDescription: true
     }
 
-    component SelectRow: LV.ListItem {
+    component SelectRow: Views.PanelRow {
         id: selectRow
         property var options: []
         property string parameterKey: ""
@@ -147,7 +148,7 @@ Item {
         }
     }
 
-    component ToggleRow: LV.ListItem {
+    component ToggleRow: Views.PanelRow {
         id: toggleRow
         property string parameterKey: ""
         Binding { target: toggleRow; property: "checked"; value: toggleRow.parameterKey ? root.values[toggleRow.parameterKey] : false; when: toggleRow.parameterKey !== "" }
@@ -158,7 +159,7 @@ Item {
         showDescription: false
     }
 
-    component InputRow: LV.ListItem {
+    component InputRow: Views.PanelRow {
         id: inputRow
         property string parameterKey: ""
         property bool numeric: true
@@ -454,7 +455,7 @@ Item {
                     Layout.fillWidth: true
                     spacing: root.groupSpacing
                     SectionHeader { label: qsTr("References & control"); description: qsTr("Reference images · ControlNet · IP-Adapter · masks"); showTrailingIcon: false }
-                    LV.ListItem {
+                    Views.PanelRow {
                         type: LV.ListItem.Action
                         Layout.fillWidth: true
                         label: qsTr("Reference images")
@@ -530,7 +531,7 @@ Item {
                                     } else draft.updateControlNet(controlLayer.controlId, {process: options[value]})
                                 }
                             }
-                            LV.ListItem {
+                            Views.PanelRow {
                                 type: LV.ListItem.Action
                                 Layout.fillWidth: true
                                 visible: controlLayer.expanded && controlLayer.modelData.process === "Pose"
@@ -539,7 +540,7 @@ Item {
                                 showLeadingIcon: false
                                 primaryAction: ({text: qsTr("Select"), method: function() { root.choosePose(controlLayer.controlId) }})
                             }
-                            LV.ListItem {
+                            Views.PanelRow {
                                 type: LV.ListItem.Action
                                 Layout.fillWidth: true
                                 visible: controlLayer.expanded
@@ -549,7 +550,7 @@ Item {
                                 showLeadingIcon: false
                                 primaryAction: ({text: qsTr("Select"), method: function() { controlModelDialog.controlId = controlLayer.controlId; controlModelDialog.open() }})
                             }
-                            LV.ListItem {
+                            Views.PanelRow {
                                 type: LV.ListItem.Action
                                 Layout.fillWidth: true
                                 visible: controlLayer.expanded && controlLayer.modelData.regionalMask
@@ -558,7 +559,7 @@ Item {
                                 showLeadingIcon: false
                                 primaryAction: ({text: qsTr("Select"), method: function() { controlDialog.choose(controlLayer.controlId, "maskSource") }})
                             }
-                            LV.ListItem {
+                            Views.PanelRow {
                                 type: LV.ListItem.ActionGroup
                                 Layout.fillWidth: true
                                 visible: controlLayer.expanded
@@ -604,7 +605,7 @@ Item {
                             }
                         }
                     }
-                    LV.ListItem {
+                    Views.PanelRow {
                         objectName: "addControlNet"
                         type: LV.ListItem.Navigation
                         Layout.fillWidth: true
@@ -634,7 +635,7 @@ Item {
                 LV.VStack {
                     Layout.fillWidth: true
                     spacing: root.groupSpacing
-                    LV.ListItem {
+                    Views.PanelRow {
                         type: LV.ListItem.Action
                         Layout.fillWidth: true
                         label: qsTr("Fine-tuning")
@@ -669,7 +670,7 @@ Item {
                             }
                         }
                     }
-                    LV.ListItem {
+                    Views.PanelRow {
                         id: embeddingSelector
                         objectName: "textualEmbeddingSelector"
                         readonly property string selectedSource: root.values.textualEmbeddings
@@ -699,7 +700,7 @@ Item {
                     Layout.fillWidth: true
                     spacing: 0
                     SectionHeader { label: qsTr("Enhancement"); description: qsTr("7 controls"); showTrailingIcon: false }
-                    LV.ListItem {
+                    Views.PanelRow {
                         id: refinerToggle
                         objectName: "refinerToggle"
                         type: LV.ListItem.Toggle
@@ -719,7 +720,7 @@ Item {
                     InputRow { label: qsTr("Refiner switch"); parameterKey: "refinerSwitch" }
                     InputRow { label: qsTr("Denoise strength"); parameterKey: "denoiseStrength" }
                     ToggleRow { label: qsTr("Hires fix"); parameterKey: "hiresFix" }
-                    LV.ListItem {
+                    Views.PanelRow {
                         id: upscalerSelector
                         objectName: "upscalerSelector"
                         readonly property var modes: ["nearest", "bilinear", "bicubic", "lanczos", "4x-ultra"]
@@ -740,7 +741,7 @@ Item {
                         }
                     }
                     ToggleRow { label: qsTr("Face restore"); parameterKey: "faceRestore" }
-                    LV.ListItem {
+                    Views.PanelRow {
                         id: detailerToggle
                         objectName: "detailerToggle"
                         type: LV.ListItem.Toggle
@@ -803,7 +804,7 @@ Item {
                 sizeToContentHeight: true
                 style: caption
             }
-            LV.ListItem {
+            Views.PanelRow {
                 objectName: "saveGenerationPreset"
                 type: LV.ListItem.Action
                 Layout.fillWidth: true

@@ -19,6 +19,8 @@ class EditorCanvas : public iiSharedCanvas::CanvasItem {
     Q_PROPERTY(QString documentName READ documentName NOTIFY documentInfoChanged)
     Q_PROPERTY(QString error READ error NOTIFY errorChanged)
     Q_PROPERTY(QString selectedLayerId READ selectedLayerId NOTIFY selectionChanged)
+    Q_PROPERTY(QVariantMap layerPanelInfo READ layerPanelInfo NOTIFY documentInfoChanged)
+    Q_PROPERTY(QVariantMap layerColorSample READ layerColorSample NOTIFY toolStateChanged)
     Q_PROPERTY(QUrl selectionOverlay READ selectionOverlay NOTIFY toolStateChanged)
     Q_PROPERTY(QString toolHint READ toolHint NOTIFY toolStateChanged)
     Q_PROPERTY(QVariantMap toolState READ toolState NOTIFY toolStateChanged)
@@ -60,6 +62,21 @@ public:
     Q_INVOKABLE bool setLayerBlend(const QString &id, const QString &blend);
     Q_INVOKABLE bool setLayerTransform(const QString &id, const QVariantMap &transform);
     Q_INVOKABLE bool removeLayer(const QString &id);
+    Q_INVOKABLE QVariantList layerHierarchy() const;
+    QVariantMap layerPanelInfo() const;
+    Q_INVOKABLE QVariantMap layerHistogram(bool composite = true, const QString &channel = QStringLiteral("RGB")) const;
+    Q_INVOKABLE bool duplicateSelectedLayer();
+    Q_INVOKABLE bool groupSelectedLayer();
+    Q_INVOKABLE bool setLayerGroupVisible(const QString &id, bool visible);
+    Q_INVOKABLE bool mergeSelectedDown();
+    Q_INVOKABLE bool beginLayerColorSample();
+    Q_INVOKABLE bool sampleLayerColor(const QPointF &position);
+    Q_INVOKABLE void cancelLayerColorSample();
+    QVariantMap layerColorSample() const;
+    Q_INVOKABLE bool copyLayerPanelDetails();
+    Q_INVOKABLE bool copyLayerSampleColor();
+    Q_INVOKABLE bool revealLayerSource();
+    Q_INVOKABLE void setLayerHistogramClipping(bool shadows, bool highlights);
     Q_INVOKABLE void configureTool(const QString &tool, const QVariantMap &values);
     Q_INVOKABLE bool applyToolField(const QString &tool, const QString &field, const QVariant &value);
     Q_INVOKABLE bool createElement(const QRectF &bounds);
@@ -102,12 +119,15 @@ signals:
     void toolStateChanged();
     void historyRestored(QVariantMap settings);
 protected:
+    void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
     bool event(QEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     void mouseUngrabEvent() override;
 private:
+    void constrainViewport();
+    bool m_constrainingViewport = false;
     bool fail(const QString &message);
     void clearError();
     bool adopt(iiSharedCanvas::Document document, const QVariantMap &specification);
@@ -164,6 +184,9 @@ private:
     qulonglong m_previewRevision = 0;
     QVector<QPointF> m_gesture;
     bool m_gestureActive = false, m_pickCloneSource = false, m_pickNeutral = false;
+    bool m_layerColorPicking = false, m_layerColorValid = false;
+    bool m_histogramShadows = false, m_histogramHighlights = false;
+    QColor m_layerSampleColor;
     QPointF m_cloneSource, m_retouchStart;
     bool m_cloneReady = false;
     QUrl m_eraserOverlay;

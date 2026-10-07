@@ -32,6 +32,59 @@ void paintWithEngine(RasterLayer &pixels, const BrushState &brush,
 class EditorCanvasTests : public QObject {
     Q_OBJECT
 private slots:
+    void finiteViewportLocksFittingAxesAndClampsOverflow_data() {
+        QTest::addColumn<QSize>("extent");
+        QTest::addColumn<QSizeF>("viewport");
+        QTest::addColumn<double>("scale");
+        QTest::addColumn<QPointF>("xRange");
+        QTest::addColumn<QPointF>("yRange");
+        QTest::newRow("both-fit") << QSize(400, 200) << QSizeF(800, 600) << 1.0 << QPointF(200, 200) << QPointF(200, 200);
+        QTest::newRow("wide") << QSize(800, 200) << QSizeF(400, 300) << 1.0 << QPointF(-400, 0) << QPointF(50, 50);
+        QTest::newRow("tall") << QSize(200, 800) << QSizeF(400, 300) << 1.0 << QPointF(100, 100) << QPointF(-500, 0);
+        QTest::newRow("both-overflow") << QSize(800, 600) << QSizeF(400, 300) << 1.0 << QPointF(-400, 0) << QPointF(-300, 0);
+        QTest::newRow("exact-fit") << QSize(400, 300) << QSizeF(400, 300) << 1.0 << QPointF(0, 0) << QPointF(0, 0);
+        QTest::newRow("fractional-fit") << QSize(101, 83) << QSizeF(333, 271) << 2.5 << QPointF(40.25, 40.25) << QPointF(31.75, 31.75);
+        QTest::newRow("fractional-overflow") << QSize(201, 113) << QSizeF(300, 150) << 1.7 << QPointF(-41.7, 0) << QPointF(-42.1, 0);
+    }
+    void finiteViewportLocksFittingAxesAndClampsOverflow() {
+        QFETCH(QSize, extent); QFETCH(QSizeF, viewport); QFETCH(double, scale);
+        QFETCH(QPointF, xRange); QFETCH(QPointF, yRange);
+        EditorCanvas canvas; canvas.setSize(viewport);
+        QVERIFY(canvas.createCanvas({{"width", extent.width()}, {"height", extent.height()}, {"unit", "px"}, {"background", "Transparent"}}));
+        canvas.setZoom(scale);
+        const auto revision = canvas.revision();
+        canvas.panBy(1000000, 1000000);
+        QVERIFY(qAbs(canvas.panX() - xRange.y()) < 0.00001);
+        QVERIFY(qAbs(canvas.panY() - yRange.y()) < 0.00001);
+        canvas.setPanX(-1000000); canvas.setPanY(-1000000);
+        QVERIFY(qAbs(canvas.panX() - xRange.x()) < 0.00001);
+        QVERIFY(qAbs(canvas.panY() - yRange.x()) < 0.00001);
+        canvas.panBy(7, 9);
+        QVERIFY(qAbs(canvas.panX() - std::min(xRange.x() + 7, xRange.y())) < 0.00001);
+        QVERIFY(qAbs(canvas.panY() - std::min(yRange.x() + 9, yRange.y())) < 0.00001);
+        // Cursor-anchored zoom-out must restore central alignment once it fits.
+        canvas.zoomAt(0.1, {viewport.width() - 1, 1});
+        QVERIFY(qAbs(canvas.panX() - (viewport.width() - extent.width() * canvas.zoom()) / 2) < 0.00001);
+        QVERIFY(qAbs(canvas.panY() - (viewport.height() - extent.height() * canvas.zoom()) / 2) < 0.00001);
+        QCOMPARE(canvas.revision(), revision);
+    }
+    void viewportResizeResetAndInfiniteBoundary() {
+        EditorCanvas canvas; canvas.setSize({400, 300});
+        QVERIFY(canvas.createCanvas({{"width", 800}, {"height", 600}, {"unit", "px"}, {"background", "Transparent"}}));
+        canvas.setZoom(1); canvas.setPanX(-250); canvas.setPanY(-175);
+        canvas.setSize({1000, 800});
+        QCOMPARE(canvas.zoom(), 1.0); QCOMPARE(canvas.panX(), 100.0); QCOMPARE(canvas.panY(), 100.0);
+        canvas.setSize({400, 300});
+        QVERIFY(canvas.panX() >= -400 && canvas.panX() <= 0);
+        QVERIFY(canvas.panY() >= -300 && canvas.panY() <= 0);
+        canvas.fitToView(); QCOMPARE(canvas.panX(), 0.0); QCOMPARE(canvas.panY(), 0.0);
+        canvas.setSize({1000, 800}); canvas.resetView();
+        QCOMPARE(canvas.panX(), 100.0); QCOMPARE(canvas.panY(), 100.0);
+        QVERIFY(canvas.createInfiniteRasterDocument(32, 32, 32));
+        const auto x = canvas.panX(), y = canvas.panY();
+        canvas.panBy(1000000, -1000000);
+        QCOMPARE(canvas.panX(), x + 1000000); QCOMPARE(canvas.panY(), y - 1000000);
+    }
     void selectedImagesBecomeIndependentNativeLayers() {
         QTemporaryDir directory(DREAMSCAPES_TEST_DIRECTORY "/editor-images-XXXXXX");
         QVERIFY(directory.isValid());

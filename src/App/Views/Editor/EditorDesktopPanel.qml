@@ -7,6 +7,8 @@ Rectangle {
     id: root
     objectName: "editorDesktopPanel"
     required property var toolState
+    readonly property var layerPresenter: layerLoader.item
+    readonly property bool layerModalActive: layerPresenter ? layerPresenter.modalActive : false
     signal closeRequested()
     signal actionRequested(string toolId, string fieldId, var values)
     color: LV.Theme.panelBackground05
@@ -20,7 +22,7 @@ Rectangle {
         anchors.fill: parent
         anchors.margins: LV.Theme.gap16 + root.border.width
         contentWidth: width
-        contentHeight: panel.implicitHeight
+        contentHeight: layerLoader.active ? layerLoader.height : panel.implicitHeight
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         flickableDirection: Flickable.VerticalFlick
@@ -30,8 +32,23 @@ Rectangle {
             function onToolIdChanged() { viewport.contentY = 0 }
         }
         Controls.ScrollBar.vertical: Controls.ScrollBar { policy: Controls.ScrollBar.AsNeeded }
+        Loader {
+            id: layerLoader
+            width: viewport.width
+            height: root.layerPresenter ? Math.max(viewport.height, root.layerPresenter.implicitHeight) : 0
+            active: root.toolState.toolId === "layers" && Boolean(root.toolState.engine)
+            function loadPanel() {
+                if (active && !source.toString())
+                    setSource(Qt.resolvedUrl("EditorLayersPanel.qml"), {toolState: root.toolState})
+                else if (!active)
+                    source = ""
+            }
+            onActiveChanged: loadPanel()
+            Component.onCompleted: loadPanel()
+        }
         EditorToolPanel {
             id: panel
+            visible: !layerLoader.active
             width: viewport.width
             engine: root.toolState.engine
             notice: root.toolState.notice

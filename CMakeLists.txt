@@ -80,11 +80,13 @@ qt_add_qml_module(DreamscapesGeneration
         src/App/Views/Home/HomeCanvas.h src/App/Views/Home/HomeCanvas.cpp
         src/App/Views/Home/CanvasPresets.h src/App/Views/Home/CanvasPresets.cpp
         src/App/Views/Editor/EditorCanvas.h src/App/Views/Editor/EditorCanvas.cpp
+        src/App/Views/Editor/EditorCanvasViewport.cpp
         src/App/Views/Editor/EditorCanvasDocument.cpp src/App/Views/Editor/EditorCanvasTools.cpp
         src/App/Views/Editor/EditorShapes.cpp src/App/Views/Editor/EditorPixelTools.cpp
         src/App/Views/Editor/EditorToolActions.cpp src/App/Views/Editor/EditorSelection.cpp
         src/App/Views/Editor/EditorMedia.h src/App/Views/Editor/EditorMedia.cpp
     src/App/Views/Editor/EditorOperations.cpp
+    src/App/Views/Editor/EditorLayerPanels.cpp
         src/App/Views/Editor/EditorProject.h src/App/Views/Editor/EditorProject.cpp
         src/App/Views/Editor/EditorProjectCodec.h src/App/Views/Editor/EditorProjectCodec.cpp
         src/App/Generation/AdvancedImageParameters.h src/App/Generation/AdvancedImageParameters.cpp
@@ -152,6 +154,7 @@ lvrs_add_qml_app(
     SOURCES src/main.cpp
     QML_FILES
         src/App/Main.qml
+        src/App/Views/PanelRow.qml
         src/App/Views/Preferences/PreferencesWindow.qml
         src/App/Views/Preferences/ModelPreferenceCombo.qml
         src/App/Views/Preferences/PreferenceList.qml
@@ -186,6 +189,7 @@ lvrs_add_qml_app(
         src/App/Views/Editor/EditorToolControl.qml
         src/App/Views/Editor/EditorToolPanel.qml
         src/App/Views/Editor/EditorDesktopPanel.qml
+        src/App/Views/Editor/EditorLayersPanel.qml
         src/App/Views/Editor/EditorDocumentControls.qml
         src/App/Views/Editor/EditorToolSheet.qml
     NO_PLATFORM_RUNTIME_TARGETS
@@ -221,6 +225,9 @@ qt_add_resources(Dreamscapes editor_toolbar_assets
 qt_add_resources(Dreamscapes editor_panel_assets
     PREFIX "/qt/qml/Dreamscapes"
     FILES src/App/Views/Editor/Assets/Panel/general-chevron-right.svg)
+file(GLOB editor_layer_assets CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Editor/Assets/Layers/*.svg")
+qt_add_resources(Dreamscapes editor_layer_assets
+    PREFIX "/qt/qml/Dreamscapes" FILES ${editor_layer_assets})
 set_source_files_properties(src/App/Views/Video/Assets/coastal-reference.png PROPERTIES
     QT_RESOURCE_ALIAS "App/Views/Video/Assets/coastal-reference.png")
 qt_add_resources(Dreamscapes video_workspace_assets
@@ -427,6 +434,9 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     set_tests_properties(Dreamscapes.EditorLayout PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 120)
     add_test(NAME Dreamscapes.EditorPanelResize COMMAND DreamscapesGuiTests desktopEditorPanelResizes)
+    add_test(NAME Dreamscapes.EditorLayers COMMAND DreamscapesGuiTests editorLayerPanelFourStates)
+    set_tests_properties(Dreamscapes.EditorLayers PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 120)
     set_tests_properties(Dreamscapes.EditorPanelResize PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 120)
     add_test(NAME Dreamscapes.EditorElements COMMAND DreamscapesGuiTests
@@ -436,6 +446,7 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     set_tests_properties(Dreamscapes.EditorElements PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 240)
     add_test(NAME Dreamscapes.EditorToolPanels COMMAND DreamscapesGuiTests
+        panelRowsKeepLabelsPassive
         desktopEditorToolPanelsMatchFigma desktopEditorElementsMatchesFigma
         editorToolNumericContracts editorToolSheets)
     set_tests_properties(Dreamscapes.EditorToolPanels PROPERTIES
@@ -494,7 +505,7 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     set_tests_properties(Dreamscapes.EditorProject PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 120)
     set_tests_properties(Dreamscapes.EditorCanvas PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 120)
-    add_test(NAME Dreamscapes.EditorCanvasGui COMMAND DreamscapesGuiTests editorNativeCanvasEditsAndPersists editorToolbarOperations canvasRoutesPreserveSelectionAndDraft)
+    add_test(NAME Dreamscapes.EditorCanvasGui COMMAND DreamscapesGuiTests editorCanvasPanAndZoomStayInsideViewport editorNativeCanvasEditsAndPersists editorToolbarOperations canvasRoutesPreserveSelectionAndDraft)
     add_test(NAME Dreamscapes.EditorRenderQuality COMMAND DreamscapesGuiTests editorDocumentRenderQuality)
     set_tests_properties(Dreamscapes.EditorRenderQuality PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 120)

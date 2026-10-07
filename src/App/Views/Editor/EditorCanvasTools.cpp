@@ -113,7 +113,7 @@ bool EditorCanvas::endStrokeAt(const QPointF &position, qreal pressure) {
     m_strokePixels = {}; m_historySuspended = false; recordHistory(); invalidateToolPreview(); return true;
 }
 bool EditorCanvas::resetTool(const QString &tool, const QVariantMap &defaults) {
-    if ((tool == "color" || tool == "effects") && m_previewTool == tool && m_previewLayer == selectedLayerId() && m_previewRevision == revision()) {
+    if ((tool == "color" || tool == "effects" || tool == "auto-enhance") && m_previewTool == tool && m_previewLayer == selectedLayerId() && m_previewRevision == revision()) {
         if (!replaceSelectedPixels(m_previewPixels)) return false;
     }
     invalidateToolPreview(); configureTool(tool, defaults);
@@ -193,6 +193,7 @@ bool EditorCanvas::event(QEvent *event) {
 void EditorCanvas::mousePressEvent(QMouseEvent *event) {
     if (event->button() != Qt::LeftButton || !documentReady()) { CanvasItem::mousePressEvent(event); return; }
     forceActiveFocus(); const QPointF p{(event->position().x() - panX()) / zoom(), (event->position().y() - panY()) / zoom()};
+    if (m_layerColorPicking) { sampleLayerColor(p); event->accept(); return; }
     if (m_pickCloneSource) { m_cloneSource = p; m_cloneReady = true; m_pickCloneSource = false; emit toolStateChanged(); event->accept(); return; }
     if (m_pickNeutral) {
         const auto rendered = renderFrame(*document(), frame()); const int x = int(p.x()), y = int(p.y());

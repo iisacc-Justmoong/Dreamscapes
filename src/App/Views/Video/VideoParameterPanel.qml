@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtCore
 import LVRS 1.0 as LV
+import ".." as Views
 import "../Home"
 
 Item {
@@ -47,12 +48,12 @@ Item {
         onAccepted: root.timeline.addKey(selectedFile,targetFrame)
     }
     function chooseImage(frame) { imageDialog.targetFrame=frame; imageDialog.open() }
-    component Section: LV.ListItem {
+    component Section: Views.PanelRow {
         type: LV.ListItem.Navigation; Layout.fillWidth:true
         showLeadingIcon:false; showValue:false; showTrailingIcon:false; showDescription:true
         navigationItemWidth:300
     }
-    component NumberRow: LV.ListItem {
+    component NumberRow: Views.PanelRow {
         id: row
         property string parameterKey:""
         property bool invalidEdit:false
@@ -62,9 +63,9 @@ Item {
         Binding { target:row; property:"inputText1"; value:String(root.values[row.parameterKey]); when:!row.invalidEdit; restoreMode:Binding.RestoreNone }
         Connections { target:root; function onInvalidInputsChanged() { if(!root.invalidInputs[row.parameterKey]) row.invalidEdit=false } }
         onEdited:function(field,value) { if(field==="inputText1") invalidEdit=!root.edit(parameterKey,String(value).trim()==="" ? NaN : Number(value)) }
-        LV.Tooltip { target:row; automatic:false; visible:row.invalidEdit && row.hovered; text:qsTr("Enter a valid value") }
+        LV.Tooltip { target:row.inputControl; automatic:false; visible:row.invalidEdit && row.inputControl.hovered; text:qsTr("Enter a valid value") }
     }
-    component SelectRow: LV.ListItem {
+    component SelectRow: Views.PanelRow {
         id: row
         property string parameterKey:""
         property var options:[]
@@ -74,7 +75,7 @@ Item {
         Binding { target:row; property:"selectorIndex"; value:Math.max(0,row.optionValues.indexOf(root.values[row.parameterKey])) }
         onEdited:function(field,value) { if(field==="selectorIndex") root.edit(parameterKey,optionValues[value]) }
     }
-    component ToggleRow: LV.ListItem {
+    component ToggleRow: Views.PanelRow {
         id: row
         property string parameterKey:""
         type:LV.ListItem.Toggle; Layout.fillWidth:true; showLeadingIcon:false; showDescription:false
@@ -109,7 +110,7 @@ Item {
                 }
                 LV.VStack {
                     Layout.fillWidth:true; spacing:0
-                    LV.ListItem {
+                    Views.PanelRow {
                         objectName:"videoModelSelector"; type:LV.ListItem.Select; Layout.fillWidth:true
                         label:qsTr("Model"); showLeadingIcon:false; showDescription:false
                         selector:({items:root.modelNames,text:qsTr("Add LTX model in Society")})
@@ -117,7 +118,7 @@ Item {
                         selectorIndex:Math.max(0,root.generation.videoModels.findIndex(model=>model.id===root.generation.selectedVideoModel))
                         onEdited:function(field,value) { if(field==="selectorIndex") root.generation.selectedVideoModel=root.generation.videoModels[value].id }
                     }
-                    LV.ListItem {
+                    Views.PanelRow {
                         type:LV.ListItem.Select; Layout.fillWidth:true; label:qsTr("Select preset"); showLeadingIcon:false; showDescription:false
                         selector:({items:[qsTr("Default"),qsTr("Saved recipe")]})
                         onEdited:function(field,value) { if(field==="selectorIndex") { if(value===1) root.loadPreset(); else root.resetDraft() } }
@@ -137,7 +138,7 @@ Item {
                         Section { label:qsTr("Image conditions"); description:qsTr("First, last or specific frame") }
                         Repeater {
                             model:[{label:qsTr("First frame image"),action:qsTr("Choose"),frame:0},{label:qsTr("Last frame image"),action:qsTr("Choose"),frame:root.timeline.totalFrames-1},{label:qsTr("Additional keyframe"),action:qsTr("Add"),frame:root.timeline.playhead}]
-                            delegate:LV.ListItem {
+                            delegate:Views.PanelRow {
                                 required property var modelData
                                 type:LV.ListItem.Action; Layout.fillWidth:true; label:modelData.label; showLeadingIcon:false; showDescription:false
                                 primaryAction:({text:modelData.action,tone:LV.AbstractButton.Default})
@@ -181,17 +182,17 @@ Item {
                         SelectRow { label:qsTr("Encoding preset"); parameterKey:"encodingPreset"; options:["Medium","Fast","Slow","Very fast","Very slow"]; optionValues:["medium","fast","slow","veryfast","veryslow"] }
                     }
                 }
-                LV.ListItem { objectName:"videoSavePreset"; type:LV.ListItem.Action; Layout.fillWidth:true; label:qsTr("Save to preset"); showLeadingIcon:false; showDescription:false; primaryAction:({text:qsTr("Save"),tone:LV.AbstractButton.Default,enabled:!root.hasInvalidInputs}); onActionTriggered:root.savePreset() }
+                Views.PanelRow { objectName:"videoSavePreset"; type:LV.ListItem.Action; Layout.fillWidth:true; label:qsTr("Save to preset"); showLeadingIcon:false; showDescription:false; primaryAction:({text:qsTr("Save"),tone:LV.AbstractButton.Default,enabled:!root.hasInvalidInputs}); onActionTriggered:root.savePreset() }
             }
             LV.VStack {
                 visible:root.tab==="Shot"; Layout.fillWidth:true; spacing:8
                 Section { label:qsTr("Shot %1").arg(root.timeline.shots.findIndex(shot=>shot.id===root.timeline.selectedShot.id)+1); description:qsTr("F%1–%2 · %3 frames").arg(root.timeline.selectedStart).arg(root.timeline.selectedEnd).arg(root.timeline.selectedShot.frames || 0) }
-                LV.ListItem { type:LV.ListItem.InlineEdit; Layout.fillWidth:true; showLeadingIcon:false; showDescription:false; showPrimaryAction:false; label:qsTr("Name"); inputText1:root.timeline.selectedShot.name || ""; onEdited:function(field,value) { if(field==="inputText1") root.timeline.changeShot(root.timeline.selectedShot.id,"name",value) } }
-                LV.ListItem { type:LV.ListItem.Toggle; Layout.fillWidth:true; showLeadingIcon:false; showDescription:false; label:qsTr("Exclude from generation"); checked:!!root.timeline.selectedShot.excluded; onEdited:function(field,value) { if(field==="checked") root.timeline.changeShot(root.timeline.selectedShot.id,"excluded",value) } }
-                LV.ListItem { type:LV.ListItem.Toggle; Layout.fillWidth:true; showLeadingIcon:false; showDescription:false; label:qsTr("Lock"); checked:!!root.timeline.selectedShot.locked; onEdited:function(field,value) { if(field==="checked") root.timeline.changeShot(root.timeline.selectedShot.id,"locked",value) } }
+                Views.PanelRow { type:LV.ListItem.InlineEdit; Layout.fillWidth:true; showLeadingIcon:false; showDescription:false; showPrimaryAction:false; label:qsTr("Name"); inputText1:root.timeline.selectedShot.name || ""; onEdited:function(field,value) { if(field==="inputText1") root.timeline.changeShot(root.timeline.selectedShot.id,"name",value) } }
+                Views.PanelRow { type:LV.ListItem.Toggle; Layout.fillWidth:true; showLeadingIcon:false; showDescription:false; label:qsTr("Exclude from generation"); checked:!!root.timeline.selectedShot.excluded; onEdited:function(field,value) { if(field==="checked") root.timeline.changeShot(root.timeline.selectedShot.id,"excluded",value) } }
+                Views.PanelRow { type:LV.ListItem.Toggle; Layout.fillWidth:true; showLeadingIcon:false; showDescription:false; label:qsTr("Lock"); checked:!!root.timeline.selectedShot.locked; onEdited:function(field,value) { if(field==="checked") root.timeline.changeShot(root.timeline.selectedShot.id,"locked",value) } }
                 LV.Label { text:qsTr("Shot prompt"); style:caption; Layout.leftMargin:16 }
                 PromptField { objectName:"videoShotPrompt"; Layout.fillWidth:true; Layout.leftMargin:16; Layout.rightMargin:16; text:root.timeline.selectedShot.prompt || ""; placeholderText:qsTr("Use the composition prompt"); onTextChanged:if(text!==(root.timeline.selectedShot.prompt || "")) root.timeline.changeShot(root.timeline.selectedShot.id,"prompt",text) }
-                LV.ListItem { type:LV.ListItem.Action; Layout.fillWidth:true; label:qsTr("Duplicate shot"); showLeadingIcon:false; showDescription:false; primaryAction:({text:qsTr("Duplicate"),tone:LV.AbstractButton.Default}); onActionTriggered:root.timeline.duplicateShot() }
+                Views.PanelRow { type:LV.ListItem.Action; Layout.fillWidth:true; label:qsTr("Duplicate shot"); showLeadingIcon:false; showDescription:false; primaryAction:({text:qsTr("Duplicate"),tone:LV.AbstractButton.Default}); onActionTriggered:root.timeline.duplicateShot() }
             }
             LV.Label { Layout.fillWidth:true; Layout.leftMargin:16; Layout.rightMargin:16; Layout.bottomMargin:16; visible:text.length>0; text:root.hasInvalidInputs ? qsTr("Correct invalid parameter values before generating.") : root.message; style:caption; wrapMode:Text.Wrap; sizeToContentHeight:true }
         }

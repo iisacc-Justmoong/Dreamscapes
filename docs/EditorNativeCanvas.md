@@ -16,6 +16,8 @@ File 패널의 Open as copy를 켜면 작업 파일도 분리된 메모리 문�
 
 ## 보기와 편집
 
+에디터 하단의 상시 안내문을 제거했다. 유한 캔버스는 실제 캔버스 표시 영역을 기준으로 중앙 정렬되며, 화면 안에 들어오는 축은 패닝할 수 없다. 확대되어 화면을 넘는 축은 캔버스 가장자리까지만 이동할 수 있다. 상세 계약과 검증은 [EditorViewport.md](EditorViewport.md)에 정리했다.
+
 - SDK의 혼합 레이어 렌더러가 현재 프레임의 실제 문서를 표시한다. Fit 버튼, SDK 확대·축소, 중간 버튼 이동을 사용한다. 저장된 무한 캔버스와 자산·타임라인 정보도 네이티브 문서에 보존한다. 현재 화면에는 프레임 탐색 컨트롤을 추가하지 않았다.
 - Brush는 크기, 경도, 투명도, 흐름, 간격, 안정화와 상단 Paint Color를 iiPaintEngine 브러시에 전달한다. 입력 경로는 `EditorCanvas → iiSharedCanvas::CanvasItem → BitmapEditor / ChunkedBitmapEditor → iiPaintEngine`이다. iiPaintEngine의 `appendRasterDabs()`, `projectBrushDabs()`, `paintRasterSamples()`가 실제 픽셀을 생성하며, 제품은 별도의 브러시 래스터라이저를 구현하지 않는다. 비트맵 레이어가 선택되지 않았으면 새 Paint 레이어를 만든다. 포인터 궤적과 Dab은 실행 중에만 사용하고, 커밋된 픽셀만 `.iisc` 문서에 저장한다.
 - Eraser의 Pixel 모드는 같은 iiPaintEngine의 `DestinationOut` 합성으로 선택된 비트맵 레이어를 지운다. 다른 지우개 모드에는 엔진 동작을 연결하지 않았다. Undo/Redo는 SDK가 제공하는 선택 비트맵의 픽셀 편집 이력에 적용된다. 구조·벡터·레이어 속성 편집을 취소하는 전체 문서 이력은 아직 없다.
@@ -33,7 +35,8 @@ snapshots and SQLite working documents. It does not mount a reduced thumbnail or
 resize source pixels. `EditorProject::attachCanvas` selects the SDK's smooth
 presentation policy, mounts the native document item in its destination window,
 and supplies the actual viewport size before fitting. Remounting an unchanged
-viewport preserves the user's zoom and pan. Presentation changes do not mark the
+viewport preserves the user's zoom and permitted pan; fitting axes are locked to
+the center as described in [EditorViewport.md](EditorViewport.md). Presentation changes do not mark the
 document as edited.
 
 SDK tile LOD includes the window's physical pixel ratio. A 45% view on a 2× display

@@ -110,7 +110,20 @@ LV.Sheet {
             })
         }
     }
-    contentComponent: visible ? panelComponent : null
+    contentComponent: visible ? (toolId === "layers" && engine ? layerPanelComponent : panelComponent) : null
+    Component {
+        id: layerPanelComponent
+        Item {
+            readonly property Item layerSheetPresenter: layerSheetLoader.item as Item
+            implicitWidth: 398
+            implicitHeight: layerSheetPresenter ? layerSheetPresenter.implicitHeight : 525
+            Loader {
+                id: layerSheetLoader
+                anchors.fill: parent
+                Component.onCompleted: setSource(Qt.resolvedUrl("EditorLayersPanel.qml"), {toolState: root})
+            }
+        }
+    }
     Component {
         id: panelComponent
         EditorToolPanel {

@@ -61,18 +61,20 @@ bool EditorCanvas::combineVectorPaths(const QString &operation) {
 }
 
 QUrl EditorCanvas::clippingOverlay() const {
-    if (!documentReady() || !toggle(settingsFor("color"), 18)) return {};
+    if (!documentReady() || infiniteCanvas() || (!toggle(settingsFor("color"), 18) && !m_histogramShadows && !m_histogramHighlights)) return {};
+    const bool showHighlights = m_histogramHighlights || toggle(settingsFor("color"), 18);
+    const bool showShadows = m_histogramShadows || toggle(settingsFor("color"), 18);
     const auto v = settingsFor("color");
     const int white = qRound(number(v, 17, 100) / 100 * 255), black = qRound(number(v, 21) / 100 * 255);
-    const auto cacheKey = QString("%1:%2:%3:%4").arg(revision()).arg(frame()).arg(white).arg(black);
+    const auto cacheKey = QString("%1:%2:%3:%4:%5:%6").arg(revision()).arg(frame()).arg(white).arg(black).arg(showHighlights).arg(showShadows);
     if (cacheKey == m_clippingKey) return m_clippingImage;
     const auto rendered = renderFrame(*document(), frame()); if (!rendered.ok()) return {};
     QImage overlay(canvasWidth(), canvasHeight(), QImage::Format_ARGB32); overlay.fill(Qt::transparent);
     bool clipped = false;
     for (int y = 0; y < overlay.height(); ++y) for (int x = 0; x < overlay.width(); ++x) {
         const auto p = rendered.pixels.pixels[y * overlay.width() + x]; if (!qAlpha(p)) continue;
-        if (std::max({qRed(p), qGreen(p), qBlue(p)}) >= white) { overlay.setPixel(x, y, 0x88ff453a); clipped = true; }
-        else if (std::min({qRed(p), qGreen(p), qBlue(p)}) <= black) { overlay.setPixel(x, y, 0x880a84ff); clipped = true; }
+        if (showHighlights && std::max({qRed(p), qGreen(p), qBlue(p)}) >= white) { overlay.setPixel(x, y, 0x88ff453a); clipped = true; }
+        else if (showShadows && std::min({qRed(p), qGreen(p), qBlue(p)}) <= black) { overlay.setPixel(x, y, 0x880a84ff); clipped = true; }
     }
     m_clippingKey = cacheKey; m_clippingImage = clipped ? dataImage(overlay) : QUrl{};
     return m_clippingImage;

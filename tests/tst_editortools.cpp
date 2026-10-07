@@ -14,6 +14,52 @@ private:
         QVERIFY(c.createCanvas({{"width", width}, {"height", height}, {"unit", "px"}, {"background", "Transparent"}}));
     }
 private slots:
+    void layerPanelReadsActualPixelsWithoutEditing() {
+        EditorCanvas c; create(c, 2, 2);
+        QImage pixels(2, 2, QImage::Format_ARGB32); pixels.fill(Qt::transparent);
+        pixels.setPixel(0, 0, qRgb(255, 0, 0)); pixels.setPixel(1, 0, qRgb(0, 255, 0));
+        pixels.setPixel(0, 1, qRgb(0, 0, 255));
+        QVERIFY(c.insertPixels(pixels, "RGB sample"));
+        const auto before = encodeIisc(*c.document()).bytes;
+        const auto histogram = c.layerHistogram(false, "Red");
+        QCOMPARE(histogram["pixelCount"].toLongLong(), 3);
+        const auto red = histogram["red"].toList(); QCOMPARE(red.size(), 256);
+        QCOMPARE(red[0].toInt(), 2); QCOMPARE(red[255].toInt(), 1);
+        QCOMPARE(histogram["mean"].toDouble(), 85.0);
+        const auto details = c.layerPanelInfo();
+        QCOMPARE(details["dimensions"].toString(), QString("2 × 2 px"));
+        QCOMPARE(details["profile"].toString(), QString("Untagged RGB"));
+        QCOMPARE(details["bitDepth"].toString(), QString("8 bit / channel"));
+        QVERIFY(c.sampleLayerColor({0, 0}));
+        QCOMPARE(c.layerColorSample()["hex"].toString(), QString("#FF0000"));
+        c.setLayerHistogramClipping(true, false);
+        QVERIFY(!c.toolState()["clippingOverlay"].toUrl().isEmpty());
+        c.setLayerHistogramClipping(false, false);
+        QCOMPARE(encodeIisc(*c.document()).bytes, before);
+        QVERIFY(!c.sampleLayerColor({-1, 0}));
+    }
+    void layerPanelDuplicateGroupMergeAndUndoPersist() {
+        EditorCanvas c; create(c, 8, 8);
+        QImage red(8, 8, QImage::Format_ARGB32); red.fill(Qt::red);
+        QVERIFY(c.insertPixels(red, "Subject")); const auto original = c.selectedLayerId();
+        const auto layerCount = c.document()->layers.size();
+        QVERIFY(c.duplicateSelectedLayer()); const auto copy = c.selectedLayerId();
+        QVERIFY(copy != original); QCOMPARE(c.document()->layers.size(), layerCount + 1);
+        auto blue = *c.selectedRasterPixels(); std::fill(blue.pixels.begin(), blue.pixels.end(), 0xff0000ff);
+        QVERIFY(c.replaceSelectedPixels(blue)); QVERIFY(c.selectLayer(original));
+        QCOMPARE(c.selectedRasterPixels()->pixels.front(), 0xffff0000u);
+        QVERIFY(c.selectLayer(copy)); QVERIFY(c.mergeSelectedDown());
+        QCOMPARE(c.document()->layers.size(), layerCount);
+        QCOMPARE(renderFrame(*c.document(), 0).pixels.pixels.front(), 0xff0000ffu);
+        QVERIFY(c.undo()); QCOMPARE(c.document()->layers.size(), layerCount + 1);
+        QVERIFY(c.groupSelectedLayer()); QCOMPARE(c.document()->artboards.size(), 1u);
+        QVERIFY(c.layerHierarchy().first().toMap()["group"].toBool());
+        QTemporaryDir directory(DREAMSCAPES_TEST_DIRECTORY "/layer-panel-XXXXXX"); QVERIFY(directory.isValid());
+        const auto path = QUrl::fromLocalFile(directory.filePath("grouped.iisc"));
+        QVERIFY(c.saveDocumentAs(path)); EditorCanvas reopened;
+        QVERIFY(reopened.openDocumentSource(path)); QCOMPARE(reopened.document()->artboards.size(), 1u);
+        QVERIFY(c.undo()); QVERIFY(c.document()->artboards.empty());
+    }
     void initTestCase() { qputenv("DREAMSCAPES_EDITOR_CACHE", QByteArray(DREAMSCAPES_TEST_DIRECTORY "/editor-reference-cache")); }
     void capabilityDistinguishesUnsupportedControlsFromMissingInputs() {
         EditorCanvas c; create(c);

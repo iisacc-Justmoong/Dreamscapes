@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import LVRS 1.0 as LV
+import ".." as Views
 import "EditorToolDefinitions.js" as Definitions
 
 // Layout only: all visible controls are unmodified LVRS primitives.
@@ -275,7 +276,7 @@ Item {
     }
     Component {
         id: previewComponent
-        LV.ListItem {
+        Views.PanelRow {
             objectName: "editorPreview-" + root.field.id
             type: LV.ListItem.Navigation
             label: root.field.label
@@ -315,9 +316,9 @@ Item {
                 iconSource: Qt.resolvedUrl("Assets/Panel/general-chevron-right.svg")
                 horizontalPadding: 0
                 verticalPadding: 0
-                enabled: false
-                backgroundColorDisabled: "transparent"
-                Accessible.ignored: true
+                tone: LV.AbstractButton.Borderless
+                Accessible.name: root.field.label + ": " + qsTr("View")
+                onClicked: root.requested()
             }
         }
     }

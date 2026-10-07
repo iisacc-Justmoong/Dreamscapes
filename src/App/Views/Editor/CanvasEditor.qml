@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Dialogs as Dialogs
 import "EditorToolDefinitions.js" as Definitions
 import LVRS 1.0 as LV
+import ".." as Views
 import Dreamscapes.Storage 1.0
 import "../Home"
 
@@ -18,7 +19,7 @@ Item {
     property string previewTool: ""
     property string previewField: ""
     property var previewValues: ({})
-    readonly property bool modalActive: toolSheet.modalActive || documentControls.modalActive || previewSheet.visible || sourceDialog.visible || exportDialog.visible || advancedSheet.visible
+    readonly property bool modalActive: toolSheet.modalActive || documentControls.modalActive || previewSheet.visible || sourceDialog.visible || exportDialog.visible || advancedSheet.visible || (desktopDock.item ? desktopDock.item.layerModalActive : false)
     property int selectedPath: -1
     property var generationTargetCanvas: null
     property url imageSource: ""
@@ -270,7 +271,7 @@ Item {
                 x: blankCanvas.panX; y: blankCanvas.panY
                 width: blankCanvas.canvasWidth * blankCanvas.zoom; height: blankCanvas.canvasHeight * blankCanvas.zoom
                 source: blankCanvas.toolState.clippingOverlay || ""
-                visible: root.selectedTool === "color"
+                visible: root.selectedTool === "color" || root.selectedTool === "layers"
                 cache: false
                 smooth: true
             }
@@ -336,16 +337,6 @@ Item {
             }
         }
     }
-    LV.Label {
-        objectName: "editorToolStatus"
-        anchors.left: workspace.left; anchors.right: workspace.right; anchors.bottom: workspace.bottom
-        anchors.margins: 8
-        text: toolSheet.notice || blankCanvas.toolHint
-        style: description
-        wrapMode: Text.Wrap
-        sizeToContentHeight: true
-        visible: text.length > 0
-    }
     Loader {
         id: desktopDock
         anchors.top: parent.top
@@ -400,6 +391,7 @@ Item {
         height: implicitHeight
         mobileLayout: root.mobileLayout
         onToolSelected: function(toolId) {
+            if (toolId !== "layers") { blankCanvas.setLayerHistogramClipping(false, false); blankCanvas.cancelLayerColorSample() }
             root.toolSelected(toolId)
             if (root.mobileLayout && root.visible) toolSheet.openTool(toolId)
             else if (!root.mobileLayout) {
@@ -474,7 +466,7 @@ Item {
             }
             Repeater {
                 model: root.previewData.items || []
-                LV.ListItem {
+                Views.PanelRow {
                     required property var modelData
                     width: parent.width
                     type: LV.ListItem.Navigation
@@ -519,7 +511,7 @@ Item {
             }
             Repeater {
                 model: root.generationRuntime ? root.generationRuntime.completedResults.filter(function(result) { return root.editorJobIds.indexOf(result.id) >= 0 }) : []
-                LV.ListItem {
+                Views.PanelRow {
                     required property var modelData
                     width: parent.width
                     type: LV.ListItem.Navigation

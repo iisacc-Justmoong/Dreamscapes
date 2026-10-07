@@ -207,8 +207,12 @@ private slots:
     void editorToolSheets_data();
     void editorToolSheets();
     void editorToolNumericContracts();
+    void panelRowsKeepLabelsPassive_data();
+    void panelRowsKeepLabelsPassive();
     void desktopEditorLayoutCentersCanvas();
+    void editorCanvasPanAndZoomStayInsideViewport();
     void desktopEditorPanelResizes();
+    void editorLayerPanelFourStates();
     void desktopEditorElementsMatchesFigma();
     void desktopEditorToolPanelsMatchFigma_data();
     void desktopEditorToolPanelsMatchFigma();
@@ -532,7 +536,7 @@ void GuiTests::advancedControlsAppearOnlyAfterAdd()
         QVERIFY(grab->image().save(capture));
     }
     scrollTo(add);
-    click(&window, add);
+    click(&window, visualItem(add, "panelRow_navigation"));
     QTRY_COMPARE(view->property("controlNetCount").toInt(), 1);
     QTRY_VERIFY(visualItem(panel, "controlProcess1"));
     QVERIFY(visualItem(panel, "controlProcess1")->isVisible());
@@ -546,13 +550,13 @@ void GuiTests::advancedControlsAppearOnlyAfterAdd()
     QVERIFY(draft->savePreset("Optional control UI"));
     QTRY_VERIFY(visualItem(panel, "controlNetHeader1"));
     scrollTo(visualItem(panel, "controlNetHeader1"));
-    click(&window, visualItem(panel, "controlNetHeader1"));
+    click(&window, visualItem(visualItem(panel, "controlNetHeader1"), "panelRow_navigation"));
     QVERIFY(!visualItem(panel, "controlProcess1")->isVisible());
-    click(&window, visualItem(panel, "controlNetHeader1"));
+    click(&window, visualItem(visualItem(panel, "controlNetHeader1"), "panelRow_navigation"));
     QVERIFY(visualItem(panel, "controlProcess1")->isVisible());
     QCOMPARE(draft->parameters().value("controlNets").toList().first().toMap().value("weight").toDouble(), 0.65);
     scrollTo(add);
-    click(&window, add);
+    click(&window, visualItem(add, "panelRow_navigation"));
     QTRY_COMPARE(view->property("controlNetCount").toInt(), 2);
     QVERIFY(visualItem(panel, "controlProcess2")->isVisible());
     const auto secondId = draft->parameters().value("controlNets").toList().last().toMap().value("id").toString();
@@ -3521,7 +3525,10 @@ void GuiTests::editorToolbarOperations()
     QVERIFY(tool(9)); QTRY_COMPARE(sheet->property("values").value<QJSValue>().toVariant().toMap().value("field-10").toDouble(), 50.0);
     QVERIFY(canvas->setLayerOpacity(canvas->selectedLayerId(), 1.0));
     QVERIFY(tool(11)); QVERIFY(edit("field-1", 1.0)); QVERIFY(qRed(canvas->selectedRasterPixels()->pixels[8 * 64 + 8]) > 128);
-    auto *preview = visualItem(editor.data(), "editorPreview-field-0"); QVERIFY(preview && preview->isEnabled()); click(&window, preview);
+    auto *preview = visualItem(editor.data(), "editorPreview-field-0"); QVERIFY(preview && preview->isEnabled());
+    auto *disclosure = visualItem(preview, "editorPreviewChevron"); QVERIFY(disclosure);
+    QTRY_VERIFY(bounds(disclosure, window.contentItem()).right() <= window.width());
+    click(&window, disclosure);
     auto *surface = editor->findChild<QObject *>("editorToolPreviewSheet"); QVERIFY(surface); QTRY_VERIFY(surface->property("visible").toBool());
     QVERIFY(QMetaObject::invokeMethod(surface, "close")); QTRY_VERIFY(!surface->property("visible").toBool());
     QVERIFY(tool(2)); QVERIFY(!visualItem(editor.data(), "editorAction-field-15"));
@@ -3724,6 +3731,7 @@ void GuiTests::desktopEditorLayoutCentersCanvas()
     QQmlComponent component(&engine, sourceUrl("Views/Editor/CanvasEditor.qml"));
     QScopedPointer<QQuickItem> editor(qobject_cast<QQuickItem *>(component.create()));
     QVERIFY2(editor, qPrintable(component.errorString()));
+    QVERIFY(!item(editor.data(), "editorToolStatus"));
     QQuickWindow window;
     window.resize(2267, 1316);
     editor->setParentItem(window.contentItem());
@@ -3815,6 +3823,9 @@ void GuiTests::desktopEditorLayoutCentersCanvas()
         }
     }
     canvas->panBy(100, 70);
+    QVERIFY(centered());
+    canvas->zoomAt(3, canvas->boundingRect().center());
+    canvas->panBy(100, 70);
     QVERIFY(!centered());
     QTest::mouseClick(&window, Qt::RightButton, Qt::NoModifier, surface->mapToScene({30, 30}).toPoint());
     auto *menu = editor->findChild<QObject *>("editorDocumentContextMenu");
@@ -3846,6 +3857,56 @@ void GuiTests::desktopEditorLayoutCentersCanvas()
     QTRY_VERIFY(item(editor.data(), "editorDocumentOpen")->isVisible());
     QCOMPARE(bounds(toolbar, editor.data()).bottom(), editor->height() - 8);
     QVERIFY(!item(editor.data(), "editorCanvasContextArea")->property("enabled").toBool());
+}
+
+void GuiTests::editorCanvasPanAndZoomStayInsideViewport()
+{
+    QQmlEngine engine;
+    auto *theme = engine.singletonInstance<QObject *>("LVRS", "Theme");
+    QVERIFY(theme && theme->setProperty("targetOverride", "macos"));
+    QQmlComponent component(&engine, sourceUrl("Views/Editor/CanvasEditor.qml"));
+    QScopedPointer<QQuickItem> editor(qobject_cast<QQuickItem *>(component.create()));
+    QVERIFY2(editor, qPrintable(component.errorString()));
+    QVERIFY(!item(editor.data(), "editorToolStatus"));
+    QQuickWindow window; window.resize(1280, 800);
+    editor->setParentItem(window.contentItem()); editor->setSize(window.size());
+    window.show(); QVERIFY(QTest::qWaitForWindowExposed(&window));
+    auto *canvas = qobject_cast<EditorCanvas *>(item(editor.data(), "editorBlankCanvas")); QVERIFY(canvas);
+    auto *surface = item(editor.data(), "editorCanvasSurface"); QVERIFY(surface);
+    QVERIFY(canvas->createCanvas({{"width", 500}, {"height", 300}, {"unit", "px"}, {"background", "White"}}));
+    QTRY_COMPARE(canvas->size(), surface->size());
+    const auto centered = [&] {
+        return qAbs(canvas->panX() - (canvas->width() - canvas->canvasWidth() * canvas->zoom()) / 2) < 0.01
+            && qAbs(canvas->panY() - (canvas->height() - canvas->canvasHeight() * canvas->zoom()) / 2) < 0.01;
+    };
+    const auto drag = [&] {
+        const auto start = surface->mapToScene(surface->boundingRect().center()).toPoint();
+        const auto end = start + QPoint(40, 30);
+        QTest::mousePress(&window, Qt::MiddleButton, Qt::NoModifier, start);
+        QTest::mouseMove(&window, end, 20);
+        QTest::mouseRelease(&window, Qt::MiddleButton, Qt::NoModifier, end);
+    };
+    const auto wheel = [&](int delta, const QPointF &position) {
+        const auto scene = surface->mapToScene(position);
+        QWheelEvent event(scene, window.mapToGlobal(scene.toPoint()), QPoint{}, QPoint(0, delta),
+                          Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
+        QCoreApplication::sendEvent(&window, &event);
+    };
+    QTRY_VERIFY(centered());
+    drag(); QVERIFY(centered());
+    const auto fittedZoom = canvas->zoom();
+    wheel(1200, surface->boundingRect().center());
+    QTRY_VERIFY(canvas->zoom() > fittedZoom);
+    const auto x = canvas->panX(), y = canvas->panY();
+    drag();
+    QTRY_VERIFY(qAbs(canvas->panX() - x - 40) < 0.01);
+    QTRY_VERIFY(qAbs(canvas->panY() - y - 30) < 0.01);
+    canvas->panBy(1000000, -1000000);
+    QCOMPARE(canvas->panX(), 0.0);
+    QVERIFY(qAbs(canvas->panY() - (canvas->height() - canvas->canvasHeight() * canvas->zoom())) < 0.01);
+    wheel(-1200, {surface->width() - 20, 20});
+    QTRY_VERIFY(centered());
+    drag(); QVERIFY(centered());
 }
 
 void GuiTests::desktopEditorPanelResizes()
@@ -4143,6 +4204,260 @@ void GuiTests::desktopEditorElementsMatchesFigma()
     QCOMPARE(back.size(), 1);
 }
 
+void GuiTests::panelRowsKeepLabelsPassive_data()
+{
+    QTest::addColumn<int>("type");
+    QTest::newRow("heading") << 0;
+    QTest::newRow("navigation") << 2;
+    QTest::newRow("toggle") << 3;
+    QTest::newRow("action") << 5;
+    QTest::newRow("action-group") << 6;
+    QTest::newRow("select") << 8;
+    QTest::newRow("input") << 9;
+}
+
+void GuiTests::panelRowsKeepLabelsPassive()
+{
+    QFETCH(int, type);
+    QQmlEngine engine;
+    auto *theme = engine.singletonInstance<QObject *>("LVRS", "Theme");
+    QVERIFY(theme && theme->setProperty("targetOverride", "macos"));
+    QQmlComponent component(&engine, sourceUrl("Views/PanelRow.qml"));
+    QScopedPointer<QQuickItem> row(qobject_cast<QQuickItem *>(component.createWithInitialProperties({
+        {"type", type}, {"label", "Parameter"}, {"description", "Supporting text"},
+        {"showLeadingIcon", false}, {"showDescription", false}, {"value", "View"},
+        {"inputText1", "12"}, {"showPrimaryAction", type != 9},
+        {"selector", QVariantMap{{"items", QStringList{"First", "Second"}}}}
+    })));
+    QVERIFY2(row, qPrintable(component.errorString()));
+    QQuickWindow window;
+    window.setColor(QColor("#1e1e1e")); window.resize(430, 160);
+    row->setParentItem(window.contentItem()); row->setX(16); row->setY(16);
+    row->setWidth(398); row->setHeight(row->implicitHeight());
+    window.show(); QVERIFY(QTest::qWaitForWindowExposed(&window));
+    QCOMPARE(row->acceptedMouseButtons(), Qt::NoButton);
+    QVERIFY(!row->acceptHoverEvents());
+    QVERIFY(!row->activeFocusOnTab());
+    auto *label = visualItem(row.data(), "panelRow_label"); QVERIFY(label);
+    QSignalSpy edits(row.data(), SIGNAL(edited(QString,QVariant)));
+    QSignalSpy actions(row.data(), SIGNAL(actionTriggered(QString,QVariant)));
+    QSignalSpy navigation(row.data(), SIGNAL(clicked()));
+    QTest::mouseMove(&window, QPoint(1, 150)); QTest::qWait(100);
+    const auto before = window.grabWindow(); QVERIFY(!before.isNull());
+    const auto labelPoint = label->mapToScene(label->boundingRect().center()).toPoint();
+    QTest::mouseMove(&window, labelPoint); QTest::qWait(100);
+    QCOMPARE(window.grabWindow(), before);
+    QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, labelPoint); QTest::qWait(100);
+    QCOMPARE(window.grabWindow(), before);
+    QCOMPARE(edits.size(), 0); QCOMPARE(actions.size(), 0); QCOMPARE(navigation.size(), 0);
+    QVERIFY(!row->hasActiveFocus());
+
+    // The passive surface must not disable the native controls within it.
+    if (type == 2) {
+        click(&window, visualItem(row.data(), "panelRow_navigation")); QCOMPARE(navigation.size(), 1);
+    } else if (type == 3) {
+        click(&window, visualItem(row.data(), "panelRow_toggle"));
+        QTRY_VERIFY(row->property("checked").toBool()); QCOMPARE(edits.size(), 1);
+    } else if (type == 5 || type == 6) {
+        click(&window, visualItem(row.data(), "panelRow_primaryAction")); QCOMPARE(actions.size(), 1);
+        if (type == 6) {
+            click(&window, visualItem(row.data(), "panelRow_secondaryAction")); QCOMPARE(actions.size(), 2);
+        }
+    } else if (type == 8) {
+        auto *selector = visualItem(row.data(), "panelRow_selector"); QVERIFY(selector);
+        selector->forceActiveFocus(Qt::TabFocusReason);
+        QTest::keyClick(&window, Qt::Key_Down);
+        QTRY_COMPARE(row->property("selectorIndex").toInt(), 1); QCOMPARE(edits.size(), 1);
+    } else if (type == 9) {
+        auto *input = visualItem(row.data(), "panelRow_input1"); QVERIFY(input);
+        click(&window, input); QTest::keyClick(&window, Qt::Key_3);
+        QTRY_VERIFY(row->property("inputText1").toString().contains('3')); QVERIFY(!edits.isEmpty());
+    }
+}
+
+void GuiTests::editorLayerPanelFourStates()
+{
+    QQmlEngine engine;
+    auto *theme = engine.singletonInstance<QObject *>("LVRS", "Theme");
+    QVERIFY(theme && theme->setProperty("targetOverride", "macos"));
+    QQmlComponent component(&engine, sourceUrl("Views/Editor/CanvasEditor.qml"));
+    QScopedPointer<QQuickItem> editor(qobject_cast<QQuickItem *>(component.create()));
+    QVERIFY2(editor, qPrintable(component.errorString()));
+    QQuickWindow window;
+    window.resize(1280, 559);
+    editor->setParentItem(window.contentItem()); editor->setSize(window.size());
+    QVERIFY(editor->setProperty("desktopPanelWidth", 432));
+    window.show(); QVERIFY(QTest::qWaitForWindowExposed(&window));
+    auto *canvas = qobject_cast<EditorCanvas *>(item(editor.data(), "editorBlankCanvas"));
+    QVERIFY(canvas);
+    QVERIFY(canvas->createCanvas({{"width", 32}, {"height", 24}, {"unit", "px"}, {"background", "Transparent"}}));
+    QImage pixels(32, 24, QImage::Format_ARGB32);
+    for (int y = 0; y < 24; ++y) for (int x = 0; x < 32; ++x) pixels.setPixel(x, y, qRgb(x * 8, y * 10, 128));
+    QVERIFY(canvas->insertPixels(pixels, "Subject"));
+    auto *toolbar = item(editor.data(), "editorToolbar"); QVERIFY(toolbar);
+    const auto tools = toolbar->property("tools").value<QJSValue>().toVariant().toList();
+    int layerIndex = -1;
+    for (int index = 0; index < tools.size(); ++index) if (tools[index].toMap()["key"].toString() == "layers") layerIndex = index;
+    QVERIFY(layerIndex >= 0);
+    QVERIFY(QMetaObject::invokeMethod(toolbar, "selectTool", Q_ARG(QVariant, layerIndex)));
+    auto *dock = item(editor.data(), "editorDesktopPanel"); QVERIFY(dock);
+    QTRY_VERIFY(item(dock, "editorLayersPanel"));
+    auto *panel = item(dock, "editorLayersPanel");
+    QTRY_COMPARE(panel->width(), 398.0);
+    const auto layerItem = [&](const char *name) -> QQuickItem * {
+        if (auto *found = visualItem(panel, name)) return found;
+        if (auto *found = item(panel, name)) return found;
+        return visualItem(window.contentItem(), name);
+    };
+    const auto layerClick = [&](QQuickItem *control) {
+        QVERIFY(control);
+        if (QGuiApplication::platformName() == "cocoa") {
+            window.requestActivate(); QVERIFY(QTest::qWaitForWindowActive(&window));
+        }
+        // Generated hierarchy/action delegates can be replaced during hover.
+        const auto position = control->mapToScene(control->boundingRect().center()).toPoint();
+        QTest::mouseMove(&window, position);
+        QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, position);
+    };
+    auto *hierarchy = layerItem("layerHierarchy"); QVERIFY(hierarchy);
+    QCOMPARE(hierarchy->property("generatedRowHeight").toInt(), 32);
+    const auto sourceId = canvas->selectedLayerId();
+    QTRY_COMPARE(hierarchy->property("activeItemKey").toString(), sourceId);
+    const auto initialCount = canvas->document()->layers.size();
+    layerClick(layerItem("layerDuplicate"));
+    QTRY_COMPARE(canvas->document()->layers.size(), initialCount + 1);
+    const auto copiedId = canvas->selectedLayerId();
+    QTRY_COMPARE(hierarchy->property("activeItemKey").toString(), copiedId);
+    QTRY_VERIFY(layerItem(("layerRow-" + copiedId).toUtf8().constData()));
+    QVERIFY(layerItem(("layerRow-" + copiedId).toUtf8().constData())->property("resolvedSelected").toBool());
+    QVERIFY(!layerItem(("layerRow-" + sourceId).toUtf8().constData())->property("resolvedSelected").toBool());
+    QTest::qWait(80);
+    layerClick(layerItem(("layerRow-" + sourceId).toUtf8().constData()));
+    QTRY_COMPARE(canvas->selectedLayerId(), sourceId);
+    QTRY_COMPARE(hierarchy->property("activeItemKey").toString(), sourceId);
+    QTest::qWait(80);
+    layerClick(layerItem(("layerRow-" + copiedId).toUtf8().constData()));
+    QTRY_COMPARE(canvas->selectedLayerId(), copiedId);
+    QTRY_COMPARE(hierarchy->property("activeItemKey").toString(), copiedId);
+    const auto checkFooter = [&] {
+        QTest::mouseMove(&window, {10, window.height() - 5});
+        const QStringList actions{"layerNew", "layerGroup", "layerMerge", "layerDuplicate", "layerMask", "layerLock", "layerDelete"};
+        const QStringList assets{"NewLayer.svg", "Group.svg", "Merge.svg", "DuplicateLayer.svg", "LayerMask.svg", "Lock.svg", "Generaldelete.svg"};
+        for (int index = 0; index < actions.size(); ++index) {
+            auto *button = layerItem(actions[index].toUtf8().constData()); QVERIFY(button);
+            const auto borderless = actions[index] == "layerDelete";
+            QCOMPARE(button->property("tone").toInt(), borderless ? 2 : 1);
+            auto *background = button->property("background").value<QQuickItem *>(); QVERIFY(background);
+            const auto expected = borderless ? QColor(Qt::transparent) : theme->property("panelBackground12").value<QColor>();
+            QTRY_COMPARE(background->property("color").value<QColor>(), expected);
+            auto *icon = visualItem(button, index == 0 ? "iconMenuButton_icon" : "iconButton_icon"); QVERIFY(icon);
+            QTRY_COMPARE(icon->property("status").toInt(), 1);
+            QCOMPARE(icon->size(), QSizeF(18, 18));
+            QCOMPARE(button->property("iconSource").toUrl().fileName(), assets[index]);
+            const QFileInfo asset(button->property("iconSource").toUrl().toLocalFile());
+            QVERIFY(asset.isFile() && asset.size() > 0);
+        }
+    };
+    QVERIFY(!layerItem("layerMask")->isEnabled());
+    checkFooter();
+    layerClick(layerItem("layerLock"));
+    QTRY_VERIFY(canvas->toolState()["pixelLocked"].toBool());
+    QVERIFY(canvas->toolState()["positionLocked"].toBool());
+    QVERIFY(!layerItem("layerDelete")->isEnabled());
+    checkFooter();
+    layerClick(layerItem("layerLock"));
+    QTRY_COMPARE(canvas->selectedLayer()["lock"].toString(), QString("None"));
+    checkFooter();
+    QTRY_VERIFY(layerItem(("layerVisible-" + copiedId).toUtf8().constData()));
+    QTest::qWait(80); // Finish native hierarchy delegate replacement and layout.
+    auto *visibilityIcon = visualItem(layerItem(("layerVisible-" + copiedId).toUtf8().constData()), "iconButton_icon");
+    QVERIFY(visibilityIcon);
+    QTRY_COMPARE(visibilityIcon->property("status").toInt(), 1);
+    QCOMPARE(visibilityIcon->size(), QSizeF(16, 16));
+    QCOMPARE(visibilityIcon->property("source").toUrl().fileName(), QString("Visibility.svg"));
+    // Check the exported eye's axes in scene coordinates, including parent transforms.
+    const auto leftEye = visibilityIcon->mapToScene(QPointF(0, 8));
+    const auto rightEye = visibilityIcon->mapToScene(QPointF(16, 8));
+    const auto topEye = visibilityIcon->mapToScene(QPointF(8, 2.5));
+    const auto bottomEye = visibilityIcon->mapToScene(QPointF(8, 13.5));
+    QVERIFY2(rightEye.x() - leftEye.x() > bottomEye.y() - topEye.y(), "The visibility eye must be wider than it is tall.");
+    QVERIFY(qAbs(leftEye.y() - rightEye.y()) < 0.01);
+    QVERIFY(qAbs(topEye.x() - bottomEye.x()) < 0.01);
+    const auto eyeCapture = visibilityIcon->grabToImage(QSize(64, 64));
+    QVERIFY(eyeCapture);
+    QTRY_VERIFY(!eyeCapture->image().isNull());
+    QRect eyeInk;
+    const auto eyeImage = eyeCapture->image();
+    for (int y = 0; y < eyeImage.height(); ++y)
+        for (int x = 0; x < eyeImage.width(); ++x)
+            if (qAlpha(eyeImage.pixel(x, y)) > 16) eyeInk = eyeInk.united(QRect(x, y, 1, 1));
+    QVERIFY2(eyeInk.width() > eyeInk.height(), "The rendered visibility glyph must be a horizontal eye.");
+    layerClick(layerItem(("layerVisible-" + copiedId).toUtf8().constData()));
+    QTRY_VERIFY(!canvas->selectedLayer()["visible"].toBool());
+    QTRY_VERIFY(layerItem(("layerVisible-" + copiedId).toUtf8().constData()));
+    QTest::qWait(80);
+    layerClick(layerItem(("layerVisible-" + copiedId).toUtf8().constData()));
+    QTRY_VERIFY(canvas->selectedLayer()["visible"].toBool());
+    const auto captureDirectory = qEnvironmentVariable("DREAMSCAPES_CAPTURE_DIR");
+    const QStringList tabs{"layer", "adjust", "histogram", "information"};
+    for (int index = 0; index < tabs.size(); ++index) {
+        auto *tab = layerItem(("layerTab-" + tabs[index]).toUtf8().constData()); QVERIFY(tab);
+        layerClick(tab); QTRY_COMPARE(panel->property("panelIndex").toInt(), index);
+        QCOMPARE(tab->property("tone").toInt(), 1); // LV.AbstractButton.Default
+        QTest::qWait(80); // Instantiate the new view and polish its action layout.
+        if (index == 1) {
+            QTRY_VERIFY(layerItem("layerAction-exposure"));
+            auto *exposure = layerItem("layerAction-exposure"); QVERIFY(exposure && exposure->isEnabled());
+            auto *gradient = layerItem("layerAction-gradient"); QVERIFY(gradient && !gradient->isEnabled());
+            const auto original = canvas->selectedRasterPixels()->pixels;
+            layerClick(exposure);
+            QTRY_VERIFY(panel->property("modalActive").toBool());
+            auto *adjustmentSheet = panel->findChild<QObject *>("layerAdjustmentSheet");
+            QVERIFY(adjustmentSheet);
+            QTRY_VERIFY(adjustmentSheet->property("opened").toBool());
+            QTRY_VERIFY(layerItem("editorNumeric-field-1"));
+            auto *numeric = layerItem("editorNumeric-field-1");
+            numeric->setProperty("text", "1.0 EV");
+            QVERIFY(QMetaObject::invokeMethod(numeric, "accepted", Q_ARG(QString, "1.0 EV")));
+            QTRY_VERIFY(canvas->selectedRasterPixels()->pixels != original);
+            auto *done = layerItem("layerAdjustmentDone"); QVERIFY(done);
+            QVERIFY(window.contentItem()->boundingRect().contains(bounds(done, window.contentItem())));
+            layerClick(done);
+            QTRY_VERIFY(!panel->property("modalActive").toBool());
+            layerClick(layerItem("layerResetAdjustments"));
+            QTRY_COMPARE(canvas->selectedRasterPixels()->pixels, original);
+        } else if (index == 2) {
+            QTRY_VERIFY(panel->property("histogram").value<QJSValue>().toVariant().toMap()["pixelCount"].toLongLong() > 0);
+            layerClick(layerItem("layerAction-Red"));
+            QTRY_COMPARE(panel->property("channel").toString(), QString("Red"));
+            layerClick(layerItem("layerAction-shadow"));
+            QTRY_VERIFY(item(editor.data(), "editorClippingOverlay")->isVisible());
+            QVERIFY(!canvas->toolState()["clippingOverlay"].toUrl().isEmpty());
+            QTest::qWait(80);
+            layerClick(layerItem("layerAction-shadow"));
+            QTRY_VERIFY(!panel->property("shadowClipping").toBool());
+        } else if (index == 3) {
+            layerClick(layerItem("layerAction-sample"));
+            QVERIFY(canvas->layerColorSample()["picking"].toBool());
+            QVERIFY(canvas->sampleLayerColor({4, 4}));
+            QTest::qWait(80); // Sampling enables and recreates the footer delegates.
+            layerClick(layerItem("layerAction-copyColor"));
+            QCOMPARE(QGuiApplication::clipboard()->text(), QString("#202880"));
+            layerClick(layerItem("layerAction-copyDetails"));
+            QVERIFY(QGuiApplication::clipboard()->text().contains("32 × 24 px"));
+        }
+        if (!captureDirectory.isEmpty()) {
+            QVERIFY(QDir().mkpath(captureDirectory)); QTest::qWait(80);
+            const auto capture = dock->grabToImage(QSize(432, 559)); QVERIFY(capture);
+            QTRY_VERIFY(!capture->image().isNull());
+            QVERIFY(capture->saveToFile(captureDirectory + "/layers-" + tabs[index] + ".png"));
+        }
+    }
+    QVERIFY(editor->setProperty("desktopPanelWidth", 280));
+    QTRY_COMPARE(panel->width(), 246.0);
+    QVERIFY(panel->implicitHeight() >= 525);
+}
+
 void GuiTests::desktopEditorToolPanelsMatchFigma_data()
 {
     QFile file(sourceUrl("Views/Editor/fixtures/FigmaPanels.json").toLocalFile());
@@ -4333,6 +4648,7 @@ void GuiTests::desktopEditorToolPanelsMatchFigma()
         } else if (type == "Action" || type == "Visual") {
             auto *button = visualItem(panel, qPrintable((type == "Action" ? "editorAction-" : "editorPreview-") + id));
             if (!button->isEnabled()) continue;
+            if (type == "Visual") button = visualItem(button, "editorPreviewChevron");
             click(&window, button);
             QVERIFY(!actionSignals.isEmpty());
             QCOMPARE(actionSignals.last()[0].toString(), key);
@@ -4441,9 +4757,29 @@ void GuiTests::editorToolSheets()
         QCOMPARE(sheet->property("toolId").toString(), key);
         auto *panel = item(sheet, "editorToolPanel");
         auto *viewport = item(sheet, "sheet_viewport");
-        QVERIFY(panel && viewport);
+        QVERIFY(viewport);
         const auto catalog = sheet->property("definition").value<QJSValue>().toVariant().toMap()["fields"].toList();
         QCOMPARE(catalog.size(), counts[index]); total += catalog.size();
+        if (key == "layers") {
+            auto *layers = item(sheet, "editorLayersPanel"); QVERIFY(layers);
+            QTRY_COMPARE(layers->width(), sheet->property("availableContentWidth").toReal());
+            const QStringList tabs{"layer", "adjust", "histogram", "information"};
+            for (int view = 0; view < tabs.size(); ++view) {
+                auto *tab = visualItem(layers, qPrintable("layerTab-" + tabs[view])); QVERIFY(tab);
+                click(&window, tab); QTRY_COMPARE(layers->property("panelIndex").toInt(), view);
+                QTest::qWait(40);
+                QVERIFY(layers->width() <= sheet->property("width").toReal());
+                if (view == 1) {
+                    auto *exposure = visualItem(layers, "layerAction-exposure"); QVERIFY(exposure);
+                    QVERIFY(bounds(exposure, layers).right() <= layers->width());
+                }
+            }
+            QVERIFY(viewport->property("contentHeight").toReal() >= 525);
+            QTest::keyClick(&window, Qt::Key_Escape);
+            QTRY_VERIFY(!sheet->property("visible").toBool());
+            continue;
+        }
+        QVERIFY(panel);
         const auto fields = panel->property("presentedFields").value<QJSValue>().toVariant().toList();
         QCOMPARE(panel->property("fieldCount").toInt(), fields.size());
         QVERIFY(!fields.isEmpty());
@@ -6013,7 +6349,8 @@ void GuiTests::packagedApplicationStarts()
     // Verify the installed entry point too, without copying another build-tree app.
     const auto installedExecutable = qEnvironmentVariable("DREAMSCAPES_TEST_APP_PATH");
     process.start(installedExecutable.isEmpty() ? QStringLiteral(DREAMSCAPES_EXECUTABLE_PATH)
-                                               : installedExecutable, {});
+                                               : installedExecutable,
+                  {"--society-container", presence.filePath("isolated-storage")});
     QVERIFY(process.waitForStarted());
     QByteArray output;
     QElapsedTimer timer;

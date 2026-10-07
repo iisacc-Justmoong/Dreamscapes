@@ -31,6 +31,8 @@ QVariantMap layerDescription(const Layer &layer, const QString &selected) {
 }
 
 EditorCanvas::EditorCanvas(QQuickItem *parent) : CanvasItem(parent), m_media(std::make_unique<EditorMedia>(this)) {
+    connect(this, &CanvasItem::viewportChanged, this, &EditorCanvas::constrainViewport);
+    connect(this, &CanvasItem::documentChanged, this, &EditorCanvas::constrainViewport);
     connect(m_media.get(), &EditorMedia::captured, this, [this](const QImage &image) {
         auto captured = image; const auto values = settingsFor("camera-photo");
         if (values.value("selector").toString() == "Document Scan") {
@@ -51,6 +53,7 @@ EditorCanvas::EditorCanvas(QQuickItem *parent) : CanvasItem(parent), m_media(std
     connect(this, &CanvasItem::documentChanged, this, [this] { m_clippingKey.clear(); m_clippingImage = QUrl{}; });
     connect(this, &CanvasItem::revisionChanged, this, &EditorCanvas::documentInfoChanged);
     connect(this, &CanvasItem::selectionChanged, this, &EditorCanvas::documentInfoChanged);
+    connect(this, &CanvasItem::frameChanged, this, &EditorCanvas::documentInfoChanged);
     connect(this, &CanvasItem::lastErrorChanged, this, &EditorCanvas::errorChanged);
 }
 EditorCanvas::~EditorCanvas() { unbind(); }
@@ -128,6 +131,7 @@ bool EditorCanvas::adopt(Document candidate, const QVariantMap &specification) {
     cancelStroke();
     m_historySuspended = true;
     m_selectedDocumentLayer.clear();
+    m_layerColorPicking = m_layerColorValid = m_histogramShadows = m_histogramHighlights = false;
     clearAreaSelection(); m_elementBounds.clear(); m_elementSettings.clear(); m_textOrigins.clear(); m_textSettings.clear(); m_audioSource = {}; m_audioTrack.clear(); m_media->stop();
     unbind();
     m_workingFile.reset();

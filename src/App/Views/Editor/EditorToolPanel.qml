@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import LVRS 1.0 as LV
+import ".." as Views
 import "EditorToolDefinitions.js" as Definitions
 
 Column {
@@ -66,7 +67,8 @@ Column {
     }
     Component {
         id: sampleHeader
-        LV.ListItem {
+        Views.PanelRow {
+            objectName: "editorPanelTitleRow"
             type: LV.ListItem.Mini
             label: root.definition ? String(root.definition.number).padStart(2, "0") + "  " + root.definition.title : ""
             showLeadingIcon: false
