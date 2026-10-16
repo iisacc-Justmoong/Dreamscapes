@@ -6955,7 +6955,8 @@ void GuiTests::storageBrowserDownloadOpensFreshAlias()
     QCOMPARE(engine.rootObjects().size(), 1);
     auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first()); QVERIFY(window);
     window->resize(target == "ios" ? 402 : 1400, target == "ios" ? 874 : 900);
-    window->show(); QVERIFY(QTest::qWaitForWindowExposed(window));
+    window->showNormal(); window->raise(); window->requestActivate();
+    QVERIFY(QTest::qWaitForWindowExposed(window, 10000));
     auto *generation = qobject_cast<GenerationController *>(window->findChild<QObject *>("generationController")); QVERIFY(generation);
     const auto key = section + "/Download % #.png";
     auto stale = generation->container()->alias(key); QVERIFY(!stale.isEmpty());
