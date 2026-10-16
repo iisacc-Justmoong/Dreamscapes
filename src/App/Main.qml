@@ -12,6 +12,7 @@ import "Views/Result"
 import "Views/Editor"
 import "Views/Preferences"
 import "Views/Home/ImageSelection.js" as ImageSelection
+import "Views/Home/StorageBrowserEntries.js" as StorageEntries
 
 LV.ApplicationWindow {
     id: window
@@ -82,7 +83,11 @@ LV.ApplicationWindow {
     property bool resultVisible: false
     property bool editorVisible: false
     property string storageBrowserSection: ""
+    property string pendingFileKey: ""
+    property string pendingFileSection: ""
     readonly property bool storageBrowserVisible: storageBrowserSection.length > 0 && !resultVisible && !editorVisible
+    onStorageBrowserVisibleChanged: if (!storageBrowserVisible) cancelFileOpen()
+    onStorageBrowserSectionChanged: if (pendingFileSection && pendingFileSection !== storageBrowserSection) cancelFileOpen()
     readonly property var editorView: editorLoader.item
     function ensureEditor() {
         editorLoader.active = true
@@ -398,10 +403,20 @@ LV.ApplicationWindow {
             ? "" : qsTr("Could not open Society. Open Society on this device and try again.")
     }
     function openHomeFile(file) {
-        if (file.available === false || file.exists === false) {
-            generationRequestError = qsTr("This file has not been downloaded to the mirrored drive yet.")
+        if (file.exists === false) {
+            generationRequestError = qsTr("This file is no longer available.")
             return false
         }
+        if (file.available === false) {
+            const section = file.section || "files"
+            if (!file.key || !file.containerId) return false
+            if (!storageBrowserVisible || storageBrowserSection !== section) showStorage(section)
+            pendingFileKey = file.key
+            pendingFileSection = section
+            generationRequestError = ""
+            return generation.fileDownload.start(file.key, file.containerId)
+        }
+        cancelFileOpen()
         if (file.mediaType === "Video") {
             editorVisible = false
             dismissResult()
@@ -417,6 +432,23 @@ LV.ApplicationWindow {
         if (file.source && Qt.openUrlExternally(file.source)) return true
         generationRequestError = qsTr("This file could not be opened on this device.")
         return false
+    }
+    function cancelFileOpen() {
+        pendingFileKey = ""
+        pendingFileSection = ""
+        generation.fileDownload.cancel()
+    }
+    Connections {
+        target: generation.fileDownload
+        function onReady(file) {
+            if (!window.storageBrowserVisible || window.pendingFileKey !== file.key
+                || window.pendingFileSection !== window.storageBrowserSection) return
+            const fresh = StorageEntries.sectionFiles(window.societyContainer.aliases, window.pendingFileSection)
+                .find(entry => entry.key === file.key)
+            window.pendingFileKey = ""
+            window.pendingFileSection = ""
+            if (fresh && fresh.available) window.openHomeFile(fresh)
+        }
     }
     function showStorage(section) {
         if (["files", "published", "generation-history"].indexOf(section) < 0) return
@@ -523,6 +555,7 @@ LV.ApplicationWindow {
             visible: window.storageBrowserVisible
             sourceComponent: StorageBrowser {
                 container: window.societyContainer
+                download: generation.fileDownload
                 section: window.storageBrowserSection || "files"
                 errorText: window.generationRequestError
                 onBackRequested: {

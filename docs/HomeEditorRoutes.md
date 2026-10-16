@@ -4,6 +4,8 @@ Home의 파일 열기, 새 캔버스 생성, 최근 파일과 생성 이미지 �
 
 Home의 All files와 Generation History / View all은 Dreamscapes 내부의 전체 파일·갤러리 화면을 연다. 같은 `iiSocietyContainer` 미러의 전체 Alias 목록을 읽으며, Society로 이동하지 않는다. 폴더 탐색, 검색, 정렬과 다중 이미지 편집을 지원한다. 이 화면에서 에디터를 열었다가 닫으면 탐색하던 위치를 유지한다. 상세한 범위와 검증은 [내부 저장소 탐색](StorageBrowser.md)에 정리한다.
 
+다운로드되지 않은 항목은 Download and open으로 Dreamscapes 내부에서 직접 내려받는다. `iiSocietyHelper::FileDownload`가 선택된 `.societycontainer`의 메타데이터와 인증된 원격 저장소를 사용하며, 다른 앱에 IPC나 다운로드 요청 파일을 전달하지 않는다. 검증을 마친 실제 파일의 최신 Alias로 에디터 또는 비디오 뷰어를 연다. 진행률·취소·재시도는 같은 화면에서 제공하고, 화면이나 저장소 변경 후에는 자동 열기를 취소한다.
+
 ## 진입점
 
 | 동작 | 입력 UI | Editor에 전달하는 내용 |

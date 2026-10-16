@@ -4,6 +4,7 @@
 #include <SharedStorage.h>
 #include <iiSocietyHelper.h>
 #include <iiSocietyHelper/Client.h>
+#include <iiSocietyHelper/FileDownload.h>
 #include <iiSocietyHelper/AccountSession.h>
 #include <iiSocietyGeneration/Remote.h>
 #include <Generation/NativeDiffusion.hpp>
@@ -57,6 +58,7 @@ class GenerationController : public QObject
     Q_PROPERTY(QString containerPath READ containerPath NOTIFY storageChanged)
     Q_PROPERTY(QUrl filesDirectory READ filesDirectory NOTIFY storageChanged)
     Q_PROPERTY(iiSocietyContainer::Container *container READ container CONSTANT)
+    Q_PROPERTY(iiSocietyHelper::FileDownload *fileDownload READ fileDownload CONSTANT)
     Q_PROPERTY(QVariantList models READ models NOTIFY modelsChanged)
     Q_PROPERTY(QVariantList videoModels READ videoModels NOTIFY modelsChanged)
     Q_PROPERTY(QString selectedVideoModel READ selectedVideoModel WRITE setSelectedVideoModel NOTIFY modelsChanged)
@@ -92,6 +94,7 @@ public:
     QString containerPath() const;
     QUrl filesDirectory() const;
     iiSocietyContainer::Container *container() const { return m_fileSystem.container(); }
+    iiSocietyHelper::FileDownload *fileDownload() { return &m_fileDownload; }
     QVariantList models() const;
     QVariantList videoModels() const;
     QString selectedVideoModel() const;
@@ -207,6 +210,10 @@ private:
     // The UI borrows the same SDK account snapshot used by the Society client.
     AccountSession m_accountSession;
     iiSocietyHelper::Client m_societyClient;
+    // Explicit user-file hydration has its own in-process authenticated session.
+    // It never waits for a Society app's replica-session lease or cancels jobs.
+    iiSocietyHelper::Client m_fileClient;
+    iiSocietyHelper::FileDownload m_fileDownload;
     std::shared_ptr<iiSocietyGeneration::Remote> m_remoteGeneration;
     QMap<QString, QString> m_modelDownloads;
     QStringList m_requiredModelFiles;

@@ -10,6 +10,12 @@ Item {
     id: root
     objectName: "storageBrowser"
     property var container: null
+    property var download: null
+    readonly property var downloadState: download ? download.state : ({})
+    readonly property bool downloading: !!download && download.active
+    readonly property bool downloadVisible: !!container && downloadState.containerId === container.containerId
+        && String(downloadState.key || "").startsWith(section + "/")
+        && (downloading || downloadState.state === "failed" || downloadState.state === "cancelled")
     property string section: "files"
     property string directory: ""
     property string query: ""
@@ -62,8 +68,24 @@ Item {
             directory = file.relativePath
             selectedKey = ""
             grid.positionViewAtBeginning()
-        } else if (file.available === false) notice = qsTr("This file has not been downloaded to the mirrored drive yet.")
-        else if (file.key) root.fileRequested(file)
+        } else if (file.key) root.fileRequested(file)
+    }
+    function downloadStatus() {
+        if (downloadState.state === "preparing") return qsTr("Preparing download…")
+        if (downloadState.state === "connecting") return qsTr("Connecting to drive…")
+        if (downloadState.state === "verifying") return qsTr("Verifying file…")
+        if (downloadState.state === "cancelled") return qsTr("Download cancelled")
+        if (downloadState.state === "failed") {
+            const error = downloadState.error || ""
+            if (error === "host_session_unavailable") return qsTr("Sign in to access this drive, then retry here.")
+            if (error === "object_changed_select_again" || error === "drive_file_changed") return qsTr("The file changed. Refresh files and try again.")
+            if (error === "remote_container_changed") return qsTr("The selected drive changed. Select the file again.")
+            if (error.indexOf("timeout") >= 0 || error === "host_disconnected" || error === "host_transport_unavailable")
+                return qsTr("The drive is unreachable. Check the connection and retry.")
+            return qsTr("Download failed. Retry or refresh files.")
+        }
+        return downloadState.total > 0 ? qsTr("Downloading… %1%").arg(Math.floor(100 * (downloadState.completed || 0) / downloadState.total))
+            : qsTr("Downloading…")
     }
     onSectionChanged: if (initialized) resetNavigation()
     onStorageIdentityChanged: if (initialized) { mirrorRevision = -1; resetNavigation(); updateSnapshot() }
@@ -178,6 +200,47 @@ Item {
             entries: root.sectionFiles.filter(file => file.available !== false)
             onOpenRequested: function(images) { root.imagesRequested(images) }
         }
+        LV.HStack {
+            objectName: "storageBrowserDownload"
+            Layout.fillWidth: true
+            visible: root.downloadVisible
+            LV.Label {
+                objectName: "storageBrowserDownloadStatus"
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                text: (root.downloadState.name || "") + " · " + root.downloadStatus()
+                elide: Text.ElideMiddle
+                style: caption
+                Accessible.role: Accessible.StaticText
+            }
+            LV.LabelButton {
+                objectName: "storageBrowserDownloadRetry"
+                text: qsTr("Retry")
+                tone: LV.AbstractButton.Default
+                visible: !root.downloading
+                enabled: !!root.downloadState.key && root.available && root.downloadState.containerId === root.container.containerId
+                onClicked: {
+                    const file = root.sectionFiles.find(entry => entry.key === root.downloadState.key)
+                    if (file) root.fileRequested(file)
+                }
+            }
+            LV.LabelButton {
+                objectName: "storageBrowserDownloadCancel"
+                text: qsTr("Cancel")
+                tone: LV.AbstractButton.Default
+                visible: root.downloading
+                onClicked: if (root.download) root.download.cancel()
+            }
+        }
+        LV.ProgressBar {
+            objectName: "storageBrowserDownloadProgress"
+            Layout.fillWidth: true
+            size: regular
+            motionEnabled: false
+            maximumValue: Math.max(1, root.downloadState.total || 1)
+            currentValue: root.downloadState.completed || 0
+            visible: root.downloading && root.downloadState.total > 0
+        }
         LV.Label {
             objectName: "storageBrowserError"
             Layout.fillWidth: true
@@ -218,7 +281,8 @@ Item {
                     filename: modelData.name || ""
                     description: modelData.isDirectory ? qsTr("Folder")
                         : modelData.available === false ? qsTr("Not downloaded") : modelData.relativePath || ""
-                    metadata: modelData.available === false ? qsTr("Not downloaded") : modelData.metadata1 || ""
+                    metadata: root.downloading && root.downloadState.key === modelData.key ? root.downloadStatus()
+                        : modelData.available === false ? qsTr("Not downloaded") : modelData.metadata1 || ""
                     iconName: modelData.isDirectory ? "nodesfolder" : modelData.iconName || "fileTypestext"
                     previewSource: root.visible && !modelData.isDirectory ? previews.sourceForFile(modelData) : ""
                     selectable: false
@@ -262,9 +326,9 @@ Item {
             }
             LV.LabelButton {
                 objectName: "storageBrowserOpen"
-                text: qsTr("Open")
+                text: root.selectedEntry.available === false ? qsTr("Download and open") : qsTr("Open")
                 tone: LV.AbstractButton.Default
-                enabled: !!root.selectedEntry.key && root.selectedEntry.available !== false
+                enabled: !!root.selectedEntry.key && !(root.downloading && root.downloadState.key === root.selectedEntry.key)
                 onClicked: root.activate(root.selectedEntry)
             }
         }

@@ -107,7 +107,8 @@ std::filesystem::path preferencePath(const QString &path)
 
 GenerationController::GenerationController(QObject *parent) : GenerationController(defaultRuntime(), parent) {}
 GenerationController::GenerationController(GenerationRuntime runtime, QObject *parent)
-    : QObject(parent), m_runtime(std::move(runtime)), m_fileSystem(*m_storageHelper.fileSystem()), m_societyClient(&m_accountSession, nullptr)
+    : QObject(parent), m_runtime(std::move(runtime)), m_fileSystem(*m_storageHelper.fileSystem()), m_societyClient(&m_accountSession, nullptr),
+      m_fileClient(&m_accountSession, nullptr), m_fileDownload(&m_fileSystem, &m_fileClient)
 {
     std::string preferenceError;
     connect(container(), &iiSocietyContainer::Container::stateChanged, this,

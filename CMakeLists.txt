@@ -27,7 +27,7 @@ find_package(iiPaintEngine 0.4.1 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/ii
 find_package(iiPhotoLibrary CONFIG REQUIRED COMPONENTS Library HINTS "$ENV{HOME}/.local/SDK/iiPhotoLibrary")
 find_package(iiSocietyContainer 0.16.0 CONFIG REQUIRED COMPONENTS Gui HINTS "$ENV{HOME}/.local/SDK/iiSocietyContainer")
 find_package(iiSocietyGeneration 0.1.0 CONFIG REQUIRED)
-find_package(iiSocietyHelper 0.9.2 CONFIG REQUIRED HINTS
+find_package(iiSocietyHelper 0.9.3 CONFIG REQUIRED HINTS
     "${CMAKE_CURRENT_BINARY_DIR}/runtime-sdk/iiSocietyHelper"
     "$ENV{HOME}/.local/SDK/iiSocietyHelper")
 find_package(LVRS CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/LVRS")
@@ -583,7 +583,7 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_test(NAME Dreamscapes.EditorCameraPhoto COMMAND DreamscapesGuiTests editorCameraPhotoViews)
     add_test(NAME Dreamscapes.SocietyAliases COMMAND DreamscapesGuiTests societyContainerMirrorIsOwnerProvided)
     add_test(NAME Dreamscapes.StorageBrowser COMMAND DreamscapesGuiTests
-        storageBrowserRoutes storageBrowserUnavailableEntriesAndContainerChanges)
+        storageBrowserRoutes storageBrowserUnavailableEntriesAndContainerChanges storageBrowserDownloadOpensFreshAlias)
     set_tests_properties(Dreamscapes.StorageBrowser PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 180)
     set_tests_properties(Dreamscapes.SocietyAliases PROPERTIES

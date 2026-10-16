@@ -49,6 +49,8 @@ int main(int argc, char *argv[])
 #endif
         qmlRegisterUncreatableType<iiSocietyContainer::Container>("Dreamscapes.Storage", 1, 0,
             "SocietyContainer", "Provided by iiSocietyHelper");
+        qmlRegisterUncreatableType<iiSocietyHelper::FileDownload>("Dreamscapes.Storage", 1, 0,
+            "SocietyFileDownload", "Provided by iiSocietyHelper");
         qmlRegisterType<GenerationController>("Dreamscapes.Storage", 1, 0, "GenerationController");
         // Storage is a static NO_PLUGIN module; register the draft in the
         // production entry point just like the other exposed storage types.

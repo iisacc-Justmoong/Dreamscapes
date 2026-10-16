@@ -431,6 +431,8 @@ private slots:
     void storageBrowserRoutes_data();
     void storageBrowserRoutes();
     void storageBrowserUnavailableEntriesAndContainerChanges();
+    void storageBrowserDownloadOpensFreshAlias_data();
+    void storageBrowserDownloadOpensFreshAlias();
     void editorTextPanelMobile_data();
     void editorTextPanelMobile();
     void desktopEditorElementsMatchesFigma();
@@ -6930,6 +6932,57 @@ void GuiTests::storageBrowserRoutes()
     }
 }
 
+void GuiTests::storageBrowserDownloadOpensFreshAlias_data()
+{
+    QTest::addColumn<QString>("target"); QTest::addColumn<QString>("section");
+    QTest::newRow("desktop-files") << QString("macos") << QString("files");
+    QTest::newRow("desktop-history") << QString("macos") << QString("generation-history");
+    QTest::newRow("mobile-files") << QString("ios") << QString("files");
+    QTest::newRow("mobile-history") << QString("ios") << QString("generation-history");
+}
+void GuiTests::storageBrowserDownloadOpensFreshAlias()
+{
+    QFETCH(QString, target); QFETCH(QString, section);
+    QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/download-open-XXXXXX.societycontainer");
+    QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+    const auto relative = section == "files" ? QString("Files/Download % #.png") : QString("Generation History/Download % #.png");
+    const auto original = storage.filePath(relative);
+    QImage image(37, 29, QImage::Format_RGB32); image.fill(Qt::cyan); QVERIFY(image.save(original));
+    QQmlApplicationEngine engine;
+    auto *theme = engine.singletonInstance<QObject *>("LVRS", "Theme"); QVERIFY(theme);
+    QVERIFY(theme->setProperty("targetOverride", target));
+    engine.setInitialProperties({{"initialContainerPath", storage.path()}}); engine.load(sourceUrl("Main.qml"));
+    QCOMPARE(engine.rootObjects().size(), 1);
+    auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first()); QVERIFY(window);
+    window->resize(target == "ios" ? 402 : 1400, target == "ios" ? 874 : 900);
+    window->show(); QVERIFY(QTest::qWaitForWindowExposed(window));
+    auto *generation = qobject_cast<GenerationController *>(window->findChild<QObject *>("generationController")); QVERIFY(generation);
+    const auto key = section + "/Download % #.png";
+    auto stale = generation->container()->alias(key); QVERIFY(!stale.isEmpty());
+    stale["available"] = false; stale["source"] = QUrl{}; stale["path"] = "";
+    QSignalSpy ready(generation->fileDownload(), &iiSocietyHelper::FileDownload::ready);
+    // The bytes may arrive after a card snapshot. Opening must resolve a fresh
+    // native Alias, and leaving the collection must retire the open intent.
+    QVERIFY(QMetaObject::invokeMethod(window, "openHomeFile", Q_ARG(QVariant, stale)));
+    QCOMPARE(window->property("storageBrowserSection").toString(), section);
+    QVERIFY(generation->fileDownload()->active());
+    QVERIFY(window->setProperty("storageBrowserSection", QString{}));
+    QTest::qWait(100); QCOMPARE(ready.size(), 0); QVERIFY(!window->property("editorVisible").toBool());
+    QVERIFY(!generation->fileDownload()->active());
+    QVERIFY(QMetaObject::invokeMethod(window, "openHomeFile", Q_ARG(QVariant, stale)));
+    QTRY_VERIFY(window->property("editorVisible").toBool()); QCOMPARE(ready.size(), 1);
+    const auto file = ready.first().first().toMap(); QCOMPARE(file.value("source").toUrl(), QUrl::fromLocalFile(original));
+    auto *canvas = qobject_cast<EditorCanvas *>(item(window, "editorBlankCanvas")); QVERIFY(canvas);
+    QCOMPARE(canvas->canvasWidth(), 37); QCOMPARE(canvas->canvasHeight(), 29);
+    QCOMPARE(QImage(original).size(), QSize(37, 29));
+    QVERIFY(window->property("pendingFileKey").toString().isEmpty());
+    QVERIFY(generation->jobs().isEmpty());
+    QVERIFY(QMetaObject::invokeMethod(window, "closeCanvas"));
+    QTRY_VERIFY(window->property("storageBrowserVisible").toBool());
+    QCOMPARE(window->property("storageBrowserSection").toString(), section);
+    window->hide();
+}
+
 void GuiTests::storageBrowserUnavailableEntriesAndContainerChanges()
 {
     iiSocietyContainer::Container mirror;
@@ -6966,10 +7019,32 @@ void GuiTests::storageBrowserUnavailableEntriesAndContainerChanges()
     QTRY_COMPARE(missingCard->property("metadata").toString(), "Not downloaded");
     QSignalSpy requested(browser.get(), SIGNAL(fileRequested(QVariant)));
     QVERIFY(QMetaObject::invokeMethod(browser.get(), "activate", Q_ARG(QVariant, remote)));
-    QCOMPARE(requested.size(), 0);
-    QVERIFY(browser->property("notice").toString().contains("not been downloaded"));
+    QCOMPARE(requested.size(), 1);
+    const auto requestedValue = requested.first().first();
+    const auto requestedFile = requestedValue.metaType() == QMetaType::fromType<QJSValue>()
+        ? requestedValue.value<QJSValue>().toVariant().toMap() : requestedValue.toMap();
+    QCOMPARE(requestedFile.value("key"), remote.value("key"));
+    QVERIFY(browser->property("notice").toString().isEmpty());
     QVERIFY(browser->setProperty("selectedKey", remote["key"]));
+    QVERIFY(item(browser.get(), "storageBrowserOpen")->isEnabled());
+    QCOMPARE(item(browser.get(), "storageBrowserOpen")->property("text").toString(), "Download and open");
+    QQmlComponent transferComponent(&engine);
+    transferComponent.setData(R"(import QtQml
+        QtObject {
+            property var state: ({state: "downloading", key: "files/constructor/missing.png", containerId: "first", name: "missing.png", completed: 50, total: 100})
+            property bool active: true
+            function cancel() { active = false; state = Object.assign({}, state, {state: "cancelled"}) }
+        })", QUrl{});
+    QScopedPointer<QObject> transfer(transferComponent.create()); QVERIFY2(transfer, qPrintable(transferComponent.errorString()));
+    QVERIFY(browser->setProperty("download", QVariant::fromValue(transfer.get())));
+    QTRY_VERIFY(item(browser.get(), "storageBrowserDownload")->isVisible());
+    QVERIFY(item(browser.get(), "storageBrowserDownloadStatus")->property("text").toString().contains("50%"));
+    QCOMPARE(item(browser.get(), "storageBrowserDownloadProgress")->property("currentValue").toInt(), 50);
     QVERIFY(!item(browser.get(), "storageBrowserOpen")->isEnabled());
+    click(&window, item(browser.get(), "storageBrowserDownloadCancel"));
+    QTRY_VERIFY(!transfer->property("active").toBool());
+    QVERIFY(item(browser.get(), "storageBrowserDownloadRetry")->isVisible());
+    click(&window, item(browser.get(), "storageBrowserDownloadRetry")); QCOMPARE(requested.size(), 2);
     QVERIFY(item(browser.get(), "storageBrowserSearch")->setProperty("text", "missing"));
     QTRY_COMPARE(browser->property("query").toString(), "missing");
     mirror.synchronize("second", "/mirror-two", {}, true);
@@ -10722,6 +10797,8 @@ int main(int argc, char **argv)
     qputenv("SOCIETY_DISABLE_SESSION_RESTORE", "1");
     qmlRegisterUncreatableType<iiSocietyContainer::Container>("Dreamscapes.Storage", 1, 0,
         "SocietyContainer", "Provided by iiSocietyHelper");
+    qmlRegisterUncreatableType<iiSocietyHelper::FileDownload>("Dreamscapes.Storage", 1, 0,
+        "SocietyFileDownload", "Provided by iiSocietyHelper");
     qmlRegisterType<GuiGenerationController>("Dreamscapes.Storage", 1, 0, "GenerationController");
     qputenv("DREAMSCAPES_TEST_PRESET_FILE", settings.filePath("advanced-presets.json").toUtf8());
     qmlRegisterType<GuiAdvancedImageParameters>("Dreamscapes.Storage", 1, 0, "AdvancedImageParameters");
