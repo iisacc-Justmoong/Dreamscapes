@@ -58,7 +58,7 @@ class GenerationController : public QObject
     Q_PROPERTY(QString containerPath READ containerPath NOTIFY storageChanged)
     Q_PROPERTY(QUrl filesDirectory READ filesDirectory NOTIFY storageChanged)
     Q_PROPERTY(iiSocietyContainer::Container *container READ container CONSTANT)
-    Q_PROPERTY(iiSocietyHelper::FileDownload *fileDownload READ fileDownload CONSTANT)
+    Q_PROPERTY(QObject *fileDownload READ fileDownload CONSTANT)
     Q_PROPERTY(QVariantList models READ models NOTIFY modelsChanged)
     Q_PROPERTY(QVariantList videoModels READ videoModels NOTIFY modelsChanged)
     Q_PROPERTY(QString selectedVideoModel READ selectedVideoModel WRITE setSelectedVideoModel NOTIFY modelsChanged)
