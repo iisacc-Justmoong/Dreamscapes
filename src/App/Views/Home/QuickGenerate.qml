@@ -11,6 +11,17 @@ Item {
     property string errorText: ""
     property alias prompt: promptField.text
     property string mediaType: "Image"
+    property var defaultPrompts: ({})
+    property string appliedDefaultPrompt: ""
+    property bool promptDefaultsReady: false
+    function applyDefaultPrompt() {
+        if (prompt !== appliedDefaultPrompt) return
+        appliedDefaultPrompt = (defaultPrompts[mediaType] || {}).prompt || ""
+        prompt = appliedDefaultPrompt
+    }
+    onDefaultPromptsChanged: if (promptDefaultsReady) applyDefaultPrompt()
+    onMediaTypeChanged: if (promptDefaultsReady) applyDefaultPrompt()
+    Component.onCompleted: { promptDefaultsReady = true; applyDefaultPrompt() }
     property string aspectRatio: "1:1"
     property int generationCount: 1
     property int videoDuration: 5
@@ -19,6 +30,7 @@ Item {
     property string selectedVideoModel: ""
     signal videoModelSelected(string modelId)
     property bool submitting: false
+    property bool generationPending: false
     readonly property var generationCounts: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
         15, 20, 25, 30, 40, 50, 100, 200, 500, 1000]
     property bool canvasEnabled: false
@@ -58,7 +70,7 @@ Item {
     }
 
     function submit() {
-        if (submitting) return
+        if (submitting || generationPending) return
         const trimmedPrompt = prompt.trim()
         if (trimmedPrompt.length === 0) {
             promptField.inputItem.forceActiveFocus()
@@ -191,6 +203,7 @@ Item {
                 iconSize: 18
                 Accessible.name: qsTr("Generate")
                 tone: LV.AbstractButton.Primary
+                enabled: !root.submitting && !root.generationPending
                 onClicked: root.submit()
             }
         }
@@ -254,16 +267,16 @@ Item {
         id: fpsMenu
         objectName: "videoFpsMenu"
         showIconSlot: false
-        items: [qsTr("12 FPS"),qsTr("24 FPS"),qsTr("30 FPS")]
-        selectedIndex: [12,24,30].indexOf(root.videoFps)
-        onItemTriggered: function(index) { root.videoFps = [12,24,30][index] }
+        items: [qsTr("12 FPS"),qsTr("24 FPS"),qsTr("30 FPS"),qsTr("60 FPS"),qsTr("120 FPS")]
+        selectedIndex: [12,24,30,60,120].indexOf(root.videoFps)
+        onItemTriggered: function(index) { root.videoFps = [12,24,30,60,120][index] }
     }
 
     FileDialog {
         id: attachmentDialog
         title: qsTr("Attach reference images")
         fileMode: FileDialog.OpenFiles
-        nameFilters: [qsTr("Images (*.png *.jpg *.jpeg *.webp *.bmp *.tif *.tiff *.heic)")]
+        nameFilters: [qsTr("Images and canvases (*.iisc *.png *.jpg *.jpeg *.webp *.bmp *.tif *.tiff *.heic)")]
         onAccepted: { for (const source of selectedFiles) root.addAttachment(source) }
     }
 

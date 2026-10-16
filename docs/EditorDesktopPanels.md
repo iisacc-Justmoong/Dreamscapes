@@ -1,5 +1,7 @@
 # Editor의 전체 데스크톱 도구 패널
 
+2026-10-16: Audio, Canvas, Generative, Select, Retouch, Fill and Brush now follow the state-specific compact atlas at Figma `772:80714`. The icon navigation, parameter icons, ordered rows, action surfaces and independent validation fixture are described in [EditorCompactPanels.md](EditorCompactPanels.md). These seven tools no longer use the historical unified forms described below. Layers also uses the compact atlas navigation icons, Reset and current-view heading. Camera/Photo, File and Background retain their dedicated presenters.
+
 2026-10-07: The runtime Layer tool now uses the four document-backed views described in [EditorLayers.md](EditorLayers.md). The historical generic Layers fixture remains available for design catalog checks without a canvas engine.
 
 2026-10-07: Headings and parameter rows now use the passive [PanelRow](PanelRows.md) layout. Labels have no row hover, pressed or keyboard focus state. Preview requests use the trailing disclosure control; the enclosing preview surface remains flat. The same row contract is used by image and video generation panels.
@@ -21,7 +23,7 @@
 
 ## 연결 범위
 
-19개 도구의 428개 필드·동작과 49개 상위 선택 옵션, 267개 필드 옵션을 연결한다. 컨트롤의 기본·선택·호버·누름·키보드 포커스 표면은 LVRS 컴포넌트가 담당한다. 도구별 초안은 `EditorToolSheet.settingsByTool`에서 공유하며, 도구 전환·패널 접기·창 크기 변경 후에도 유지된다. Reset은 현재 도구만 초기화한다. 색상 입력 및 픽커의 수락·취소는 기존 계약을 따른다.
+현재 앱은 Asset을 제외한 18개 도구를 연결한다. 컨트롤의 기본·선택·호버·누름·키보드 포커스 표면은 LVRS 컴포넌트가 담당한다. 도구별 초안은 `EditorToolSheet.settingsByTool`에서 공유하며, 도구 전환·패널 접기·창 크기 변경 후에도 유지된다. Reset은 현재 도구만 초기화한다. 색상 입력 및 픽커의 수락·취소는 기존 계약을 따른다.
 
 동작 버튼과 미리보기 조작 버튼은 `CanvasEditor.toolActionRequested(toolId, fieldId, values)`를 방출한다. 네이티브 문서 열기·저장·이미지 배치, 레이어 속성, 기본 도형과 브러시 연결은 [EditorNativeCanvas.md](EditorNativeCanvas.md)에 정의되어 있다. 나머지 필터·카메라·모델 등의 동작은 미구현 안내를 표시한다. 패널 초안은 편집기 수명 동안 메모리에 보관한다.
 
@@ -33,7 +35,7 @@ Navigation의 화살표는 설치된 LVRS 자산과 Figma 제공 파일이 일�
 
 ## 검증
 
-`fixtures/FigmaPanels.json`은 Figma에서 확인한 19개 패널의 좌표·크기·옵션·입력 예시를 담는 독립적인 검증 기준이다. `desktopEditorToolPanelsMatchFigma`는 패널별 모든 필드 위치와 초기값, 선택·동작 버튼 슬롯, 미리보기 화살표의 로컬 자산과 실제 렌더링 크기, 316개 선택 상태의 클릭, 도구별 초안 복원·Reset·스크롤·Escape를 검사한다. 기존 Elements·수치 계약·모바일 19개 시트 검사도 함께 실행한다.
+`fixtures/FigmaPanels.json`은 Figma에서 확인한 기존 19개 패널의 좌표·크기·옵션·입력 예시를 담는 독립적인 검증 기준이다. Asset 기록은 원본 비교를 위해 보존하며 실제 앱 패널 검사에서는 제외한다. 전용 뷰 카탈로그로 교체된 도구는 각각의 렌더링·상호작용 검사로 검증한다. `desktopEditorToolPanelsMatchFigma`는 나머지 패널의 모든 필드 위치와 초기값, 선택·동작 버튼 슬롯, 미리보기 화살표의 로컬 자산과 실제 렌더링 크기, 옵션 클릭, 도구별 초안 복원·Reset·스크롤·Escape를 검사한다. Elements·수치 계약·모바일 18개 시트 검사도 함께 실행한다.
 
 ```sh
 cmake --build build --target DreamscapesGuiTests --parallel 4

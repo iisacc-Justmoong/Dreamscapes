@@ -1,11 +1,12 @@
+#include <iiFileProviderDevice.h>
 #include "HomeCanvas.h"
 #include "App/Generation/ImageParameterCodec.h"
+#include "App/Generation/ImageCanvas.h"
 #include <Generation/ImageParameters.hpp>
-#include <QDir>
 #include <QFileInfo>
 #include <QImageReader>
 #include <QPainter>
-#include <QSaveFile>
+#include <iiSocietyHelper.h>
 #include <QStandardPaths>
 #include <QUuid>
 #include <QWheelEvent>
@@ -35,7 +36,7 @@ RasterLayer rasterPixels(const QImage &image) {
 QString snapshotTemplate() {
     auto base=qEnvironmentVariable("DREAMSCAPES_TEMP_DIRECTORY");
     if(base.isEmpty()) base=QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
-    QDir().mkpath(base);
+    iiFileProvider::Directory().mkpath(base);
     return base+"/home-canvas-inputs-XXXXXX";
 }
 }
@@ -61,19 +62,28 @@ bool HomeCanvas::hasContent() const {
     return pixels&&std::any_of(pixels->pixels.begin(),pixels->pixels.end(),[](auto p){return p>>24;});
 }
 bool HomeCanvas::addAttachment(const QUrl &source) {
-    if(!source.isLocalFile()) return fail(tr("Choose a local image file."));
-    const QFileInfo info(source.toLocalFile());
-    QImageReader reader(info.canonicalFilePath()); reader.setAutoTransform(true);
-    const auto size=reader.size();
-    if(!info.isFile()||info.size()>256LL*1024*1024||!reader.canRead()||size.isEmpty()
-       ||qint64(size.width())*size.height()>64LL*1024*1024)
+    if (!source.isLocalFile()) return fail(tr("Choose a local image file."));
+    iiSocietyHelper::FileSystem files;
+    if (!files.openForSource(source.toLocalFile())) return fail(files.errorString());
+    const auto original = files.aliasForPath(source.toLocalFile());
+    if (!original.value("available").toBool()) return fail(tr("Choose a readable local image."));
+    const auto canonical = original.value("source").toUrl();
+    for (const auto &entry : m_attachments)
+        if (entry.toMap().value("source").toUrl() == canonical) return fail({});
+    if (m_attachments.size() >= 19) return fail(tr("Attach up to 19 images alongside the canvas."));
+    auto alias = files.importCanvas(source.toLocalFile());
+    if (alias.isEmpty()) return fail(files.errorString());
+    const auto preview = files.preview(alias.value("path").toString());
+    if (preview.isEmpty()) return fail(files.errorString());
+    alias["previewSource"] = preview; alias["thumbnailSource"] = preview;
+    QImageReader reader(preview.toLocalFile()); reader.setAutoTransform(true);
+    const auto size = reader.size();
+    if (original.value("size").toLongLong() > 256LL * 1024 * 1024 || !reader.canRead() || size.isEmpty()
+        || qint64(size.width()) * size.height() > 64LL * 1024 * 1024)
         return fail(tr("Choose a readable image of at most 64 megapixels."));
-    const auto canonical=QUrl::fromLocalFile(info.canonicalFilePath());
-    for(const auto &entry:m_attachments)
-        if(entry.toMap().value("source").toUrl()==canonical) return fail({});
-    if(m_attachments.size()>=19) return fail(tr("Attach up to 19 images alongside the canvas."));
-    m_attachments.append(QVariantMap{{"source",canonical},{"filename",info.fileName()},
-        {"width",size.width()},{"height",size.height()},{"sizeBytes",info.size()}});
+    m_attachments.append(QVariantMap{{"source", canonical}, {"filename", original.value("name")},
+        {"alias", alias}, {"documentSource", alias.value("source")}, {"previewSource", preview},
+        {"width", size.width()}, {"height", size.height()}, {"sizeBytes", original.value("size")}});
     emit attachmentsChanged(); return fail({});
 }
 bool HomeCanvas::removeAttachment(int index) {
@@ -103,14 +113,14 @@ bool HomeCanvas::pasteAttachment(const QUrl &source,qreal itemX,qreal itemY) {
     if(!std::isfinite(itemX)||!std::isfinite(itemY)||liveStrokeActive())
         return fail(tr("Finish the current stroke before placing an image."));
     const QFileInfo info(source.toLocalFile());
-    const auto canonical=QUrl::fromLocalFile(info.canonicalFilePath());
-    const bool attached=source.isLocalFile()&&std::any_of(m_attachments.begin(),m_attachments.end(),
+    const auto canonical=QUrl::fromLocalFile(info.exists() ? info.canonicalFilePath() : info.absoluteFilePath());
+    const auto attached=std::find_if(m_attachments.begin(),m_attachments.end(),
         [&](const auto &v){return v.toMap().value("source").toUrl()==canonical;});
-    if(!attached) return fail(tr("Attach the image before placing it on the canvas."));
+    if(!source.isLocalFile() || attached==m_attachments.end()) return fail(tr("Attach the image before placing it on the canvas."));
     const auto point=QPointF((itemX-panX())/zoom(),(itemY-panY())/zoom());
     if(point.x()<0||point.y()<0||point.x()>=canvasWidth()||point.y()>=canvasHeight())
         return fail(tr("Drop the image inside the canvas."));
-    QImageReader reader(info.canonicalFilePath()); reader.setAutoTransform(true);
+    QImageReader reader(attached->toMap().value("previewSource").toUrl().toLocalFile()); reader.setAutoTransform(true);
     const auto size=reader.size();
     if(size.isEmpty()||qint64(size.width())*size.height()>64LL*1024*1024)
         return fail(tr("The attached image is no longer readable."));
@@ -138,13 +148,13 @@ QVariantMap HomeCanvas::generationParameters(const QString &prompt,const QString
         QImage rendered(canvasWidth(), canvasHeight(), QImage::Format_RGB32);
         rendered.fill(QColor("#f3f1e8"));
         { QPainter painter(&rendered); painter.drawImage(0, 0, rasterImage(*selectedRasterPixels())); }
-        QSaveFile output(path);
+        iiFileProvider::SaveFile output(path);
         if(!output.open(QIODevice::WriteOnly)||!rendered.save(&output,"PNG")||!output.commit()) {
             fail(tr("Cannot export the canvas for generation."));return {};
         }
         references.append(QUrl::fromLocalFile(path).toString());
     }
-    for(const auto &entry:m_attachments)references.append(entry.toMap().value("source").toUrl().toString());
+    for(const auto &entry:m_attachments)references.append(entry.toMap().value("previewSource").toUrl().toString());
     auto args=dreamscapes::imageParametersToMap(iiLocalDiffusion::ImageParameters::defaults());
     args["prompt"]=prompt; args["model"]=model; args["width"]=canvasWidth(); args["height"]=canvasHeight();
     args["outputCount"]=count; args["referenceImages"]=references;

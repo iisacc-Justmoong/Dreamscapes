@@ -7,11 +7,8 @@ LV.List {
     id: root
     objectName: "desktopSidebar"
     property bool compact: false
-    property bool editorLayout: false
     property string selectedAction: "home"
     readonly property real contentPadding: LV.Theme.gap8
-    readonly property real horizontalInset: editorLayout && !compact ? LV.Theme.gap16 : contentPadding
-    readonly property real verticalInset: editorLayout ? 0 : contentPadding
     signal actionRequested(string action)
     items: [({})]
     footerVisible: false
@@ -36,11 +33,11 @@ LV.List {
     itemDelegate: LV.VStack {
         required property var modelData
         spacing: 0
-        LV.Spacer { minLength: root.verticalInset }
+        LV.Spacer { minLength: root.contentPadding }
         LV.VStack {
             Layout.fillWidth: true
-            Layout.leftMargin: root.horizontalInset
-            Layout.rightMargin: root.horizontalInset
+            Layout.leftMargin: root.contentPadding
+            Layout.rightMargin: root.contentPadding
             spacing: 0
             Repeater {
                 model: [
@@ -79,10 +76,10 @@ LV.List {
                         iconName: entry.modelData.icon || ""
                         iconSource: entry.modelData.asset && entry.modelData.key !== "home"
                             ? Qt.resolvedUrl("Assets/Desktop/" + entry.modelData.asset + ".svg") : ""
-                        showIconSlot: entry.modelData.key !== "home" && !(root.editorLayout && entry.modelData.key === "files")
+                        showIconSlot: entry.modelData.key !== "home"
                         keyVisible: false
                         showChevron: false
-                        leftPadding: entry.modelData.key === "home" || (root.editorLayout && entry.modelData.key === "files")
+                        leftPadding: entry.modelData.key === "home"
                             ? LV.Theme.scaleMetric(30) : LV.Theme.gap4
                         // Figma places this 16px image at the top-left of its 18px slot.
                         LV.IconButton {
@@ -93,23 +90,6 @@ LV.List {
                             height: width
                             iconSize: LV.Theme.scaleMetric(16)
                             iconSource: Qt.resolvedUrl("Assets/Desktop/home.svg")
-                            horizontalPadding: 0
-                            verticalPadding: 0
-                            enabled: false
-                            backgroundColorDisabled: "transparent"
-                            Accessible.ignored: true
-                        }
-                        LV.IconButton {
-                            objectName: "desktopFilesIcon"
-                            visible: root.editorLayout && entry.modelData.key === "files"
-                            x: LV.Theme.gap4
-                            y: LV.Theme.scaleRealMetric(4.1875 - (18 - 15.6659) / 2)
-                            width: LV.Theme.scaleMetric(18)
-                            height: width
-                            iconSize: LV.Theme.scaleMetric(18)
-                            iconSource: Qt.resolvedUrl("Assets/Desktop/files.svg")
-                            // Fit the original vector height inside LVRS's square icon slot.
-                            scale: 15.6659 / 18
                             horizontalPadding: 0
                             verticalPadding: 0
                             enabled: false
@@ -134,6 +114,6 @@ LV.List {
                 }
             }
         }
-        LV.Spacer { minLength: root.verticalInset }
+        LV.Spacer { minLength: root.contentPadding }
     }
 }

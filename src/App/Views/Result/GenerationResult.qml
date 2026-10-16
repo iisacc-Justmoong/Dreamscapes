@@ -29,7 +29,6 @@ Item {
     property url previewSource: ""
     property string previewPrompt: ""
     property bool generationPending: false
-    property bool generationCancellable: false
     readonly property bool showingPreview: !galleryVisible && !detailVisible && previewSource.toString().length > 0
     readonly property url imageSource: showingPreview ? previewSource : selectedResult.imageSource || ""
     readonly property bool selectedIsVideo: !showingPreview && selectedResult.mediaType === "Video"
@@ -45,7 +44,6 @@ Item {
     }
     signal backRequested()
     signal cancelRequested()
-    signal newProjectRequested(url imageSource, var generationResult)
     signal imagesRequested(var images)
 
     // QuickGenerate derives its height from the shared 22 px controls.
@@ -200,15 +198,6 @@ Item {
         height: implicitHeight
         spacing: 0
 
-        LV.IconButton {
-            objectName: "resultBackButton"
-            iconSource: Qt.resolvedUrl("Assets/right.svg")
-            contentItem.rotation: 180
-            tone: LV.AbstractButton.Borderless
-            Accessible.name: root.detailVisible && galleryModel.count > 1 ? qsTr("Back to gallery") : qsTr("Back to generation")
-            onClicked: root.goBack()
-        }
-
         LV.Label {
             objectName: "galleryImageCount"
             visible: galleryModel.count > 1
@@ -223,8 +212,6 @@ Item {
             objectName: "cancelGenerationButton"
             text: qsTr("Cancel")
             tone: LV.AbstractButton.Default
-            visible: root.generationPending
-            enabled: root.generationCancellable
             onClicked: root.cancelRequested()
         }
 
@@ -235,19 +222,12 @@ Item {
             enabled: root.canSaveImage
             onClicked: root.saveImageToFile()
         }
-        LV.LabelButton {
-            objectName: "newProjectButton"
-            visible: !root.selectedIsVideo && !imageSelection.selectionMode
-            text: qsTr("New Canvas")
-            tone: LV.AbstractButton.Primary
-            enabled: root.imageReady && !root.selectedIsVideo && !root.generationPending && !root.showingPreview
-            Accessible.name: qsTr("New canvas from generated image")
-            onClicked: root.newProjectRequested(root.imageSource, root.selectedResult)
-        }
         ImageSelectionBar {
             id: imageSelection
             objectName: "resultImageSelection"
             entries: root.galleryResults
+            visible: !root.selectedIsVideo
+            enabled: images.length > 0
             onSelectionModeChanged: if (selectionMode) {
                 root.detailVisible = false
                 imageMenu.close()

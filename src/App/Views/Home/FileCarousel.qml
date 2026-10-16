@@ -3,9 +3,11 @@ import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import LVRS 1.0 as LV
+import Dreamscapes.Storage 1.0
 
 LV.VStack {
     id: root
+    CanvasPreview { id: canvasPreviews }
     property string title: ""
     property var files: []
     property int maximumItems: 20
@@ -108,7 +110,7 @@ LV.VStack {
             filename: modelData.name || ""
             description: modelData.description || ""
             metadata: modelData.dateText || ""
-            previewSource: root.visible && width > 0 ? modelData.previewSource || "" : ""
+            previewSource: root.visible && width > 0 ? canvasPreviews.sourceForFile(modelData) : ""
             selectable: false
             selected: selectionBar.isSelected(modelData)
             showMenu: false
@@ -140,7 +142,7 @@ LV.VStack {
                 height: LV.Theme.scaleMetric(160)
                 filename: modelData.name || ""
                 metadata: modelData.dateText || ""
-                previewSource: root.visible && width > 0 ? modelData.previewSource || "" : ""
+                previewSource: root.visible && width > 0 ? canvasPreviews.sourceForFile(modelData) : ""
                 selectable: false
                 selected: selectionBar.isSelected(modelData)
                 showMenu: false

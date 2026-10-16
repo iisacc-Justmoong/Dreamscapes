@@ -1,12 +1,31 @@
 #include "EditorCanvas.h"
 #include "EditorToolUtils.h"
 #include <QMouseEvent>
+#include <QCursor>
 #include <QPainter>
 #include <QTabletEvent>
+#include <QTouchEvent>
+#include <QKeyEvent>
 #include <QTransform>
 using namespace iiSharedCanvas;
 using namespace editorTools;
 void EditorCanvas::configureTool(const QString &tool, const QVariantMap &values) {
+    if (m_tool == tool && m_toolValues == values && m_settings.value(tool) == values
+        && ((tool != "brush" && tool != "eraser") || liveStrokeActive())) return;
+    if(tool=="background" && m_tool==tool && m_toolValues==values && m_settings.value(tool)==values) return;
+    if(m_tool=="background" && (tool!=m_tool || m_toolValues!=values)) cancelBackgroundMaskGesture();
+    // Deferred presentation updates may repeat an already accepted Elements
+    // draft while the pointer is creating a shape. Preserve that gesture.
+    if (tool == "elements" && m_tool == tool && m_toolValues == values && m_settings.value(tool) == values) return;
+    if (tool == "elements" && m_tool == tool && !m_elementTransformHandle.isEmpty()) {
+        const auto selected = selectedElementSettings();
+        bool matchesSelection = !selected.isEmpty();
+        for (auto it = selected.cbegin(); it != selected.cend(); ++it)
+            matchesSelection &= values.value(it.key()) == it.value();
+        if (matchesSelection) return;
+    }
+    cancelElementTransform();
+    cancelInteractionGesture();
     if (liveStrokeActive()) { cancelStroke(); m_historySuspended = false; m_strokePixels = {}; }
     if (m_tool != tool) { if (m_gestureActive) { m_gestureActive = false; m_historySuspended = false; recordHistory(); } invalidateToolPreview(); }
     m_creatingElement = false; m_tool = tool; m_toolValues = values; m_settings[tool] = values;
@@ -36,6 +55,7 @@ void EditorCanvas::configureTool(const QString &tool, const QVariantMap &values)
         setBrushSize(number(values, 0, 8)); setBrushHardness(number(values, 1, 100) / 100); setBrushOpacity(number(values, 2, 100) / 100); setBrushFlow(1); setStabilizerStrength(0);
     }
     emit toolStateChanged();
+    notifyInteractionFeedback();
 }
 bool EditorCanvas::ensurePaintLayer() {
     if (m_pixelLocks.contains(selectedLayerId())) return fail(tr("Unlock the selected layer's pixels before painting."));
@@ -47,11 +67,12 @@ bool EditorCanvas::beginStrokeAt(const QPointF &position, qreal pressure) {
     if (!ensurePaintLayer()) return false;
     if (m_tool == "brush") setBrushSize(number(m_toolValues, 4, 8) / (toggle(m_toolValues, 6) ? zoom() : 1));
     m_historySuspended = true;
+    m_strokeAuthorship = document()->authorship;
     m_strokePixels = selectedRasterPixels() ? *selectedRasterPixels() : RasterLayer{};
     m_brushOrigin = m_brushFiltered = m_brushPreviousInput = position;
     m_brushClock.start(); m_brushLastInput = 0;
     if (m_restoreLayer != selectedLayerId() && toggle(m_settings.value("eraser"), 3)) { m_restorePixels = m_strokePixels; m_restoreLayer = selectedLayerId(); }
-    const bool begun = CanvasItem::beginStrokeAt(position, pressure);
+    const bool begun = CanvasItem::beginStrokeAt(position + (activeArtboard() ? editingOrigin() : QPointF{}), pressure);
     if (!begun) m_historySuspended = false;
     return begun;
 }
@@ -89,10 +110,10 @@ QPointF EditorCanvas::brushInputPosition(const QPointF &input, bool finish) {
 }
 bool EditorCanvas::continueStrokeAt(const QPointF &position, qreal pressure) {
     if (!liveStrokeActive()) return false;
-    return CanvasItem::continueStrokeAt(brushInputPosition(position, false), pressure);
+    return CanvasItem::continueStrokeAt(brushInputPosition(position, false) + (activeArtboard() ? editingOrigin() : QPointF{}), pressure);
 }
 bool EditorCanvas::endStrokeAt(const QPointF &position, qreal pressure) {
-    if (!CanvasItem::endStrokeAt(brushInputPosition(position, true), pressure)) { m_historySuspended = false; return false; }
+    if (!CanvasItem::endStrokeAt(brushInputPosition(position, true) + (activeArtboard() ? editingOrigin() : QPointF{}), pressure)) { m_historySuspended = false; return false; }
     if (selectedRasterPixels() && m_strokePixels.pixels.size() == selectedRasterPixels()->pixels.size() && (!m_selection.alpha.empty() || alphaProtected(selectedLayerId()))) {
         auto result = blendRaster(m_strokePixels, *selectedRasterPixels(), layerMask());
         if (result.ok()) {
@@ -103,14 +124,16 @@ bool EditorCanvas::endStrokeAt(const QPointF &position, qreal pressure) {
     if (m_tool == "eraser" && toggle(m_toolValues, 13) && m_restoreLayer == selectedLayerId() && !m_restorePixels.pixels.empty()) {
         QImage overlay(m_restorePixels.width, m_restorePixels.height, QImage::Format_ARGB32); overlay.fill(Qt::transparent); const auto *current = selectedRasterPixels();
         if (current && current->pixels.size() == m_restorePixels.pixels.size()) for (int y = 0; y < overlay.height(); ++y) for (int x = 0; x < overlay.width(); ++x) { const auto i = y * overlay.width() + x; if (qAlpha(m_restorePixels.pixels[i]) > qAlpha(current->pixels[i])) overlay.setPixel(x, y, 0x778b7cff); }
-        QImage mapped(canvasWidth(), canvasHeight(), QImage::Format_ARGB32); mapped.fill(Qt::transparent);
+        QImage mapped(editingWidth(), editingHeight(), QImage::Format_ARGB32); mapped.fill(Qt::transparent);
         if (const auto *layer = findLayer(*document(), selectedLayerId().toStdString())) {
             const auto &t = layerProperties(*layer).transform; QPainter p(&mapped);
             p.setTransform(QTransform(t.m11, t.m12, t.m21, t.m22, t.translationX, t.translationY)); p.drawImage(0, 0, overlay);
         }
         m_eraserOverlay = dataImage(mapped); emit toolStateChanged();
     }
-    m_strokePixels = {}; m_historySuspended = false; recordHistory(); invalidateToolPreview(); return true;
+    m_strokePixels = {}; m_strokeAuthorship.reset(); m_historySuspended = false;
+    if (!synchronizeDocument(*document())) return false;
+    recordHistory(); invalidateToolPreview(); return true;
 }
 bool EditorCanvas::resetTool(const QString &tool, const QVariantMap &defaults) {
     if ((tool == "color" || tool == "effects" || tool == "auto-enhance") && m_previewTool == tool && m_previewLayer == selectedLayerId() && m_previewRevision == revision()) {
@@ -126,7 +149,7 @@ bool EditorCanvas::resetTool(const QString &tool, const QVariantMap &defaults) {
         });
         emit toolStateChanged(); emit documentInfoChanged(); return restored;
     }
-    if (tool == "background") return updateBackground();
+    if (tool == "background" && !backgroundMaskActive()) return updateBackground();
     if (tool == "audio-track" && !m_audioSource.samples.empty()) return updateAudio(defaults);
     if (tool == "elements" && m_elementBounds.contains(selectedLayerId())) return updateElement();
     if (tool == "text" && m_textOrigins.contains(selectedLayerId())) return updateText();
@@ -134,6 +157,14 @@ bool EditorCanvas::resetTool(const QString &tool, const QVariantMap &defaults) {
 }
 bool EditorCanvas::applyToolField(const QString &tool, const QString &field, const QVariant &value) {
     auto values = m_settings.value(tool);
+    if (field == "graphicParameters" || field == "graphicDrafts" || field == "graphicOperation"
+        || ((tool == "camera-photo" || tool == "background") && !field.startsWith("field-"))) {
+        values[field] = value;
+        m_settings[tool] = values;
+        if (m_tool == tool) m_toolValues = values;
+        emit toolStateChanged();
+        return true;
+    }
     const auto capability = toolControlState(tool, field, values);
     if (!capability.value("enabled").toBool()) return fail(capability.value("reason").toString());
     if (tool == "canvas" && (field == "field-1" || field == "field-17" || field == "field-18")) {
@@ -149,6 +180,17 @@ bool EditorCanvas::applyToolField(const QString &tool, const QString &field, con
     m_lastEditedField = field;
     if (!documentReady()) return fail(tr("Open a canvas first."));
     clearError();
+    if (tool == "elements" && !m_elementBounds.contains(selectedLayerId()) && m_selectedElements.contains(selectedLayerId())) {
+        if (field == "field-0") {
+            const bool accepted = resizeSelectedElement(value);
+            restoreSelectedElementSettings(); emit elementSelectionChanged(); return accepted;
+        }
+        if (field == "field-14") return setLayerOpacity(selectedLayerId(), value.toDouble() / 100);
+        if (field == "field-15") return setLayerBlend(selectedLayerId(), value.toString());
+        if (field == "selector" || field == "field-3") return true;
+        restoreSelectedElementSettings(); emit elementSelectionChanged();
+        return fail(tr("This imported vector has no editable shape-generation parameters."));
+    }
     if (tool == "elements" && m_elementBounds.contains(selectedLayerId())) {
         if (field == "field-14") return setLayerOpacity(selectedLayerId(), value.toDouble() / 100);
         if (field == "field-15") return setLayerBlend(selectedLayerId(), value.toString());
@@ -157,6 +199,11 @@ bool EditorCanvas::applyToolField(const QString &tool, const QString &field, con
     if (tool == "text" && m_textOrigins.contains(selectedLayerId())) return updateText();
     if (tool == "color" && field == "field-18") { emit toolStateChanged(); return true; }
     if (tool == "color" || tool == "effects") return applyPixelTool(tool, field, value);
+    if(tool=="background" && (field.startsWith("mask") || field=="backgroundView")) {
+        if(field=="maskTarget" && value.toString()!="Selected canvas layer") return selectLayer(value.toString());
+        if(field=="maskOverlayColor" && !QColor(value.toString()).isValid()) return fail(tr("Choose a valid overlay color."));
+        emit toolStateChanged(); return true;
+    }
     if (tool == "background" && (field == "field-0" || field == "field-1" || field == "field-2")) return updateBackground();
     if (tool == "audio-track" && !m_audioSource.samples.empty() && field != "field-0" && field != "field-4") return updateAudio(values);
     if (tool == "layers" && !selectedLayerId().isEmpty()) {
@@ -170,19 +217,65 @@ bool EditorCanvas::applyToolField(const QString &tool, const QString &field, con
     if (tool == "canvas" && field == "field-0") {
         const auto size = value.toList(); if (size.size() != 2) return fail(tr("Enter the canvas width and height."));
         const int w = size[0].toInt(), h = size[1].toInt(); if (w < 1 || h < 1 || w > 65536 || h > 65536) return fail(tr("Canvas dimensions must be from 1 to 65536 pixels."));
-        const double sx = double(w) / canvasWidth(), sy = double(h) / canvasHeight();
+        const double sx = double(w) / editingWidth(), sy = double(h) / editingHeight();
         const auto anchor = text(values, 3, "Center"); const double alignment = anchor == "Top-left" ? 0 : anchor == "Bottom-right" ? 1 : 0.5;
-        const double dx = (w - canvasWidth()) * alignment, dy = (h - canvasHeight()) * alignment;
-        if (!commit([&](Document &d) { d.extent = {w, h}; for (auto &layer : d.layers) { auto &p = layerProperties(layer); if (toggle(values, 2)) { p.transform.m11 *= sx; p.transform.m21 *= sx; p.transform.translationX *= sx; p.transform.m12 *= sy; p.transform.m22 *= sy; p.transform.translationY *= sy; } else { p.transform.translationX += dx; p.transform.translationY += dy; } } return true; })) return false;
+        const double dx = (w - editingWidth()) * alignment, dy = (h - editingHeight()) * alignment;
+        if (!commit([&](Document &d) { resizeEditingCanvas(d, {w, h}); for (auto &layer : d.layers) { if (!belongsToActiveArtboard(layer)) continue; auto &p = layerProperties(layer); if (toggle(values, 2)) { p.transform.m11 *= sx; p.transform.m21 *= sx; p.transform.translationX *= sx; p.transform.m12 *= sy; p.transform.m22 *= sy; p.transform.translationY *= sy; } else { p.transform.translationX += dx; p.transform.translationY += dy; } } return true; })) return false;
         m_specification["pixelWidth"] = w; m_specification["pixelHeight"] = h; clearAreaSelection(); emit specificationChanged(); fitToView();
     }
     emit toolStateChanged(); return true;
 }
 bool EditorCanvas::event(QEvent *event) {
+    if (event->type() == QEvent::ShortcutOverride && static_cast<QKeyEvent *>(event)->key() == Qt::Key_Escape
+        && (m_gestureActive || m_creatingElement || m_maskGestureActive || !m_maskPolygon.empty()
+            || liveStrokeActive() || !m_elementTransformHandle.isEmpty())) {
+        // A live canvas gesture owns Escape before the editor's panel shortcut.
+        event->accept(); return true;
+    }
+    if (event->type() == QEvent::KeyPress && static_cast<QKeyEvent *>(event)->key() == Qt::Key_Escape
+        && (m_gestureActive || m_creatingElement || m_maskGestureActive || !m_maskPolygon.empty() || liveStrokeActive())) {
+        cancelInteractionGesture(); event->accept(); return true;
+    }
+    if (event->type() == QEvent::KeyPress && elementKeyEvent(static_cast<QKeyEvent *>(event))) { event->accept(); return true; }
+    if ((event->type() == QEvent::FocusOut || event->type() == QEvent::WindowDeactivate) && !m_elementTransformHandle.isEmpty()) cancelElementTransform();
+    if (event->type() == QEvent::FocusOut || event->type() == QEvent::WindowDeactivate) {
+        cancelInteractionGesture(); m_feedbackPointerInside = false; notifyInteractionFeedback();
+    }
+    if(backgroundMaskActive()) {
+        if(event->type()==QEvent::KeyPress && static_cast<QKeyEvent *>(event)->key()==Qt::Key_Escape) {cancelBackgroundMaskGesture(); event->accept(); return true;}
+        if(event->type()==QEvent::TouchBegin || event->type()==QEvent::TouchUpdate || event->type()==QEvent::TouchEnd || event->type()==QEvent::TouchCancel) {
+            auto *touch=static_cast<QTouchEvent *>(event);
+            if(event->type()==QEvent::TouchCancel || touch->points().size()!=1) cancelBackgroundMaskGesture();
+            else {
+                const auto &point=touch->points().first();
+                updatePointerFeedback(point.position());
+                if(event->type()==QEvent::TouchBegin && !selectArtboardAt(point.position())) {event->accept();return true;}
+                m_maskInputDevice=PointerDeviceKind::Touch;
+                const auto p=editingPosition(point.position());const auto pressure=point.pressure()>0?point.pressure():1.;
+                if(event->type()==QEvent::TouchBegin) beginBackgroundMaskGesture(p,pressure);
+                else if(event->type()==QEvent::TouchEnd) endBackgroundMaskGesture(p,pressure);
+                else continueBackgroundMaskGesture(p,pressure);
+                event->accept();return true;
+            }
+        }
+        if(event->type()==QEvent::TabletPress || event->type()==QEvent::TabletMove || event->type()==QEvent::TabletRelease) {
+            auto *tablet=static_cast<QTabletEvent *>(event);
+            updatePointerFeedback(tablet->position());
+            if(event->type()==QEvent::TabletPress && !selectArtboardAt(tablet->position())) {event->accept();return true;}
+            m_maskInputDevice=PointerDeviceKind::Tablet;
+            const auto p=editingPosition(tablet->position());
+            if(event->type()==QEvent::TabletPress) beginBackgroundMaskGesture(p,tablet->pressure());
+            else if(event->type()==QEvent::TabletMove) continueBackgroundMaskGesture(p,tablet->pressure());
+            else endBackgroundMaskGesture(p,tablet->pressure());
+            event->accept();return true;
+        }
+    }
     if (event->type() == QEvent::TabletPress || event->type() == QEvent::TabletMove || event->type() == QEvent::TabletRelease) {
         auto *tablet = static_cast<QTabletEvent *>(event);
+        updatePointerFeedback(tablet->position());
         if (m_tool == "brush" || (m_tool == "eraser" && m_toolValues.value("selector", "Pixel").toString() == "Pixel")) {
-            const QPointF position{(tablet->position().x() - panX()) / zoom(), (tablet->position().y() - panY()) / zoom()};
+            if (event->type() == QEvent::TabletPress && !selectArtboardAt(tablet->position())) { event->accept(); return true; }
+            const auto position = editingPosition(tablet->position());
             if (event->type() == QEvent::TabletPress) beginStrokeAt(position, tablet->pressure());
             else if (event->type() == QEvent::TabletMove) continueStrokeAt(position, tablet->pressure()); else endStrokeAt(position, tablet->pressure());
             event->accept(); return true;
@@ -191,14 +284,29 @@ bool EditorCanvas::event(QEvent *event) {
     return CanvasItem::event(event);
 }
 void EditorCanvas::mousePressEvent(QMouseEvent *event) {
+    if (event->button() == Qt::MiddleButton) {
+        m_navigatingCanvas = true; updatePointerFeedback(event->position());
+        CanvasItem::mousePressEvent(event); setCursor(Qt::ClosedHandCursor); return;
+    }
     if (event->button() != Qt::LeftButton || !documentReady()) { CanvasItem::mousePressEvent(event); return; }
-    forceActiveFocus(); const QPointF p{(event->position().x() - panX()) / zoom(), (event->position().y() - panY()) / zoom()};
+    forceActiveFocus();
+    m_primaryPointerDown = true;
+    updatePointerFeedback(event->position());
+    if (m_tool == "elements" && !(event->modifiers() & (Qt::ControlModifier | Qt::MetaModifier))) {
+        const auto handle = elementHandleAt(event->position());
+        if (!handle.isEmpty()) { beginElementTransform(handle, event->position(), event->modifiers()); event->accept(); return; }
+    }
+    // Face Refine remains inspectable without drawing a previous repair mode.
+    if (m_tool == "retouch" && m_toolValues.value("selector").toString() == "Face Refine") { event->accept(); return; }
+    if (!selectArtboardAt(event->position())) { event->accept(); return; }
+    const auto p = editingPosition(event->position());
+    if(backgroundMaskActive()) {m_maskInputDevice=PointerDeviceKind::Mouse;beginBackgroundMaskGesture(p); event->accept(); return;}
     if (m_layerColorPicking) { sampleLayerColor(p); event->accept(); return; }
     if (m_pickCloneSource) { m_cloneSource = p; m_cloneReady = true; m_pickCloneSource = false; emit toolStateChanged(); event->accept(); return; }
     if (m_pickNeutral) {
-        const auto rendered = renderFrame(*document(), frame()); const int x = int(p.x()), y = int(p.y());
-        if (rendered.ok() && x >= 0 && y >= 0 && x < canvasWidth() && y < canvasHeight()) {
-            const auto color = rendered.pixels.pixels[y * canvasWidth() + x]; m_pickNeutral = false;
+        const auto rendered = renderEditingFrame(*document()); const int x = int(p.x()), y = int(p.y());
+        if (rendered.ok() && x >= 0 && y >= 0 && x < editingWidth() && y < editingHeight()) {
+            const auto color = rendered.pixels.pixels[y * editingWidth() + x]; m_pickNeutral = false;
             auto v = settingsFor("color"); v["field-24"] = "Relative"; v["field-25"] = (qBlue(color) - qRed(color)) / 255.0 * 6000; v["field-28"] = (qGreen(color) - (qRed(color) + qBlue(color)) / 2.0) / 255 * 100;
             m_settings["color"] = v; applyPixelTool("color", "field-25", v["field-25"]); applyPixelTool("color", "field-28", v["field-28"]); emit toolStateChanged();
         }
@@ -206,15 +314,28 @@ void EditorCanvas::mousePressEvent(QMouseEvent *event) {
     }
     if (m_tool == "text") { createText(p); event->accept(); return; }
     if (m_tool == "fill") { fillAt(p); event->accept(); return; }
-    if (m_tool == "elements") { m_elementStart = p; m_creatingElement = true; event->accept(); return; }
+    if (m_tool == "elements") {
+        const auto hit = event->modifiers() & (Qt::ControlModifier | Qt::MetaModifier) ? QString{} : elementAt(event->position());
+        if (!hit.isEmpty()) {
+            if (event->modifiers() & Qt::ShiftModifier) setElementSelected(hit, !m_selectedElements.contains(hit), true);
+            else {
+                if (!m_selectedElements.contains(hit) || selectedLayerId() != hit) selectElement(hit);
+                beginElementTransform("move", event->position(), event->modifiers());
+            }
+        } else {
+            clearElementSelection(); m_elementStart = m_elementCurrent = p; m_creatingElement = true; emit elementTransformChanged(); notifyInteractionFeedback();
+        }
+        event->accept(); return;
+    }
     if (m_tool == "select" && m_toolValues.value("selector").toString() == "Magic Wand") {
         auto sampled = *document(); if (!toggle(m_toolValues, 11, true)) for (auto &layer : sampled.layers) layerProperties(layer).visible = QString::fromStdString(layerProperties(layer).id) == selectedLayerId();
-        const auto rendered = renderFrame(sampled, frame()); if (rendered.ok()) { auto mask = floodMask(rendered.pixels, {int(p.x()), int(p.y())}, number(m_toolValues, 9, 32) / 255, toggle(m_toolValues, 10, true)); if (mask.ok()) { auto next = std::move(mask.mask); const auto f = featherMask(next, number(m_toolValues, 12)); if (f.ok()) next = f.mask; const auto operation = text(m_toolValues, 0, "New"); if (!m_selection.alpha.empty() && operation != "New") { auto merged = combineMasks(m_selection, next, operation == "Subtract" ? MaskOperation::Subtract : operation == "Intersect" ? MaskOperation::Intersect : MaskOperation::Add); if (merged.ok()) next = merged.mask; } m_selection = std::move(next); updateSelectionOverlay(); } }
+        const auto rendered = renderEditingFrame(sampled); if (rendered.ok()) { auto mask = floodMask(rendered.pixels, {int(p.x()), int(p.y())}, number(m_toolValues, 9, 32) / 255, toggle(m_toolValues, 10, true)); if (mask.ok()) { auto next = std::move(mask.mask); const auto f = featherMask(next, number(m_toolValues, 12)); if (f.ok()) next = f.mask; const auto operation = text(m_toolValues, 0, "New"); if (!m_selection.alpha.empty() && operation != "New") { auto merged = combineMasks(m_selection, next, operation == "Subtract" ? MaskOperation::Subtract : operation == "Intersect" ? MaskOperation::Intersect : MaskOperation::Add); if (merged.ok()) next = merged.mask; } m_selection = std::move(next); updateSelectionOverlay(); } }
         event->accept(); return;
     }
     if (m_tool == "select" && m_toolValues.value("selector").toString() == "Object") {
         clearSelection(); for (std::size_t i = document()->layers.size(); i > 0; --i) {
-            const auto hit = renderFrameLayerTiles(*document(), frame(), i - 1, {{{{int(p.x()), int(p.y())}, {1, 1}}, {1, 1}}});
+            if (!belongsToActiveArtboard(document()->layers[i - 1])) continue;
+            const auto hit = renderFrameLayerTiles(*document(), frame(), i - 1, {{{{int(p.x() + editingOrigin().x()), int(p.y() + editingOrigin().y())}, {1, 1}}, {1, 1}}});
             if (hit.ok() && hit.visible && !hit.tiles.empty() && !hit.tiles.front().pixels.pixels.empty() && qAlpha(hit.tiles.front().pixels.pixels.front())) { selectLayer(QString::fromStdString(layerProperties(document()->layers[i - 1]).id)); break; }
         }
         event->accept(); return;
@@ -222,21 +343,34 @@ void EditorCanvas::mousePressEvent(QMouseEvent *event) {
     if (m_tool == "select" || m_tool == "masking" || m_tool == "retouch" || (m_tool == "eraser" && m_toolValues.value("selector").toString() != "Pixel")) {
         m_gesture = {p}; m_retouchStart = p; m_gestureActive = true;
         if (m_tool == "retouch" && (m_toolValues.value("selector").toString() == "Heal" || m_toolValues.value("selector").toString() == "Clone")) { m_historySuspended = true; retouchAt(p); }
+        notifyInteractionFeedback();
         event->accept(); return;
     }
     if (m_tool == "brush" || m_tool == "eraser") { beginStrokeAt(p); event->accept(); return; }
     CanvasItem::mousePressEvent(event);
 }
 void EditorCanvas::mouseMoveEvent(QMouseEvent *event) {
-    const QPointF p{(event->position().x() - panX()) / zoom(), (event->position().y() - panY()) / zoom()};
-    if (m_gestureActive) { m_gesture.append(p); if (m_tool == "retouch" && (m_toolValues.value("selector").toString() == "Heal" || m_toolValues.value("selector").toString() == "Clone")) retouchAt(p); event->accept(); return; }
-    if (m_creatingElement) { event->accept(); return; }
+    updatePointerFeedback(event->position());
+    if (m_navigatingCanvas) { CanvasItem::mouseMoveEvent(event); return; }
+    if (!m_elementTransformHandle.isEmpty()) { updateElementTransform(event->position(), event->modifiers()); event->accept(); return; }
+    const auto p = editingPosition(event->position());
+    if(backgroundMaskActive() && m_maskGestureActive) {continueBackgroundMaskGesture(p); event->accept(); return;}
+    if (m_gestureActive) { m_gesture.append(p); if (m_tool == "retouch" && (m_toolValues.value("selector").toString() == "Heal" || m_toolValues.value("selector").toString() == "Clone")) retouchAt(p); notifyInteractionFeedback(); event->accept(); return; }
+    if (m_creatingElement) { m_elementCurrent = p; emit elementTransformChanged(); notifyInteractionFeedback(); event->accept(); return; }
     if (liveStrokeActive()) { continueStrokeAt(p); event->accept(); return; }
     CanvasItem::mouseMoveEvent(event);
 }
 void EditorCanvas::mouseReleaseEvent(QMouseEvent *event) {
-    const QPointF p{(event->position().x() - panX()) / zoom(), (event->position().y() - panY()) / zoom()};
-    if (m_gestureActive) {
+    if (event->button() == Qt::MiddleButton) {
+        m_navigatingCanvas = false; CanvasItem::mouseReleaseEvent(event);
+        updatePointerFeedback(event->position()); return;
+    }
+    if (event->button() == Qt::LeftButton) m_primaryPointerDown = false;
+    updatePointerFeedback(event->position());
+    if (!m_elementTransformHandle.isEmpty() && event->button() == Qt::LeftButton) { endElementTransform(event->position(), event->modifiers()); updateElementCursor(event->position()); event->accept(); return; }
+    const auto p = editingPosition(event->position());
+    if(backgroundMaskActive() && event->button()==Qt::LeftButton) {endBackgroundMaskGesture(p); event->accept(); return;}
+    if (m_gestureActive && event->button() == Qt::LeftButton) {
         m_gesture.append(p); m_gestureActive = false; QVariantList points; for (const auto &point : m_gesture) points.append(point);
         if (m_tool == "select" || m_tool == "masking") selectArea(points);
         else if (m_tool == "retouch" && m_toolValues.value("selector").toString() != "Heal" && m_toolValues.value("selector").toString() != "Clone") { const auto oldTool = m_tool; const auto oldValues = m_toolValues; m_tool = "masking"; m_toolValues = {{"selector", "Brush"}, {"field-0", number(oldValues, 0, 84)}}; selectArea(points); m_tool = oldTool; m_toolValues = oldValues; }
@@ -248,10 +382,18 @@ void EditorCanvas::mouseReleaseEvent(QMouseEvent *event) {
             }
         }
         if (m_tool == "retouch" && m_historySuspended) { m_historySuspended = false; recordHistory(); }
+        m_gesture.clear(); notifyInteractionFeedback();
         event->accept(); return;
     }
-    if (m_creatingElement && event->button() == Qt::LeftButton) { m_creatingElement = false; auto bounds = QRectF(m_elementStart, p).normalized(); if (toggle(m_toolValues, 3)) bounds.setHeight(bounds.width()); if (bounds.width() >= 1 && bounds.height() >= 1) createElement(bounds); event->accept(); return; }
+    if (m_creatingElement && event->button() == Qt::LeftButton) { m_elementCurrent = p; const auto bounds = elementCreationBounds(); m_creatingElement = false; if (bounds.width() >= 1 && bounds.height() >= 1) createElement(bounds); emit elementTransformChanged(); notifyInteractionFeedback(); event->accept(); return; }
     if (liveStrokeActive()) { endStrokeAt(p); event->accept(); return; }
     CanvasItem::mouseReleaseEvent(event);
 }
-void EditorCanvas::mouseUngrabEvent() { m_creatingElement = false; m_gestureActive = false; CanvasItem::mouseUngrabEvent(); m_historySuspended = false; }
+void EditorCanvas::mouseUngrabEvent() {
+    if (m_primaryPointerDown || m_gestureActive || m_creatingElement || m_maskGestureActive
+        || liveStrokeActive() || !m_elementTransformHandle.isEmpty()) {
+        cancelElementTransform(); cancelInteractionGesture();
+    }
+    CanvasItem::mouseUngrabEvent();
+    m_navigatingCanvas = false; notifyInteractionFeedback();
+}

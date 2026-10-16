@@ -22,6 +22,8 @@ Item {
     readonly property var info: engine ? engine.layerPanelInfo : ({})
     readonly property var sample: engine ? engine.layerColorSample : ({valid: false, hex: "No sample", rgb: "", color: "transparent"})
     readonly property bool modalActive: adjustmentSheet.visible
+    readonly property var panelTitles: [qsTr("Layer"), qsTr("Adjust"), qsTr("Histogram"), qsTr("Information")]
+    readonly property var panelIcons: ["panel-layers-stack", "panel-layers-adjust", "panel-layers-histogram", "panel-layers-information"]
     property string adjustmentKey: ""
     property string lastAdjustmentTool: "color"
     property var adjustmentValues: ({})
@@ -40,7 +42,7 @@ Item {
         {key: "lookup", label: qsTr("Color lookup"), icon: "ProofColors", fields: [], reason: qsTr("Color LUT import is not supported by the editing engine.")}
     ]
     implicitWidth: 398
-    implicitHeight: Math.max(525, layout.implicitHeight)
+    implicitHeight: Math.max([407, 487, 512, 472][panelIndex], layout.implicitHeight)
     function asset(name) { return Qt.resolvedUrl("Assets/Layers/" + name + ".svg") }
     function report(success) { toolState.notice = success ? "" : engine.error }
     function refreshHistogram() { if (engine && panelIndex === 2) histogram = engine.layerHistogram(composite, channel) }
@@ -87,7 +89,7 @@ Item {
 
     component Heading: Views.PanelRow {
         type: LV.ListItem.Mini
-        showLeadingIcon: false
+        showLeadingIcon: iconSource.toString().length > 0
         iconSize: 13
         minItemWidth: 0
         miniItemWidth: 0
@@ -96,30 +98,42 @@ Item {
     component ScopeRow: RowLayout {
         property string label
         property string value
+        property string parameterIcon: ""
         signal opened(var target)
         spacing: 8
-        Heading { label: parent.label; Layout.fillWidth: true }
-        LV.ComboBox { text: parent.value; Layout.preferredWidth: Math.min(206, root.width * 0.52); implicitHeight: 20; arrow: LV.Stepper.Down; onClicked: parent.opened(this) }
+        implicitHeight: parameterIcon.length ? 28 : 20
+        Row {
+            Layout.fillWidth: true; Layout.preferredHeight: 22; spacing: 8
+            Image { visible: parent.parent.parameterIcon.length > 0; width: visible ? 18 : 0; height: 18; y: 2; source: visible ? LV.Theme.iconPath(parent.parent.parameterIcon) : ""; sourceSize: Qt.size(72, 72) }
+            LV.Label { height: 22; width: Math.max(0, parent.width - (parent.parent.parameterIcon.length ? 26 : 0)); text: parent.parent.label; style: body; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+        }
+        LV.ComboBox { text: parent.value; Layout.preferredWidth: Math.min(97, root.width * 0.52); implicitHeight: 20; arrow: LV.Stepper.Down; onClicked: parent.opened(this) }
     }
     component ActionTile: Item {
         id: tile
         required property var entry
-        implicitHeight: 72
-        height: 72
+        implicitHeight: 60
+        height: 60
         HoverHandler { id: tileHover }
         Controls.ToolTip.visible: tileHover.hovered && Boolean(entry.reason)
         Controls.ToolTip.text: entry.reason || ""
         LV.IconButton {
+            id: selectionButton1
             objectName: "layerAction-" + tile.entry.key
             anchors.top: parent.top; anchors.topMargin: 4; anchors.horizontalCenter: parent.horizontalCenter
-            width: 34; height: 34; horizontalPadding: 8; verticalPadding: 8
+            width: 22; height: 22; horizontalPadding: 2; verticalPadding: 2
             iconSize: 18; iconSource: root.asset(tile.entry.icon)
-            tone: tile.entry.active ? LV.AbstractButton.Primary : LV.AbstractButton.Default
+            tone: LV.AbstractButton.Default
             enabled: tile.entry.enabled === undefined ? Boolean(root.info.canAdjust) && !tile.entry.reason : tile.entry.enabled
             Accessible.name: tile.entry.label
             Controls.ToolTip.visible: hovered
             Controls.ToolTip.text: tile.entry.reason || tile.entry.label
             onClicked: root.action(tile.entry.key)
+
+            Accessible.checkable: selectionButton1.checkable
+            Accessible.checked: selectionButton1.checked
+            EditorButtonState { button: selectionButton1; selectable: tile.entry.active !== undefined; selected: Boolean(tile.entry.active) }
+            Accessible.onToggleAction: selectionButton1.click()
         }
         LV.Label {
             objectName: "layerActionLabel-" + tile.entry.key
@@ -141,7 +155,7 @@ Item {
             Row {
                 id: actionRow
                 required property int index
-                width: grid.width; height: 72; spacing: 8
+                width: grid.width; height: 60; spacing: 8
                 Repeater {
                     model: grid.entries.slice(actionRow.index * grid.columns, (actionRow.index + 1) * grid.columns)
                     ActionTile { required property var modelData; entry: modelData; width: (grid.width - (grid.columns - 1) * 8) / grid.columns }
@@ -153,23 +167,63 @@ Item {
         id: layout
         anchors.fill: parent
         spacing: 12
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 30
         LV.IconSegmentedControl {
             objectName: "layerPanelSegments"
             forceBorderlessTone: false
             LV.IconButton {
+                id: selectionButton2
                 objectName: "layerTab-layer"; Accessible.name: qsTr("Layer")
-                tone: root.panelIndex === 0 ? LV.AbstractButton.Default : LV.AbstractButton.Borderless
+                tone: LV.AbstractButton.Borderless
                 onClicked: root.panelIndex = 0
-                contentItem: Item {
-                    implicitWidth: 18; implicitHeight: 18
-                    Image { x: 3.03; y: 0.12; width: 9.93952; height: 9.93952; rotation: 45; source: root.asset("Rectangle1474"); sourceSize: Qt.size(40, 40) }
-                    Image { x: 3.06; y: 3.38; width: 9.87522; height: 9.87522; rotation: 45; source: root.asset("Rectangle1475"); sourceSize: Qt.size(40, 40) }
-                    Image { x: 3.06; y: 6.61; width: 9.87522; height: 9.87522; rotation: 45; source: root.asset("Rectangle1475"); sourceSize: Qt.size(40, 40) }
-                }
+                width: 22; height: 22; iconSize: 18; horizontalPadding: 2; verticalPadding: 2
+                iconSource: LV.Theme.iconPath(root.panelIcons[0])
+
+                Accessible.checkable: selectionButton2.checkable
+                Accessible.checked: selectionButton2.checked
+                EditorButtonState { button: selectionButton2; selected: Boolean(root.panelIndex === 0) }
+                Accessible.onToggleAction: selectionButton2.click()
             }
-            LV.IconButton { objectName: "layerTab-adjust"; Accessible.name: qsTr("Adjust"); iconSource: root.asset("AdjustmentLayer"); tone: root.panelIndex === 1 ? LV.AbstractButton.Default : LV.AbstractButton.Borderless; onClicked: root.panelIndex = 1 }
-            LV.IconButton { objectName: "layerTab-histogram"; Accessible.name: qsTr("Histogram"); iconSource: root.asset("ProofColors"); tone: root.panelIndex === 2 ? LV.AbstractButton.Default : LV.AbstractButton.Borderless; onClicked: root.panelIndex = 2 }
-            LV.IconButton { objectName: "layerTab-information"; Accessible.name: qsTr("Information"); iconSource: root.asset("StatusInfoOutline"); iconSize: 16; horizontalPadding: 3; verticalPadding: 3; tone: root.panelIndex === 3 ? LV.AbstractButton.Default : LV.AbstractButton.Borderless; onClicked: root.panelIndex = 3 }
+            LV.IconButton { id: selectionButton3; objectName: "layerTab-adjust"; Accessible.name: qsTr("Adjust"); iconSource: LV.Theme.iconPath(root.panelIcons[1]); tone: LV.AbstractButton.Borderless; onClicked: root.panelIndex = 1
+                width: 22; height: 22; iconSize: 18; horizontalPadding: 2; verticalPadding: 2
+                Accessible.checkable: selectionButton3.checkable
+                Accessible.checked: selectionButton3.checked
+                EditorButtonState { button: selectionButton3; selected: Boolean(root.panelIndex === 1) }
+                Accessible.onToggleAction: selectionButton3.click()
+            }
+            LV.IconButton { id: selectionButton4; objectName: "layerTab-histogram"; Accessible.name: qsTr("Histogram"); iconSource: LV.Theme.iconPath(root.panelIcons[2]); tone: LV.AbstractButton.Borderless; onClicked: root.panelIndex = 2
+                width: 22; height: 22; iconSize: 18; horizontalPadding: 2; verticalPadding: 2
+                Accessible.checkable: selectionButton4.checkable
+                Accessible.checked: selectionButton4.checked
+                EditorButtonState { button: selectionButton4; selected: Boolean(root.panelIndex === 2) }
+                Accessible.onToggleAction: selectionButton4.click()
+            }
+            LV.IconButton { id: selectionButton5; objectName: "layerTab-information"; Accessible.name: qsTr("Information"); iconSource: LV.Theme.iconPath(root.panelIcons[3]); iconSize: 18; horizontalPadding: 2; verticalPadding: 2; tone: LV.AbstractButton.Borderless; onClicked: root.panelIndex = 3
+                width: 22; height: 22
+                Accessible.checkable: selectionButton5.checkable
+                Accessible.checked: selectionButton5.checked
+                EditorButtonState { button: selectionButton5; selected: Boolean(root.panelIndex === 3) }
+                Accessible.onToggleAction: selectionButton5.click()
+            }
+        }
+            Item { Layout.fillWidth: true }
+            LV.IconButton {
+                objectName: "layerPanelReset"
+                width: 22; height: 22; iconSize: 18; horizontalPadding: 2; verticalPadding: 2
+                iconSource: LV.Theme.iconPath("reset")
+                tone: LV.AbstractButton.Borderless
+                Accessible.name: qsTr("Reset")
+                onClicked: { root.toolState.resetTool(); root.channel = "RGB"; root.composite = true; root.shadowClipping = false; root.highlightClipping = false; if(root.engine) root.engine.setLayerHistogramClipping(false, false) }
+            }
+        }
+        Row {
+            objectName: "layerCurrentContext"
+            Layout.fillWidth: true; Layout.preferredHeight: 20
+            spacing: 8
+            Image { y: 1; width: 18; height: 18; source: LV.Theme.iconPath(root.panelIcons[root.panelIndex]); sourceSize: Qt.size(72, 72) }
+            LV.Label { width: parent.width - 26; height: 20; text: root.panelTitles[root.panelIndex]; style: body; font.pixelSize: 15; font.weight: Font.Medium; elide: Text.ElideRight }
         }
         LV.Label { Layout.fillWidth: true; visible: root.toolState.notice.length > 0; text: root.toolState.notice; style: caption; wrapMode: Text.Wrap; sizeToContentHeight: true }
         Loader {
@@ -184,12 +238,18 @@ Item {
             Heading { label: root.selected.id ? root.selected.name + " · " + root.info.contentType : qsTr("Select a layer") }
             ColumnLayout {
                 Layout.fillWidth: true; spacing: 8
-                ScopeRow { Layout.fillWidth: true; label: qsTr("Blend mode"); value: root.selected.blend || qsTr("Normal"); enabled: Boolean(root.selected.id); onOpened: function(target) { blendMenu.openFor(target, 0, target.height) } }
+                ScopeRow { Layout.fillWidth: true; label: qsTr("Blend mode"); parameterIcon: "panel-blend-mode"; value: root.selected.blend || qsTr("Normal"); enabled: Boolean(root.selected.id); onOpened: function(target) { blendMenu.openFor(target, 0, target.height) } }
+                ColumnLayout {
+                    Layout.fillWidth: true; spacing: 2
                 RowLayout {
-                    Layout.fillWidth: true
-                    Heading { label: qsTr("Opacity") }
+                    Layout.fillWidth: true; Layout.preferredHeight: 28
+                    Row {
+                        Layout.fillWidth: true; Layout.preferredHeight: 22; spacing: 8
+                        Image { y: 2; width: 18; height: 18; source: LV.Theme.iconPath("brush-opacity"); sourceSize: Qt.size(72, 72) }
+                        LV.Label { height: 22; width: Math.max(0, parent.width - 26); text: qsTr("Opacity"); style: body; verticalAlignment: Text.AlignVCenter }
+                    }
                     LV.InputField {
-                        objectName: "layerOpacityInput"; Layout.preferredWidth: Math.min(206, root.width * 0.52)
+                        objectName: "layerOpacityInput"; Layout.preferredWidth: Math.min(152, root.width * 0.52)
                         Layout.preferredHeight: 22; fieldMinHeight: 22; clearButtonVisible: false
                         text: Math.round((root.selected.opacity === undefined ? 1 : root.selected.opacity) * 100) + "%"
                         enabled: Boolean(root.selected.id)
@@ -198,18 +258,19 @@ Item {
                         onActiveFocusChanged: if (!activeFocus) commit()
                     }
                 }
-                LV.Slider { objectName: "layerOpacitySlider"; Layout.fillWidth: true; implicitHeight: 22; size: LV.Slider.Mini; showSymbol: false; showMinMax: false; from: 0; to: 100; value: (root.selected.opacity === undefined ? 1 : root.selected.opacity) * 100; enabled: Boolean(root.selected.id); onMoved: root.report(root.engine.setLayerOpacity(root.selected.id, value / 100)) }
+                LV.Slider { objectName: "layerOpacitySlider"; Layout.leftMargin: 26; Layout.preferredWidth: Math.min(320, root.width - 26); implicitHeight: 22; size: LV.Slider.Mini; showSymbol: false; showMinMax: false; from: 0; to: 100; value: (root.selected.opacity === undefined ? 1 : root.selected.opacity) * 100; enabled: Boolean(root.selected.id); onMoved: root.report(root.engine.setLayerOpacity(root.selected.id, value / 100)) }
+                }
             }
             Rectangle {
-                Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 328
-                color: LV.Theme.panelBackground05; radius: 6; border.width: 1; border.color: LV.Theme.panelBackground08
+                Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 170
+                color: "transparent"
                 Flickable {
-                    anchors.fill: parent; anchors.margins: 4; clip: true; contentWidth: width; contentHeight: hierarchy.implicitHeight
+                    anchors.fill: parent; clip: true; contentWidth: width; contentHeight: hierarchy.implicitHeight
                     flickableDirection: Flickable.VerticalFlick; boundsBehavior: Flickable.StopAtBounds
                     LV.HierarchyList {
                         id: hierarchy
                         objectName: "layerHierarchy"
-                        width: parent.width; generatedItemWidth: width; generatedRowHeight: 32; generatedIndentStep: 20; generatedIconSize: 18
+                        width: Math.min(170, parent.width); generatedItemWidth: width; generatedRowHeight: 17; generatedIndentStep: 12; generatedIconSize: 0
                         autoExpandAncestorsOnActivate: false
                         function syncSelectedLayer() {
                             if (root.engine && root.engine.selectedLayerId)
@@ -234,8 +295,11 @@ Item {
                                 objectName: "layerRow-" + itemKey
                                 opacity: nodeData && !nodeData.visible ? 0.5 : 1
                                 iconSource: root.asset(nodeData && nodeData.locked ? "Lock" : nodeData ? nodeData.kind : "ImageGutter14X14")
+                                baseLeftPadding: 4
+                                leadingSpacing: 0
+                                showChevron: Boolean(nodeData && nodeData.group)
                                 Component.onCompleted: {
-                                    iconSize = Qt.binding(function() { return nodeData && nodeData.kind === "ImageGutter14X14" && !nodeData.locked ? 14 : 18 })
+                                    iconSize = 0
                                     Qt.callLater(hierarchy.syncSelectedLayer)
                                 }
                                 countView: Component {
@@ -262,7 +326,7 @@ Item {
                 LV.IconButton { objectName: "layerDuplicate"; tone: LV.AbstractButton.Default; backgroundColorDisabled: toneBackgroundColor; iconSource: root.asset("DuplicateLayer"); enabled: Boolean(root.selected.id); Accessible.name: qsTr("Duplicate"); onClicked: root.report(root.engine.duplicateSelectedLayer()) }
                 LV.IconButton { objectName: "layerMask"; tone: LV.AbstractButton.Default; backgroundColorDisabled: toneBackgroundColor; iconSource: root.asset("LayerMask"); enabled: root.engine && root.engine.toolState.selectionActive && !root.engine.toolState.pixelLocked; Accessible.name: qsTr("Apply selection as alpha mask"); onClicked: root.report(root.engine.executeToolAction("layers", "field-23", root.toolState.values)) }
                 LV.IconButton { objectName: "layerLock"; tone: LV.AbstractButton.Default; backgroundColorDisabled: toneBackgroundColor; iconSource: root.asset("Lock"); enabled: Boolean(root.selected.id); Accessible.name: qsTr("Lock layer"); onClicked: root.toolState.setValue("field-8", root.selected.lock === "None" ? "All" : "None") }
-                LV.IconButton { objectName: "layerDelete"; iconSource: root.asset("Generaldelete"); tone: LV.AbstractButton.Borderless; backgroundColorDisabled: toneBackgroundColor; enabled: Boolean(root.selected.id) && root.selected.lock === "None"; Accessible.name: qsTr("Delete layer"); onClicked: root.report(root.engine.removeLayer(root.selected.id)) }
+                LV.IconButton { objectName: "layerDelete"; iconSource: root.asset("Generaldelete"); tone: LV.AbstractButton.Destructive; backgroundColorDisabled: toneBackgroundColor; enabled: Boolean(root.selected.id) && root.selected.lock === "None"; Accessible.name: qsTr("Delete layer"); onClicked: root.report(root.engine.removeLayer(root.selected.id)) }
             }
         }
     }

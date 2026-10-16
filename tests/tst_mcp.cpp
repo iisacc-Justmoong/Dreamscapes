@@ -26,10 +26,10 @@ struct AppProcess : QProcess {
     void startApp(const QString& base, bool enabled) {
         auto env = QProcessEnvironment::systemEnvironment();
         for (const auto* name : {"DYLD_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH", "DYLD_FALLBACK_LIBRARY_PATH", "QML_IMPORT_PATH", "QML2_IMPORT_PATH"}) env.remove(name);
-        env.insert("SOCIETY_HELPER_DIRECTORY", base + "/helper");
+        env.insert("SOCIETY_HELPER_DIRECTORY", base + "/container.societycontainer/.society-runtime/helpers/mcp");
         env.insert("SOCIETY_STORAGE_SETTINGS_PATH", base + "/storage.json");
-        env.insert("SOCIETY_CONTAINER_PATH", base + "/container");
-        env.insert("IILOCALLLM_APP_ENDPOINTS", base + "/apps");
+        env.insert("SOCIETY_CONTAINER_PATH", base + "/container.societycontainer");
+        env.insert("IILOCALLLM_APP_ENDPOINTS", base + "/container.societycontainer/.society-runtime/apps/mcp");
         env.insert("IILOCALLLM_DISABLE_APP_MCP", enabled ? "0" : "1");
         env.insert("IILD_GENERATOR_EXECUTABLE", MCP_GENERATOR_FIXTURE);
         env.insert("DREAMSCAPES_TEMP_DIRECTORY", base + "/tmp");
@@ -37,7 +37,7 @@ struct AppProcess : QProcess {
         env.insert("QML_DISABLE_DISK_CACHE", "1");
         setProcessEnvironment(env); setProcessChannelMode(MergedChannels); setWorkingDirectory(base);
         logPath = base + "/app.log";
-        start(MCP_APP_EXECUTABLE, {"--society-container", base + "/container"});
+        start(MCP_APP_EXECUTABLE, {"--society-container", base + "/container.societycontainer"});
     }
     bool waitForRoot() {
         // Cold signed bundles on external storage can exceed the normal CI
@@ -81,11 +81,11 @@ class McpTests : public QObject {
 private slots:
     void appQuestionsWaitForLocalUiAndCancelWithoutBlockingTools() {
         QTemporaryDir base(MCP_TEST_DIRECTORY "/mcp-questions-XXXXXX"); QVERIFY(base.isValid()); base.setAutoRemove(false);
-        QVERIFY(QDir().mkpath(base.filePath("container"))); QVERIFY(QDir().mkpath(base.filePath("tmp")));
-        QVERIFY(iiSocietyContainer::SocietyDrive::create(base.filePath("container")));
+        QVERIFY(QDir().mkpath(base.filePath("container.societycontainer"))); QVERIFY(QDir().mkpath(base.filePath("tmp")));
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(base.filePath("container.societycontainer")));
         AppProcess process; process.startApp(base.path(), true); QVERIFY(process.waitForStarted());
         QVERIFY2(process.waitForRoot(), process.output.constData());
-        const auto discovered=m::discoverLocalApplications(base.filePath("apps")); QCOMPARE(discovered.applications.size(),1);
+        const auto discovered=m::discoverLocalApplications(base.filePath("container.societycontainer/.society-runtime/apps/mcp")); QCOMPARE(discovered.applications.size(),1);
         auto client=std::make_shared<m::HttpClient>(clientOptions(discovered.applications.first()));
         QCOMPARE(client->serverCapabilities()["experimental"].toObject()["iisacc/userQuestions"].toObject()["responseChannel"],"local-ui");
         bool marked=false;
@@ -115,15 +115,15 @@ private slots:
     void actualAppGenerationQueueAndCancellation() {
         QTemporaryDir base(MCP_TEST_DIRECTORY "/mcp-dreamscapes-XXXXXX"); QVERIFY(base.isValid());
         base.setAutoRemove(false);
-        QVERIFY(QDir().mkpath(base.filePath("container"))); QVERIFY(QDir().mkpath(base.filePath("tmp")));
-        const auto drive = iiSocietyContainer::SocietyDrive::create(base.filePath("container")); QVERIFY(drive);
-        QVERIFY(write(base.filePath("container/Models/first.safetensors"), "MCP process-protocol fixture model 1"));
-        QVERIFY(write(base.filePath("container/Models/second.safetensors"), "MCP process-protocol fixture model 2"));
-        QVERIFY(QDir().mkpath(base.filePath("container/Models/VAE")));
-        QVERIFY(write(base.filePath("container/Models/VAE/sdxl.safetensors"), "MCP VAE fixture"));
+        QVERIFY(QDir().mkpath(base.filePath("container.societycontainer"))); QVERIFY(QDir().mkpath(base.filePath("tmp")));
+        const auto drive = iiSocietyContainer::SocietyDrive::create(base.filePath("container.societycontainer")); QVERIFY(drive);
+        QVERIFY(write(base.filePath("container.societycontainer/Models/first.safetensors"), "MCP process-protocol fixture model 1"));
+        QVERIFY(write(base.filePath("container.societycontainer/Models/second.safetensors"), "MCP process-protocol fixture model 2"));
+        QVERIFY(QDir().mkpath(base.filePath("container.societycontainer/Models/VAE")));
+        QVERIFY(write(base.filePath("container.societycontainer/Models/VAE/sdxl.safetensors"), "MCP VAE fixture"));
         AppProcess process; process.startApp(base.path(), true); QVERIFY(process.waitForStarted());
         QVERIFY2(process.waitForRoot(), process.output.constData());
-        const auto discovered = m::discoverLocalApplications(base.filePath("apps"));
+        const auto discovered = m::discoverLocalApplications(base.filePath("container.societycontainer/.society-runtime/apps/mcp"));
         QCOMPARE(discovered.applications.size(), 1);
         const auto endpoint = discovered.applications.first();
         QCOMPARE(endpoint.application.id, QString("com.iisacc.dreamscapes")); QCOMPARE(endpoint.processId, process.processId());
@@ -168,7 +168,7 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(findJob(client, firstId)["state"].toString(), QString("completed"), 20000);
         const auto completed = findJob(client, firstId);
         QCOMPARE(completed["seed"].toInteger(), qint64(123456));
-        const auto imagePath = base.filePath("container/" + completed["image"].toString());
+        const auto imagePath = base.filePath("container.societycontainer/" + completed["image"].toString());
         QVERIFY(completed["image"].toString().startsWith("Generation History/"));
         const QImage image(imagePath); QVERIFY(!image.isNull());
         QCOMPARE(image.size(), QSize(completed["width"].toInt(), completed["height"].toInt()));
@@ -195,16 +195,16 @@ private slots:
         auto wrong = clientOptions(endpoint); wrong.bearerToken = [] { return QByteArray(43, 'x'); };
         QVERIFY_THROWS_EXCEPTION(iiLocalLLM::Error, m::HttpClient denied(wrong));
         client.close(); process.terminate(); QVERIFY(process.waitForFinished(5000));
-        QVERIFY(m::discoverLocalApplications(base.filePath("apps")).applications.isEmpty());
+        QVERIFY(m::discoverLocalApplications(base.filePath("container.societycontainer/.society-runtime/apps/mcp")).applications.isEmpty());
     }
     void disabledAppDoesNotAdvertise() {
         QTemporaryDir base(MCP_TEST_DIRECTORY "/mcp-disabled-XXXXXX"); QVERIFY(base.isValid());
-        QVERIFY(QDir().mkpath(base.filePath("container"))); QVERIFY(QDir().mkpath(base.filePath("tmp")));
-        QVERIFY(iiSocietyContainer::SocietyDrive::create(base.filePath("container")));
+        QVERIFY(QDir().mkpath(base.filePath("container.societycontainer"))); QVERIFY(QDir().mkpath(base.filePath("tmp")));
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(base.filePath("container.societycontainer")));
         AppProcess process; process.startApp(base.path(), false); QVERIFY(process.waitForStarted());
         QVERIFY2(process.waitForRoot(), process.output.constData());
-        QVERIFY(m::discoverLocalApplications(base.filePath("apps")).applications.isEmpty());
-        QVERIFY(!QFileInfo::exists(base.filePath("apps")));
+        QVERIFY(m::discoverLocalApplications(base.filePath("container.societycontainer/.society-runtime/apps/mcp")).applications.isEmpty());
+        QVERIFY(!QFileInfo::exists(base.filePath("container.societycontainer/.society-runtime/apps/mcp")));
     }
 };
 QTEST_GUILESS_MAIN(McpTests)

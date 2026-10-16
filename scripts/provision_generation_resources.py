@@ -90,11 +90,26 @@ def provision(source, society, check=False):
         raise ValueError('The Society drive has no Models directory')
     target = safe_path(society, RESOURCE_PATH)
     entries = catalog(source)
+    installed_manifest = safe_path(target, MANIFEST)
+    previous_manifest = None
+    if installed_manifest.exists() and digest(installed_manifest) != entries[MANIFEST]['sha256']:
+        if check:
+            raise ValueError('The Society generation resource catalog needs an additive update')
+        # Upgrade the SDK catalog only when every prior payload retains its
+        # identity. Existing user bytes and decoder/encoder precision stay intact.
+        previous_manifest = installed_manifest.read_bytes()
+        previous_entries = catalog(target)
+        for name, entry in previous_entries.items():
+            if name != MANIFEST and entries.get(name) != entry:
+                raise ValueError(f'Catalog update would replace an existing resource: {name}')
     missing = []
     # Validate every source and existing destination before publishing anything.
     for name, entry in entries.items():
         verify(safe_path(source, name), entry)
         destination = safe_path(target, name)
+        if name == MANIFEST and previous_manifest is not None:
+            missing.append(name)
+            continue
         if destination.exists():
             verify(destination, entry)
         elif check:
@@ -116,6 +131,11 @@ def provision(source, society, check=False):
             for name in sorted(missing, key=lambda item: item == MANIFEST):
                 destination = safe_path(safe_path(society, RESOURCE_PATH), name)
                 destination.parent.mkdir(parents=True, exist_ok=True)
+                if name == MANIFEST and previous_manifest is not None:
+                    if destination.read_bytes() != previous_manifest:
+                        raise ValueError('The Society resource catalog changed during installation')
+                    os.replace(staging / name, destination)
+                    continue
                 try:
                     os.link(staging / name, destination)  # Atomic, never replaces existing bytes.
                 except FileExistsError:

@@ -2,6 +2,7 @@
 #include <iiSharedCanvas/Render/FrameRenderer.h>
 #include <iiSharedCanvas/Serialization/IiscCodec.h>
 #include <iiFileProvider.h>
+#include <SocietyDrive.h>
 #include <Stroke/Rasterizer.h>
 #include <QImage>
 #include <QTemporaryDir>
@@ -31,7 +32,37 @@ void paintWithEngine(RasterLayer &pixels, const BrushState &brush,
 }
 class EditorCanvasTests : public QObject {
     Q_OBJECT
+    QTemporaryDir m_storage{DREAMSCAPES_TEST_DIRECTORY "/editor-documents-XXXXXX.societycontainer"};
 private slots:
+    void initTestCase() {
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(m_storage.path()));
+        qputenv("SOCIETY_CONTAINER_PATH", m_storage.path().toUtf8());
+    }
+    void societyDocumentsSaveOnlyInFiles() {
+        EditorCanvas canvas; QVERIFY(canvas.createCanvas({{"width", 32}, {"height", 24}, {"unit", "px"}, {"background", "White"}}));
+        QVERIFY(!canvas.saveDocumentAs(QUrl::fromLocalFile(m_storage.filePath("Generation History/document.iisc"))));
+        QVERIFY(!canvas.saveDocumentAs(QUrl::fromLocalFile(m_storage.filePath("Asset Library/document.iisc"))));
+        QVERIFY(!canvas.saveDocumentAs(QUrl::fromLocalFile(m_storage.filePath("document.iisc"))));
+        QVERIFY(!canvas.exportImage(QUrl::fromLocalFile(m_storage.filePath("Generation History/export.iisc")), "IISC"));
+        QVERIFY(!QFileInfo::exists(m_storage.filePath("Generation History/document.iisc")));
+        const auto path = m_storage.filePath("Files/document.iisc"); QVERIFY(canvas.saveDocumentAs(QUrl::fromLocalFile(path)));
+        QCOMPARE(canvas.filePath(), path); EditorCanvas reopened; QVERIFY(reopened.openDocumentSource(QUrl::fromLocalFile(path)));
+        QCOMPARE(reopened.canvasWidth(), 32); QCOMPARE(reopened.canvasHeight(), 24);
+    }
+    void editorRetainsAnAliasAndHelperRejectsConcurrentDocumentChanges() {
+        EditorCanvas original; QVERIFY(original.createCanvas({{"width", 16}, {"height", 12}, {"unit", "px"}}));
+        const auto path = m_storage.filePath("Files/alias-conflict.iisc");
+        QVERIFY(original.saveDocumentAs(QUrl::fromLocalFile(path)));
+        QVERIFY(original.fileAlias()["available"].toBool());
+        QCOMPARE(original.fileAlias()["key"].toString(), "files/alias-conflict.iisc");
+        EditorCanvas stale; QVERIFY(stale.openDocumentSource(QUrl::fromLocalFile(path)));
+        const auto layer = original.layers().first().toMap()["id"].toString();
+        QVERIFY(original.setLayerOpacity(layer, .5));
+        QVERIFY(!stale.setLayerOpacity(layer, .25));
+        QVERIFY(stale.error().contains("changed"));
+        EditorCanvas reopened; QVERIFY(reopened.openDocumentSource(QUrl::fromLocalFile(path)));
+        QCOMPARE(reopened.layers().first().toMap()["opacity"].toDouble(), .5);
+    }
     void finiteViewportLocksFittingAxesAndClampsOverflow_data() {
         QTest::addColumn<QSize>("extent");
         QTest::addColumn<QSizeF>("viewport");
@@ -104,6 +135,9 @@ private slots:
         QCOMPARE(std::get<RasterAsset>(canvas.document()->assets[1]).pixels.pixels.front(), 0xff0000ffU);
         QCOMPARE(layerProperties(canvas.document()->layers[0]).transform.translationY, 10.0);
         QCOMPARE(layerProperties(canvas.document()->layers[1]).transform.translationX, 16.0);
+        QVERIFY(!QDir(m_storage.filePath("Files")).entryList({"red %20 #.png.*.iisc"}, QDir::Files).isEmpty());
+        QVERIFY(!QDir(m_storage.filePath("Files")).entryList({"blue.png.*.iisc"}, QDir::Files).isEmpty());
+        QVERIFY(QDir(directory.path()).entryList({"*.iisc"}, QDir::Files).isEmpty());
         QVERIFY(canvas.rasterLayerSelected());
         const auto path = directory.filePath("layers.iisc");
         QVERIFY(canvas.saveDocumentAs(QUrl::fromLocalFile(path)));
@@ -298,7 +332,7 @@ private slots:
         EditorCanvas canvas;
         QVERIFY(canvas.openDocumentSource(QUrl::fromLocalFile(snapshot)));
         QCOMPARE(canvas.canvasWidth(), 40);
-        QVERIFY(canvas.filePath().isEmpty());
+        QCOMPARE(canvas.filePath(), snapshot);
         QVERIFY(canvas.saveDocumentAs(QUrl::fromLocalFile(directory.filePath("working.iisc"))));
         QCOMPARE(iiFileProvider::File::read(snapshot), bytes);
         QImage image(24, 16, QImage::Format_ARGB32);

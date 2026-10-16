@@ -6,21 +6,23 @@ Rectangle {
     id: root
     objectName: "editorToolbar"
     property bool mobileLayout: false
-    implicitHeight: LV.Theme.scaleMetric(mobileLayout ? 84 : 54)
-    radius: mobileLayout ? LV.Theme.scaleMetric(18) : 0
-    color: mobileLayout ? LV.Theme.panelBackground03 : LV.Theme.surfaceSolid
+    implicitWidth: LV.Theme.scaleMetric(36) + LV.Theme.gap8 * 2
+    implicitHeight: mobileLayout ? LV.Theme.scaleMetric(84)
+        : tools.length * LV.Theme.scaleMetric(36) + Math.max(0, tools.length - 1) * LV.Theme.gap4 + LV.Theme.gap8 * 2
+    radius: LV.Theme.scaleMetric(18)
+    color: mobileLayout ? LV.Theme.panelBackground03 : "transparent"
     border.width: mobileLayout ? 1 : 0
     border.color: LV.Theme.panelBackground08
     readonly property string currentTool: tools[toolList.currentIndex].key
     readonly property int currentIndex: toolList.currentIndex
     signal toolSelected(string toolId)
 
-    // Figma 353:21758 (desktop) and 143:1652 (mobile) share the original 22px icon assets.
+    // Figma 1105:91844 uses a vertical desktop rail; mobile keeps its bottom strip.
+    // Both layouts share the original 22px icon assets and the 18 active tools.
     readonly property var tools: [
         { key: "elements", label: qsTr("Elements"), iconWidth: 18.1, iconHeight: 18.1, iconX: 1.95, iconY: 1.95 },
         { key: "text", label: qsTr("Text"), iconWidth: 14.4333, iconHeight: 18.1, iconX: 3.7833, iconY: 1.95 },
         { key: "camera-photo", label: qsTr("Camera/Photo"), iconWidth: 16.2667, iconHeight: 16.2667, iconX: 2.8667, iconY: 2.8667 },
-        { key: "asset", label: qsTr("Asset"), iconWidth: 18.1, iconHeight: 18.1, iconX: 1.95, iconY: 1.95 },
         { key: "file", label: qsTr("File"), iconWidth: 13.5167, iconHeight: 19.9333, iconX: 4.7, iconY: 1.0333 },
         { key: "background", label: qsTr("Background"), iconWidth: 18.1, iconHeight: 16.2667, iconX: 1.95, iconY: 2.8667 },
         { key: "audio-track", label: qsTr("Audio track"), iconWidth: 16.2667, iconHeight: 18.1, iconX: 1.95, iconY: 1.95 },
@@ -33,7 +35,7 @@ Rectangle {
         { key: "retouch", label: qsTr("Retouch"), iconWidth: 16.5352, iconHeight: 14.9703, iconX: 1.6816, iconY: 1.6816 },
         { key: "fill", label: qsTr("Fill"), iconWidth: 16.725, iconHeight: 18.1, iconX: 1.95, iconY: 1.95 },
         { key: "brush", label: qsTr("Brush"), iconWidth: 17.1833, iconHeight: 17.1833, iconX: 1.95, iconY: 2.8667 },
-        { key: "auto-enhance", label: qsTr("Auto enhance"), iconWidth: 18.1, iconHeight: 18.1, iconX: 1.95, iconY: 1.95 },
+        { key: "auto-enhance", label: qsTr("Adjust"), iconWidth: 18.1, iconHeight: 18.1, iconX: 1.95, iconY: 1.95 },
         { key: "masking", label: qsTr("Masking"), iconWidth: 19.9333, iconHeight: 14.4333, iconX: 1.0333, iconY: 3.7833 },
         { key: "eraser", label: qsTr("Eraser"), iconWidth: 16.2667, iconHeight: 15.35, iconX: 2.8667, iconY: 3.7833 }
     ]
@@ -45,6 +47,11 @@ Rectangle {
         if (toolList.currentItem) toolList.currentItem.forceActiveFocus()
         toolSelected(tools[index].key)
     }
+    function syncTool(index) {
+        if (index < 0 || index >= tools.length) return
+        toolList.currentIndex = index
+        toolList.positionViewAtIndex(index, ListView.Contain)
+    }
     function moveFocus(index, step) { selectTool(Math.max(0, Math.min(tools.length - 1, index + step))) }
     function focusBoundary(last) { selectTool(last ? tools.length - 1 : 0) }
 
@@ -54,17 +61,23 @@ Rectangle {
         x: LV.Theme.gap8 + root.border.width
         y: LV.Theme.gap8 + root.border.width
         width: Math.max(0, parent.width - x * 2)
-        height: LV.Theme.scaleMetric(root.mobileLayout ? 68 : 36)
-        orientation: ListView.Horizontal
+        height: root.mobileLayout ? LV.Theme.scaleMetric(68) : Math.max(0, root.height - y * 2)
+        orientation: root.mobileLayout ? ListView.Horizontal : ListView.Vertical
         spacing: LV.Theme.gap4
         model: root.tools
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        flickableDirection: Flickable.HorizontalFlick
-        snapMode: ListView.SnapToItem
+        flickableDirection: root.mobileLayout ? Flickable.HorizontalFlick : Flickable.VerticalFlick
+        snapMode: root.mobileLayout ? ListView.SnapToItem : ListView.NoSnap
         highlightFollowsCurrentItem: false
         currentIndex: 0
         onWidthChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+        onHeightChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+        onOrientationChanged: Qt.callLater(function() {
+            toolList.contentX = 0
+            toolList.contentY = 0
+            toolList.positionViewAtIndex(toolList.currentIndex, ListView.Contain)
+        })
 
         delegate: LV.Tab {
             id: tool
@@ -83,13 +96,21 @@ Rectangle {
             verticalPadding: 0
             bottomPadding: 0
             onClicked: root.selectTool(index)
+            Keys.onUpPressed: function(event) {
+                event.accepted = !root.mobileLayout
+                if (event.accepted) root.moveFocus(index, -1)
+            }
+            Keys.onDownPressed: function(event) {
+                event.accepted = !root.mobileLayout
+                if (event.accepted) root.moveFocus(index, 1)
+            }
 
             background: Rectangle {
                 radius: tool.cornerRadius
                 color: tool.selected ? LV.Theme.panelBackground10
                     : tool.down ? LV.Theme.panelBackground08
                     : tool.hovered ? LV.Theme.panelBackground06 : "transparent"
-                border.width: root.mobileLayout && tool.selected ? 1 : 0
+                border.width: tool.selected ? 1 : 0
                 border.color: LV.Theme.panelBackground08
             }
             contentItem: Item {

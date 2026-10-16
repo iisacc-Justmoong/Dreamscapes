@@ -1,7 +1,11 @@
 #include "App/Views/Home/HomeCanvas.h"
 #include "App/Views/Home/CanvasPresets.h"
+#include "App/Views/Home/CanvasPreview.h"
 #include "App/Views/Editor/EditorCanvas.h"
+#include "App/Views/Editor/EditorCanvasFeedback.h"
+#include "App/Views/Editor/EditorTimelineModel.h"
 #include "App/Views/Editor/EditorProject.h"
+#include "App/Views/ColorManagerModel.h"
 #include "App/ApplicationLifetime.h"
 #include <backend/runtime/appentry.h>
 #include "App/Generation/GenerationController.h"
@@ -31,6 +35,7 @@ int main(int argc, char *argv[])
     application.moduleUri = QStringLiteral("Dreamscapes");
     application.rootObject = QStringLiteral("Main");
     application.configureEngine = [](QQmlApplicationEngine &engine) {
+        registerColorManagerTypes();
         configureApplicationLifetime(engine);
 #ifdef DREAMSCAPES_WITH_LOCAL_MCP
         QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
@@ -42,6 +47,8 @@ int main(int argc, char *argv[])
         QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
             [](QObject *root, const QUrl &) { if (root) dreamscapesLocalRuntimeProbe(root); });
 #endif
+        qmlRegisterUncreatableType<iiSocietyContainer::Container>("Dreamscapes.Storage", 1, 0,
+            "SocietyContainer", "Provided by iiSocietyHelper");
         qmlRegisterType<GenerationController>("Dreamscapes.Storage", 1, 0, "GenerationController");
         // Storage is a static NO_PLUGIN module; register the draft in the
         // production entry point just like the other exposed storage types.
@@ -50,7 +57,10 @@ int main(int argc, char *argv[])
         qmlRegisterType<iiSocietyContainer::SocietyApplication>("Dreamscapes.Storage", 1, 0, "SocietyApplication");
         qmlRegisterType<HomeCanvas>("Dreamscapes.Storage", 1, 0, "HomeCanvas");
         qmlRegisterType<CanvasPresets>("Dreamscapes.Storage", 1, 0, "CanvasPresets");
+        qmlRegisterType<CanvasPreview>("Dreamscapes.Storage", 1, 0, "CanvasPreview");
         qmlRegisterType<EditorCanvas>("Dreamscapes.Storage", 1, 0, "EditorCanvas");
+        qmlRegisterType<EditorCanvasFeedback>("Dreamscapes.Storage", 1, 0, "EditorCanvasFeedback");
+        qmlRegisterType<EditorTimelineModel>("Dreamscapes.Storage", 1, 0, "EditorTimelineModel");
         qmlRegisterType<EditorProject>("Dreamscapes.Storage", 1, 0, "EditorProject");
     qmlRegisterType<ImageFileExporter>("Dreamscapes.Storage", 1, 0, "ImageFileExporter");
         qmlRegisterType<PhotoLibraryExporter>("Dreamscapes.Storage", 1, 0, "PhotoLibraryExporter");

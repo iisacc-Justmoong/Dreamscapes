@@ -14,12 +14,14 @@ Item {
     property bool loading: false
     property string errorText: ""
     property string selectedAction: "home"
+    property string browserSection: ""
     readonly property bool compact: width < LV.Theme.scaleMetric(700)
     readonly property real contentHorizontalInset: compact ? LV.Theme.gap12 : LV.Theme.gap24
     readonly property alias quickGenerateContainer: promptSlot
     readonly property alias storageContainer: storageSlot
     readonly property alias imageWorkspaceContainer: imageWorkspaceSlot
     readonly property alias videoWorkspaceContainer: videoWorkspaceSlot
+    readonly property alias storageBrowserContainer: storageBrowserSlot
     signal quickActionRequested(string action)
     signal browseRequested()
     signal publishedRequested()
@@ -28,6 +30,7 @@ Item {
     signal openFileRequested()
     signal imagesRequested(var images)
     signal promptRequested(string prompt)
+    signal homeRequested()
     function choosePrompt(prompt) { showHome(); root.promptRequested(prompt) }
 
     function scrollToItem(target) {
@@ -35,12 +38,12 @@ Item {
             target.mapToItem(content, 0, 0).y))
     }
     function scrollBy(delta) { viewport.contentY = Math.max(0, Math.min(viewport.contentHeight - viewport.height, viewport.contentY - delta)) }
-    function showHome() { viewport.contentY = 0; selectedAction = "home" }
+    function showHome() { viewport.contentY = 0; selectedAction = "home"; root.homeRequested() }
     function activate(action) {
         selectedAction = action
         if (action === "home") showHome()
-        else if (action === "files") scrollToItem(recentRow)
-        else if (action === "assets") { settingsExpanded = true; Qt.callLater(function() { root.scrollToItem(storageSlot) }) }
+        else if (action === "files") root.browseRequested()
+        else if (action === "assets") { root.homeRequested(); settingsExpanded = true; Qt.callLater(function() { root.scrollToItem(storageSlot) }) }
         else if (action === "history") root.historyRequested()
         else {
             if (action === "image" || action === "video" || action === "audio" || action === "board")
@@ -66,7 +69,7 @@ Item {
             objectName: "desktopHomeViewport"
             Layout.fillWidth: true
             Layout.fillHeight: true
-            visible: root.selectedAction !== "image" && root.selectedAction !== "video"
+            visible: !root.browserSection && root.selectedAction !== "image" && root.selectedAction !== "video"
             contentWidth: width
             contentHeight: content.y + content.implicitHeight + 32
             boundsBehavior: Flickable.StopAtBounds
@@ -184,6 +187,13 @@ Item {
                     Layout.preferredHeight: childrenRect.height
                 }
             }
+        }
+        Item {
+            id: storageBrowserSlot
+            objectName: "desktopStorageBrowserSlot"
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: root.browserSection.length > 0
         }
         Item {
             id: videoWorkspaceSlot

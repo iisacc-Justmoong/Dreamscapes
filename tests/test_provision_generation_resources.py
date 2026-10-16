@@ -52,6 +52,52 @@ class ProvisionResourcesTests(unittest.TestCase):
             provision.provision(self.source, self.society, check=True)
         self.assertFalse(self.target.exists())
 
+    def add_text_encoder(self):
+        payload = b'new verified text encoder'
+        path = self.source / 'text_encoders/qwen.safetensors'
+        path.parent.mkdir()
+        path.write_bytes(payload)
+        self.manifest['fallback_llms'] = [{'file': 'text_encoders/qwen.safetensors',
+            'size': len(payload), 'sha256': hashlib.sha256(payload).hexdigest(),
+            'families': ['krea2'], 'class_name': 'Qwen3VLForConditionalGeneration'}]
+        self.save_manifest()
+
+    def test_additive_catalog_upgrade_preserves_existing_payloads(self):
+        provision.provision(self.source, self.society)
+        original = (self.target / 'vae/model.safetensors').stat().st_ino
+        self.add_text_encoder()
+        with self.assertRaises(ValueError):
+            provision.provision(self.source, self.society, check=True)
+        result = provision.provision(self.source, self.society)
+        self.assertEqual(result['installedFiles'], 2)
+        self.assertEqual(result['verifiedFiles'], 4)
+        self.assertEqual((self.target / 'vae/model.safetensors').stat().st_ino, original)
+        self.assertEqual(provision.provision(self.source, self.society)['installedFiles'], 0)
+
+    def test_failed_upgrade_keeps_previous_catalog_and_resources(self):
+        provision.provision(self.source, self.society)
+        previous = (self.target / 'generation-defaults.json').read_bytes()
+        self.add_text_encoder()
+        with patch.object(provision.shutil, 'copyfile', side_effect=OSError('upgrade interrupted')):
+            with self.assertRaises(OSError):
+                provision.provision(self.source, self.society)
+        self.assertEqual((self.target / 'generation-defaults.json').read_bytes(), previous)
+        self.assertFalse((self.target / 'text_encoders/qwen.safetensors').exists())
+
+    def test_catalog_upgrade_refuses_changed_existing_weight_identity(self):
+        provision.provision(self.source, self.society)
+        previous = (self.target / 'generation-defaults.json').read_bytes()
+        old_weight = (self.target / 'vae/model.safetensors').read_bytes()
+        self.add_text_encoder()
+        payload = b'changed old decoder weights'
+        (self.source / 'vae/model.safetensors').write_bytes(payload)
+        self.manifest['fallback_vae'].update(size=len(payload), sha256=hashlib.sha256(payload).hexdigest())
+        self.save_manifest()
+        with self.assertRaises(ValueError):
+            provision.provision(self.source, self.society)
+        self.assertEqual((self.target / 'generation-defaults.json').read_bytes(), previous)
+        self.assertEqual((self.target / 'vae/model.safetensors').read_bytes(), old_weight)
+
     def test_bad_source_and_conflicting_destination_are_preserved(self):
         weights = self.source / 'vae/model.safetensors'
         original = weights.read_bytes()

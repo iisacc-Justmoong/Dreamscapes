@@ -1,12 +1,20 @@
 #include "App/Views/Home/HomeCanvas.h"
+#include <SocietyDrive.h>
 #include <QGuiApplication>
 #include <QImage>
+#include <QFile>
+#include <QFileInfo>
 #include <QTemporaryDir>
 #include <QtTest>
 
 class HomeCanvasTests : public QObject {
     Q_OBJECT
+    QTemporaryDir m_storage{DREAMSCAPES_TEST_DIRECTORY "/home-documents-XXXXXX.societycontainer"};
 private slots:
+    void initTestCase() {
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(m_storage.path()));
+        qputenv("SOCIETY_CONTAINER_PATH", m_storage.path().toUtf8());
+    }
     void pasteCommitsPixelsAndSupportsHistory();
     void rejectInvalidDropWithoutChangingCanvas();
     void resizeAndSubmissionPreserveTheImage();
@@ -21,6 +29,9 @@ void HomeCanvasTests::pasteCommitsPixelsAndSupportsHistory()
     canvas.setWidth(256); canvas.setHeight(256); canvas.fitToView();
     QVERIFY(canvas.addAttachment(source));
     QCOMPARE(canvas.attachments().size(), 1);
+    const auto wrapper = canvas.attachments().first().toMap().value("documentSource").toUrl().toLocalFile();
+    QVERIFY(wrapper.endsWith(".iisc")); QVERIFY(QFileInfo::exists(wrapper));
+    QVERIFY(QFile::remove(source.toLocalFile()));
     QVERIFY(canvas.pasteAttachment(source, 128, 128));
     const auto pixel=canvas.selectedRasterPixels()->pixels[512*1024+512];
     QCOMPARE(pixel, quint32(0xffff0000));

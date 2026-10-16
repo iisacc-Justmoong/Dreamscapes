@@ -6,8 +6,10 @@ The desktop editor's right panel starts at 342 logical pixels, following the
 updated [Figma 353:22614 editor layout](EditorLayout.md). Drag its left
 boundary horizontally to change its width. The boundary has a 10-pixel hit
 area and a horizontal resize cursor; double-click restores 342 pixels. The
-panel normally ranges from 280 to 720 pixels, reserving 320 pixels for the
-canvas where the window permits. A smaller window clamps the effective width
+panel normally ranges from 280 to 720 pixels, reserving the 52-pixel vertical
+toolbar beside it and 320 pixels for the canvas where the window permits.
+Dragging the panel boundary moves the toolbar with it. Collapsing the panel
+leaves the toolbar at the right window edge. A smaller window clamps the effective width
 without discarding the requested width. Growing the window restores it.
 Closing/reopening the panel and switching tools retain both width and tool
 values for the editor session. Width is not a persisted user preference.
@@ -34,7 +36,7 @@ through the same tool-state signals.
 
 `desktopEditorPanelResizes` verifies pointer dragging, both width limits,
 window clamping/restoration, double-click reset, tool values across panel
-collapse/reopen, and mobile boundary removal. It checks the full 19-tool design
+collapse/reopen, and mobile boundary removal. It checks the active 18-tool
 catalog at 280/342/432/720 pixels: caption origin, parameter edges, wrapping order,
 row containment and caption/control separation. Existing Figma panel tests
 retain semantic defaults, option interaction and local disclosure asset checks;

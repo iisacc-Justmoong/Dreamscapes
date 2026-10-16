@@ -1,19 +1,269 @@
 #include "App/Views/Editor/EditorCanvas.h"
 #include "App/Views/Editor/EditorMedia.h"
 #include <iiSharedCanvas.h>
+#include <SocietyDrive.h>
 #include <QImage>
 #include <QTemporaryDir>
 #include <QMouseEvent>
 #include <QtTest>
+#include <algorithm>
+#include <cmath>
 using namespace iiSharedCanvas;
 
 class EditorToolsTests : public QObject {
     Q_OBJECT
+    QTemporaryDir m_storage{DREAMSCAPES_TEST_DIRECTORY "/tool-documents-XXXXXX.societycontainer"};
 private:
     void create(EditorCanvas &c, int width = 64, int height = 48) {
         QVERIFY(c.createCanvas({{"width", width}, {"height", height}, {"unit", "px"}, {"background", "Transparent"}}));
     }
+    QImage graphicPreviewImage(const QVariantMap &preview) {
+        const auto source = preview.value("imageSource").toUrl().toString();
+        return QImage::fromData(QByteArray::fromBase64(source.mid(source.indexOf(',') + 1).toLatin1()));
+    }
+    int exposedChannel(int input, double stops) {
+        const double encoded = input / 255.0;
+        const double linear = encoded <= 0.04045 ? encoded / 12.92 : std::pow((encoded + 0.055) / 1.055, 2.4);
+        const double exposed = std::clamp(linear * std::exp2(stops), 0.0, 1.0);
+        return qRound(255 * (exposed <= 0.0031308 ? exposed * 12.92 : 1.055 * std::pow(exposed, 1 / 2.4) - 0.055));
+    }
 private slots:
+    void compactRepairPreviewDoesNotCommitUntilApply() {
+        EditorCanvas canvas; create(canvas, 32, 32);
+        QImage source(32, 32, QImage::Format_ARGB32); source.fill(Qt::blue);
+        for(int y=12;y<20;++y) for(int x=12;x<20;++x) source.setPixel(x,y,0xffff0000);
+        QVERIFY(canvas.insertPixels(source, "Repair source"));
+        canvas.configureTool("select", {{"selector", "Rectangle"}, {"field-2", 0}, {"field-0", "New"}});
+        QVERIFY(canvas.selectArea({QPointF(10, 10), QPointF(22, 22)}));
+        const QVariantMap values{{"selector", "Content-aware"}};
+        canvas.configureTool("retouch", values);
+        const auto bytes = encodeIisc(*canvas.document()).bytes;
+        const auto revision = canvas.revision(); const auto overlay = canvas.selectionOverlay();
+        const auto preview = canvas.toolPreview("retouch", "field-18", values);
+        const auto rendered = graphicPreviewImage(preview); QVERIFY2(!rendered.isNull(), qPrintable(preview["description"].toString()));
+        QCOMPARE(preview["items"].toList().first().toMap()["action"].toString(), QString("applyRepair"));
+        QCOMPARE(encodeIisc(*canvas.document()).bytes, bytes); QCOMPARE(canvas.revision(), revision);
+        QCOMPARE(canvas.selectionOverlay(), overlay);
+        QVERIFY(canvas.executeToolAction("retouch", "field-18", values));
+        const auto applied = renderFrame(*canvas.document(), canvas.frame()); QVERIFY(applied.ok());
+        const auto previewCenter = rendered.pixel(rendered.width()/2, rendered.height()/2);
+        QCOMPARE(applied.pixels.pixels[16*32+16], previewCenter);
+        QVERIFY(canvas.undo()); QCOMPARE(encodeIisc(*canvas.document()).bytes, bytes);
+    }
+    void unavailableFaceViewDoesNotDrawRepairMask() {
+        EditorCanvas canvas; create(canvas, 32, 32); canvas.setSize({320, 320});
+        QImage source(32, 32, QImage::Format_ARGB32); source.fill(Qt::blue);
+        QVERIFY(canvas.insertPixels(source, "Face source")); canvas.fitToView();
+        canvas.configureTool("retouch", {{"selector", "Face Refine"}, {"field-0", 12}});
+        const auto before = encodeIisc(*canvas.document()).bytes;
+        const auto revision = canvas.revision();
+        const auto selection = canvas.selectionOverlay();
+        for (const int field : {19, 20, 21, 22}) {
+            const auto state = canvas.toolControlState("retouch", QString("field-%1").arg(field), {});
+            QVERIFY(!state["supported"].toBool()); QVERIFY(!state["enabled"].toBool());
+        }
+        const QPointF point(canvas.panX() + 16 * canvas.zoom(), canvas.panY() + 16 * canvas.zoom());
+        QMouseEvent press(QEvent::MouseButtonPress, point, point, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+        QCoreApplication::sendEvent(&canvas, &press);
+        QMouseEvent release(QEvent::MouseButtonRelease, point, point, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+        QCoreApplication::sendEvent(&canvas, &release);
+        QCOMPARE(canvas.selectionOverlay(), selection);
+        QCOMPARE(canvas.revision(), revision);
+        QCOMPARE(encodeIisc(*canvas.document()).bytes, before);
+    }
+    void graphicPreviewApplyAndUndoUseOriginalPixels() {
+        EditorCanvas c; create(c, 8, 8);
+        QImage source(8, 8, QImage::Format_ARGB32); source.fill(qRgba(80, 100, 120, 127));
+        QVERIFY(c.insertPixels(source, "Graphic source"));
+        const auto original = c.selectedRasterPixels()->pixels;
+        const auto before = encodeIisc(*c.document()).bytes;
+        const auto revision = c.revision();
+        const auto preview = graphicPreviewImage(c.previewGraphicOperation("color", "developLight", {{"exposure", 1.0}}));
+        QVERIFY(!preview.isNull());
+        QCOMPARE(c.revision(), revision);
+        QCOMPARE(encodeIisc(*c.document()).bytes, before);
+        QVERIFY(std::abs(qRed(preview.pixel(0, 0)) - exposedChannel(80, 1)) <= 1);
+        QCOMPARE(qAlpha(preview.pixel(0, 0)), 127);
+        QVERIFY(c.applyGraphicOperation("color", "developLight", {{"exposure", 1.0}}));
+        const auto oneStop = c.selectedRasterPixels()->pixels;
+        QVERIFY(oneStop != original);
+        QCOMPARE(oneStop.front(), preview.pixel(0, 0));
+        QVERIFY(c.applyGraphicOperation("color", "developLight", {{"exposure", 2.0}}));
+        QVERIFY(std::abs(qRed(c.selectedRasterPixels()->pixels.front()) - exposedChannel(80, 2)) <= 1);
+        QVERIFY(c.applyGraphicOperation("color", "developLight", {{"exposure", 1.0}}));
+        QCOMPARE(c.selectedRasterPixels()->pixels, oneStop);
+        QVERIFY(c.undo());
+        QVERIFY(std::abs(qRed(c.selectedRasterPixels()->pixels.front()) - exposedChannel(80, 2)) <= 1);
+        QVERIFY(c.undo()); QCOMPARE(c.selectedRasterPixels()->pixels, oneStop);
+        QVERIFY(c.undo()); QCOMPARE(c.selectedRasterPixels()->pixels, original);
+    }
+    void graphicFailuresAndPixelLockLeaveDocumentUnchanged() {
+        EditorCanvas c; create(c, 8, 8);
+        QImage source(8, 8, QImage::Format_ARGB32); source.fill(qRgba(80, 100, 120, 127));
+        QVERIFY(c.insertPixels(source, "Graphic source"));
+        const auto before = encodeIisc(*c.document()).bytes;
+        QVERIFY(!c.graphicOperationState("unavailableGraphicFilter").value("supported").toBool());
+        QVERIFY(!c.applyGraphicOperation("color", "developLight", {{"unknown", true}}));
+        QVERIFY(c.previewGraphicOperation("color", "developLight", {{"exposure", "invalid"}}).isEmpty());
+        QVERIFY(!c.applyGraphicOperation("masking", "applyLocalAdjustments", {{"exposure", 1.0}}));
+        QVERIFY(c.previewGraphicOperation("masking", "invertMask", {}).isEmpty());
+        QCOMPARE(encodeIisc(*c.document()).bytes, before);
+        QVERIFY(c.applyToolField("layers", "field-8", "Pixels"));
+        const auto locked = encodeIisc(*c.document()).bytes;
+        const auto capability = c.graphicOperationState("developLight");
+        QVERIFY(capability.value("supported").toBool());
+        QVERIFY(!capability.value("enabled").toBool());
+        QVERIFY(!capability.value("reason").toString().isEmpty());
+        QVERIFY(!c.applyGraphicOperation("color", "developLight", {{"exposure", 1.0}}));
+        QVERIFY(c.previewGraphicOperation("color", "developLight", {{"exposure", 1.0}}).isEmpty());
+        QCOMPARE(encodeIisc(*c.document()).bytes, locked);
+        QVERIFY(c.applyToolField("layers", "field-8", "None"));
+        QVERIFY(c.setLayerVisible(c.selectedLayerId(), false));
+        QVERIFY(c.selectedRasterPixels());
+        const auto hidden = encodeIisc(*c.document()).bytes;
+        const auto hiddenState = c.graphicOperationState("developLight");
+        QVERIFY(hiddenState.value("supported").toBool());
+        QVERIFY(!hiddenState.value("enabled").toBool());
+        QVERIFY(!c.applyGraphicOperation("color", "developLight", {{"exposure", 1.0}}));
+        QVERIFY(c.previewGraphicOperation("color", "developLight", {{"exposure", 1.0}}).isEmpty());
+        QCOMPARE(encodeIisc(*c.document()).bytes, hidden);
+        QVERIFY(c.setLayerVisible(c.selectedLayerId(), true));
+        QVERIFY(c.graphicOperationState("developLight").value("enabled").toBool());
+    }
+    void graphicSoftMaskIsAppliedOnceAndDiagnosticsDoNotCommit() {
+        EditorCanvas c; create(c, 8, 8);
+        QImage source(8, 8, QImage::Format_ARGB32); source.fill(qRgba(80, 100, 120, 127));
+        QVERIFY(c.insertPixels(source, "Local source"));
+        const auto original = c.selectedRasterPixels()->pixels;
+        const auto before = encodeIisc(*c.document()).bytes;
+        const QVariantMap gradient{{"start", QVariantMap{{"x", 0.0}, {"y", 0.0}}}, {"end", QVariantMap{{"x", 1.0}, {"y", 0.0}}}};
+        QVERIFY(!graphicPreviewImage(c.previewGraphicOperation("masking", "linearMask", gradient)).isNull());
+        QVERIFY(!c.toolState().value("selectionActive").toBool());
+        QVERIFY(c.applyGraphicOperation("masking", "linearMask", gradient));
+        QVERIFY(c.toolState().value("selectionActive").toBool());
+        QCOMPARE(encodeIisc(*c.document()).bytes, before);
+        const auto maskOverlay = c.selectionOverlay();
+        QVERIFY(!graphicPreviewImage(c.previewGraphicOperation("masking", "maskColorOverlay", {})).isNull());
+        QCOMPARE(c.selectionOverlay(), maskOverlay);
+        QCOMPARE(encodeIisc(*c.document()).bytes, before);
+        QVERIFY(!c.applyGraphicOperation("masking", "maskColorOverlay", {}));
+        const auto preview = graphicPreviewImage(c.previewGraphicOperation("masking", "applyLocalAdjustments", {{"exposure", 1.0}}));
+        QVERIFY(!preview.isNull());
+        QCOMPARE(encodeIisc(*c.document()).bytes, before);
+        QVERIFY(c.applyGraphicOperation("masking", "applyLocalAdjustments", {{"exposure", 1.0}}));
+        for (int x = 0; x < 8; ++x) {
+            // SDK linear masks use smoothstep at the pixel center. Coverage is
+            // quantized once by the editor selection; local exposure scales EV.
+            const double t = (x + 0.5) / 8;
+            const double coverage = qRound((1 - t * t * (3 - 2 * t)) * 255) / 255.0;
+            const auto pixel = c.selectedRasterPixels()->pixels[4 * 8 + x];
+            QVERIFY(std::abs(qRed(pixel) - exposedChannel(80, coverage)) <= 1);
+            QCOMPARE(qAlpha(pixel), 127);
+            QCOMPARE(pixel, preview.pixel(x, 4));
+        }
+        QVERIFY(c.undo()); QCOMPARE(c.selectedRasterPixels()->pixels, original);
+        QVERIFY(c.applyGraphicOperation("masking", "invertMask", {}));
+        QVERIFY(c.selectionOverlay() != maskOverlay);
+        QVERIFY(c.applyGraphicOperation("masking", "invertMask", {}));
+        QCOMPARE(c.selectionOverlay(), maskOverlay);
+        QVERIFY(c.applyGraphicOperation("masking", "refineMask", {{"amount", 0.0}}));
+        QCOMPARE(c.selectionOverlay(), maskOverlay);
+        QVariantList coverage; for (int i = 0; i < 64; ++i) coverage.append(1.0);
+        const QVariantMap operand{{"width", 8}, {"height", 8}, {"coverage", coverage}};
+        QVERIFY(c.applyGraphicOperation("masking", "combineMasks", {{"operand", operand}, {"operation", "Intersect"}}));
+        QCOMPARE(c.selectionOverlay(), maskOverlay);
+        QCOMPARE(encodeIisc(*c.document()).bytes, before);
+    }
+    void graphicCombineRetainsThePreviousMaskForItsLayer() {
+        EditorCanvas c; create(c, 8, 8);
+        QImage source(8, 8, QImage::Format_ARGB32); source.fill(qRgba(80, 100, 120, 127));
+        QVERIFY(c.insertPixels(source, "Mask source"));
+        const auto sourceLayer = c.selectedLayerId();
+        const auto original = c.selectedRasterPixels()->pixels;
+        const auto before = encodeIisc(*c.document()).bytes;
+        const QVariantMap left{{"start", QVariantMap{{"x", 0.0}, {"y", 0.0}}}, {"end", QVariantMap{{"x", 1.0}, {"y", 0.0}}}};
+        const QVariantMap right{{"start", QVariantMap{{"x", 1.0}, {"y", 0.0}}}, {"end", QVariantMap{{"x", 0.0}, {"y", 0.0}}}};
+        QVERIFY(c.applyGraphicOperation("masking", "linearMask", left));
+        QVERIFY(!c.applyGraphicOperation("masking", "combineMasks", {{"operation", "Add"}}));
+        QVERIFY(c.error().contains("second mask"));
+        QVERIFY(c.applyGraphicOperation("masking", "linearMask", right));
+        const auto rightOverlay = c.selectionOverlay();
+        const auto preview = graphicPreviewImage(c.previewGraphicOperation("masking", "combineMasks", {{"operation", "Add"}}));
+        QVERIFY(!preview.isNull());
+        const auto combinedCoverage = [](int x) {
+            const double t = (x + 0.5) / 8;
+            const double left = 1 - t * t * (3 - 2 * t);
+            // SDK Add is the union max, with each editor operand quantized once.
+            return std::max(qRound(left * 255), qRound((1 - left) * 255)) / 255.0;
+        };
+        QCOMPARE(qRed(preview.pixel(4, 4)), qRound(combinedCoverage(4) * 255));
+        QCOMPARE(c.selectionOverlay(), rightOverlay);
+        QVERIFY(c.applyGraphicOperation("masking", "combineMasks", {{"operation", "Add"}}));
+        QCOMPARE(encodeIisc(*c.document()).bytes, before);
+        QVERIFY(c.applyGraphicOperation("masking", "applyLocalAdjustments", {{"exposure", 1.0}}));
+        for (std::size_t index = 0; index < c.selectedRasterPixels()->pixels.size(); ++index) {
+            const auto pixel = c.selectedRasterPixels()->pixels[index];
+            QVERIFY(std::abs(qRed(pixel) - exposedChannel(80, combinedCoverage(int(index % 8)))) <= 1);
+            QCOMPARE(qAlpha(pixel), 127);
+        }
+        QVERIFY(c.undo()); QCOMPARE(c.selectedRasterPixels()->pixels, original);
+        QVERIFY(c.insertPixels(source, "Different layer"));
+        QVERIFY(c.selectedLayerId() != sourceLayer);
+        const auto otherLayer = encodeIisc(*c.document()).bytes;
+        QVERIFY(!c.applyGraphicOperation("masking", "combineMasks", {{"operation", "Add"}}));
+        QVERIFY(c.error().contains("second mask"));
+        QCOMPARE(encodeIisc(*c.document()).bytes, otherLayer);
+        QVERIFY(c.selectLayer(sourceLayer));
+        QVERIFY(c.applyGraphicOperation("masking", "combineMasks", {{"operation", "Intersect"}}));
+        create(c, 8, 8);
+        QVERIFY(c.insertPixels(source, "New document source"));
+        QVERIFY(c.applyGraphicOperation("masking", "linearMask", left));
+        QVERIFY(!c.applyGraphicOperation("masking", "combineMasks", {{"operation", "Add"}}));
+        QVERIFY(c.error().contains("second mask"));
+    }
+    void graphicMasksUseTheActiveArtboardOrigin() {
+        QTemporaryDir directory(DREAMSCAPES_TEST_DIRECTORY "/graphic-artboards-XXXXXX"); QVERIFY(directory.isValid());
+        Document d; d.extent = {8, 8};
+        d.artboards = {{"first", "First", {{0, 0}, {8, 8}}, 0}, {"second", "Second", {{72, 24}, {8, 8}}, 0}};
+        RasterLayer pixels{8, 8, std::vector<std::uint32_t>(64, qRgba(80, 100, 120, 127))};
+        for (const auto &board : d.artboards) {
+            const auto asset = board.id + ".pixels";
+            d.assets.emplace_back(RasterAsset{asset, pixels});
+            LayerProperties properties{board.id + ".layer", board.name};
+            properties.artboardId = board.id;
+            properties.transform.translationX = board.region.origin.x;
+            properties.transform.translationY = board.region.origin.y;
+            d.layers.emplace_back(StaticBitmapLayer{properties, StaticSource{asset}});
+        }
+        const auto path = directory.filePath("artboards.iisc"); DocumentFile file;
+        QVERIFY(file.create(path.toStdString(), d).ok()); file.close();
+        EditorCanvas c; QVERIFY(c.openDocumentSource(QUrl::fromLocalFile(path)));
+        QVERIFY(c.selectArtboard(1, false)); QVERIFY(c.selectLayer("second.layer"));
+        QCOMPARE(c.editingOrigin(), QPointF(72, 24));
+        const QVariantMap gradient{{"start", QVariantMap{{"x", 0.0}, {"y", 0.0}}}, {"end", QVariantMap{{"x", 1.0}, {"y", 0.0}}}};
+        QVERIFY(c.applyGraphicOperation("masking", "linearMask", gradient));
+        QVERIFY(c.toolState().value("selectionActive").toBool());
+        QVERIFY(c.applyGraphicOperation("masking", "applyLocalAdjustments", {{"exposure", 1.0}}));
+        const double t = 4.5 / 8;
+        const double coverage = qRound((1 - t * t * (3 - 2 * t)) * 255) / 255.0;
+        QVERIFY(std::abs(qRed(c.selectedRasterPixels()->pixels[4 * 8 + 4]) - exposedChannel(80, coverage)) <= 1);
+        QVERIFY(c.undo()); QCOMPARE(c.selectedRasterPixels()->pixels, pixels.pixels);
+        c.clearAreaSelection();
+        c.configureTool("select", {{"selector", "Rectangle"}, {"field-2", 0}, {"field-5", false}});
+        QVERIFY(c.selectArea({QPointF(0, 0), QPointF(4, 8)}));
+        QVERIFY(c.applyGraphicOperation("color", "developLight", {{"exposure", 1.0}}));
+        QVERIFY(qRed(c.selectedRasterPixels()->pixels[4 * 8 + 1]) > 80);
+        QCOMPARE(c.selectedRasterPixels()->pixels[4 * 8 + 6], pixels.pixels[4 * 8 + 6]);
+        QVERIFY(c.selectArtboard(0, false)); QVERIFY(c.selectLayer("first.layer"));
+        QCOMPARE(c.selectedRasterPixels()->pixels, pixels.pixels);
+        QVERIFY(c.setLayerGroupVisible("first", false));
+        QVERIFY(!c.graphicOperationState("developLight").value("enabled").toBool());
+        const auto hiddenBoard = encodeIisc(*c.document()).bytes;
+        QVERIFY(!c.applyGraphicOperation("color", "developLight", {{"exposure", 1.0}}));
+        QCOMPARE(encodeIisc(*c.document()).bytes, hiddenBoard);
+        QVERIFY(c.setLayerGroupVisible("first", true));
+        QVERIFY(c.graphicOperationState("developLight").value("enabled").toBool());
+    }
     void layerPanelReadsActualPixelsWithoutEditing() {
         EditorCanvas c; create(c, 2, 2);
         QImage pixels(2, 2, QImage::Format_ARGB32); pixels.fill(Qt::transparent);
@@ -30,26 +280,45 @@ private slots:
         QCOMPARE(details["dimensions"].toString(), QString("2 × 2 px"));
         QCOMPARE(details["profile"].toString(), QString("Untagged RGB"));
         QCOMPARE(details["bitDepth"].toString(), QString("8 bit / channel"));
+        const auto sequence = c.layerColorSample()["sequence"].toInt();
         QVERIFY(c.sampleLayerColor({0, 0}));
+        QCOMPARE(c.layerColorSample()["sequence"].toInt(), sequence + 1);
         QCOMPARE(c.layerColorSample()["hex"].toString(), QString("#FF0000"));
+        QVERIFY(c.beginLayerColorSample());
+        QVERIFY(c.layerColorSample()["picking"].toBool());
+        QCOMPARE(c.layerColorSample()["sequence"].toInt(), sequence + 1);
+        c.cancelLayerColorSample();
+        QVERIFY(!c.layerColorSample()["picking"].toBool());
+        QVERIFY(c.layerColorSample()["valid"].toBool());
+        QCOMPARE(c.layerColorSample()["sequence"].toInt(), sequence + 1);
+        QCOMPARE(c.layerColorSample()["hex"].toString(), QString("#FF0000"));
+        QVERIFY(c.beginLayerColorSample());
+        QVERIFY(c.sampleLayerColor({1, 0}));
+        QVERIFY(!c.layerColorSample()["picking"].toBool());
+        QCOMPARE(c.layerColorSample()["sequence"].toInt(), sequence + 2);
+        QCOMPARE(c.layerColorSample()["hex"].toString(), QString("#00FF00"));
         c.setLayerHistogramClipping(true, false);
         QVERIFY(!c.toolState()["clippingOverlay"].toUrl().isEmpty());
         c.setLayerHistogramClipping(false, false);
         QCOMPARE(encodeIisc(*c.document()).bytes, before);
         QVERIFY(!c.sampleLayerColor({-1, 0}));
+        QCOMPARE(c.layerColorSample()["sequence"].toInt(), sequence + 2);
     }
     void layerPanelDuplicateGroupMergeAndUndoPersist() {
         EditorCanvas c; create(c, 8, 8);
         QImage red(8, 8, QImage::Format_ARGB32); red.fill(Qt::red);
         QVERIFY(c.insertPixels(red, "Subject")); const auto original = c.selectedLayerId();
+        QCOMPARE(c.document()->timeline.frameCount,24U);
+        QCOMPARE(layerProperties(*findLayer(*c.document(),original.toStdString())).frameRange->lastFrame,23U);
         const auto layerCount = c.document()->layers.size();
         QVERIFY(c.duplicateSelectedLayer()); const auto copy = c.selectedLayerId();
         QVERIFY(copy != original); QCOMPARE(c.document()->layers.size(), layerCount + 1);
         auto blue = *c.selectedRasterPixels(); std::fill(blue.pixels.begin(), blue.pixels.end(), 0xff0000ff);
         QVERIFY(c.replaceSelectedPixels(blue)); QVERIFY(c.selectLayer(original));
         QCOMPARE(c.selectedRasterPixels()->pixels.front(), 0xffff0000u);
-        QVERIFY(c.selectLayer(copy)); QVERIFY(c.mergeSelectedDown());
+        QVERIFY(c.selectLayer(copy)); QVERIFY(c.layerPanelInfo()["canMerge"].toBool()); QVERIFY(c.mergeSelectedDown());
         QCOMPARE(c.document()->layers.size(), layerCount);
+        QCOMPARE(c.document()->timeline.frameCount,24U);
         QCOMPARE(renderFrame(*c.document(), 0).pixels.pixels.front(), 0xff0000ffu);
         QVERIFY(c.undo()); QCOMPARE(c.document()->layers.size(), layerCount + 1);
         QVERIFY(c.groupSelectedLayer()); QCOMPARE(c.document()->artboards.size(), 1u);
@@ -60,7 +329,11 @@ private slots:
         QVERIFY(reopened.openDocumentSource(path)); QCOMPARE(reopened.document()->artboards.size(), 1u);
         QVERIFY(c.undo()); QVERIFY(c.document()->artboards.empty());
     }
-    void initTestCase() { qputenv("DREAMSCAPES_EDITOR_CACHE", QByteArray(DREAMSCAPES_TEST_DIRECTORY "/editor-reference-cache")); }
+    void initTestCase() {
+        qputenv("DREAMSCAPES_EDITOR_CACHE", QByteArray(DREAMSCAPES_TEST_DIRECTORY "/editor-reference-cache"));
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(m_storage.path()));
+        qputenv("SOCIETY_CONTAINER_PATH", m_storage.path().toUtf8());
+    }
     void capabilityDistinguishesUnsupportedControlsFromMissingInputs() {
         EditorCanvas c; create(c);
         const auto raw = c.toolControlState("camera-photo", "field-15", {});
@@ -379,6 +652,39 @@ private slots:
         QVERIFY(c.undo());
         QCOMPARE(renderFrame(*c.document(), 0).pixels.pixels, rendered);
         QCOMPARE(c.toolValues("text").value("field-0").toString(), QString("Hello"));
+    }
+    void textTypographyLayoutAndAppearanceAffectExport() {
+        EditorCanvas c; create(c, 256, 144);
+        QVariantMap values{{"selector", "Callout"}, {"field-0", "Hello\n한글"}, {"field-2", 18},
+            {"textWeight", "Medium"}, {"textLineHeight", 22}, {"textFill", "White"},
+            {"field-11", "None"}, {"textLayoutEnabled", true}, {"field-5", "Center"}};
+        c.configureTool("text", values); QVERIFY2(c.createText({20, 20}), qPrintable(c.error()));
+        const auto initial = renderFrame(*c.document(), 0).pixels.pixels;
+        QVERIFY(c.applyToolField("text", "textWeight", "Bold"));
+        QVERIFY(renderFrame(*c.document(), 0).pixels.pixels != initial);
+        const auto bold = renderFrame(*c.document(), 0).pixels.pixels;
+        QVERIFY(c.applyToolField("text", "field-5", "Top left"));
+        QVERIFY(renderFrame(*c.document(), 0).pixels.pixels != bold);
+        QVERIFY(c.applyToolField("text", "textFill", "Accent"));
+        QVERIFY(c.applyToolField("text", "textStrokeWidth", 2));
+        QVERIFY(c.applyToolField("text", "textShadow", true));
+        QVERIFY(std::holds_alternative<StaticBitmapLayer>(c.document()->layers.back()));
+        const auto shadow = renderFrame(*c.document(), 0).pixels.pixels;
+        QVERIFY(c.applyToolField("text", "textNoise", 20));
+        QVERIFY(c.applyToolField("text", "textNoiseSeed", 42));
+        const auto noisy = renderFrame(*c.document(), 0).pixels.pixels;
+        QVERIFY(noisy != shadow);
+        QVERIFY(c.applyToolField("text", "textNoiseSeed", 42));
+        QCOMPARE(renderFrame(*c.document(), 0).pixels.pixels, noisy);
+        QTemporaryDir directory(DREAMSCAPES_TEST_DIRECTORY "/text-export-XXXXXX"); QVERIFY(directory.isValid());
+        const auto path = directory.filePath("text.png"); QVERIFY(c.exportImage(QUrl::fromLocalFile(path), "PNG"));
+        const QImage exported(path); QCOMPARE(exported.size(), QSize(256, 144));
+        for (int y = 0; y < 144; ++y) for (int x = 0; x < 256; ++x) QCOMPARE(exported.pixel(x, y), noisy[y * 256 + x]);
+        QVERIFY(c.applyToolField("text", "textShadow", false));
+        QVERIFY(c.applyToolField("text", "textNoise", 0));
+        QVERIFY(std::holds_alternative<StaticVectorLayer>(c.document()->layers.back()));
+        QVERIFY(c.applyToolField("text", "field-0", ""));
+        QVERIFY(c.applyToolField("text", "field-0", "Still editable"));
     }
     void allElementStylesProducePixels() {
         for (const auto &shape : {"Rectangle", "Ellipse", "Polygon", "Line / Arrow"}) {

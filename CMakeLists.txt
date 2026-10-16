@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 3.31)
 include("${CMAKE_CURRENT_LIST_DIR}/cmake/single-app/Defaults.cmake")
 project(Dreamscapes VERSION 0.1.1 LANGUAGES CXX)
+# File creation is owned by iiFileProvider.
+find_package(iiFileProvider 0.6 CONFIG REQUIRED HINTS "$ENV{IIFILEPROVIDER_PREFIX}" "$ENV{HOME}/.local/SDK/iiFileProvider")
+link_libraries(iiFileProvider::iiFileProvider)
+find_package(iiFileProviderNative 0.6 CONFIG REQUIRED HINTS "$ENV{IIFILEPROVIDER_PREFIX}" "$ENV{HOME}/.local/SDK/iiFileProvider")
+link_libraries(iiFileProvider::Native)
+
+
+
+
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -8,18 +17,19 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 QuickDialogs2 Concurrent Multimedia)
 
-# Keep every product dependency required, including packages not installed yet.
-# Future packages are expected to export <Package>::<Package> targets.
-find_package(iiCSMIDI CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiCSMIDI")
-find_package(iiLicenseManager CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLicenseManager")
+# Link the runtime capabilities used by this product.
 find_package(iiLocalDiffusion 0.6.1 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiLocalDiffusion")
-find_package(iiSharedCanvas 0.28.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSharedCanvas")
-find_package(iiPaintEngine CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiPaintEngine")
-find_package(iiSocietyContainer 0.14.1 CONFIG REQUIRED COMPONENTS Gui HINTS "$ENV{HOME}/.local/SDK/iiSocietyContainer")
-find_package(iiSocietyClient 0.1.0 CONFIG REQUIRED)
+find_package(iiSharedCanvas 0.31.0 EXACT CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSharedCanvas")
+find_package(iiGraphicAdjust 0.4.0 EXACT CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiGraphicAdjust")
+find_package(iiColorManager 0.1.0 EXACT CONFIG REQUIRED
+    HINTS "$ENV{HOME}/.local/SDK/iiColorManager" "${CMAKE_CURRENT_BINARY_DIR}/runtime-sdk/iiColorManager")
+find_package(iiPaintEngine 0.4.1 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiPaintEngine")
+find_package(iiPhotoLibrary CONFIG REQUIRED COMPONENTS Library HINTS "$ENV{HOME}/.local/SDK/iiPhotoLibrary")
+find_package(iiSocietyContainer 0.16.0 CONFIG REQUIRED COMPONENTS Gui HINTS "$ENV{HOME}/.local/SDK/iiSocietyContainer")
 find_package(iiSocietyGeneration 0.1.0 CONFIG REQUIRED)
-find_package(iiSocietyHelper 0.7.2 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietyHelper")
-find_package(iiUpdateManager CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiUpdateManager")
+find_package(iiSocietyHelper 0.9.2 CONFIG REQUIRED HINTS
+    "${CMAKE_CURRENT_BINARY_DIR}/runtime-sdk/iiSocietyHelper"
+    "$ENV{HOME}/.local/SDK/iiSocietyHelper")
 find_package(LVRS CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/LVRS")
 qt_standard_project_setup(REQUIRES 6.8)
 if(IOS AND NOT iiLocalDiffusion_NATIVE_DIFFUSION)
@@ -79,15 +89,28 @@ qt_add_qml_module(DreamscapesGeneration
     SOURCES src/App/Views/Home/SocietyTypes.h
         src/App/Views/Home/HomeCanvas.h src/App/Views/Home/HomeCanvas.cpp
         src/App/Views/Home/CanvasPresets.h src/App/Views/Home/CanvasPresets.cpp
+        src/App/Views/Home/CanvasPreview.h src/App/Views/Home/CanvasPreview.cpp
+        src/App/Views/ColorManagerModel.h src/App/Views/ColorManagerModel.cpp
         src/App/Views/Editor/EditorCanvas.h src/App/Views/Editor/EditorCanvas.cpp
         src/App/Views/Editor/EditorCanvasViewport.cpp
+        src/App/Views/Editor/EditorTimelineModel.h src/App/Views/Editor/EditorTimelineModel.cpp
         src/App/Views/Editor/EditorCanvasDocument.cpp src/App/Views/Editor/EditorCanvasTools.cpp
+        src/App/Views/Editor/EditorArtboards.cpp
         src/App/Views/Editor/EditorShapes.cpp src/App/Views/Editor/EditorPixelTools.cpp
-        src/App/Views/Editor/EditorToolActions.cpp src/App/Views/Editor/EditorSelection.cpp
+        src/App/Views/Editor/EditorElementTransform.cpp
+        src/App/Views/Editor/EditorCanvasInteraction.cpp
+        src/App/Views/Editor/EditorCanvasFeedback.h src/App/Views/Editor/EditorCanvasFeedback.cpp
+        src/App/Views/Editor/EditorText.cpp
+        src/App/Views/Editor/EditorGraphicAdjust.h src/App/Views/Editor/EditorGraphicAdjust.cpp
+        src/App/Views/Editor/EditorGraphicOperations.cpp
+        src/App/Views/Editor/EditorToolActions.cpp src/App/Views/Editor/EditorSelection.cpp src/App/Views/Editor/EditorBackgroundMask.cpp
+        src/App/Views/Editor/EditorBackground.cpp
         src/App/Views/Editor/EditorMedia.h src/App/Views/Editor/EditorMedia.cpp
+        src/App/Views/Editor/EditorCameraPhoto.h src/App/Views/Editor/EditorCameraPhoto.cpp
     src/App/Views/Editor/EditorOperations.cpp
     src/App/Views/Editor/EditorLayerPanels.cpp
         src/App/Views/Editor/EditorProject.h src/App/Views/Editor/EditorProject.cpp
+        src/App/Views/Editor/EditorFileInfo.cpp
         src/App/Views/Editor/EditorProjectCodec.h src/App/Views/Editor/EditorProjectCodec.cpp
         src/App/Generation/AdvancedImageParameters.h src/App/Generation/AdvancedImageParameters.cpp
         src/App/Generation/ImageParameterCodec.h src/App/Generation/ImageParameterCodec.cpp
@@ -97,6 +120,7 @@ qt_add_qml_module(DreamscapesGeneration
         src/App/Generation/GenerationController.h src/App/Generation/GenerationController.cpp
         src/App/Generation/ModelPreferences.h src/App/Generation/ModelPreferences.cpp
         src/App/Generation/SocietyGenerationStorage.h src/App/Generation/SocietyGenerationStorage.cpp
+        src/App/Generation/ImageCanvas.h src/App/Generation/ImageCanvas.cpp
         src/App/Views/Result/ImageFileExporter.h src/App/Views/Result/ImageFileExporter.cpp
         src/App/Views/Result/PhotoLibraryExporter.h src/App/Views/Result/PhotoLibraryExporter.cpp)
 if(APPLE)
@@ -104,13 +128,22 @@ if(APPLE)
     target_sources(DreamscapesGeneration PRIVATE src/App/Views/Result/PhotoLibraryApple.mm)
     set_source_files_properties(src/App/Views/Result/PhotoLibraryApple.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
     target_link_libraries(DreamscapesGeneration PRIVATE "-framework Photos" "-framework Foundation")
+    target_sources(DreamscapesGeneration PRIVATE src/App/Views/Editor/EditorCaptureApple.mm src/App/Views/Editor/EditorPhotoImageApple.mm)
+    set_source_files_properties(src/App/Views/Editor/EditorCaptureApple.mm src/App/Views/Editor/EditorPhotoImageApple.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+    target_link_libraries(DreamscapesGeneration PRIVATE "-framework ImageIO")
+    if(NOT IOS)
+        target_link_libraries(DreamscapesGeneration PRIVATE "-framework ScreenCaptureKit" "-framework CoreGraphics" "-framework ImageIO")
+    endif()
 elseif(ANDROID)
+    target_sources(DreamscapesGeneration PRIVATE src/App/Views/Editor/EditorCaptureDesktop.cpp src/App/Views/Editor/EditorPhotoImageDesktop.cpp)
     target_sources(DreamscapesGeneration PRIVATE src/App/Views/Result/PhotoLibraryAndroid.cpp)
 else()
+    target_sources(DreamscapesGeneration PRIVATE src/App/Views/Editor/EditorCaptureDesktop.cpp src/App/Views/Editor/EditorPhotoImageDesktop.cpp)
     target_sources(DreamscapesGeneration PRIVATE src/App/Views/Result/PhotoLibraryUnsupported.cpp)
 endif()
-target_link_libraries(DreamscapesGeneration PUBLIC iiSharedCanvas::iiSharedCanvas iiSocietyGeneration::iiSocietyGeneration iiSocietyClient::iiSocietyClient Qt6::Gui Qt6::Qml iiSocietyContainer::Gui iiSocietyHelper::iiSocietyHelper iiLocalDiffusion::iiLocalDiffusion Qt6::Concurrent Qt6::Multimedia)
+target_link_libraries(DreamscapesGeneration PUBLIC iiPhotoLibrary::iiPhotoLibrary iiSharedCanvas::iiSharedCanvas iiGraphicAdjust::iiGraphicAdjust iiSocietyGeneration::iiSocietyGeneration Qt6::Gui Qt6::Qml iiSocietyContainer::iiSocietyContainer iiSocietyContainer::Gui iiSocietyHelper::iiSocietyHelper iiLocalDiffusion::iiLocalDiffusion Qt6::Concurrent Qt6::Multimedia)
 target_compile_features(DreamscapesGeneration PUBLIC cxx_std_23)
+target_link_libraries(DreamscapesGeneration PUBLIC iiColorManager::iiColorManager Qt6::Quick)
 set_source_files_properties(src/App/Views/Home/Data/canvas-presets.json PROPERTIES QT_RESOURCE_ALIAS "catalog.json")
 qt_add_resources(DreamscapesGeneration canvas_presets PREFIX "/canvas"
     FILES src/App/Views/Home/Data/canvas-presets.json)
@@ -155,6 +188,7 @@ lvrs_add_qml_app(
     QML_FILES
         src/App/Main.qml
         src/App/Views/PanelRow.qml
+        src/App/Views/ColorPicker.qml
         src/App/Views/Preferences/PreferencesWindow.qml
         src/App/Views/Preferences/ModelPreferenceCombo.qml
         src/App/Views/Preferences/PreferenceList.qml
@@ -169,6 +203,8 @@ lvrs_add_qml_app(
         src/App/Views/Home/PublishedList.qml
         src/App/Views/Home/MobileHome.qml
         src/App/Views/Home/HomeContentRow.qml
+        src/App/Views/Home/StorageBrowser.qml
+        src/App/Views/Home/StorageBrowserEntries.js
         src/App/Views/Home/ImageSelectionBar.qml
         src/App/Views/Home/ImageSelection.js
         src/App/Views/Home/HomePromptStarters.qml
@@ -184,12 +220,39 @@ lvrs_add_qml_app(
         src/App/Views/Home/GenerationHistory.qml
         src/App/Views/Result/GenerationResult.qml
         src/App/Views/Editor/CanvasEditor.qml
+        src/App/Views/Editor/EditorTimeline.qml
+        src/App/Views/Editor/EditorPageDeck.qml
+        src/App/Views/Editor/EditorPageStrip.qml
         src/App/Views/Editor/EditorToolbar.qml
         src/App/Views/Editor/EditorToolDefinitions.js
         src/App/Views/Editor/EditorToolControl.qml
+        src/App/Views/Editor/EditorCompactPanel.qml
+        src/App/Views/Editor/EditorCompactDefinitions.js
+        src/App/Views/Editor/EditorButtonState.qml
+        src/App/Views/Editor/EditorBackgroundPanel.qml
+        src/App/Views/Editor/EditorBackgroundParameter.qml
+        src/App/Views/Editor/EditorBackgroundSection.qml
+        src/App/Views/Editor/EditorBackgroundGradient.qml
+        src/App/Views/Editor/EditorBackgroundColorPanel.qml
+        src/App/Views/Editor/EditorBackgroundRemovePanel.qml
+        src/App/Views/Editor/EditorBackgroundReplacePanel.qml
         src/App/Views/Editor/EditorToolPanel.qml
+        src/App/Views/Editor/EditorFileDefinitions.js
+        src/App/Views/Editor/EditorFilePanel.qml
         src/App/Views/Editor/EditorDesktopPanel.qml
+        src/App/Views/Editor/EditorCameraPhotoPanel.qml
+        src/App/Views/Editor/EditorCaptureRegion.qml
+        src/App/Views/Editor/EditorCameraPhotoDefinitions.js
+        src/App/Views/Editor/EditorElementsPanel.qml
+        src/App/Views/Editor/EditorElementTransform.qml
+        src/App/Views/Editor/EditorElementsDefinitions.js
         src/App/Views/Editor/EditorLayersPanel.qml
+        src/App/Views/Editor/EditorTextPanel.qml
+        src/App/Views/Editor/EditorTextDefinitions.js
+        src/App/Views/Editor/EditorGraphicDefinitions.js
+        src/App/Views/Editor/EditorGraphicState.js
+        src/App/Views/Editor/EditorGraphicPanel.qml
+        src/App/Views/Editor/EditorGraphicRow.qml
         src/App/Views/Editor/EditorDocumentControls.qml
         src/App/Views/Editor/EditorToolSheet.qml
     NO_PLATFORM_RUNTIME_TARGETS
@@ -225,9 +288,30 @@ qt_add_resources(Dreamscapes editor_toolbar_assets
 qt_add_resources(Dreamscapes editor_panel_assets
     PREFIX "/qt/qml/Dreamscapes"
     FILES src/App/Views/Editor/Assets/Panel/general-chevron-right.svg)
+file(GLOB editor_background_assets CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Editor/Assets/Background/*.svg")
+qt_add_resources(Dreamscapes editor_background_assets
+    PREFIX "/qt/qml/Dreamscapes" FILES ${editor_background_assets})
+file(GLOB editor_file_assets CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Editor/Assets/File/*.svg")
+qt_add_resources(Dreamscapes "EditorFileAssets" PREFIX "/qt/qml/Dreamscapes" BASE "src" FILES ${editor_file_assets})
 file(GLOB editor_layer_assets CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Editor/Assets/Layers/*.svg")
 qt_add_resources(Dreamscapes editor_layer_assets
     PREFIX "/qt/qml/Dreamscapes" FILES ${editor_layer_assets})
+file(GLOB editor_text_assets CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Editor/Assets/Text/*.svg")
+qt_add_resources(Dreamscapes editor_text_assets
+    PREFIX "/qt/qml/Dreamscapes" FILES ${editor_text_assets})
+file(GLOB editor_elements_assets CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Editor/Assets/Elements/*.svg")
+qt_add_resources(Dreamscapes editor_elements_assets
+    PREFIX "/qt/qml/Dreamscapes" FILES ${editor_elements_assets})
+file(GLOB editor_camera_photo_assets CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Editor/Assets/CameraPhoto/*")
+foreach(asset IN LISTS editor_camera_photo_assets)
+    file(RELATIVE_PATH asset_alias "${CMAKE_CURRENT_SOURCE_DIR}/src" "${asset}")
+    set_source_files_properties("${asset}" PROPERTIES QT_RESOURCE_ALIAS "${asset_alias}")
+endforeach()
+qt_add_resources(Dreamscapes editor_camera_photo_assets
+    PREFIX "/qt/qml/Dreamscapes" FILES ${editor_camera_photo_assets})
+file(GLOB editor_graphic_assets CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Editor/Assets/Graphic/*.svg")
+qt_add_resources(Dreamscapes editor_graphic_assets
+    PREFIX "/qt/qml/Dreamscapes" FILES ${editor_graphic_assets})
 set_source_files_properties(src/App/Views/Video/Assets/coastal-reference.png PROPERTIES
     QT_RESOURCE_ALIAS "App/Views/Video/Assets/coastal-reference.png")
 qt_add_resources(Dreamscapes video_workspace_assets
@@ -248,14 +332,11 @@ if(iiLocalDiffusion_NATIVE_DIFFUSION)
 endif()
 
 set(dreamscapes_product_dependencies
-    iiCSMIDI::iiCSMIDI
-    iiLicenseManager::iiLicenseManager
     iiLocalDiffusion::iiLocalDiffusion
     iiPaintEngine::iiPaintEngine
     iiSocietyContainer::iiSocietyContainer
     iiSocietyContainer::Gui
     iiSocietyHelper::iiSocietyHelper
-    iiUpdateManager::iiUpdateManager
     LVRS::LVRS
 )
 target_link_libraries(Dreamscapes PRIVATE DreamscapesGeneration Qt6::QuickDialogs2 ${dreamscapes_product_dependencies})
@@ -263,6 +344,7 @@ target_compile_definitions(Dreamscapes PRIVATE DREAMSCAPES_APP_VERSION="${PROJEC
 
 if(ANDROID)
     set_property(TARGET Dreamscapes PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/android")
+    iiFileProvider_add_android_storage(Dreamscapes)
     foreach(dependency IN ITEMS ${dreamscapes_product_dependencies} iiFileProvider::iiFileProvider)
         set_property(TARGET Dreamscapes APPEND PROPERTY QT_ANDROID_EXTRA_LIBS
             "$<TARGET_FILE:${dependency}>")
@@ -300,7 +382,7 @@ if(IOS)
         EXCLUDE Qt6::QFFmpegMediaPlugin)
     set_property(TARGET Dreamscapes APPEND PROPERTY BUILD_RPATH "@executable_path/Frameworks")
     # iOS cannot load the development machine's SDK libraries. Embed and sign
-    # every dynamic product library, including iiCSMIDI's FileProvider dependency.
+    # every dynamic product library, including FileProvider.
     set(dreamscapes_ios_runtime_dependencies ${dreamscapes_product_dependencies}
         iiFileProvider::iiFileProvider)
     foreach(dependency IN LISTS dreamscapes_ios_runtime_dependencies)
@@ -350,7 +432,7 @@ if(APPLE)
             dreamscapes_plist_content "${dreamscapes_plist_content}")
     endif()
     string(REGEX REPLACE "</dict>[ \t\r\n]*</plist>"
-        "<key>NSLocalNetworkUsageDescription</key><string>Connect to your Society host to download selected models and upload completed images.</string>\n<key>NSBonjourServices</key><array><string>_society-pair._udp</string></array>\n<key>NSBluetoothAlwaysUsageDescription</key><string>Discover your nearby Society host. Files transfer over Wi-Fi or LAN.</string>\n<key>NSCameraUsageDescription</key><string>Capture photos and scanned documents to place in your canvas.</string>\n<key>NSPhotoLibraryAddUsageDescription</key><string>Save generated images to Photos. iCloud Photos syncs them when enabled for your photo library.</string>\n</dict></plist>"
+        "<key>NSLocalNetworkUsageDescription</key><string>Connect to your Society host to download selected models and upload completed images.</string>\n<key>NSBonjourServices</key><array><string>_society-pair._udp</string></array>\n<key>NSBluetoothAlwaysUsageDescription</key><string>Discover your nearby Society host. Files transfer over Wi-Fi or LAN.</string>\n<key>NSCameraUsageDescription</key><string>Preview your camera and capture photos or silent video for your canvas.</string>\n<key>NSPhotoLibraryUsageDescription</key><string>Browse selected Photos images and import originals into your canvas.</string>\n<key>NSPhotoLibraryAddUsageDescription</key><string>Save generated images to Photos. iCloud Photos syncs them when enabled for your photo library.</string>\n</dict></plist>"
         dreamscapes_plist_content "${dreamscapes_plist_content}")
     file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/photo-library")
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/photo-library/Dreamscapes.Info.plist.in" "${dreamscapes_plist_content}")
@@ -381,6 +463,9 @@ if(ANDROID AND DREAMSCAPES_BUILD_ANDROID_PHOTO_TESTS)
         "$<TARGET_FILE:iiSocietyContainer::iiSocietyContainer>")
 endif()
 if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+    add_executable(DreamscapesHistoryRepair tools/repair_generation_history.cpp)
+    set_target_properties(DreamscapesHistoryRepair PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(DreamscapesHistoryRepair PRIVATE DreamscapesGeneration)
     add_executable(DreamscapesApplicationLifetimeTests tests/tst_applicationlifetime.cpp)
     set_target_properties(DreamscapesApplicationLifetimeTests PROPERTIES MACOSX_BUNDLE FALSE)
     target_link_libraries(DreamscapesApplicationLifetimeTests PRIVATE Qt6::Gui Qt6::Qml Qt6::Quick)
@@ -388,6 +473,40 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     set_tests_properties(Dreamscapes.ApplicationLifetime PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 10)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    if(APPLE)
+        add_test(NAME Dreamscapes.MacRuntimeProfile
+            COMMAND "${Python3_EXECUTABLE}" -B -m unittest discover
+                -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p test_macos_runtime_profile.py -v)
+        set_tests_properties(Dreamscapes.MacRuntimeProfile PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" TIMEOUT 60)
+        add_test(NAME Dreamscapes.MacDeployLock
+            COMMAND "${Python3_EXECUTABLE}" -B -m unittest discover
+                -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p test_deploy_macos_lock.py -v)
+        set_tests_properties(Dreamscapes.MacDeployLock PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" TIMEOUT 30)
+    endif()
+    add_test(NAME Dreamscapes.EditorGraphicCatalog
+        COMMAND "${Python3_EXECUTABLE}" -B -m unittest discover
+            -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p test_graphic_panels.py -v)
+    set_tests_properties(Dreamscapes.EditorGraphicCatalog PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" TIMEOUT 60)
+    add_test(NAME Dreamscapes.EditorElementsCatalog
+        COMMAND "${Python3_EXECUTABLE}" -B -m unittest discover
+            -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p test_elements_panels.py -v)
+    set_tests_properties(Dreamscapes.EditorElementsCatalog PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" TIMEOUT 60)
+    add_test(NAME Dreamscapes.EditorButtonStatePolicy
+        COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_editor_button_states.py")
+    set_tests_properties(Dreamscapes.EditorButtonStatePolicy PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" TIMEOUT 30)
+    file(GLOB DREAMSCAPES_NODE_RUNTIME_HINTS "/opt/homebrew/share/emsdk/node/*/bin")
+    find_program(DREAMSCAPES_NODE_EXECUTABLE NAMES node HINTS ${DREAMSCAPES_NODE_RUNTIME_HINTS})
+    if(DREAMSCAPES_NODE_EXECUTABLE)
+        add_test(NAME Dreamscapes.EditorGraphicState
+            COMMAND "${DREAMSCAPES_NODE_EXECUTABLE}" --test "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_graphic_state.js")
+        set_tests_properties(Dreamscapes.EditorGraphicState PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" TIMEOUT 60)
+    endif()
     add_test(NAME Dreamscapes.GenerationResourceVerifier
         COMMAND "${Python3_EXECUTABLE}" -B -m unittest discover
             -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p test_generation_resources.py -v)
@@ -406,7 +525,7 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
         COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mobile_navigation_assets.py")
     # Only the integration harness acts as Society peers; the app has no Sync transport.
     find_package(iiSocietySync 0.8.0 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietySync")
-    find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Test)
+    find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Test Widgets)
     qt_add_executable(DreamscapesLocalSocietyTests src/App/Generation/tst_LocalSociety.cpp)
     target_link_libraries(DreamscapesLocalSocietyTests PRIVATE iiSocietyGeneration::Host)
     target_link_libraries(DreamscapesLocalSocietyTests PRIVATE DreamscapesGeneration
@@ -415,10 +534,12 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
         DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}"
         DREAMSCAPES_FAKE_GENERATOR="${CMAKE_CURRENT_SOURCE_DIR}/src/App/Generation/fixtures/generate.py")
     add_test(NAME Dreamscapes.LocalSociety COMMAND DreamscapesLocalSocietyTests)
-    set_tests_properties(Dreamscapes.LocalSociety PROPERTIES TIMEOUT 60)
+    # The complete native fixture includes process/loader setup on shared volumes;
+    # individual job watchdogs retain their own short, asserted deadlines.
+    set_tests_properties(Dreamscapes.LocalSociety PROPERTIES TIMEOUT 180)
     # Keep this GUI target limited to sources present in Dreamscapes.
     qt_add_executable(DreamscapesGuiTests src/App/tst_Gui.cpp)
-    target_link_libraries(DreamscapesGuiTests PRIVATE Qt6::Test Qt6::Quick Qt6::QuickControls2 Qt6::QuickDialogs2)
+    target_link_libraries(DreamscapesGuiTests PRIVATE Qt6::Test Qt6::Widgets Qt6::Quick Qt6::QuickControls2 Qt6::QuickDialogs2)
     target_link_libraries(DreamscapesGuiTests PRIVATE DreamscapesGeneration)
     target_link_libraries(DreamscapesGuiTests PRIVATE iiSocietyHelper::iiSocietyHelper)
     target_compile_definitions(DreamscapesGuiTests PRIVATE
@@ -429,32 +550,90 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     )
     add_dependencies(DreamscapesGuiTests Dreamscapes)
     lvrs_configure_qml_app(DreamscapesGuiTests NO_PLATFORM_RUNTIME_TARGETS)
+    qt_add_executable(DreamscapesEditorLayerTimelineTests src/App/tst_EditorLayerTimeline.cpp)
+    target_link_libraries(DreamscapesEditorLayerTimelineTests PRIVATE DreamscapesGeneration
+        Qt6::Test Qt6::Widgets Qt6::Quick Qt6::QuickControls2 Qt6::QuickDialogs2)
+    target_compile_definitions(DreamscapesEditorLayerTimelineTests PRIVATE
+        DREAMSCAPES_QML_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/src/App"
+        DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    lvrs_configure_qml_app(DreamscapesEditorLayerTimelineTests NO_PLATFORM_RUNTIME_TARGETS)
+    add_test(NAME Dreamscapes.EditorLayerTimeline COMMAND DreamscapesEditorLayerTimelineTests)
+    set_tests_properties(Dreamscapes.EditorLayerTimeline PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 120)
     add_test(NAME Dreamscapes.Gui COMMAND DreamscapesGuiTests)
-    add_test(NAME Dreamscapes.EditorLayout COMMAND DreamscapesGuiTests desktopEditorLayoutCentersCanvas desktopEditorElementsMatchesFigma)
+    add_test(NAME Dreamscapes.EditorLayout COMMAND DreamscapesGuiTests desktopEditorLayoutCentersCanvas desktopEditorToolbarScrollsAndNavigates desktopEditorElementsMatchesFigma)
+    add_test(NAME Dreamscapes.EditorSidebar COMMAND DreamscapesGuiTests editorSidebarKeepsSharedWindowLayout)
+    add_test(NAME Dreamscapes.CanvasFeedbackGui COMMAND DreamscapesGuiTests canvasToolFeedbackFollowsNativePointer)
+    set_tests_properties(Dreamscapes.CanvasFeedbackGui PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 120)
+    set_tests_properties(Dreamscapes.EditorSidebar PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 180)
+    add_test(NAME Dreamscapes.EditorTimeline COMMAND DreamscapesGuiTests videoTimelineTracks editorTimelineTrackManagement editorTimelineLayout editorTimelineControlsAndPlayback)
+    set_tests_properties(Dreamscapes.EditorTimeline PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 120)
     set_tests_properties(Dreamscapes.EditorLayout PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 120)
     add_test(NAME Dreamscapes.EditorPanelResize COMMAND DreamscapesGuiTests desktopEditorPanelResizes)
     add_test(NAME Dreamscapes.EditorLayers COMMAND DreamscapesGuiTests editorLayerPanelFourStates)
+    add_test(NAME Dreamscapes.EditorButtonStates COMMAND DreamscapesGuiTests
+        editorButtonInteractionStates editorPanelButtonKindsStayFixed)
+    set_tests_properties(Dreamscapes.EditorButtonStates PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 180)
+    add_test(NAME Dreamscapes.EditorText COMMAND DreamscapesGuiTests editorTextPanelFourStates editorTextPanelMobile)
+    add_test(NAME Dreamscapes.EditorCameraPhoto COMMAND DreamscapesGuiTests editorCameraPhotoViews)
+    add_test(NAME Dreamscapes.SocietyAliases COMMAND DreamscapesGuiTests societyContainerMirrorIsOwnerProvided)
+    add_test(NAME Dreamscapes.StorageBrowser COMMAND DreamscapesGuiTests
+        storageBrowserRoutes storageBrowserUnavailableEntriesAndContainerChanges)
+    set_tests_properties(Dreamscapes.StorageBrowser PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 180)
+    set_tests_properties(Dreamscapes.SocietyAliases PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 120)
+    set_tests_properties(Dreamscapes.EditorCameraPhoto PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 120)
+    qt_add_executable(DreamscapesCameraPhotoTests tests/tst_cameraphoto.cpp)
+    target_link_libraries(DreamscapesCameraPhotoTests PRIVATE DreamscapesGeneration Qt6::Test Qt6::Widgets)
+    target_compile_definitions(DreamscapesCameraPhotoTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    add_test(NAME Dreamscapes.CameraPhoto COMMAND DreamscapesCameraPhotoTests)
+    set_tests_properties(Dreamscapes.CameraPhoto PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;DREAMSCAPES_EDITOR_SOURCE_CACHE=${CMAKE_CURRENT_BINARY_DIR}/verification/camera-photo-cache" TIMEOUT 60)
+    set_tests_properties(Dreamscapes.EditorText PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 180)
     set_tests_properties(Dreamscapes.EditorLayers PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 120)
     set_tests_properties(Dreamscapes.EditorPanelResize PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 120)
     add_test(NAME Dreamscapes.EditorElements COMMAND DreamscapesGuiTests
-        desktopEditorElementsMatchesFigma editorToolNumericContracts editorToolSheets
+        desktopEditorElementsMatchesFigma editorElementsTransformAndInspectorStayInSync
+        editorToolNumericContracts editorToolSheets
         mobileEditorToolbarSlidesAndSelects canvasRoutesPreserveSelectionAndDraft
         desktopHomeSidebarMatchesFigmaAndScrolls)
     set_tests_properties(Dreamscapes.EditorElements PROPERTIES
-        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 240)
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 600)
     add_test(NAME Dreamscapes.EditorToolPanels COMMAND DreamscapesGuiTests
         panelRowsKeepLabelsPassive
         desktopEditorToolPanelsMatchFigma desktopEditorElementsMatchesFigma
         editorToolNumericContracts editorToolSheets)
+    add_test(NAME Dreamscapes.EditorFilePanel COMMAND DreamscapesGuiTests editorFileThreeViews)
+    add_test(NAME Dreamscapes.EditorCompactPanels COMMAND DreamscapesGuiTests editorCompactPanelsMatchFigma)
+    set_tests_properties(Dreamscapes.EditorCompactPanels PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 300)
+    set_tests_properties(Dreamscapes.EditorFilePanel PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 180)
+    add_test(NAME Dreamscapes.EditorGraphicPanels COMMAND DreamscapesGuiTests
+        editorGraphicPanelAllFigmaViews editorGraphicPanelEditsPersistAndReset editorGraphicPanelMobileRoutes editorGraphicPanelCollectionsAndPickers)
+    add_test(NAME Dreamscapes.EditorColorPassiveSelection COMMAND DreamscapesGuiTests
+        editorColorToolSelectionDoesNotEditDocument editorToolControlsDoNotCommitUneditedFocus)
+    set_tests_properties(Dreamscapes.EditorColorPassiveSelection PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 360)
+    set_tests_properties(Dreamscapes.EditorGraphicPanels PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 1200)
     set_tests_properties(Dreamscapes.EditorToolPanels PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 300)
     add_test(NAME Dreamscapes.Preferences COMMAND DreamscapesGuiTests
-        preferencesCategoriesAndDefaultModels preferencesLvrsViewsAndFolderPicker preferencesAccountAvatarFollowsSdk)
+        preferencesCategoriesAndDefaultModels preferencesPromptsWrapAndPersist generationPromptDefaultsSeedNewDrafts
+        preferencesLvrsViewsAndFolderPicker preferencesAccountAvatarFollowsSdk)
     set_tests_properties(Dreamscapes.Preferences PROPERTIES
-        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 60)
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 180)
     add_test(NAME Dreamscapes.QuickGenerate COMMAND DreamscapesGuiTests
         homeCanvasMaxWidthAndAutoHeight homeCanvasScalesToFramePreservingPainting
         homePromptDragDoesNotMoveWindow viewsLeaveWindowChromeAvailable
@@ -462,13 +641,24 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
         referenceGenerateOpensResultImmediately
         countSelectionCreatesThreeImagesInSociety resultScreenLayout
         canvasRoutesPreserveSelectionAndDraft)
+    add_test(NAME Dreamscapes.LiveGeneration COMMAND DreamscapesGuiTests
+        generateOpensResultImmediatelyAndDisplaysEveryPreview resultCancelsTheActiveGeneration
+        newSubmissionReplacesDismissedResults dismissedGenerationCannotReopenOrContaminateTheNextSubmission
+        resultGalleryLayoutAndSelection generateButtonUsesSocietyStorage resultCannotOpenProjectWithoutReadableImage)
+    set_tests_properties(Dreamscapes.LiveGeneration PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1"
+        TIMEOUT 240)
     add_test(NAME Dreamscapes.DesktopHome COMMAND DreamscapesGuiTests
         desktopHomeContinuousRowsAndPromptStarters desktopHomeSidebarReflowsAndRoutes
         desktopHomeSidebarMatchesFigmaAndScrolls
         desktopHomeSearchesSocietyAndUpdates desktopHomeRendersFigmaFrame
         historyAppearsBelowQuickGenerateAndScrolls historyShowsAnEmptyState
         sharedContentSurvivesLayoutChanges)
-    add_test(NAME Dreamscapes.Video COMMAND DreamscapesGuiTests videoHomeSubmitPlaysAndExports videoWorkspaceRoutesEditsAndGenerates)
+    add_test(NAME Dreamscapes.HomeCanvasPreviews COMMAND DreamscapesGuiTests homeCanvasPreviews)
+    set_tests_properties(Dreamscapes.HomeCanvasPreviews PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 90)
+    add_test(NAME Dreamscapes.Video COMMAND DreamscapesGuiTests videoHomeSubmitPlaysAndExports
+        videoWorkspaceStartsEmptyAndUsesGenerationDefaults videoWorkspaceRoutesEditsAndGenerates)
     set_tests_properties(Dreamscapes.Video PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 90)
     add_test(NAME Dreamscapes.PromptFields COMMAND DreamscapesGuiTests
@@ -489,8 +679,55 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
         TIMEOUT 600
     )
     qt_add_executable(DreamscapesHomeCanvasTests tests/tst_homecanvas.cpp)
+    qt_add_executable(DreamscapesImageCanvasTests tests/tst_imagecanvas.cpp)
+    qt_add_executable(DreamscapesCanvasPreviewTests tests/tst_canvaspreview.cpp)
+    target_link_libraries(DreamscapesCanvasPreviewTests PRIVATE DreamscapesGeneration Qt6::Test)
+    target_compile_definitions(DreamscapesCanvasPreviewTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    add_test(NAME Dreamscapes.CanvasPreview COMMAND DreamscapesCanvasPreviewTests)
+    set_tests_properties(Dreamscapes.CanvasPreview PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 60)
+    target_link_libraries(DreamscapesImageCanvasTests PRIVATE DreamscapesGeneration Qt6::Test)
+    target_compile_definitions(DreamscapesImageCanvasTests PRIVATE
+        DREAMSCAPES_HISTORY_REPAIR="$<TARGET_FILE:DreamscapesHistoryRepair>")
+    add_dependencies(DreamscapesImageCanvasTests DreamscapesHistoryRepair)
+    target_compile_definitions(DreamscapesImageCanvasTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    add_test(NAME Dreamscapes.ImageCanvas COMMAND DreamscapesImageCanvasTests)
+    set_tests_properties(Dreamscapes.ImageCanvas PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 60)
     qt_add_executable(DreamscapesEditorCanvasTests tests/tst_editorcanvas.cpp)
     qt_add_executable(DreamscapesEditorToolsTests tests/tst_editortools.cpp)
+    qt_add_executable(DreamscapesElementsSelectionTests tests/tst_elementsselection.cpp)
+    set_target_properties(DreamscapesElementsSelectionTests PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(DreamscapesElementsSelectionTests PRIVATE DreamscapesGeneration Qt6::Test)
+    target_compile_definitions(DreamscapesElementsSelectionTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    add_test(NAME Dreamscapes.ElementsSelection COMMAND DreamscapesElementsSelectionTests)
+    set_tests_properties(Dreamscapes.ElementsSelection PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 180)
+    qt_add_executable(DreamscapesElementTransformTests tests/tst_elementtransform.cpp)
+    qt_add_executable(DreamscapesCanvasFeedbackTests tests/tst_canvasfeedback.cpp)
+    set_target_properties(DreamscapesCanvasFeedbackTests PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(DreamscapesCanvasFeedbackTests PRIVATE DreamscapesGeneration Qt6::Test)
+    target_compile_definitions(DreamscapesCanvasFeedbackTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    add_test(NAME Dreamscapes.CanvasFeedback COMMAND DreamscapesCanvasFeedbackTests)
+    set_tests_properties(Dreamscapes.CanvasFeedback PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 120)
+    set_target_properties(DreamscapesElementTransformTests PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(DreamscapesElementTransformTests PRIVATE DreamscapesGeneration Qt6::Test)
+    target_compile_definitions(DreamscapesElementTransformTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    add_test(NAME Dreamscapes.ElementTransform COMMAND DreamscapesElementTransformTests)
+    set_tests_properties(Dreamscapes.ElementTransform PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 180)
+    qt_add_executable(DreamscapesEditorGraphicAdjustTests tests/tst_editorgraphicadjust.cpp)
+    qt_add_executable(DreamscapesColorManagerTests tests/tst_colormanager.cpp)
+    set_target_properties(DreamscapesColorManagerTests PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(DreamscapesColorManagerTests PRIVATE DreamscapesGeneration Qt6::Test Qt6::Widgets Qt6::QuickControls2)
+    target_compile_definitions(DreamscapesColorManagerTests PRIVATE
+        DREAMSCAPES_QML_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/src/App"
+        DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    lvrs_configure_qml_app(DreamscapesColorManagerTests NO_PLATFORM_RUNTIME_TARGETS)
+    add_test(NAME Dreamscapes.ColorManager COMMAND DreamscapesColorManagerTests)
+    set_tests_properties(Dreamscapes.ColorManager PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 120)
+    target_link_libraries(DreamscapesEditorGraphicAdjustTests PRIVATE DreamscapesGeneration Qt6::Test)
+    target_compile_definitions(DreamscapesEditorGraphicAdjustTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    add_test(NAME Dreamscapes.EditorGraphicAdjust COMMAND DreamscapesEditorGraphicAdjustTests)
+    set_tests_properties(Dreamscapes.EditorGraphicAdjust PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 180)
     target_link_libraries(DreamscapesEditorToolsTests PRIVATE DreamscapesGeneration Qt6::Test)
     target_compile_definitions(DreamscapesEditorToolsTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
     add_test(NAME Dreamscapes.EditorTools COMMAND DreamscapesEditorToolsTests)
@@ -498,13 +735,21 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     target_link_libraries(DreamscapesEditorCanvasTests PRIVATE DreamscapesGeneration Qt6::Test)
     target_compile_definitions(DreamscapesEditorCanvasTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
     add_test(NAME Dreamscapes.EditorCanvas COMMAND DreamscapesEditorCanvasTests)
+    qt_add_executable(DreamscapesEditorFileInfoTests tests/tst_editorfileinfo.cpp)
+    set_target_properties(DreamscapesEditorFileInfoTests PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(DreamscapesEditorFileInfoTests PRIVATE DreamscapesGeneration Qt6::Test)
+    target_compile_definitions(DreamscapesEditorFileInfoTests PRIVATE
+        DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}"
+        DREAMSCAPES_SOURCE_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME Dreamscapes.EditorFileInfo COMMAND DreamscapesEditorFileInfoTests)
+    set_tests_properties(Dreamscapes.EditorFileInfo PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 120)
     qt_add_executable(DreamscapesEditorProjectTests tests/tst_editorproject.cpp)
     target_link_libraries(DreamscapesEditorProjectTests PRIVATE DreamscapesGeneration Qt6::Test)
     target_compile_definitions(DreamscapesEditorProjectTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
     add_test(NAME Dreamscapes.EditorProject COMMAND DreamscapesEditorProjectTests)
     set_tests_properties(Dreamscapes.EditorProject PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 120)
     set_tests_properties(Dreamscapes.EditorCanvas PROPERTIES
-        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 120)
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 240)
     add_test(NAME Dreamscapes.EditorCanvasGui COMMAND DreamscapesGuiTests editorCanvasPanAndZoomStayInsideViewport editorNativeCanvasEditsAndPersists editorToolbarOperations canvasRoutesPreserveSelectionAndDraft)
     add_test(NAME Dreamscapes.EditorRenderQuality COMMAND DreamscapesGuiTests editorDocumentRenderQuality)
     set_tests_properties(Dreamscapes.EditorRenderQuality PROPERTIES
@@ -512,7 +757,7 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     set_tests_properties(Dreamscapes.EditorCanvasGui PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 180)
     add_test(NAME Dreamscapes.HomeEditorRoutes COMMAND DreamscapesGuiTests
-        homeEditorRoutes generatedImageSelectionRoutes advancedCanvasMatchesResolutionAndStreamsItsBatch)
+        homeDefersEditorUntilNeeded homeEditorRoutes generatedImageSelectionRoutes advancedCanvasMatchesResolutionAndStreamsItsBatch advancedAttachmentsPersistNativeSources)
     set_tests_properties(Dreamscapes.HomeEditorRoutes PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 180)
     add_test(NAME Dreamscapes.MultiCanvasGui COMMAND DreamscapesGuiTests multiCanvasProjectSelection)
@@ -538,7 +783,7 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     target_compile_definitions(DreamscapesAdvancedParametersTests PRIVATE
         DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
     add_test(NAME Dreamscapes.AdvancedParameters COMMAND DreamscapesAdvancedParametersTests)
-    target_link_libraries(DreamscapesGenerationTests PRIVATE DreamscapesGeneration Qt6::Test)
+    target_link_libraries(DreamscapesGenerationTests PRIVATE DreamscapesGeneration Qt6::Test iiFileProvider::Native)
     target_compile_definitions(DreamscapesGenerationTests PRIVATE
         DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}"
         DREAMSCAPES_FAKE_GENERATOR="${CMAKE_CURRENT_SOURCE_DIR}/src/App/Generation/fixtures/generate.py")
@@ -591,7 +836,7 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/single-app/SingleApp.cmake")
 product_plain_executables("${CMAKE_SOURCE_DIR}" Dreamscapes)
 cmake_language(DEFER CALL product_single_app Dreamscapes "bin")
 
-product_deploy_app(Dreamscapes "src/App")
+product_deploy_app(Dreamscapes "src/App" COMPACT QUICK_STYLE Basic EMBEDDED_RESOURCES_MODULES LVRS)
 
 if(WIN32 AND BUILD_TESTING)
     get_property(_dreamscapes_tests DIRECTORY PROPERTY TESTS)
@@ -600,4 +845,13 @@ if(WIN32 AND BUILD_TESTING)
         list(TRANSFORM _test_environment REPLACE "QT_QPA_PLATFORM=offscreen" "QT_QPA_PLATFORM=windows")
         set_tests_properties(${_dreamscapes_test} PROPERTIES ENVIRONMENT "${_test_environment}")
     endforeach()
+endif()
+
+if(BUILD_TESTING)
+    qt_add_executable(DreamscapesMaskPanelTests tests/tst_maskpanel.cpp)
+    set_target_properties(DreamscapesMaskPanelTests PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(DreamscapesMaskPanelTests PRIVATE DreamscapesGeneration Qt6::Test Qt6::Widgets Qt6::QuickControls2)
+    target_compile_definitions(DreamscapesMaskPanelTests PRIVATE DREAMSCAPES_QML_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/src/App" DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    lvrs_configure_qml_app(DreamscapesMaskPanelTests NO_PLATFORM_RUNTIME_TARGETS)
+    add_test(NAME Dreamscapes.MaskPanel COMMAND DreamscapesMaskPanelTests)
 endif()

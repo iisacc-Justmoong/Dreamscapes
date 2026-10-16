@@ -19,7 +19,7 @@ Item {
     property string previewTool: ""
     property string previewField: ""
     property var previewValues: ({})
-    readonly property bool modalActive: toolSheet.modalActive || documentControls.modalActive || previewSheet.visible || sourceDialog.visible || exportDialog.visible || advancedSheet.visible || (desktopDock.item ? desktopDock.item.layerModalActive : false)
+    readonly property bool modalActive: toolSheet.modalActive || documentControls.modalActive || previewSheet.visible || sourceDialog.visible || exportDialog.visible || advancedSheet.visible || editorTimeline.modalActive || (desktopDock.item ? desktopDock.item.backgroundModalActive || desktopDock.item.layerModalActive || desktopDock.item.graphicModalActive || desktopDock.item.elementsModalActive || desktopDock.item.photoModalActive : false)
     property int selectedPath: -1
     property var generationTargetCanvas: null
     property url imageSource: ""
@@ -40,23 +40,27 @@ Item {
     function openImages(sources) { return canvasProject.openImages(sources) }
     function localFileSource(path) { return blankCanvas.localFileSource(path) }
     property bool mobileLayout: false
-    readonly property string selectedTool: bottomToolbar.currentTool
+    readonly property string selectedTool: toolToolbar.currentTool
     property bool desktopPanelExpanded: true
     // Retain the requested width when a smaller window temporarily clamps it.
     property real desktopPanelWidth: 342
     readonly property real desktopPanelMinimumWidth: 280
     readonly property real desktopPanelMaximumWidth: Math.min(720,
-        Math.max(desktopPanelMinimumWidth, width - sidebar.width - 320),
-        Math.max(0, width - sidebar.width))
-    readonly property bool compactSidebar: width < 900
+        Math.max(desktopPanelMinimumWidth, width - sidebar.width - toolToolbar.implicitWidth - 320),
+        Math.max(0, width - sidebar.width - toolToolbar.implicitWidth))
+    readonly property bool compactSidebar: width < LV.Theme.scaleMetric(700)
     signal backRequested()
     signal navigationRequested(string action)
     signal toolSelected(string toolId)
     signal toolActionRequested(string toolId, string fieldId, var values)
     signal documentOpened(url source)
     EditorProject { id: canvasProject; objectName: "editorProject" }
+    function syncPagePresentation() {
+        root.blankCanvas.pagePresentation = canvasProject.canvasCount > 1 && !root.blankCanvas.infiniteCanvas
+    }
     function mountCanvas() {
-        canvasProject.attachCanvas(canvasSurface)
+        syncPagePresentation()
+        canvasProject.attachCanvas(nativeCanvasHost)
         resizeCanvas()
         blankCanvas.configureTool(toolSheet.toolId, toolSheet.values)
         if (root.visible) blankCanvas.forceActiveFocus()
@@ -70,10 +74,31 @@ Item {
     Connections {
         target: canvasProject
         function onCurrentCanvasChanged() { root.mountCanvas() }
+        function onProjectChanged() { Qt.callLater(root.syncPagePresentation) }
     }
     Connections {
         target: blankCanvas
-        function onHistoryRestored(settings) { toolSheet.settingsByTool = settings; toolSheet.notice = "" }
+        function onHistoryRestored(settings) {
+            const restored = Object.assign({}, settings);
+            // Graphic drafts are UI input state. Undo restores document pixels
+            // while retaining the user's current values in each graphic panel.
+            ["color", "auto-enhance", "masking", "effects"].forEach(function(tool) {
+                const draft = toolSheet.settingsByTool[tool]
+                if (!draft || !draft.graphicDrafts) return
+                restored[tool] = Object.assign({}, restored[tool] || {}, {
+                    graphicDrafts: draft.graphicDrafts,
+                    graphicOperation: draft.graphicOperation,
+                    graphicParameters: draft.graphicParameters
+                })
+            })
+            // Acquisition settings describe the next source, independent of
+            // the document transaction that placed the previous source.
+            const photoDraft = toolSheet.settingsByTool["camera-photo"]
+            if (photoDraft) restored["camera-photo"] = photoDraft
+            toolSheet.settingsByTool = restored
+            toolSheet.notice = ""
+            toolSheet.syncElementSettings(true)
+        }
     }
     function requestSource(tool, values) {
         sourceDialog.targetTool = tool
@@ -81,8 +106,7 @@ Item {
         const folder = blankCanvas.localDirectory(tool === "file" ? values["field-0"] || "" : values["field-8"] || "")
         if (folder.toString().length) sourceDialog.currentFolder = folder
         sourceDialog.nameFilters = tool === "audio-track" ? [qsTr("WAV audio (*.wav)")]
-            : tool === "asset" ? [qsTr("Media (*.png *.jpg *.jpeg *.webp *.bmp *.tif *.tiff *.svg *.wav *.mp4 *.mov *.mkv *.webm)")]
-            : [qsTr("Images and vectors (*.png *.jpg *.jpeg *.webp *.bmp *.tif *.tiff *.svg)")]
+            : [qsTr("Images, canvases and vectors (*.iisc *.png *.jpg *.jpeg *.webp *.bmp *.tif *.tiff *.svg)")]
         sourceDialog.open()
     }
     function showPreview(tool, field, values) {
@@ -99,7 +123,12 @@ Item {
         if (!generationRuntime) { toolSheet.notice = qsTr("The generation runtime is not attached."); return }
         let operation = field === "field-14" ? "Outpaint" : field === "field-10" || tool === "retouch" || tool === "eraser" ? "Inpaint" : field === "field-7" ? "Image-to-image" : values.selector || "Text-to-image"
         let recipe = values
-        if (tool === "background") { operation = "Background"; recipe = {"field-0": values["field-12"]} }
+        if (tool === "background") {
+            operation = "Background"
+            recipe = Object.assign({}, values, {"field-0": values.replacePrompt || values["field-12"],
+                "field-2": !values.replaceModel || values.replaceModel === "Current generation model" ? "Auto" : values.replaceModel,
+                "field-5": values.replaceStrength === undefined ? 60 : values.replaceStrength})
+        }
         if (tool === "fill") { operation = "Fill"; recipe = {"field-0": values["field-12"], "field-5": values["field-13"]} }
         if (tool === "retouch") recipe = {"field-0": values["field-5"], "field-5": values["field-6"]}
         if (tool === "eraser") recipe = toolSheet.settingsByTool.generative || Definitions.defaults(Definitions.tool("generative"))
@@ -115,6 +144,7 @@ Item {
     function handleToolAction(toolId, fieldId, values) {
         toolActionRequested(toolId, fieldId, values)
         toolSheet.notice = ""
+        if (toolId === "elements" && fieldId === "image-fill") { requestSource("elements", values); return }
         const definition = Definitions.tool(toolId)
         if (fieldId === "capabilities") {
             previewTool = "capabilities"
@@ -132,11 +162,10 @@ Item {
         }
         else if (toolId === "camera-photo" && fieldId === "field-7") requestSource(toolId, values)
         else if (toolId === "audio-track" && fieldId === "field-3") requestSource(toolId, values)
-        else if (toolId === "asset" && fieldId === "field-15") showPreview(toolId, fieldId, values)
         else if (toolId === "layers" && ["field-11", "field-15"].indexOf(fieldId) >= 0) showPreview(toolId, fieldId, values)
-        else if (toolId === "asset" && fieldId === "field-11") requestSource(toolId, values)
         else if (toolId === "brush" && fieldId === "field-20") documentControls.showPaintColor()
         else if (toolId === "brush" && fieldId === "field-3") showPreview(toolId, "field-2", values)
+        else if (toolId === "retouch" && fieldId === "field-18") showPreview(toolId, fieldId, values)
         else if (toolId === "generative" && ["field-3", "field-7", "field-10", "field-14"].indexOf(fieldId) >= 0 || toolId === "background" && fieldId === "field-15" && values["field-13"] === "Generate" || toolId === "fill" && fieldId === "field-15" || toolId === "retouch" && (fieldId === "field-7" || fieldId === "field-3" && values["field-2"] === "Generate") || toolId === "eraser" && fieldId === "field-7" && values["field-6"] === "Generate") submitGeneration(toolId, fieldId, values)
         else if (toolId === "background" && fieldId === "field-15" && values["field-13"] !== "Generate") requestSource(toolId, values)
         else if (toolId === "generative" && fieldId === "field-22") requestSource("reference", values)
@@ -149,11 +178,15 @@ Item {
         blankCanvas.configureTool(toolSheet.toolId, toolSheet.values)
         mountCanvas()
     }
-    onVisibleChanged: if (!visible) { toolSheet.dismiss(); playback.stop(); blankCanvas.media.stop() }
+    onVisibleChanged: if (!visible) { toolSheet.dismiss(); editorTimeline.playing = false; blankCanvas.media.stop(); blankCanvas.photoSources.cancel() }
     onMobileLayoutChanged: if (!mobileLayout) toolSheet.dismiss()
 
     Rectangle {
-        anchors.fill: parent
+        objectName: "editorWorkAreaBackground"
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.left: sidebar.right
+        anchors.right: parent.right
         visible: !root.mobileLayout
         color: LV.Theme.panelBackground05
     }
@@ -166,7 +199,6 @@ Item {
         width: listWidth
         visible: !root.mobileLayout
         compact: root.compactSidebar
-        editorLayout: true
         selectedAction: ""
         onActionRequested: function(action) {
             if (action === "home") root.backRequested()
@@ -208,16 +240,17 @@ Item {
     Item {
         id: workspace
         objectName: "editorWorkspace"
-        anchors.top: root.mobileLayout ? toolbar.bottom : bottomToolbar.bottom
-        anchors.bottom: root.mobileLayout ? bottomToolbar.top : parent.bottom
+        anchors.top: root.mobileLayout ? toolbar.bottom : parent.top
+        anchors.bottom: timelineDock.top
         anchors.left: root.mobileLayout ? parent.left : sidebar.right
-        anchors.right: desktopDock.visible ? desktopDock.left : parent.right
+        anchors.right: root.mobileLayout ? parent.right : toolToolbar.left
         anchors.margins: root.mobileLayout ? LV.Theme.gap16 : 0
         clip: true
 
         EditorDocumentControls {
             id: documentControls
             objectName: "editorDocumentControls"
+            defaultSaveDirectory: root.generationRuntime ? root.generationRuntime.filesDirectory : ""
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
@@ -242,34 +275,78 @@ Item {
             objectName: "editorCanvasSurface"
             anchors.top: documentControls.bottom
             anchors.topMargin: documentControls.height > 0 ? 8 : 0
-            anchors.bottom: frameControls.top
+            anchors.bottom: pageStrip.top
             anchors.left: parent.left
             anchors.right: parent.right
+            EditorPageDeck {
+                anchors.fill: parent
+                project: canvasProject
+                canvas: root.blankCanvas
+                activePage: activePageClip
+                navigationEnabled: !root.modalActive
+            }
+            Item {
+                id: activePageClip
+                objectName: "editorActivePageClip"
+                z: 200
+                x: root.blankCanvas.pagePresentation ? root.blankCanvas.panX + (root.blankCanvas.editingOrigin.x - root.blankCanvas.canvasOriginX) * root.blankCanvas.zoom : 0
+                y: root.blankCanvas.pagePresentation ? root.blankCanvas.panY + (root.blankCanvas.editingOrigin.y - root.blankCanvas.canvasOriginY) * root.blankCanvas.zoom : 0
+                width: root.blankCanvas.pagePresentation ? root.blankCanvas.editingWidth * root.blankCanvas.zoom : canvasSurface.width
+                height: root.blankCanvas.pagePresentation ? root.blankCanvas.editingHeight * root.blankCanvas.zoom : canvasSurface.height
+                clip: root.blankCanvas.pagePresentation
+                Rectangle {
+                    anchors.fill: parent
+                    visible: root.blankCanvas.pagePresentation
+                    color: LV.Theme.panelBackground06
+                }
+                // The host remains viewport-sized. Its offset cancels the clip
+                // position, preserving native input and overlay coordinates.
+                Item {
+                    id: nativeCanvasHost
+                    objectName: "editorNativeCanvasHost"
+                    x: -activePageClip.x
+                    y: -activePageClip.y
+                    width: canvasSurface.width
+                    height: canvasSurface.height
+                }
+            }
+            EditorElementTransform {
+                anchors.fill: parent
+                z: 214
+                canvas: root.blankCanvas
+            }
+            EditorCanvasFeedback {
+                objectName: "editorCanvasFeedback"
+                anchors.fill: parent
+                z: 215
+                canvas: root.blankCanvas
+                visible: !root.modalActive
+            }
             Image {
                 objectName: "editorSelectionOverlay"
-                z: 10
-                x: blankCanvas.panX
-                y: blankCanvas.panY
-                width: blankCanvas.canvasWidth * blankCanvas.zoom
-                height: blankCanvas.canvasHeight * blankCanvas.zoom
+                z: 210
+                x: blankCanvas.panX + (blankCanvas.editingOrigin.x - blankCanvas.canvasOriginX) * blankCanvas.zoom
+                y: blankCanvas.panY + (blankCanvas.editingOrigin.y - blankCanvas.canvasOriginY) * blankCanvas.zoom
+                width: blankCanvas.editingWidth * blankCanvas.zoom
+                height: blankCanvas.editingHeight * blankCanvas.zoom
                 source: blankCanvas.selectionOverlay
                 visible: source.toString().length > 0
                 cache: false
                 smooth: true
             }
             Image {
-                z: 11
-                x: blankCanvas.panX; y: blankCanvas.panY
-                width: blankCanvas.canvasWidth * blankCanvas.zoom; height: blankCanvas.canvasHeight * blankCanvas.zoom
+                z: 211
+                x: blankCanvas.panX + (blankCanvas.editingOrigin.x - blankCanvas.canvasOriginX) * blankCanvas.zoom; y: blankCanvas.panY + (blankCanvas.editingOrigin.y - blankCanvas.canvasOriginY) * blankCanvas.zoom
+                width: blankCanvas.editingWidth * blankCanvas.zoom; height: blankCanvas.editingHeight * blankCanvas.zoom
                 source: blankCanvas.toolState.eraserOverlay || ""
                 visible: root.selectedTool === "eraser"
                 smooth: true
             }
             Image {
                 objectName: "editorClippingOverlay"
-                z: 12
-                x: blankCanvas.panX; y: blankCanvas.panY
-                width: blankCanvas.canvasWidth * blankCanvas.zoom; height: blankCanvas.canvasHeight * blankCanvas.zoom
+                z: 212
+                x: blankCanvas.panX + (blankCanvas.editingOrigin.x - blankCanvas.canvasOriginX) * blankCanvas.zoom; y: blankCanvas.panY + (blankCanvas.editingOrigin.y - blankCanvas.canvasOriginY) * blankCanvas.zoom
+                width: blankCanvas.editingWidth * blankCanvas.zoom; height: blankCanvas.editingHeight * blankCanvas.zoom
                 source: blankCanvas.toolState.clippingOverlay || ""
                 visible: root.selectedTool === "color" || root.selectedTool === "layers"
                 cache: false
@@ -277,23 +354,70 @@ Item {
             }
             Rectangle {
                 objectName: "editorCanvasGuide"
-                z: 13
+                z: 213
                 readonly property var guide: blankCanvas.toolState.canvasGuide || ({})
                 readonly property real insetX: guide.mode === "Safe" ? guide.safeX || 0 : guide.mode === "Bleed" ? -(guide.bleed || 0) : 0
                 readonly property real insetY: guide.mode === "Safe" ? guide.safeY || 0 : guide.mode === "Bleed" ? -(guide.bleed || 0) : 0
-                x: blankCanvas.panX + insetX * blankCanvas.zoom
-                y: blankCanvas.panY + insetY * blankCanvas.zoom
-                width: Math.max(0, blankCanvas.canvasWidth - insetX * 2) * blankCanvas.zoom
-                height: Math.max(0, blankCanvas.canvasHeight - insetY * 2) * blankCanvas.zoom
+                x: blankCanvas.panX + (blankCanvas.editingOrigin.x - blankCanvas.canvasOriginX) * blankCanvas.zoom + insetX * blankCanvas.zoom
+                y: blankCanvas.panY + (blankCanvas.editingOrigin.y - blankCanvas.canvasOriginY) * blankCanvas.zoom + insetY * blankCanvas.zoom
+                width: Math.max(0, blankCanvas.editingWidth - insetX * 2) * blankCanvas.zoom
+                height: Math.max(0, blankCanvas.editingHeight - insetY * 2) * blankCanvas.zoom
                 visible: root.selectedTool === "canvas"
                 color: "transparent"
                 border.width: 1
                 border.color: guide.mode === "Bleed" ? "#FF5F57" : guide.mode === "Safe" ? "#28C840" : "#8B7CFF"
             }
+            Item {
+                x: activePageClip.x; y: activePageClip.y
+                width: activePageClip.width; height: activePageClip.height
+                z: 205
+                visible: blankCanvas.pagePresentation
+                Rectangle {
+                    anchors.fill: parent
+                    color: "transparent"
+                    border.width: 2
+                    border.color: LV.Theme.accent
+                }
+                LV.LabelButton {
+                    objectName: "editorArtboardLabel" + canvasProject.currentIndex
+                    x: Math.max(0, -parent.x)
+                    y: -26
+                    width: Math.max(48, Math.min(parent.width, 200))
+                    height: 22
+                    text: qsTr("%1 · %2").arg(canvasProject.currentIndex + 1).arg((canvasProject.artboards[canvasProject.currentIndex] || {}).name || "")
+                    onClicked: blankCanvas.forceActiveFocus()
+                }
+            }
+            MouseArea {
+                objectName: "editorPageViewportNavigation"
+                anchors.fill: parent
+                z: 230
+                enabled: root.blankCanvas.pagePresentation && !root.modalActive && !root.blankCanvas.liveStrokeActive
+                acceptedButtons: Qt.MiddleButton
+                preventStealing: true
+                property point lastPosition: Qt.point(0, 0)
+                onPressed: function(mouse) { lastPosition = Qt.point(mouse.x, mouse.y); root.blankCanvas.forceActiveFocus() }
+                onPositionChanged: function(mouse) {
+                    if (!pressed) return
+                    root.blankCanvas.panBy(mouse.x - lastPosition.x, mouse.y - lastPosition.y)
+                    lastPosition = Qt.point(mouse.x, mouse.y)
+                }
+                onWheel: function(wheel) {
+                    if (!(wheel.modifiers & Qt.ControlModifier)) {
+                        const delta = wheel.pixelDelta.x || ((wheel.modifiers & Qt.ShiftModifier)
+                            ? wheel.pixelDelta.y || wheel.angleDelta.y / 2 : wheel.angleDelta.x / 2)
+                        if (delta) { root.blankCanvas.scrollHorizontally(-delta); wheel.accepted = true; return }
+                    }
+                    if (wheel.angleDelta.y) {
+                        root.blankCanvas.zoomAt(Math.pow(1.0015, wheel.angleDelta.y), Qt.point(wheel.x, wheel.y))
+                        wheel.accepted = true
+                    } else wheel.accepted = false
+                }
+            }
             MouseArea {
                 objectName: "editorCanvasContextArea"
                 anchors.fill: parent
-                z: 20
+                z: 240
                 enabled: !root.mobileLayout && !root.modalActive
                 acceptedButtons: Qt.RightButton
                 onClicked: function(mouse) { documentControls.openContextMenu(canvasSurface, mouse.x, mouse.y) }
@@ -301,40 +425,32 @@ Item {
             onWidthChanged: root.resizeCanvas()
             onHeightChanged: root.resizeCanvas()
         }
-        LV.HStack {
-            id: frameControls
-            objectName: "editorFrameControls"
+        EditorPageStrip {
+            id: pageStrip
             anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
-            height: visible ? 32 : 0
-            visible: blankCanvas.frameCount > 1
-            spacing: 8
-            LV.LabelButton {
-                text: playback.running ? qsTr("Pause") : qsTr("Play")
-                onClicked: {
-                    if (playback.running) { playback.stop(); blankCanvas.media.stop(); return }
-                    if (blankCanvas.toolState.audioTracks > 0 && !blankCanvas.playTimelineAudio()) { toolSheet.notice = blankCanvas.error; return }
-                    playback.start()
-                }
-            }
-            LV.Slider {
-                Layout.fillWidth: true
-                from: 0; to: Math.max(1, blankCanvas.frameCount - 1); stepSize: 1; value: blankCanvas.frame
-                onMoved: { playback.stop(); blankCanvas.media.stop(); blankCanvas.frame = Math.round(value) }
-            }
-            LV.Label { text: qsTr("%1 / %2").arg(blankCanvas.frame + 1).arg(blankCanvas.frameCount); style: description }
+            height: implicitHeight
+            project: canvasProject
+            canvas: blankCanvas
+            navigationEnabled: !root.modalActive
         }
-        Timer {
-            id: playback
-            interval: Math.max(1, 1000 / blankCanvas.toolState.frameRate)
-            repeat: true
-            property int firstFrame: 0
-            property double startedAt: 0
-            onRunningChanged: if (running) { firstFrame = blankCanvas.frame; startedAt = Date.now() }
-            onTriggered: {
-                const next = firstFrame + Math.floor((Date.now() - startedAt) / 1000 * blankCanvas.toolState.frameRate)
-                if (next >= blankCanvas.frameCount) { stop(); blankCanvas.media.stop(); blankCanvas.frame = 0 }
-                else blankCanvas.frame = next
-            }
+    }
+    Item {
+        id: timelineDock
+        objectName: "editorTimelineDock"
+        anchors.left: workspace.left
+        anchors.right: workspace.right
+        anchors.bottom: root.mobileLayout ? toolToolbar.top : parent.bottom
+        anchors.bottomMargin: root.mobileLayout ? LV.Theme.gap16 : 0
+        height: Math.min(editorTimeline.implicitHeight,
+            Math.max(160, (root.height - (root.mobileLayout ? toolToolbar.height + toolbar.height + 48 : 0)) * 0.48))
+        EditorTimeline {
+            id: editorTimeline
+            width: parent.width
+            height: parent.height
+            canvas: root.blankCanvas
+            generation: root.generationRuntime
+            enabled: !root.modalActive
+            onPreviewError: function(message) { toolSheet.notice = message }
         }
     }
     Loader {
@@ -380,15 +496,14 @@ Item {
         onDoubleClicked: root.desktopPanelWidth = 342
     }
     EditorToolbar {
-        id: bottomToolbar
-        anchors.left: root.mobileLayout ? parent.left : sidebar.right
-        anchors.right: desktopDock.visible ? desktopDock.left : parent.right
+        id: toolToolbar
+        anchors.right: !root.mobileLayout && root.desktopPanelExpanded ? desktopDock.left : parent.right
         anchors.top: root.mobileLayout ? undefined : parent.top
         anchors.bottom: root.mobileLayout ? parent.bottom : undefined
-        anchors.leftMargin: root.mobileLayout ? LV.Theme.gap8 : 0
         anchors.rightMargin: root.mobileLayout ? LV.Theme.gap8 : 0
         anchors.bottomMargin: root.mobileLayout ? LV.Theme.gap8 : 0
-        height: implicitHeight
+        width: root.mobileLayout ? Math.max(0, root.width - LV.Theme.gap8 * 2) : implicitWidth
+        height: root.mobileLayout ? implicitHeight : Math.min(implicitHeight, root.height)
         mobileLayout: root.mobileLayout
         onToolSelected: function(toolId) {
             if (toolId !== "layers") { blankCanvas.setLayerHistogramClipping(false, false); blankCanvas.cancelLayerColorSample() }
@@ -406,13 +521,33 @@ Item {
         id: toolSheet
         parent: root
         engine: blankCanvas
+        projectRuntime: canvasProject
         generationRuntime: root.generationRuntime
+        onToolIdChanged: {
+            if (toolToolbar.currentTool === toolId) return
+            const index = toolToolbar.tools.findIndex(function(tool) { return tool.key === toolSheet.toolId })
+            if (index >= 0) toolToolbar.syncTool(index)
+        }
         onResetRequested: function(toolId, defaults) { if (!blankCanvas.resetTool(toolId, defaults)) notice = blankCanvas.error }
-        onValuesChanged: blankCanvas.configureTool(toolId, values)
+        onValuesChanged: {
+            if (toolId === "elements") {
+                // Selection restoration can notify while this binding is being
+                // evaluated. Configure the final Elements draft after evaluation.
+                Qt.callLater(function() {
+                    if (toolSheet.toolId === "elements") blankCanvas.configureTool("elements", toolSheet.values)
+                })
+            } else blankCanvas.configureTool(toolId, values)
+        }
         onValueEdited: function(toolId, fieldId, value) {
+            // The selected element can restore its accepted draft while an
+            // image is still being chosen. Retain the requested fill for import.
+            const imageFill = toolId === "elements" && fieldId === "field-2" && value === "Image"
+            const requestedValues = imageFill ? Object.assign({}, values, {"field-2": "Image"}) : null
+            // Explicit edits apply immediately, with this tool's complete draft.
+            if (toolId === "elements") blankCanvas.configureTool(toolId, values)
             if (!blankCanvas.applyToolField(toolId, fieldId, value)) notice = blankCanvas.error
             else notice = ""
-            if (toolId === "elements" && fieldId === "field-2" && value === "Image") root.requestSource("elements", values)
+            if (imageFill) root.requestSource("elements", requestedValues)
         }
         onActionRequested: function(toolId, fieldId, values) { root.handleToolAction(toolId, fieldId, values) }
     }
@@ -432,6 +567,7 @@ Item {
                 toolSheet.settingsByTool = all
             }
         }
+        onRejected: if (targetTool === "elements") { toolSheet.syncElementSettings(); toolSheet.notice = "" }
     }
     Dialogs.FileDialog {
         id: exportDialog
@@ -485,6 +621,11 @@ Item {
                         else if (modelData.action === "region") { const region = {selector: "Region", "field-14": modelData.label, "field-15": modelData.label}; blankCanvas.configureTool("masking", region); blankCanvas.executeToolAction("masking", "field-13", region); blankCanvas.configureTool(toolSheet.toolId, toolSheet.values) }
                         else if (modelData.action === "importAsset") blankCanvas.importToolSource(modelData.source, "asset", toolSheet.values)
                         else if (modelData.action === "applyMask") blankCanvas.executeToolAction("layers", "field-23", toolSheet.values)
+                        else if (modelData.action === "applyRepair") {
+                            if (!blankCanvas.executeToolAction("retouch", "field-18", root.previewValues)) toolSheet.notice = blankCanvas.error
+                            else previewSheet.close()
+                            return
+                        }
                         else if (modelData.action === "clearSelection") blankCanvas.clearAreaSelection()
                         else if (modelData.action === "playAudio") blankCanvas.playAudio()
                         else if (modelData.action === "stopAudio") blankCanvas.media.stop()
@@ -517,7 +658,7 @@ Item {
                     type: LV.ListItem.Navigation
                     label: qsTr("Place variation: %1").arg(modelData.id)
                     showLeadingIcon: false
-                    onClicked: if (root.generationTargetCanvas && root.generationTargetCanvas.placeGenerated(modelData.imageSource, root.generationOperation)) previewSheet.close()
+                    onClicked: if (root.generationTargetCanvas && root.generationTargetCanvas.placeGenerated(modelData.documentSource || modelData.imageSource, root.generationOperation)) previewSheet.close()
                 }
             }
             LV.LabelButton { text: qsTr("Close"); onClicked: previewSheet.close() }

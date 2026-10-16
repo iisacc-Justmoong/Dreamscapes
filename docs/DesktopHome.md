@@ -12,6 +12,7 @@
 
 - 홈 사이드바는 [Figma `243:8376`](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=243-8376)의 181px 폭과 상하좌우 8px 패딩을 따른다. `DesktopHomeSidebar.qml`은 `LV.List`, `LV.VStack`, `LV.Spacer`, `LV.MenuItem`, `LV.MenuDivider`, `LV.IconButton`, `LV.Tooltip`만으로 시각 요소를 구성한다. 메뉴는 Home, New Canvas, Image, Video, Audio, Board, Tools, Files, Assets, Generation History 순서이며, Home 뒤와 Tools 뒤에 구분선이 있다. 행은 24px, 구분선 영역은 3px이며 넓은 화면의 행 너비는 165px이다.
 - 700 논리 픽셀 아래에서는 기존 48px 아이콘 레일을 유지하며 상하좌우 8px 패딩으로 행 너비가 32px이 된다. 접근 가능한 이름과 LVRS 툴팁은 전체 메뉴명을 제공한다. 작은 높이에서는 LVRS 목록이 스크롤하며, 포커스를 받은 행을 위아래 8px 안쪽에 표시한다. 실제 선택 상태와 LVRS의 hover·press·focus 표현은 독립적이다.
+- Home·Image·Video·Editor는 같은 사이드바 여백, 아이콘, 700px 축소 기준과 윈도우 상단 인셋을 사용한다. Editor 전용 여백과 Files 아이콘 분기는 없으며, 편집 작업 영역의 배경은 사이드바를 덮지 않는다. `Dreamscapes.EditorSidebar`가 실제 뷰 전환과 경계 너비에서 이 배치를 비교한다.
 - 선택·클릭 색상은 지정 노드의 `lvrs-row-fill-pressed` 값 `#25324D`와 동일한 설치된 LVRS `accentBlueMuted` 토큰을 사용한다. 입력 애니메이션과 포커스 링은 LVRS가 관리한다.
 - 스크롤 가능한 본체의 수평 인셋은 24px, 상단 인셋은 20px이며, 700px 아래에서 수평 인셋은 12px이다. 사이드바의 8px 패딩은 본체의 인셋과 별도로 적용한다.
 - QuickGenerate 는 프롬프트를 먼저 배치하고, 채워졌을 때 64px 첨부 행을 이어 붙이고 생성 제어 항목을 배치합니다. 데스크톱 간격은 16px 이며 제어 행은 28px입니다. 모바일/결과 컴포저 순서는 변경되지 않습니다. 이미지 / 1:1 / 1 기본값과 개수는 1000 까지 유지됩니다. 생성 [프롬프트 필드](PromptFields.md) 는 사용 가능한 너비로 줄이면서 텍스트에 따라 성장하며, 초점이 있는 커서는 세로 뷰포트 에서 계속 표시됩니다. 빈 첨부 파일은 공간을 차지하지 않습니다. 첨부 파일을 추가하면 프롬프트가 상단에 유지되고 캔버스가 표시되지 않습니다. 첨부 카드에는 미리보기와 제거 작업이 유지되며, 이 컴포저에서는 캔버스 드래지 제스처가 비활성화됩니다.
@@ -29,7 +30,7 @@
 
 수락된 QuickGenerate 제출물은 즉시 공유 결과 화면을 엽니다. 참고 이미지가 포함된 제출물도 포함됩니다. 컴포저는 동기 `submitting` 플래그를 소유하고 `generateRequested` 를 방출합니다; 쉘은 이 출처를 사용하여 고급 워크스페이스의 자체 제출물과 혼동하지 않고 이미지 참조 레시피를 라우팅합니다. 결과 화면은 모델 로딩이나 추론이 시작되기 전에 배치의 모든 수락된 작업을 추적합니다. 고급 워크스페이스는 자체 캔버스와 진행 상황 프레젠테이션을 유지합니다.
 
-이미지와 `.iisc` 카드가 실제 원본 경로로 Editor를 연다. Continue creating의 Open file은 로컬 문서·이미지 선택기를 연다. 생성 이력은 Select와 Edit를 통해 여러 이미지를 한 프로젝트의 독립적인 캔버스로 전달한다. 모든 파일/게시물 보기는 Society를 연다. 이력의 전체 보기는 공유 `society://generation-history` SDK 라우트를 사용한다. Editor 복귀는 Home 선택과 프롬프트 초안을 유지한다. 자세한 연결과 검증은 [Home에서 Editor로 진입하는 흐름](HomeEditorRoutes.md)에 정리한다. 계정·알림·검색의 기존 경로는 유지한다.
+이미지와 `.iisc` 카드가 실제 원본 경로로 Editor를 연다. Continue creating의 Open file은 로컬 문서·이미지 선택기를 연다. 생성 이력은 Select와 Edit를 통해 여러 이미지를 한 프로젝트의 독립적인 캔버스로 전달한다. 전체 파일·게시물·생성 이력은 같은 컨테이너 미러를 사용하는 Dreamscapes 내부 탐색 화면을 연다. 홈의 최근 항목 수 제한을 적용하지 않으며 폴더 탐색, 검색, 정렬과 이미지 선택을 제공한다. Editor 복귀는 탐색 위치와 프롬프트 초안을 유지한다. 자세한 연결과 검증은 [Home에서 Editor로 진입하는 흐름](HomeEditorRoutes.md)과 [내부 저장소 탐색](StorageBrowser.md)에 정리한다. 명시적인 계정·Society 실행 동작은 유지한다.
 
 <a id="assets"></a>
 

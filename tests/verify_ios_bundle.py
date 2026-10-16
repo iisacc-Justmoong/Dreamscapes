@@ -80,7 +80,8 @@ def verify(bundle, device, allow_runtime_probe=False):
     libraries = sorted((bundle / 'Frameworks').glob('*.dylib'))
     expected = {'libiiCSMIDI', 'libiiFileProvider', 'libiiLicenseManager',
                 'libiiLocalDiffusion', 'libiiPaintEngine', 'libiiUpdateManager'}
-    assert 'iiSocietyClient' in symbols, 'Missing in-process Society storage client'
+    assert 'iiSocietyHelper6Client' in symbols, 'Missing consolidated Society host client'
+    assert 'iiSocietyClient' not in symbols, 'Remove the retired separate Society Client library'
     for name in expected:
         assert any(lib.name.startswith(name + '.') for lib in libraries), f'Missing embedded {name}'
     diffusion = next(lib for lib in libraries if lib.name.startswith('libiiLocalDiffusion.'))

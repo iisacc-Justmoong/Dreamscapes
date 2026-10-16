@@ -1,0 +1,867 @@
+{
+  "schemaVersion": 1,
+  "fileKey": "bn8O4AHKr1X9DWnhR1TgEy",
+  "referenceDate": "2026-10-09",
+  "geometry": {
+    "frame": [
+      432,
+      559
+    ],
+    "contentWidth": 398,
+    "inset": 17,
+    "gap": 12,
+    "header": [
+      17,
+      17,
+      398,
+      30
+    ],
+    "headerIcon": [
+      18,
+      18
+    ],
+    "resetIcon": [
+      16,
+      16
+    ],
+    "paletteHeight": 72,
+    "paletteButton": [
+      34,
+      34
+    ],
+    "inputHeight": 22,
+    "inputWidth": 206,
+    "sliderHeight": 22,
+    "toggle": [
+      38,
+      22
+    ],
+    "colorPicker": [
+      28,
+      28
+    ],
+    "selectionRowHeight": 36,
+    "selectionRowGap": 8
+  },
+  "tabs": [
+    "Selection",
+    "Shape",
+    "Fill",
+    "Stroke"
+  ],
+  "shapeOptions": [
+    "Rectangle",
+    "Ellipse",
+    "Polygon",
+    "Line / Arrow"
+  ],
+  "selectionActions": [
+    "Inspect",
+    "Multiple",
+    "Clear"
+  ],
+  "views": [
+    {
+      "id": "rectangle",
+      "nodeId": "585:94650",
+      "name": "Shape_Main",
+      "selectedTab": 1,
+      "heading": "Shape · Rectangle",
+      "shapePalette": true,
+      "controls": [
+        {
+          "fieldId": "field-0",
+          "kind": "dimensions",
+          "label": "Size",
+          "rect": [
+            17,
+            172,
+            398,
+            41
+          ],
+          "initial": [
+            1080,
+            1080
+          ]
+        },
+        {
+          "fieldId": "field-3",
+          "kind": "toggle",
+          "label": "Constrain proportions",
+          "rect": [
+            17,
+            225,
+            398,
+            22
+          ],
+          "initial": true
+        },
+        {
+          "fieldId": "field-1",
+          "kind": "slider",
+          "label": "Corner radius",
+          "rect": [
+            17,
+            259,
+            398,
+            52
+          ],
+          "initial": 24
+        },
+        {
+          "fieldId": "field-8",
+          "kind": "slider",
+          "label": "Corner smoothing",
+          "rect": [
+            17,
+            323,
+            398,
+            52
+          ],
+          "initial": 18
+        }
+      ],
+      "screenshotSha256": "88baec1f306690ff0b97998c9375efacd22a2ecde077bfa1487d37074745089c",
+      "contextSha256": "95e59c13844b5603dca1bc9bb1f68e9d4a6bcb7e42de63ae705489f546a255a4"
+    },
+    {
+      "id": "ellipse",
+      "nodeId": "650:15792",
+      "name": "Shape_Ellipse",
+      "selectedTab": 1,
+      "heading": "Shape · Ellipse",
+      "shapePalette": true,
+      "controls": [
+        {
+          "fieldId": "field-0",
+          "kind": "dimensions",
+          "label": "Size",
+          "rect": [
+            17,
+            172,
+            398,
+            41
+          ],
+          "initial": [
+            1080,
+            1080
+          ]
+        },
+        {
+          "fieldId": "field-3",
+          "kind": "toggle",
+          "label": "Constrain proportions",
+          "rect": [
+            17,
+            225,
+            398,
+            22
+          ],
+          "initial": true
+        },
+        {
+          "fieldId": "field-4",
+          "kind": "slider",
+          "label": "Arc sweep",
+          "rect": [
+            17,
+            259,
+            398,
+            52
+          ],
+          "initial": 360
+        },
+        {
+          "fieldId": "field-5",
+          "kind": "slider",
+          "label": "Inner radius",
+          "rect": [
+            17,
+            323,
+            398,
+            52
+          ],
+          "initial": 0
+        }
+      ],
+      "screenshotSha256": "d63d0b082f68b469ca634c9c6b6e2829fc8f631b118bd3fee8c4552d360a5474",
+      "contextSha256": "826af71bc254ca3303d29b1f8d6e1d0f44bbcac9f00819d6a5359283450798ab"
+    },
+    {
+      "id": "polygon",
+      "nodeId": "650:15793",
+      "name": "Shape_Polygon",
+      "selectedTab": 1,
+      "heading": "Shape · Polygon",
+      "shapePalette": true,
+      "controls": [
+        {
+          "fieldId": "field-0",
+          "kind": "dimensions",
+          "label": "Size",
+          "rect": [
+            17,
+            172,
+            398,
+            41
+          ],
+          "initial": [
+            1080,
+            1080
+          ]
+        },
+        {
+          "fieldId": "field-3",
+          "kind": "toggle",
+          "label": "Constrain proportions",
+          "rect": [
+            17,
+            225,
+            398,
+            22
+          ],
+          "initial": true
+        },
+        {
+          "fieldId": "field-7",
+          "kind": "slider",
+          "label": "Sides",
+          "rect": [
+            17,
+            259,
+            398,
+            52
+          ],
+          "initial": 3
+        },
+        {
+          "fieldId": "field-9",
+          "kind": "toggle",
+          "label": "Star mode",
+          "rect": [
+            17,
+            323,
+            398,
+            22
+          ],
+          "initial": true
+        },
+        {
+          "fieldId": "field-8",
+          "kind": "slider",
+          "label": "Corner smoothing",
+          "rect": [
+            17,
+            357,
+            398,
+            52
+          ],
+          "initial": 18
+        }
+      ],
+      "screenshotSha256": "fa7e5bab270bc9af7bf9f166ae4b6c92a3e9fecfa5d086cf47c887aacfeef3f5",
+      "contextSha256": "9d3d7e300ced9edbd85ea025ebbce0fd5e7243dc64048be8ef89994609847ecc"
+    },
+    {
+      "id": "line",
+      "nodeId": "650:15794",
+      "name": "Shape_Line",
+      "selectedTab": 1,
+      "heading": "Shape · Line / Arrow",
+      "shapePalette": true,
+      "controls": [
+        {
+          "fieldId": "field-0",
+          "kind": "dimensions",
+          "label": "Size",
+          "rect": [
+            17,
+            172,
+            398,
+            41
+          ],
+          "initial": [
+            1080,
+            1080
+          ]
+        },
+        {
+          "fieldId": "field-3",
+          "kind": "toggle",
+          "label": "Constrain proportions",
+          "rect": [
+            17,
+            225,
+            398,
+            22
+          ],
+          "initial": true
+        }
+      ],
+      "labels": [
+        "4 px stroke · Round cap · Arrow at end",
+        "Edit stroke and arrowheads"
+      ],
+      "screenshotSha256": "9dd96a9fe2088fcea31f8518cc99a04dc62e2bdedc44dcf4af607b4c552e2377",
+      "contextSha256": "572c0c0d302a4b9aca92b2ea5402ff9c72899e646d11f7452b0efb1c82819f2e"
+    },
+    {
+      "id": "fill",
+      "nodeId": "650:15795",
+      "name": "Shape_Fill",
+      "selectedTab": 2,
+      "heading": "Shape · Fill",
+      "controls": [
+        {
+          "fieldId": "field-2",
+          "kind": "choices",
+          "label": "Fill",
+          "rect": [
+            17,
+            88,
+            398,
+            47
+          ],
+          "initial": "Solid"
+        },
+        {
+          "fieldId": "field-16",
+          "kind": "color",
+          "label": "Fill color",
+          "rect": [
+            17,
+            147,
+            398,
+            53
+          ],
+          "initial": "#8B7CFF"
+        },
+        {
+          "fieldId": "field-14",
+          "kind": "slider",
+          "label": "Opacity",
+          "rect": [
+            17,
+            212,
+            398,
+            52
+          ],
+          "initial": 100
+        },
+        {
+          "fieldId": "field-15",
+          "kind": "choices",
+          "label": "Blend",
+          "rect": [
+            17,
+            276,
+            398,
+            47
+          ],
+          "initial": "Normal"
+        }
+      ],
+      "options": {
+        "field-2": [
+          "Solid",
+          "Gradient",
+          "None",
+          "Image"
+        ],
+        "field-15": [
+          "Normal",
+          "Multiply",
+          "Screen"
+        ]
+      },
+      "scope": {
+        "label": "Apply to",
+        "initial": "Selected shape",
+        "rect": [
+          17,
+          335,
+          398,
+          22
+        ]
+      },
+      "labels": [
+        "Fill and opacity apply to the selected shape."
+      ],
+      "screenshotSha256": "ce193d2150385bd1b7b7f632e2d0d1d7f8bb0e554174bfbd89dbaa2c3da7aa75",
+      "contextSha256": "bb06cb107307fe7c98ea9a827cd68c5a2e25ed781ee235238f98b395898b6da6"
+    },
+    {
+      "id": "stroke",
+      "nodeId": "650:15796",
+      "name": "Shape_Stroke",
+      "selectedTab": 3,
+      "heading": "Shape · Stroke",
+      "controls": [
+        {
+          "fieldId": "field-10",
+          "kind": "slider",
+          "label": "Stroke width",
+          "rect": [
+            17,
+            88,
+            398,
+            52
+          ],
+          "initial": 4
+        },
+        {
+          "fieldId": "field-17",
+          "kind": "color",
+          "label": "Stroke color",
+          "rect": [
+            17,
+            152,
+            398,
+            53
+          ],
+          "initial": "#FFFFFF"
+        },
+        {
+          "fieldId": "field-6",
+          "kind": "choices",
+          "label": "Stroke location",
+          "rect": [
+            17,
+            217,
+            398,
+            47
+          ],
+          "initial": "Inside"
+        },
+        {
+          "fieldId": "field-11",
+          "kind": "choices",
+          "label": "Cap",
+          "rect": [
+            17,
+            276,
+            398,
+            47
+          ],
+          "initial": "Round"
+        },
+        {
+          "fieldId": "field-12",
+          "kind": "choices",
+          "label": "Start",
+          "rect": [
+            17,
+            335,
+            398,
+            47
+          ],
+          "initial": "None"
+        },
+        {
+          "fieldId": "field-13",
+          "kind": "choices",
+          "label": "End",
+          "rect": [
+            17,
+            394,
+            398,
+            47
+          ],
+          "initial": "Arrow"
+        }
+      ],
+      "options": {
+        "field-6": [
+          "Inside",
+          "Center",
+          "Outside"
+        ],
+        "field-11": [
+          "Round",
+          "Square",
+          "Butt"
+        ],
+        "field-12": [
+          "None",
+          "Dot",
+          "Arrow"
+        ],
+        "field-13": [
+          "Arrow",
+          "Dot",
+          "None"
+        ]
+      },
+      "screenshotSha256": "600928681c523bc589a089786c5121d83399e9d89df66f35d47bc3da7edef986",
+      "contextSha256": "4e48378941c8c57209ae55f51dcdc0ef76506221d22c7ecec14325cf90f036c0"
+    },
+    {
+      "id": "selection",
+      "nodeId": "650:15797",
+      "name": "Shape_Selection",
+      "selectedTab": 0,
+      "selectionCount": 1,
+      "selectionActions": true,
+      "controls": [],
+      "labels": [
+        "Choose a shape to inspect its geometry."
+      ],
+      "screenshotSha256": "171d81dd8d090c2f7d89e8be37f52f135dfa2975742888781a02f213e8f170f6",
+      "contextSha256": "6691716c1caf91a1d60f87a11490ba9cb2e478a0157072a66e4ef7bc85d68002"
+    },
+    {
+      "id": "inspect",
+      "nodeId": "662:16150",
+      "name": "Shape_Selection_Inspect",
+      "selectedTab": 0,
+      "selectionCount": 1,
+      "selectionActions": true,
+      "activeAction": "inspect",
+      "heading": "Inspect · Rectangle",
+      "scope": {
+        "label": "Active shape",
+        "initial": "Rectangle",
+        "rect": [
+          17,
+          206,
+          398,
+          22
+        ]
+      },
+      "controls": [
+        {
+          "fieldId": "field-0",
+          "kind": "dimensions",
+          "label": "Size",
+          "rect": [
+            17,
+            240,
+            398,
+            41
+          ],
+          "initial": [
+            1080,
+            1080
+          ]
+        },
+        {
+          "fieldId": "field-1",
+          "kind": "slider",
+          "label": "Corner radius",
+          "rect": [
+            17,
+            293,
+            398,
+            52
+          ],
+          "initial": 24
+        },
+        {
+          "fieldId": "field-16",
+          "kind": "color",
+          "label": "Fill color",
+          "rect": [
+            17,
+            357,
+            398,
+            53
+          ],
+          "initial": "#8B7CFF"
+        },
+        {
+          "fieldId": "field-10",
+          "kind": "slider",
+          "label": "Stroke width",
+          "rect": [
+            17,
+            422,
+            398,
+            52
+          ],
+          "initial": 4
+        }
+      ],
+      "labels": [
+        "Inspect the active shape and its appearance."
+      ],
+      "screenshotSha256": "75f20a518fe13f1d3b8994424f981d735a64f81544e7e069273a08986699f1b2",
+      "contextSha256": "24985dad138ecc75574125863e0d16f9a8931e3227c011334154ab92f793a88d"
+    },
+    {
+      "id": "multiple",
+      "nodeId": "662:16151",
+      "name": "Shape_Selection_Multiple",
+      "selectedTab": 0,
+      "selectionCount": 1,
+      "selectionActions": true,
+      "activeAction": "multiple",
+      "heading": "Multiple · Shape selection",
+      "controls": [],
+      "multipleSelection": true,
+      "scope": {
+        "label": "Selection scope",
+        "initial": "All shapes",
+        "rect": [
+          17,
+          240,
+          398,
+          22
+        ]
+      },
+      "selectionRows": {
+        "rect": [
+          17,
+          274,
+          398,
+          124
+        ],
+        "names": [
+          "Rectangle",
+          "Ellipse",
+          "Polygon"
+        ],
+        "selected": [
+          true,
+          false,
+          false
+        ]
+      },
+      "labels": [
+        "Click a row or checkbox to add or remove a shape."
+      ],
+      "screenshotSha256": "c7084f5bde6d6076ab085b87578243d38b8f60d3f5c45a7579a3a8011cb74802",
+      "contextSha256": "d43e5ead6191eb8f1f5b264868a3d71d950d5800f125d0008a2a48aa8d69a88e"
+    },
+    {
+      "id": "clear",
+      "nodeId": "662:16152",
+      "name": "Shape_Selection_Clear",
+      "selectedTab": 0,
+      "selectionCount": 0,
+      "selectionActions": true,
+      "activeAction": "clear",
+      "heading": "Clear · Selection reset",
+      "controls": [],
+      "scope": {
+        "label": "Selection scope",
+        "initial": "All shapes",
+        "rect": [
+          17,
+          206,
+          398,
+          22
+        ]
+      },
+      "selectionRows": {
+        "rect": [
+          17,
+          266,
+          398,
+          124
+        ],
+        "names": [
+          "Rectangle",
+          "Ellipse",
+          "Polygon"
+        ],
+        "selected": [
+          false,
+          false,
+          false
+        ]
+      },
+      "labels": [
+        "No shapes selected. Choose a shape to start again.",
+        "Use Inspect for one shape or Multiple for a selection."
+      ],
+      "screenshotSha256": "dbeee559b1b7771fce1fe87b85c82eb5a8282de471483fca5c67a7c692b2f4c9",
+      "contextSha256": "9695c2f2f092e19cba5c1e5b04b4f115352cf2c367247b53c2704b528ba71684"
+    }
+  ],
+  "assets": [
+    {
+      "name": "tick0.svg",
+      "sha256": "568b5840ee3b61c6045ffec5ddb4b5ec2e921b7df7b468f596e466b9a6104364",
+      "width": "2",
+      "height": "2",
+      "role": "slider-optional-ticks-hidden-by-default",
+      "nodeId": "585:94650"
+    },
+    {
+      "name": "focus-ring.svg",
+      "sha256": "b32e2208b96849f078019f1a39c2d46ee87ec419512cdf2d918b58c3d1956bfc",
+      "width": "18",
+      "height": "18",
+      "role": "slider-optional-focus-ring-hidden-by-default",
+      "nodeId": "585:94650"
+    },
+    {
+      "name": "thumb.svg",
+      "sha256": "75386dfa36907d2457b5dd5f0bdcb4291f0d47aa6ef52da7fe6be91ef0ddfb92",
+      "width": "18",
+      "height": "18",
+      "role": "slider-thumb-with-exported-shadow",
+      "nodeId": "585:94650"
+    },
+    {
+      "name": "line.svg",
+      "sha256": "d9acf5d74052c67ef32883d0a48d020bc885ce5c1b9df3d702f6c4ff54390ef2",
+      "width": "18",
+      "height": "18",
+      "role": "visible-static-icon",
+      "nodeId": "585:94650"
+    },
+    {
+      "name": "polygon.svg",
+      "sha256": "bd044928f05def996060e584dc67b7930ea00426801188afa48cadffe54ab0f4",
+      "width": "18",
+      "height": "18",
+      "role": "visible-static-icon",
+      "nodeId": "585:94650"
+    },
+    {
+      "name": "ellipse.svg",
+      "sha256": "bafcd6deaa88056f9592d90b98d479fabb8461ffa4c000a37c47896917a9ee2d",
+      "width": "18",
+      "height": "18",
+      "role": "visible-static-icon",
+      "nodeId": "585:94650"
+    },
+    {
+      "name": "stroke.svg",
+      "sha256": "67ba6420239eb04cca6471b266263f6e598a4d9e90015600d3c82df5e4a8a651",
+      "width": "18",
+      "height": "18",
+      "role": "visible-static-icon",
+      "nodeId": "585:94650"
+    },
+    {
+      "name": "fill.svg",
+      "sha256": "a8dd693126a7c1dbc739a62735600aeedbc0b40d6e0fe2aa3036c1318bc654f2",
+      "width": "18",
+      "height": "18",
+      "role": "visible-static-icon",
+      "nodeId": "585:94650"
+    },
+    {
+      "name": "rectangle.svg",
+      "sha256": "3746bc41a8a5649bb93dcca9bfcebd16fcdca53eb7c72aad5b1939be3ccc0ffd",
+      "width": "18",
+      "height": "18",
+      "role": "visible-static-icon",
+      "nodeId": "585:94650"
+    },
+    {
+      "name": "direct-select.svg",
+      "sha256": "5a379eb244873aaf0285689a1fb347597f5249bf874e67338ab0a850a13cf14a",
+      "width": "18",
+      "height": "18",
+      "role": "visible-static-icon",
+      "nodeId": "585:94650"
+    },
+    {
+      "name": "auto-refresh.svg",
+      "sha256": "2aa3afb7116a4f18695d21a3128b8c0c25d6289c18a9451647fa584ffe45cff4",
+      "width": "16",
+      "height": "16",
+      "role": "visible-static-icon",
+      "nodeId": "585:94650"
+    },
+    {
+      "name": "thumb-650-15793.svg",
+      "sha256": "e15d2a5a72a21d557b9293251150d8ec53f5bb702e32df192bbea4c1a9cc5089",
+      "width": "18",
+      "height": "18",
+      "role": "slider-thumb-with-exported-shadow",
+      "nodeId": "650:15793"
+    },
+    {
+      "name": "arrow-up-down-tone-primary.svg",
+      "sha256": "0fe2d0b08a989807e35df24cd4a83d3b346337b6349b8755b456836bf3d4cb82",
+      "width": "18",
+      "height": "18",
+      "role": "dropdown-state-variant",
+      "nodeId": "650:15795"
+    },
+    {
+      "name": "arrow-up-down-tone-borderless.svg",
+      "sha256": "8f633624cffffb7fd51da39b2e7d75871810f69eecd6d0ad05a57e44ef47ed1f",
+      "width": "18",
+      "height": "18",
+      "role": "dropdown-state-variant",
+      "nodeId": "650:15795"
+    },
+    {
+      "name": "arrow-down-tone-primary.svg",
+      "sha256": "2fb56c4c726e8ff59069b0ce4c00e17bcd7090b94f3562a6947b66c466308f54",
+      "width": "18",
+      "height": "18",
+      "role": "dropdown-state-variant",
+      "nodeId": "650:15795"
+    },
+    {
+      "name": "arrow-down-tone-borderless.svg",
+      "sha256": "f707baeb094881dd0bdb6480090ff46cb082e38897fd976837d347598627f88f",
+      "width": "18",
+      "height": "18",
+      "role": "dropdown-state-variant",
+      "nodeId": "650:15795"
+    },
+    {
+      "name": "arrow-up-tone-primary.svg",
+      "sha256": "2fb56c4c726e8ff59069b0ce4c00e17bcd7090b94f3562a6947b66c466308f54",
+      "width": "18",
+      "height": "18",
+      "role": "dropdown-state-variant",
+      "nodeId": "650:15795"
+    },
+    {
+      "name": "arrow-up-tone-borderless.svg",
+      "sha256": "f707baeb094881dd0bdb6480090ff46cb082e38897fd976837d347598627f88f",
+      "width": "18",
+      "height": "18",
+      "role": "dropdown-state-variant",
+      "nodeId": "650:15795"
+    },
+    {
+      "name": "thumb-650-15795.svg",
+      "sha256": "fe022c44d629406cede6c568a683e33dd339d8ca920784baf8a72a86d166f484",
+      "width": "18",
+      "height": "18",
+      "role": "slider-thumb-with-exported-shadow",
+      "nodeId": "650:15795"
+    },
+    {
+      "name": "thumb-650-15796.svg",
+      "sha256": "b10876febdce027b7def17fa21244b8b9f5b405809fbf14c3f67904e6fb1a97d",
+      "width": "18",
+      "height": "18",
+      "role": "slider-thumb-with-exported-shadow",
+      "nodeId": "650:15796"
+    },
+    {
+      "name": "unselect-all.svg",
+      "sha256": "dc8ef01c0acce0902ad93de3f6e425f280c47a1901ff6bf76471d4b51a83a1c0",
+      "width": "18",
+      "height": "18",
+      "role": "visible-static-icon",
+      "nodeId": "650:15797"
+    },
+    {
+      "name": "group.svg",
+      "sha256": "7dcebc9fe37a4e23e136d715163767f2d1263e9432e67e138507efb1cbb402e5",
+      "width": "18",
+      "height": "18",
+      "role": "visible-static-icon",
+      "nodeId": "650:15797"
+    },
+    {
+      "name": "checkbox.svg",
+      "sha256": "49cb911fe40a262bba99944d9d120cd56bc35d1560e257c128bf23bbdb6de9db",
+      "width": "17",
+      "height": "17",
+      "role": "visible-checked-selection-control",
+      "nodeId": "662:16151"
+    }
+  ]
+}

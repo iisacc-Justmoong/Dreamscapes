@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import LVRS 1.0 as LV
+import "../Home"
 
 LV.ApplicationWindow {
     id: preferences
@@ -9,6 +10,7 @@ LV.ApplicationWindow {
     required property var generation
     property var account: null
     property string currentCategory: "General"
+    readonly property bool generationCategory: ["Image", "Video", "Audio", "Agents"].indexOf(currentCategory) >= 0
     property string locationMessage: ""
     property bool locationFailed: false
     property string driveLocationDraft: generation.containerPath
@@ -216,7 +218,7 @@ LV.ApplicationWindow {
         PreferenceList {
             id: generateDetails
             objectName: "preferencesGenerateDetails"
-            visible: preferences.currentCategory === "Image" || preferences.currentCategory === "Video"
+            visible: preferences.generationCategory
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
@@ -229,14 +231,14 @@ LV.ApplicationWindow {
                     Layout.leftMargin: LV.Theme.gap20
                     Layout.rightMargin: LV.Theme.gap20
                     Layout.fillWidth: true
-                    text: preferences.currentCategory === "Image" ? qsTr("Image") : qsTr("Video")
+                    text: preferences.currentCategory
                     style: header
                 }
                 LV.Label {
                     Layout.leftMargin: LV.Theme.gap20
                     Layout.rightMargin: LV.Theme.gap20
                     Layout.fillWidth: true
-                    text: qsTr("Choose the models used by default for new generations.")
+                    text: qsTr("Set the defaults used for new generations.")
                     style: description
                     wrapMode: Text.Wrap
                     sizeToContentHeight: true
@@ -285,6 +287,59 @@ LV.ApplicationWindow {
                         onModelSelected: function(id) { preferences.generation.setDefaultVideoModel(id) }
                     }
                 }
+                LV.VStack {
+                    Layout.leftMargin: LV.Theme.gap20
+                    Layout.rightMargin: LV.Theme.gap20
+                    Layout.fillWidth: true
+                    spacing: LV.Theme.gap8
+                    LV.Label {
+                        text: qsTr("Default prompt")
+                        style: body
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                        sizeToContentHeight: true
+                    }
+                    PromptField {
+                        objectName: "defaultGenerationPrompt"
+                        maximumLength: 32000
+                        clearButtonVisible: false
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        placeholderText: qsTr("Default prompt")
+                        Accessible.name: qsTr("Default prompt")
+                        text: (preferences.generation.defaultGenerationPrompts[preferences.currentCategory] || {}).prompt || ""
+                        onTextEdited: function(value) {
+                            preferences.generation.setDefaultGenerationPrompt(preferences.currentCategory, value, false)
+                        }
+                    }
+                }
+                LV.VStack {
+                    Layout.leftMargin: LV.Theme.gap20
+                    Layout.rightMargin: LV.Theme.gap20
+                    Layout.fillWidth: true
+                    spacing: LV.Theme.gap8
+                    LV.Label {
+                        objectName: "defaultNegativePromptLabel"
+                        text: qsTr("Default negative prompt")
+                        style: body
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                        sizeToContentHeight: true
+                    }
+                    PromptField {
+                        objectName: "defaultGenerationNegativePrompt"
+                        maximumLength: 32000
+                        clearButtonVisible: false
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        placeholderText: qsTr("Default negative prompt")
+                        Accessible.name: qsTr("Default negative prompt")
+                        text: (preferences.generation.defaultGenerationPrompts[preferences.currentCategory] || {}).negativePrompt || ""
+                        onTextEdited: function(value) {
+                            preferences.generation.setDefaultGenerationPrompt(preferences.currentCategory, value, true)
+                        }
+                    }
+                }
                 LV.Label {
                     objectName: "preferencesModelFeedback"
                     Layout.leftMargin: LV.Theme.gap20
@@ -325,7 +380,7 @@ LV.ApplicationWindow {
         }
         LV.VStack {
             objectName: "preferencesCategoryDetails"
-            visible: ["Account", "Storage", "Image", "Video"].indexOf(preferences.currentCategory) < 0
+            visible: preferences.currentCategory !== "Account" && preferences.currentCategory !== "Storage" && !preferences.generationCategory
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.margins: LV.Theme.gap20

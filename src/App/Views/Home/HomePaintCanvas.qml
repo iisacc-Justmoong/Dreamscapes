@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
+import ".." as Shared
 
 Item {
     id: root
@@ -132,7 +133,6 @@ Item {
                         currentColor: canvas.brushColor
                         onClicked: {
                             colorPicker.setColor(canvas.brushColor)
-                            colorPicker.previousColor = canvas.brushColor
                             root.openPopover(colorPopover, colorButton)
                         }
                     }
@@ -260,7 +260,7 @@ Item {
                             color: LV.Theme.panelBackground08
                             Image {
                                 x: 8; y: 8; width: 48; height: 48
-                                source: card.imageSource
+                                source: card.modelData.previewSource || card.imageSource
                                 sourceSize: Qt.size(96, 96)
                                 fillMode: Image.PreserveAspectCrop
                                 clip: true
@@ -337,7 +337,7 @@ Item {
         height: 48
         visible: root.dragging
         opacity: 0.85
-        source: root.draggedCard ? root.draggedCard.imageSource : ""
+        source: root.draggedCard ? root.draggedCard.modelData.previewSource || root.draggedCard.imageSource : ""
         sourceSize: Qt.size(144, 96)
         fillMode: Image.PreserveAspectFit
         Drag.active: root.dragging
@@ -353,7 +353,7 @@ Item {
         objectName: "homeColorPopover"
         width: colorPicker.implicitWidth + padding * 2
         height: colorPicker.implicitHeight + padding * 2
-        contentItem: LV.ColorPicker {
+        contentItem: Shared.ColorPicker {
             id: colorPicker
             objectName: "homeColorPicker"
             onAccepted: function(color) { canvas.brushColor = color; colorPopover.close() }

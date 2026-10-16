@@ -15,7 +15,8 @@ bool EditorCanvas::rasterizeSelected() {
     const auto index = std::size_t(layer - document()->layers.data());
     auto single = *document(); for (auto &entry : single.layers) layerProperties(entry).visible = false;
     layerProperties(single.layers[index]).visible = true; layerProperties(single.layers[index]).opacity = 1;
-    const auto rendered = renderFrame(single, frame()); if (!rendered.ok()) return fail(QString::fromStdString(rendered.message));
+    for (auto &board : single.artboards) board.backgroundArgb = 0;
+    const auto rendered = renderEditingFrame(single); if (!rendered.ok()) return fail(QString::fromStdString(rendered.message));
     const auto assetId = unique("rasterized.asset.");
     if (!commit([&](Document &d) { auto *selected = findLayer(d, id.toStdString()); auto properties = layerProperties(*selected); properties.transform = {};
         d.assets.emplace_back(RasterAsset{assetId, rendered.pixels}); *selected = StaticBitmapLayer{properties, StaticSource{assetId}}; return true; })) return false;
@@ -94,16 +95,22 @@ bool EditorCanvas::updateBackground() {
     const auto v = settingsFor("background"); const QColor color(text(v, 1, "#12131A")); if (!color.isValid()) return fail(tr("Enter a valid background hex color."));
     RasterFill f; f.firstArgb = color.rgba(); f.secondArgb = color.lighter(180).rgba(); f.opacity = std::clamp(number(v, 2, 100) / 100, 0.0, 1.0);
     f.kind = text(v, 0, "Solid") == "Linear" ? RasterFillKind::Linear : text(v, 0) == "Radial" ? RasterFillKind::Radial : RasterFillKind::Solid;
-    auto filled = fillRaster(document()->extent, f); if (!filled.ok()) return fail(QString::fromStdString(filled.error));
-    return commit([&](Document &d) { const std::string id = "canvas.background";
-        if (auto *asset = findAsset(d, id)) *asset = RasterAsset{id, filled.pixels}; else d.assets.emplace_back(RasterAsset{id, filled.pixels});
-        if (auto *layer = findLayer(d, "canvas.background.layer")) *layer = StaticBitmapLayer{{"canvas.background.layer", "Background"}, StaticSource{id}};
-        else d.layers.insert(d.layers.begin(), StaticBitmapLayer{{"canvas.background.layer", "Background"}, StaticSource{id}}); return true; });
+    auto filled = fillRaster(editingExtent(), f); if (!filled.ok()) return fail(QString::fromStdString(filled.error));
+    return commit([&](Document &d) {
+        const auto layerId = backgroundLayerId(), assetId = layerId + ":asset";
+        if (auto *asset = findAsset(d, assetId)) *asset = RasterAsset{assetId, filled.pixels};
+        else d.assets.emplace_back(RasterAsset{assetId, filled.pixels});
+        LayerProperties properties{layerId, "Background"};
+        if (activeArtboard()) properties.artboardId = m_activeArtboard;
+        if (auto *layer = findLayer(d, layerId)) *layer = StaticBitmapLayer{properties, StaticSource{assetId}};
+        else d.layers.insert(d.layers.begin(), StaticBitmapLayer{properties, StaticSource{assetId}});
+        return true;
+    });
 }
 bool EditorCanvas::fillAt(const QPointF &position) {
     if (m_toolValues.value("selector").toString() == "Generative") {
         if (!documentReady()) return fail(tr("Open a canvas first."));
-        const auto rendered = renderFrame(*document(), frame());
+        const auto rendered = renderEditingFrame(*document());
         if (!rendered.ok()) return fail(QString::fromStdString(rendered.message));
         const auto selected = floodMask(rendered.pixels, {int(std::floor(position.x())), int(std::floor(position.y()))}, 0.12, true);
         if (!selected.ok()) return fail(QString::fromStdString(selected.error));

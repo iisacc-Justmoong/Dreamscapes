@@ -85,12 +85,15 @@ build_dependency json-c "$android_root/sources/json-c" \
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 build_dependency iiAcountManager "$sdk_source_root/iiAcountManager" \
     -DIIACCOUNTMANAGER_BUILD_QUICK=OFF
-for package in iiFileProvider iiCSMIDI iiSocietyContainer iiSocietyHelper; do
+for package in iiFileProvider iiCSMIDI iiSocietyContainer; do
     build_dependency "$package" "$sdk_source_root/$package"
 done
 build_dependency iiServerHost "$sdk_source_root/iiServerHost" -DBUILD_SHARED_LIBS=OFF
-for package in iiSocietySync iiSocietyClient iiSocietyGeneration; do
+for package in iiSocietySync iiSocietyGeneration; do
     build_dependency "$package" "$sdk_source_root/$package" -DBUILD_SHARED_LIBS=OFF
+done
+for package in iiPaintEngine iiSharedCanvas iiSDKCore iiSocietyMonitor iiSocietyHelper; do
+    build_dependency "$package" "$sdk_source_root/$package"
 done
 build_dependency iiLocalDiffusion "$sdk_source_root/iiLocalDiffusion" \
     -DIILD_ENABLE_MLX=OFF -DIILD_ENABLE_LIBTORCH=OFF -DIILD_ENABLE_COREML=OFF \
@@ -98,7 +101,7 @@ build_dependency iiLocalDiffusion "$sdk_source_root/iiLocalDiffusion" \
     "-Djson-c_DIR=$prefix/lib/cmake/json-c"
 
 packages=("-DLVRS_DIR=$sdk_install_root/LVRS/platforms/android/lib/cmake/LVRS")
-for package in iiAcountManager iiFileProvider iiCSMIDI iiServerHost iiSocietyContainer iiSocietyHelper iiSocietySync iiSocietyClient iiSocietyGeneration iiLocalDiffusion; do
+for package in iiAcountManager iiFileProvider iiCSMIDI iiServerHost iiSocietyContainer iiSocietySync iiSocietyHelper iiSocietyGeneration iiLocalDiffusion; do
     packages+=("-D${package}_DIR=$prefix/lib/cmake/$package")
 done
 for package in iiLicenseManager iiPaintEngine iiUpdateManager; do

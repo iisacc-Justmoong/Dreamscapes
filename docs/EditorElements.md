@@ -1,40 +1,99 @@
-# Editor의 Elements 샘플
+# Editor Elements panels
 
-대상 디자인은 [Dreamscapes Editor `353:22614`](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=353-22614&m=dev)이다. 이 문서는 Editor 화면과 펼쳐진 `01 Elements` 컨트롤 패널의 외형 및 입력 동작을 설명한다. 이후 연결한 네이티브 도형 생성과 문서 편집은 [EditorNativeCanvas.md](EditorNativeCanvas.md)에 정의되어 있다.
+The Elements tool implements the ten supplied Figma frames from the Dreamscapes design file. The former all-in-one 18-field panel is replaced by the same icon and state navigation used by the editor's Text, Layer and Graphic panels.
 
-## 구성
+| View | Figma node | Visible controls |
+|---|---|---|
+| Rectangle | [585:94650](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=585-94650&m=dev) | Size, constrain proportions, corner radius, corner smoothing |
+| Ellipse | [650:15792](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=650-15792&m=dev) | Size, constrain proportions, arc sweep, inner radius |
+| Polygon | [650:15793](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=650-15793&m=dev) | Size, constrain proportions, sides, star mode, corner smoothing |
+| Line / Arrow | [650:15794](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=650-15794&m=dev) | Size, constrain proportions, stroke summary and stroke navigation |
+| Fill | [650:15795](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=650-15795&m=dev) | Fill type, color, opacity, blend, application scope |
+| Stroke | [650:15796](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=650-15796&m=dev) | Width, color, location, cap and start/end markers |
+| Selection | [650:15797](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=650-15797&m=dev) | Live selection count, Select all, Inspect/Multiple/Clear navigation |
+| Inspect | [662:16150](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=662-16150&m=dev) | Active shape, size, shape-specific geometry, fill color and stroke width |
+| Multiple | [662:16151](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=662-16151&m=dev) | Multiple-selection switch, scope, live rows and checkboxes, select all/invert/clear |
+| Clear | [662:16152](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=662-16152&m=dev) | Empty selection, live unchecked rows and recovery actions |
 
-2357×1346 참조 화면에서 내비게이션은 181px, 오른쪽 패널은 432px, 중앙 작업 영역은 1744px이다. 84px 높이의 19개 도구바는 중앙 영역 아래에 붙으며 오른쪽 패널 아래로 이어지지 않는다. Elements 패널은 16px 패딩과 1px 테두리, 16px 반경을 사용한다. 제목·라벨·버튼·입력·슬라이더·스위치·색상 선택은 설치된 LVRS 컴포넌트로 구성한다.
+## Presentation and assets
 
-`EditorDesktopPanel.qml`은 기존 `EditorToolPanel`과 `EditorToolControl`의 샘플 레이아웃을 사용한다. Elements의 크기 입력은 세로로 배열하며, 슬라이더의 수치 입력은 제목 오른쪽에 배치한다. 206×22px 입력, 320×22px 슬라이더, 38×22px 스위치, 28px 색상 버튼과 균등한 옵션 슬롯을 사용한다. 패널의 내용이 창 높이를 넘으면 세로로 스크롤한다.
+`EditorElementsPanel.qml` is mounted by both `EditorDesktopPanel.qml` and `EditorToolSheet.qml`. The four header tabs are Selection, Shape, Fill and Stroke. The Shape tab opens the view corresponding to the current shape mode in the tool's `selector` setting. The Selection tab exposes Inspect, Multiple and Clear. View navigation is stored independently from the tool's editable values, so changing a view, folding the panel or switching tools preserves its draft and does not rewrite document geometry.
 
-다른 도구에도 동일한 데스크톱 규격을 적용하고 패널별 옵션 열 수·미리보기·동작 버튼을 보완한 내용은 [EditorDesktopPanels.md](EditorDesktopPanels.md)에 설명되어 있다.
+During a tool transition, the outgoing Elements panel remains bound to its own draft and rejects edits once Elements is no longer active. Native accepted-selection settings synchronize after the current QML binding evaluation completes, and an unchanged draft is not reassigned; focus-loss commits and selection notifications therefore cannot write into another tool or synchronously re-enter the values binding.
 
-`DesktopHomeSidebar.editorLayout`은 Editor에서만 16px 가로 여백·0px 상단 여백을 사용한다. Home의 기존 기본 배치는 유지한다. 화면이 좁아지면 내비게이션은 아이콘 형태로 줄어들며 도구바는 가로로 스크롤한다.
+Header tabs, shape and selection palettes, and parameter choices bind the actual LVRS button `checkable` and `checked` properties to their authoritative view or accepted field value. Header tabs keep the Borderless tone; shape, selection and parameter choices keep Default. Hover, press, click and persistent selection never change that tone. Selection holds the same tone's pressed background, with disabled state taking precedence. Repeating a selected navigation button does not clear it, and an Image choice remains at its accepted fill while the source picker is open. Accessibility toggle actions use the ordinary button activation path, preserving the native checked state. The shared editor contract and regression coverage are documented in [EditorButtonStates.md](EditorButtonStates.md).
 
-중앙 영역에는 기본 네이티브 iiSharedCanvas 문서를 생성하며, PNG 표시용 Image와 821×1032px 회색 예시 사각형은 제거했다. 제공된 이미지는 문서의 비트맵 레이어로 가져오고 `.iisc`는 네이티브 문서로 연다. Figma의 외곽 패널·도구 배치는 유지한다.
+The original reference frame is 432×559px, with a 398px content column and 17px inset including the border. The panel composes installed LVRS controls: a 30px icon header, 18px icons, the original 16px reset icon, 72px function palettes with 34px icon buttons, 22px inputs and mini sliders, 28px color pickers and 36px selection rows separated by 8px. Widths adapt to the editor's existing resizable dock and mobile sheet; overflow stays in the existing vertical viewport.
 
-## 상태와 상호작용
+All exported Elements SVGs are local files under `Assets/Elements`. Their bytes and SVG root dimensions are retained. Slider thumb, optional ticks/focus-ring and dropdown variants remain separate assets; the Figma screenshots are verification references and are never used as implementation textures. The independent `fixtures/ElementsPanelsFigma.json` records each supplied frame, its visible controls, defaults, measured bounds, source hashes and exported asset metadata.
 
-기본 선택은 Elements이며 오른쪽 패널이 펼쳐져 있다. 같은 도구를 다시 선택하면 패널을 접거나 펼친다. 다른 도구를 선택하면 해당 도구의 기존 패널을 표시한다. 입력값은 기존 `EditorToolSheet.settingsByTool`에 도구별로 저장하므로 패널을 접거나 도구를 전환해도 유지된다. Reset은 현재 도구만 초기화한다. 모바일에서는 기존 하단 시트 방식을 사용한다.
+## Real document state and editing
 
-옵션·크기·수치·스위치·색상은 실제 초안 값을 편집한다. 수치 범위, 잘못된 입력 거절, 색상 선택 취소는 기존 계약을 따른다. 슬라이더 위치는 실제 값과 범위를 반영한다. Figma의 고정 50% 슬라이더 예시와 수치 값이 불일치하는 항목에서는 런타임 값이 기준이다.
+The selection count and rows come from the current native document. Candidates are read from the active artboard's actual layers in top-to-bottom order. They include Elements created in the current editing session, including their gradient/image bitmap fills, and other native vector layers. Ordinary bitmap/photo layers, session-created text, other artboards and the editor background are excluded. A blank canvas has zero candidates; the three Rectangle/Ellipse/Polygon rows in Figma are represented only when such real shapes exist. Selecting, adding/removing selection, Select all, Invert and Clear preserve the document bytes and undo history. Inspect follows the active candidate and uses its actual shape controls. Foreign or locked candidates can be identified and selected but cannot be edited through unsupported geometry controls.
 
-Home은 이전 화면으로 돌아가며 다른 내비게이션 항목은 기존 Home 라우팅에 연결한다. Escape는 열린 색상 선택창이나 도구 패널을 먼저 닫는다. 입력 초안은 아직 원본 이미지나 SDK 문서의 도형에 적용되지 않는다.
+Multiple manages the selected IDs and the active element. Geometry, fill, stroke, opacity and blend edits apply only to the active editable element while retaining the other selected IDs. Multiple does not apply edits to every selected layer; the scope selector controls which candidates selection actions operate on.
 
-## 자산 및 검증
+Parametric Elements editing relies on authoring metadata retained in the current editing session and its Undo/Redo snapshots. Saving preserves the actual native paths, pixels, transforms, opacity and blend. Reopening does not restore the original Rectangle/Ellipse/Polygon/Line parameters or image-fill sources. Reopened solid shapes remain selectable as general `Vector` candidates with parametric editing disabled, even when their layer names still say Rectangle or Ellipse. Reopened gradient/image fills remain ordinary bitmap layers and are excluded from Elements candidates. See [ElementsSelection.md](ElementsSelection.md) for the complete selection, session metadata, history and image-source contract.
 
-Figma `353:21758`의 도구 SVG 19개와 `353:22462`의 내비게이션 SVG 9개를 내려받아 기존 로컬 파일과 SHA-256을 비교했다. 모두 동일한 파일이다. 기존 자산을 재사용하고 자연 크기와 22px·18px 아이콘 슬롯 내 위치를 유지한다. Files의 13.375×15.6659px 벡터도 LVRS IconButton의 18px 슬롯을 비례 축소해 원래 크기로 배치한다. ColorPicker와 Slider 내부 표면은 같은 LVRS 컴포넌트로 재사용한다.
+The controls retain the existing Elements field IDs and native editing pipeline. Rectangle/Ellipse/Polygon/Line geometry, fill, stroke, arc/star settings, opacity and blend update the selected editable element. A shape-palette click chooses its actual shape mode; changing only a view does not change the shape. Numeric validation restores the last accepted value on invalid input. Both size axes accept 1–65536px; proportional editing rejects an otherwise valid entered axis if the derived other axis exceeds that range. Color picker acceptance commits the color and cancellation preserves it. Image fill retains the requested Image settings while the source picker is open; cancel preserves the last accepted fill, draft and document. Reset restores the appropriate view controls. See [EditorToolBehavior.md](EditorToolBehavior.md) and [EditorNativeCanvas.md](EditorNativeCanvas.md) for document and render semantics.
+
+Numeric and hexadecimal inputs become modified only after a real `textEdited` event. Focus loss accepts a value only when that input was modified; `accepted` and explicit `commit()` retain their validation path. An initial binding or an unedited focus change does not emit an edit. Rounded display strings are presentation: a native shape measuring 24.5×16.5 px can display 25 px for its first axis without changing its actual geometry when the user selects Color.
+
+## Focused verification
+
+`tests/test_elements_panels.py` checks all ten requested node IDs, independently saved field lists and reference geometry, the high-fidelity Figma evidence when available, every exported SVG's bytes/root dimensions, and desktop/mobile routing to the dedicated view.
+
+`desktopEditorElementsMatchesFigma` uses a real three-shape native document. It checks all ten visible field sets, reference geometry and exported icon render sizes, captures each 432×559px state, and exercises view navigation, actual selection actions, numeric and slider input, both-axis size-limit validation, Image fill source settings and cancellation, color acceptance/cancellation, Reset and retained state. The existing dock-resize and mobile-sheet tests have a dedicated Elements branch; the obsolete unified Elements row is excluded from the historical generic-panel fixture.
+
+`editorColorToolSelectionDoesNotEditDocument` adds `color-fractional-elements-desktop` and `color-fractional-elements-mobile`. Each creates an actual 24.5×16.5 px native vector through the backend, focuses the first size input without typing, then selects Color and traverses its panel states. Complete IISC bytes, rendered pixels, exact size, revision, selection and the existing Undo/Redo branch must remain unchanged; the retained Redo is executed at the end. These cases are host regressions, and their pass status comes from the execution log.
 
 ```sh
 cmake --build build --target DreamscapesGuiTests --parallel 4
-ctest --test-dir build -R '^Dreamscapes.EditorElements$' --output-on-failure
+ctest --test-dir build -R '^Dreamscapes\.(EditorElementsCatalog|EditorElements|EditorLayout|EditorPanelResize|EditorToolPanels)$' --output-on-failure
+ctest --test-dir build -R '^Dreamscapes.EditorColorPassiveSelection$' --output-on-failure
 ```
 
-`desktopEditorElementsMatchesFigma`는 참조 크기에서 영역·필드·입력·슬라이더 위치, 옵션·수치·스위치 입력, 패널 접기·복원, 도구별 초안, Reset, 작은 창의 마지막 색상 컨트롤 접근, 색상 창 닫기와 Home 동작을 검사한다. 함께 실행하는 기존 테스트는 모바일 19개 도구 패널, 도구바 아이콘·스크롤·키보드, 캔버스 라우팅과 Home 내비게이션을 검사한다.
+Set `DREAMSCAPES_CAPTURE_DIR` to a directory inside `build/` to retain `elements-<view>.png` and responsive/mobile captures. Native Cocoa captures and installed-application checks are separate from offscreen GUI regressions. A macOS window using the Android layout verifies responsive presentation; it does not prove physical iOS or Android input/runtime behavior.
 
-`DREAMSCAPES_CAPTURE_DIR`를 `build/` 하위 경로로 지정하면 `desktop-elements.png`를 저장한다. Figma 원본, 자산 감사와 실행 로그는 로컬 `build/figma-editor-elements/`에 보관한다. 실제 설치된 앱의 화면과 물리적 iOS·Android 실행은 별도 검증 대상이다.
+## 2026-10-09 verification
+
+The current backend run passed all five focused CTest targets: the six-case
+Elements catalog, thirteen Elements selection/history/gesture behavior cases,
+EditorTools, EditorCanvas and EditorProject. The Elements behavior target reports
+15 QtTest passes including initialization and cleanup, with no failures or skips.
+The GUI run passed seven of eight CTest targets. `Dreamscapes.EditorElements`
+passed all 15 QtTest cases including setup/cleanup; Layout, PanelResize, Layers,
+Text, CanvasGui and MultiCanvasGui also passed. The only failed target was
+`Dreamscapes.EditorToolPanels`: ten generic preview-disclosure icon positions
+were `(344, 22.5)` instead of `(250, 13)`. That path is distinct from the dedicated
+Elements view. No pre-change runtime baseline is claimed for this failure.
+
+Native Cocoa/Metal captures completed all ten frame assertions, including the
+actual control accessibility checked state. A fresh pixel/asset review confirmed
+the original selected/default button surfaces and icon placements. The subsequent
+native interaction test did not complete: the common click helper failed to
+activate its test window twice, followed by the dependent Image source-dialog
+visibility assertion. The offscreen run did complete Image selection and cancel,
+color acceptance/cancel, selection actions, numeric/slider edits and state
+restoration. Physical iOS/Android input is not covered.
+
+The raw backend, GUI, native activation and visual evidence is preserved in
+`build/elements-figma-20261009/`. The final bundle fingerprint, startup and
+installation evidence is recorded separately in `final-verification.json`;
+source/offscreen results alone do not prove an installed artifact.
+
+## Historical unified-panel evidence
+
+The following evidence refers to the former `353:22614` unified sample and is retained as history, not as the current ten-view baseline.
 
 2026-10-03 macOS·Qt 6.8.3 검증에서 앱과 GUI 테스트 빌드가 완료되었다. `Dreamscapes.EditorElements`는 CTest 1/1 통과, 내부 QtTest 집계는 초기화·정리를 포함해 15 passed / 0 failed이다. `packagedApplicationStarts`는 canonical 앱의 실제 진입점·QML 로드·SDK 발견을 확인했으며 3 passed / 0 failed이다. `codesign --verify --deep --strict`와 공통 정책의 앱 감사도 통과했다. `build/bin/Dreamscapes.app`만 존재하며 중첩 `.app`은 없다.
 
 GUI 회귀 검사는 `offscreen`·소프트웨어 렌더러 환경에서 수행했다. 기존 Qt Labs Platform 메뉴의 native Menu 경고는 이 환경에서도 출력되며, 네이티브 메뉴 동작 자체는 이 검증의 대상이 아니다. 실행 중인 사용자 앱을 재시작하지 않고 별도 테스트 프로세스로 검증했다.
+
+## Selection transform
+
+The canvas now presents a free-transform grid with eight resize handles and a
+rotation handle for the active Element. Pointer selection uses actual painted
+geometry, and the inspector reads that shape's transformed dimensions rather than
+creation defaults. See [ElementTransform.md](ElementTransform.md) for gestures,
+keyboard input, imported-vector behavior and validation.

@@ -1,6 +1,6 @@
+#include <iiFileProviderDevice.h>
 #pragma once
 #include <iiSharedCanvas/QtAdapter/CanvasItem.h>
-#include <QTemporaryDir>
 #include <QUrl>
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
@@ -34,5 +34,5 @@ private:
     bool fail(const QString &message);
     QVariantList m_attachments;
     QString m_error;
-    QTemporaryDir m_snapshots;
+    iiFileProvider::TemporaryDirectory m_snapshots;
 };

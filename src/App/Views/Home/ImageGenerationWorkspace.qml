@@ -190,6 +190,7 @@ Item {
                 Layout.fillHeight: true
                 spacing: LV.Theme.gap8
                 AdvancedGenerate {
+                    generation: root.generation
                     id: panel
                     Layout.fillWidth: true
                     Layout.fillHeight: true

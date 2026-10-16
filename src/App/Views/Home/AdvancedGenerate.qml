@@ -16,6 +16,7 @@ Item {
     property alias parameterStore: draft
     property var models: []
     property var vaes: []
+    property var generation: null
     property bool expanded: true
     property var invalidInputs: ({})
     readonly property bool hasInvalidInputs: Object.keys(invalidInputs).length > 0
@@ -55,7 +56,13 @@ Item {
         if (valid) delete next[key]; else next[key] = true
         invalidInputs = next
     }
-    function resetDraft() { draft.reset(); invalidInputs = ({}); draftRestored() }
+    function applyPromptDefaults() {
+        if (!generation || !generation.defaultGenerationPrompts) return
+        const defaults = generation.defaultGenerationPrompts.Image
+        if (defaults) draft.updateParameters({prompt: defaults.prompt, negativePrompt: defaults.negativePrompt})
+    }
+    Component.onCompleted: applyPromptDefaults()
+    function resetDraft() { draft.reset(); applyPromptDefaults(); invalidInputs = ({}); draftRestored() }
     function loadPreset(name) {
         if (!draft.loadPreset(name)) return false
         invalidInputs = ({}); draftRestored(); return true
@@ -105,8 +112,15 @@ Item {
         ipModelDialog.open()
     }
     function addReferenceImage(source) {
-        if (referenceImages.length >= maximumReferenceImages) referenceImageLimitReached()
-        return draft.addReferenceImage(String(source))
+        if (referenceImages.length >= maximumReferenceImages) { referenceImageLimitReached(); return false }
+        const document = generation ? generation.imageDocument(source) : source
+        return String(document).length > 0 && draft.addReferenceImage(String(document))
+    }
+    function selectControlImage(id, field, source) {
+        const document = generation ? generation.imageDocument(source) : source
+        if (!String(document).length) return false
+        const patch = {}; patch[field] = String(document)
+        return draft.updateControlNet(id, patch)
     }
     function removeReferenceImage(index) { return draft.removeReferenceImage(index) }
     function addControlNet(process) { draft.addControlNet(process || "None"); return controlNetCount }
@@ -199,7 +213,7 @@ Item {
         Image {
             anchors.fill: parent
             anchors.bottomMargin: LV.Theme.scaleMetric(42)
-            source: card.source
+            source: root.generation ? root.generation.imagePreview(card.source) : card.source
             fillMode: Image.PreserveAspectCrop
             visible: card.source.toString().length > 0
         }
@@ -244,7 +258,7 @@ Item {
         objectName: "referenceImageDialog"
         title: qsTr("Add reference images")
         fileMode: Dialogs.FileDialog.OpenFiles
-        nameFilters: [qsTr("Images (*.png *.jpg *.jpeg *.webp *.heic *.avif)")]
+        nameFilters: [qsTr("Images and canvases (*.iisc *.png *.jpg *.jpeg *.webp *.heic *.avif)")]
         onAccepted: {
             for (let index = 0; index < selectedFiles.length; ++index) {
                 if (!root.addReferenceImage(selectedFiles[index]))
@@ -259,8 +273,8 @@ Item {
         property string sourceField: "imageSource"
         function choose(id, field) { controlId = id; sourceField = field; open() }
         title: qsTr("Select control image")
-        nameFilters: [qsTr("Images (*.png *.jpg *.jpeg *.webp)")]
-        onAccepted: { const patch = {}; patch[sourceField] = selectedFile.toString(); draft.updateControlNet(controlId, patch) }
+        nameFilters: [qsTr("Images and canvases (*.iisc *.png *.jpg *.jpeg *.webp)")]
+        onAccepted: root.selectControlImage(controlId, sourceField, selectedFile)
     }
     Dialogs.FileDialog {
         id: controlModelDialog

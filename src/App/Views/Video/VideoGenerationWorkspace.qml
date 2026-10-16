@@ -23,8 +23,9 @@ Item {
     readonly property var selectedResult:results.find(result=>result.id===selectedResultId) || results[results.length-1] || ({})
     readonly property bool pending:jobs.some(job=>["queued","running","connecting-host","downloading"].indexOf(job.state)>=0)
     readonly property string failure:requestError || (jobs.find(job=>job.state==="failed") || {}).error || ""
-    readonly property bool canGenerate:!pending && !parameters.hasInvalidInputs && parameters.values.prompt.trim().length>0 && timelineState.keptFrames>0 && generation.videoModels.length>0
-    readonly property string statusText:failure || (pending ? qsTr("%1 · %2 / %3").arg(generation.inferenceStatus.state || qsTr("Queued")).arg(generation.previewStep).arg(generation.previewTotalSteps) : results.length ? qsTr("%1 videos ready").arg(results.length) : qsTr("Reference preview · F%1 · %2 s").arg(String(timelineState.playhead).padStart(3,"0")).arg((timelineState.playhead/parameters.values.fps).toFixed(3)))
+    readonly property string referenceSource:(timelineState.keys.slice().sort((a,b)=>b.frame-a.frame).find(key=>key.frame<=timelineState.playhead) || {}).source || ""
+    readonly property bool canGenerate:!pending && !parameters.hasInvalidInputs && parameters.values.prompt.trim().length>0 && timelineState.outputFrames>0 && generation.videoModels.length>0
+    readonly property string statusText:failure || (pending ? qsTr("%1 · %2 / %3").arg(generation.inferenceStatus.state || qsTr("Queued")).arg(generation.previewStep).arg(generation.previewTotalSteps) : results.length ? qsTr("%1 videos ready").arg(results.length) : referenceSource ? qsTr("Reference preview · F%1 · %2 s").arg(String(timelineState.playhead).padStart(3,"0")).arg((timelineState.playhead/parameters.values.fps).toFixed(3)) : qsTr("Ready to generate"))
     function submit() {
         requestError=""
         if(parameters.hasInvalidInputs) { requestError=qsTr("Correct invalid video parameter values."); return }
@@ -41,7 +42,7 @@ Item {
     Flickable {
         id:workspaceViewport
         objectName:"videoWorkspaceViewport"
-        anchors.fill:parent; contentWidth:Math.max(width,720); contentHeight:Math.max(height,660+timeline.curveHeight)
+        anchors.fill:parent; contentWidth:Math.max(width,720); contentHeight:Math.max(height,660,timeline.implicitHeight+254)
         boundsBehavior:Flickable.StopAtBounds; clip:true
         Controls.ScrollBar.horizontal:Controls.ScrollBar { policy:Controls.ScrollBar.AsNeeded }
         Controls.ScrollBar.vertical:Controls.ScrollBar { policy:Controls.ScrollBar.AsNeeded }
@@ -65,9 +66,9 @@ Item {
                         LV.VStack {
                             Layout.fillWidth:true; Layout.leftMargin:12; spacing:4
                             LV.Label { Layout.fillWidth:true; text:qsTr("Dreamscapes · Video"); style:body; elide:Text.ElideRight }
-                            LV.Label { Layout.fillWidth:true; text:qsTr("%1 · %2 s · %3 × %4").arg(timelineState.selectedShot.name || qsTr("Composition")).arg((timelineState.totalFrames/parameters.values.fps).toFixed(2)).arg(parameters.values.width).arg(parameters.values.height); style:caption; elide:Text.ElideRight }
+                            LV.Label { Layout.fillWidth:true; text:qsTr("%1 s · %2 FPS · %3 × %4").arg((timelineState.outputFrames/parameters.values.fps).toFixed(2)).arg(parameters.values.fps).arg(parameters.values.width).arg(parameters.values.height); style:caption; elide:Text.ElideRight }
                         }
-                        LV.LabelButton { objectName:"videoSaveRecipe"; Layout.preferredWidth:96; Layout.preferredHeight:32; text:qsTr("Save recipe"); tone:LV.AbstractButton.Default; onClicked:parameters.savePreset() }
+                        LV.LabelButton { objectName:"videoResetDefaults"; Layout.preferredWidth:112; Layout.preferredHeight:32; text:qsTr("Reset defaults"); tone:LV.AbstractButton.Default; onClicked:parameters.resetDraft() }
                         LV.LabelButton { objectName:"videoGenerateComposition"; Layout.preferredWidth:160; Layout.preferredHeight:32; text:qsTr("Generate · %1 videos").arg(parameters.values.outputCount); tone:LV.AbstractButton.Primary; enabled:root.canGenerate; onClicked:root.submit() }
                     }
                     Rectangle {
@@ -80,16 +81,17 @@ Item {
                             objectName:"videoPreviewAspectFrame"
                             x:(previewSurface.width-width)/2; y:(previewSurface.height-height)/2
                             width:parameters.values.width*previewSurface.fitScale; height:parameters.values.height*previewSurface.fitScale
-                            Image { objectName:"videoReferencePreview"; anchors.fill:parent; source:root.selectedResult.imageSource || (timelineState.keys.slice().sort((a,b)=>b.frame-a.frame).find(key=>key.frame<=timelineState.playhead) || {}).source || Qt.resolvedUrl("Assets/coastal-reference.png"); fillMode:root.selectedResult.imageSource ? Image.PreserveAspectFit : Image.PreserveAspectCrop; visible:player.playbackState!==MediaPlayer.PlayingState }
+                            Image { objectName:"videoReferencePreview"; anchors.fill:parent; source:root.selectedResult.imageSource || (root.referenceSource ? root.generation.imagePreview(root.referenceSource) : ""); fillMode:root.selectedResult.imageSource ? Image.PreserveAspectFit : Image.PreserveAspectCrop; visible:source.toString().length>0 && player.playbackState!==MediaPlayer.PlayingState }
                             VideoOutput { id:videoOutput; objectName:"videoWorkspaceOutput"; anchors.fill:parent; fillMode:VideoOutput.PreserveAspectFit; visible:!!root.selectedResult.mediaSource }
                         }
+                        LV.Label { objectName:"videoPreviewEmptyState"; anchors.centerIn:parent; width:parent.width-32; horizontalAlignment:Text.AlignHCenter; visible:!root.pending && !root.referenceSource && !root.selectedResult.imageSource && !root.selectedResult.mediaSource; text:qsTr("Enter a prompt to generate a video."); style:body; color:LV.Theme.textSecondary; wrapMode:Text.Wrap }
                         LV.Label { anchors.centerIn:parent; visible:root.pending; text:root.statusText; style:body; Rectangle { anchors.fill:parent; z:-1; radius:8; color:LV.Theme.panelBackground08; opacity:.9 } }
                     }
                     LV.HStack {
                         id:previewActions
                         objectName:"videoPreviewActions"
                         anchors.bottom:parent.bottom; width:parent.width; height:32; spacing:8
-                        LV.LabelButton { objectName:"videoWorkspacePlay"; Layout.preferredWidth:80; Layout.preferredHeight:32; text:player.playbackState===MediaPlayer.PlayingState ? qsTr("Pause") : qsTr("Preview"); tone:LV.AbstractButton.Default; onClicked:{ if(root.selectedResult.mediaSource) { if(player.playbackState===MediaPlayer.PlayingState) player.pause(); else player.play() } else timeline.playing=!timeline.playing } }
+                        LV.LabelButton { objectName:"videoWorkspacePlay"; Layout.preferredWidth:80; Layout.preferredHeight:32; text:player.playbackState===MediaPlayer.PlayingState ? qsTr("Pause") : qsTr("Preview"); tone:LV.AbstractButton.Default; enabled:!!root.selectedResult.mediaSource || !!root.referenceSource; onClicked:{ if(root.selectedResult.mediaSource) { if(player.playbackState===MediaPlayer.PlayingState) player.pause(); else player.play() } else timeline.playing=!timeline.playing } }
                         LV.Label { Layout.fillWidth:true; text:root.statusText; style:body; elide:Text.ElideRight; color:root.failure ? LV.Theme.accentRed : LV.Theme.textPrimary }
                         LV.LabelButton { visible:root.pending; text:qsTr("Cancel"); tone:LV.AbstractButton.Default; onClicked:root.cancelBatch() }
                         LV.LabelButton { objectName:"videoWorkspaceSave"; visible:!!root.selectedResult.mediaSource; text:qsTr("Save video"); tone:LV.AbstractButton.Default; onClicked:saveDialog.open() }
@@ -99,9 +101,10 @@ Item {
                 VideoParameterPanel { id:parameters; anchors.right:parent.right; width:300; height:parent.height; generation:root.generation; timeline:timelineState }
             }
             VideoTimeline {
+                generation:root.generation
                 id:timeline
                 x:16; width:workspace.width-32; height:implicitHeight; anchors.bottom:parent.bottom; anchors.bottomMargin:16
-                stateModel:timelineState; onChooseKeyframe:function(frame){ parameters.chooseImage(frame) }
+                stateModel:timelineState; onChooseKeyframe:function(frame,trackId){ parameters.chooseImage(frame,trackId) }
             }
         }
     }

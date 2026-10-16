@@ -42,6 +42,7 @@ QVariantList EditorCanvas::layerHierarchy() const {
             {"selected", id == selectedLayerId()}, {"showChevron", false}, {"expanded", true}});
     };
     for (auto board = document()->artboards.crbegin(); board != document()->artboards.crend(); ++board) {
+        if (activeArtboard() && board->id != m_activeArtboard) continue;
         const auto id = QString::fromStdString(board->id);
         rows.append(QVariantMap{{"key", "group:" + id}, {"layerId", id}, {"label", QString::fromStdString(board->name)}, {"kind", "Folder"},
             {"group", true}, {"depth", 0}, {"visible", board->visible}, {"selected", false}, {"showChevron", true}, {"expanded", true}});
@@ -61,7 +62,7 @@ QVariantMap EditorCanvas::layerPanelInfo() const {
     if (!layer) return info;
     const auto *asset = resolveAssetAt(*document(), *layer, frame());
     const auto &properties = layerProperties(*layer);
-    int width = canvasWidth(), height = canvasHeight();
+    int width = editingWidth(), height = editingHeight();
     if (const auto *raster = asset ? std::get_if<RasterAsset>(asset) : nullptr) { width = raster->pixels.width; height = raster->pixels.height; info["bitDepth"] = "8 bit / channel"; }
     else if (const auto *vector = asset ? std::get_if<VectorAsset>(asset) : nullptr) { width = vector->viewport.width; height = vector->viewport.height; info["bitDepth"] = "Vector geometry"; }
     else if (const auto *video = asset ? std::get_if<VideoAsset>(asset) : nullptr; video && !video->frames.empty()) { width = video->frames.front().width; height = video->frames.front().height; info["bitDepth"] = "8 bit / channel"; }
@@ -77,8 +78,12 @@ QVariantMap EditorCanvas::layerPanelInfo() const {
     if (index > 0) {
         const auto &below = document()->layers[index - 1];
         const auto &p = layerProperties(below);
+        const auto fullRange = [&](const LayerProperties &entry) {
+            return !entry.frameRange || (entry.frameRange->firstFrame == 0
+                && entry.frameRange->lastFrame == document()->timeline.frameCount - 1);
+        };
         info["canMerge"] = unlocked && properties.visible && p.visible && !dynamicLayer(*layer) && !dynamicLayer(below)
-            && properties.motion.empty() && p.motion.empty() && !properties.frameRange && !p.frameRange
+            && properties.motion.empty() && p.motion.empty() && fullRange(properties) && fullRange(p)
             && !infiniteCanvas() && properties.artboardId == p.artboardId
             && !m_pixelLocks.contains(QString::fromStdString(p.id)) && !m_positionLocks.contains(QString::fromStdString(p.id));
     }
@@ -95,7 +100,7 @@ QVariantMap EditorCanvas::layerHistogram(bool composite, const QString &channel)
             for (auto &layer : sampled.layers) layerProperties(layer).visible = layerProperties(layer).id == selectedLayerId().toStdString();
             for (auto &board : sampled.artboards) { board.backgroundArgb = 0; board.visible = true; }
         }
-        const auto rendered = renderFrame(sampled, frame());
+        const auto rendered = renderEditingFrame(sampled);
         if (rendered.ok()) for (const auto pixel : rendered.pixels.pixels) {
             if (!qAlpha(pixel)) continue;
             ++bins[0][qRed(pixel)]; ++bins[1][qGreen(pixel)]; ++bins[2][qBlue(pixel)]; ++count;
@@ -153,10 +158,10 @@ bool EditorCanvas::mergeSelectedDown() {
         const auto index = std::size_t(findLayer(d, selected) - d.layers.data());
         auto sampled = d; for (std::size_t n = 0; n < sampled.layers.size(); ++n) layerProperties(sampled.layers[n]).visible = n == index || n + 1 == index;
         for (auto &board : sampled.artboards) { board.backgroundArgb = 0; board.visible = true; }
-        const auto rendered = renderFrame(sampled, frame()); if (!rendered.ok()) return false;
+        const auto rendered = renderEditingFrame(sampled); if (!rendered.ok()) return false;
         auto properties = layerProperties(d.layers[index - 1]); target = QString::fromStdString(properties.id);
         properties.transform = {}; properties.opacity = 1; properties.blendMode = RasterBlendMode::SourceOver; properties.motion.clear(); properties.frameRange.reset();
-        if (properties.artboardId) for (const auto &board : d.artboards) if (board.id == *properties.artboardId) { properties.transform.translationX = -board.region.origin.x; properties.transform.translationY = -board.region.origin.y; }
+        if (!activeArtboard() && properties.artboardId) for (const auto &board : d.artboards) if (board.id == *properties.artboardId) { properties.transform.translationX = -board.region.origin.x; properties.transform.translationY = -board.region.origin.y; }
         const auto asset = unique("merge.asset."); d.assets.emplace_back(RasterAsset{asset, rendered.pixels});
         d.layers[index - 1] = StaticBitmapLayer{properties, StaticSource{asset}}; d.layers.erase(d.layers.begin() + index); return true;
     })) return false;
@@ -169,13 +174,13 @@ bool EditorCanvas::beginLayerColorSample() {
 }
 void EditorCanvas::cancelLayerColorSample() { if (!m_layerColorPicking) return; m_layerColorPicking = false; emit toolStateChanged(); }
 bool EditorCanvas::sampleLayerColor(const QPointF &position) {
-    if (!documentReady() || infiniteCanvas() || position.x() < 0 || position.y() < 0 || position.x() >= canvasWidth() || position.y() >= canvasHeight()) return fail(tr("Choose a point inside the canvas."));
-    const auto rendered = renderFrame(*document(), frame()); if (!rendered.ok()) return fail(QString::fromStdString(rendered.message));
-    m_layerSampleColor = QColor::fromRgba(rendered.pixels.pixels[int(position.y()) * canvasWidth() + int(position.x())]);
-    m_layerColorValid = true; m_layerColorPicking = false; clearError(); emit toolStateChanged(); return true;
+    if (!documentReady() || infiniteCanvas() || position.x() < 0 || position.y() < 0 || position.x() >= editingWidth() || position.y() >= editingHeight()) return fail(tr("Choose a point inside the canvas."));
+    const auto rendered = renderEditingFrame(*document()); if (!rendered.ok()) return fail(QString::fromStdString(rendered.message));
+    m_layerSampleColor = QColor::fromRgba(rendered.pixels.pixels[int(position.y()) * editingWidth() + int(position.x())]);
+    m_layerColorValid = true; m_layerColorPicking = false; ++m_layerSampleSequence; clearError(); emit toolStateChanged(); return true;
 }
 QVariantMap EditorCanvas::layerColorSample() const {
-    return {{"valid", m_layerColorValid}, {"picking", m_layerColorPicking}, {"hex", m_layerColorValid ? m_layerSampleColor.name().toUpper() : QStringLiteral("No sample")},
+    return {{"valid", m_layerColorValid}, {"picking", m_layerColorPicking}, {"sequence", m_layerSampleSequence}, {"hex", m_layerColorValid ? m_layerSampleColor.name().toUpper() : QStringLiteral("No sample")},
         {"color", m_layerColorValid ? m_layerSampleColor : QColor(Qt::transparent)},
         {"rgb", m_layerColorValid ? QStringLiteral("RGB %1 · %2 · %3").arg(m_layerSampleColor.red()).arg(m_layerSampleColor.green()).arg(m_layerSampleColor.blue()) : tr("Choose Sample color, then click the canvas.")}};
 }

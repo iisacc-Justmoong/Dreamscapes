@@ -59,7 +59,7 @@ class LocalSocietyTests : public QObject {
     Q_OBJECT
 private slots:
     void nativePreviewsPublishRealPixelsAcrossPassesAndCleanUp() {
-        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-preview-XXXXXX");
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-preview-XXXXXX.societycontainer");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
         QFile model(storage.filePath("Models/model.safetensors"));
         QVERIFY(model.open(QIODevice::WriteOnly)); model.write("test model"); model.close();
@@ -116,7 +116,7 @@ private slots:
         QVERIFY(work.total() > work.completed()); // Success belongs to image publication.
     }
     void legacyCacheMovesOnConnectionWithoutGeneration() {
-        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/society-cache-upgrade-XXXXXX");
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/society-cache-upgrade-XXXXXX.societycontainer");
         QTemporaryDir previous(DREAMSCAPES_TEST_DIRECTORY "/private-cache-upgrade-XXXXXX");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
         QFile cached(previous.filePath("converted.gguf"));
@@ -138,7 +138,7 @@ private slots:
     }
     void nativeResourcesAndConvertedModelsBelongToSociety() {
         QFETCH(bool, hasResources);
-        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/society-owned-native-XXXXXX");
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/society-owned-native-XXXXXX.societycontainer");
         QTemporaryDir previous(DREAMSCAPES_TEST_DIRECTORY "/old-private-cache-XXXXXX");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
         if (hasResources) {
@@ -176,7 +176,8 @@ private slots:
         QTRY_VERIFY(QFileInfo::exists(storage.filePath("Models/.society-runtime/iiLocalDiffusion/q8/converted.gguf")));
         QCOMPARE(modifiers, hasResources); // The SDK validates the catalog contents during real inference.
         QVERIFY(!QFileInfo::exists(QDir(previous.path()).filePath("q8/converted.gguf")));
-        QVERIFY(app.latestImage().toLocalFile().startsWith(storage.filePath("Generation History/")));
+        QVERIFY(app.latestResult().value("imageSource").toUrl().toLocalFile().startsWith(storage.filePath("Generation History/")));
+        QVERIFY(app.latestResult().value("imageSource").toUrl().toLocalFile().endsWith(".png"));
         QVERIFY(model.open(QIODevice::ReadOnly)); QCOMPARE(model.readAll(), "source model");
         app.refreshModels(); QCOMPARE(app.models().size(), 1); // Hidden runtime data is not another selectable model.
     }
@@ -220,7 +221,7 @@ private slots:
         QFETCH(int, stage);
         QFETCH(bool, hasProgress);
         QFETCH(bool, completes);
-        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-progress-timeout-XXXXXX");
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-progress-timeout-XXXXXX.societycontainer");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
         QFile model(storage.filePath("Models/model.safetensors"));
         QVERIFY(model.open(QIODevice::WriteOnly)); model.write("fixture"); model.close();
@@ -268,7 +269,7 @@ private slots:
     }
     void unsupportedBackgroundGpuPausesTheSameRequest() {
         QFETCH(bool, cancelPaused);
-        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-paused-XXXXXX");
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-paused-XXXXXX.societycontainer");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
         QFile model(storage.filePath("Models/model.safetensors"));
         QVERIFY(model.open(QIODevice::WriteOnly)); model.write("fixture"); model.close();
@@ -324,7 +325,7 @@ private slots:
     }
     void nativeBackgroundPermissionPreservesGeneration() {
         QFETCH(bool, cpuOnly);
-        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-background-XXXXXX");
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-background-XXXXXX.societycontainer");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
         QFile model(storage.filePath("Models/model.safetensors"));
         QVERIFY(model.open(QIODevice::WriteOnly)); model.write("fixture"); model.close();
@@ -376,7 +377,7 @@ private slots:
     }
     void nativeBackgroundExpirationPreservesTheRequest() {
         QFETCH(bool, background);
-        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-background-expired-XXXXXX");
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-background-expired-XXXXXX.societycontainer");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
         QFile model(storage.filePath("Models/model.safetensors"));
         QVERIFY(model.open(QIODevice::WriteOnly)); model.write("fixture"); model.close();
@@ -433,7 +434,7 @@ private slots:
         QVERIFY(activity->updates >= 2); // Updates continue after the grant ended.
     }
     void nativeProgressAndScreenActivityFollowTheWholeImage() {
-        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-progress-XXXXXX");
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-progress-XXXXXX.societycontainer");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
         QFile model(storage.filePath("Models/model.safetensors"));
         QVERIFY(model.open(QIODevice::WriteOnly)); model.write("fixture"); model.close();
@@ -509,7 +510,7 @@ private slots:
     void nativeTermination() {
         QFETCH(QString, reason);
         QFETCH(bool, preparing);
-        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-termination-XXXXXX");
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-termination-XXXXXX.societycontainer");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
         QFile model(storage.filePath("Models/model.safetensors"));
         QVERIFY(model.open(QIODevice::WriteOnly)); model.write("fixture"); model.close();
@@ -551,7 +552,7 @@ private slots:
         QCOMPARE(calls.load(), 2);
     }
     void nativeCancellationAtRunningTransitionNeverStartsTheEngine() {
-        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-transition-XXXXXX");
+        QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/native-transition-XXXXXX.societycontainer");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
         QFile model(storage.filePath("Models/model.safetensors"));
         QVERIFY(model.open(QIODevice::WriteOnly)); model.write("fixture"); model.close();
@@ -577,7 +578,7 @@ private slots:
         QCOMPARE(app.metaObject()->indexOfProperty("remoteConnected"), -1);
     }
     void initialMirrorStaysUnavailableUntilSocietyPublishesIt() {
-        QTemporaryDir phone(DREAMSCAPES_TEST_DIRECTORY "/society-pending-XXXXXX");
+        QTemporaryDir phone(DREAMSCAPES_TEST_DIRECTORY "/society-pending-XXXXXX.societycontainer");
         const auto local = iiSocietyContainer::SocietyDrive::create(phone.path());
         QVERIFY(local);
         const auto hostId = QUuid::createUuid().toString(QUuid::WithoutBraces);
@@ -600,7 +601,7 @@ private slots:
     }
     void invalidNativeModelFailsWithoutPublishingAnImage() {
         if (!iiLocalDiffusion::nativeDiffusionAvailable()) QSKIP("Native backend disabled in the SDK build");
-        QTemporaryDir phone(DREAMSCAPES_TEST_DIRECTORY "/society-native-invalid-XXXXXX");
+        QTemporaryDir phone(DREAMSCAPES_TEST_DIRECTORY "/society-native-invalid-XXXXXX.societycontainer");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(phone.path()));
         QFile model(phone.filePath("Models/invalid.safetensors"));
         QVERIFY(model.open(QIODevice::WriteOnly)); model.write("invalid checkpoint"); model.close();
@@ -621,7 +622,7 @@ private slots:
         const auto source = qEnvironmentVariable("DREAMSCAPES_NATIVE_TEST_MODEL");
         if (source.isEmpty()) QSKIP("Set DREAMSCAPES_NATIVE_TEST_MODEL to verify actual native inference");
         QVERIFY(iiLocalDiffusion::nativeDiffusionAvailable());
-        QTemporaryDir local(DREAMSCAPES_TEST_DIRECTORY "/society-native-real-XXXXXX");
+        QTemporaryDir local(DREAMSCAPES_TEST_DIRECTORY "/society-native-real-XXXXXX.societycontainer");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(local.path()));
         // Read the supplied weight bytes without a second 7 GB copy or mutation.
         std::error_code error;
@@ -661,8 +662,8 @@ private slots:
         const auto source = qEnvironmentVariable("DREAMSCAPES_REMOTE_TEST_MODEL");
         if (source.isEmpty()) QSKIP("Set DREAMSCAPES_REMOTE_TEST_MODEL for actual host inference over TLS.");
         QVERIFY(QFileInfo::exists(source));
-        QTemporaryDir desktop(DREAMSCAPES_TEST_DIRECTORY "/real-host-XXXXXX");
-        QTemporaryDir phone(DREAMSCAPES_TEST_DIRECTORY "/real-phone-XXXXXX");
+        QTemporaryDir desktop(DREAMSCAPES_TEST_DIRECTORY "/real-host-XXXXXX.societycontainer");
+        QTemporaryDir phone(DREAMSCAPES_TEST_DIRECTORY "/real-phone-XXXXXX.societycontainer");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(desktop.path()));
         QVERIFY(iiSocietyContainer::SocietyDrive::create(phone.path()));
         std::error_code linkError;
@@ -708,8 +709,8 @@ private slots:
         record.write(QJsonDocument(finished[0][2].toJsonObject()).toJson());
     }
     void generatesOnHostBeforeBackgroundModelDownloadThenUsesLocalCache() {
-        QTemporaryDir desktop(DREAMSCAPES_TEST_DIRECTORY "/society-host-XXXXXX");
-        QTemporaryDir phone(DREAMSCAPES_TEST_DIRECTORY "/society-phone-XXXXXX");
+        QTemporaryDir desktop(DREAMSCAPES_TEST_DIRECTORY "/society-host-XXXXXX.societycontainer");
+        QTemporaryDir phone(DREAMSCAPES_TEST_DIRECTORY "/society-phone-XXXXXX.societycontainer");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(desktop.path()));
         QVERIFY(iiSocietyContainer::SocietyDrive::create(phone.path()));
         QFile weights(desktop.filePath("Models/synced.safetensors"));
@@ -762,7 +763,11 @@ private slots:
         QTRY_VERIFY2(client.connected(), qPrintable(client.errorString()));
         const QString scope(64, 'a');
         hosting.open(desktop.path(), scope); syncing.open(phone.path(), scope);
-        QTRY_VERIFY(hosting.available() && syncing.available());
+        // Initial replica creation opens SQLite and validates both container
+        // roots on workers. This setup budget is separate from job deadlines.
+        QTRY_VERIFY2_WITH_TIMEOUT(hosting.available() && syncing.available(),
+            qPrintable(QStringLiteral("Host: %1; client: %2")
+                .arg(hosting.errorString(), syncing.errorString())), 15000);
         hosting.setPeers({"phone"}, {});
         connect(&client, &iiServerHost::LanPeer::completed, &syncing, [&](auto id, auto result, auto) {
             syncing.receive(id, result);
@@ -819,8 +824,9 @@ private slots:
         QVERIFY(!QFileInfo::exists(phone.filePath(runtimeCache + "model.gguf")));
         const auto result = app.latestResult();
         QCOMPARE(result.value("generation").toMap().value("backend").toString(), QString("society-host"));
-        const auto image = app.latestImage().toLocalFile();
+        const auto image = result.value("imageSource").toUrl().toLocalFile();
         QVERIFY(image.startsWith(phone.filePath("Generation History/")));
+        QVERIFY(image.endsWith(".png"));
         const auto remote = desktop.filePath("Generation History/" + QFileInfo(image).fileName());
         QTRY_VERIFY_WITH_TIMEOUT(QFileInfo::exists(remote), 15000);
         QFile original(image), published(remote); QVERIFY(original.open(QIODevice::ReadOnly)); QVERIFY(published.open(QIODevice::ReadOnly));

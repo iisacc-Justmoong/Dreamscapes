@@ -1,9 +1,12 @@
 #include "EditorCanvas.h"
 #include "EditorMedia.h"
 #include "EditorToolUtils.h"
+#include "App/Generation/ImageCanvas.h"
 #include <QImageWriter>
+#include <QBuffer>
 #include <QPainter>
 #include <QPainterPathStroker>
+#include <QScopedValueRollback>
 using namespace iiSharedCanvas;
 using namespace editorTools;
 namespace { QPainterPath painterPath(const VectorPath &path); }
@@ -20,19 +23,27 @@ bool EditorCanvas::playTimelineAudio() {
 }
 bool EditorCanvas::exportImage(const QUrl &source, const QString &format) {
     if (!documentReady() || !source.isLocalFile()) return fail(tr("Choose a local export destination."));
-    const auto rendered = renderFrame(*document(), frame()); if (!rendered.ok()) return fail(QString::fromStdString(rendered.message));
+    const auto rendered = renderEditingFrame(*document()); if (!rendered.ok()) return fail(QString::fromStdString(rendered.message));
     if (format == "IISC") {
-        Document flat; flat.extent = document()->extent;
+        Document flat; flat.extent = editingExtent();
         flat.assets.emplace_back(RasterAsset{"export.frame", rendered.pixels});
         flat.layers.emplace_back(StaticBitmapLayer{{"export.layer", "Exported frame"}, StaticSource{"export.frame"}});
-        DocumentFile file; const auto result = file.create(source.toLocalFile().toStdString(), flat);
-        if (!result.ok()) return fail(QString::fromStdString(result.message)); clearError(); return true;
+        QString error; const auto path = dreamscapes::canvasDestination(source.toLocalFile(), &error);
+        if (path.isEmpty()) return fail(error);
+        const auto encoded = encodeIisc(flat); if (!encoded.ok()) return fail(QString::fromStdString(encoded.error.message));
+        iiSocietyHelper::FileSystem files; if (!files.openForSource(path)) return fail(files.errorString());
+        const auto saved = files.saveCanvas(QByteArray(reinterpret_cast<const char *>(encoded.bytes.data()), qsizetype(encoded.bytes.size())), path);
+        if (saved.isEmpty()) return fail(files.errorString()); clearError(); return true;
     }
-    QImageWriter writer(source.toLocalFile(), format.toLower().toLatin1()); writer.setQuality(100);
+    QByteArray bytes; QBuffer buffer(&bytes); buffer.open(QIODevice::WriteOnly);
+    QImageWriter writer(&buffer, format.toLower().toLatin1()); writer.setQuality(100);
     auto output = image(rendered.pixels);
     output.setDotsPerMeterX(qRound(m_specification.value("ppi", 300).toDouble() / 0.0254));
     output.setDotsPerMeterY(output.dotsPerMeterX());
-    if (!writer.write(output)) return fail(writer.errorString()); clearError(); return true;
+    if (!writer.write(output)) return fail(writer.errorString());
+    iiSocietyHelper::FileSystem files; if (!files.openForSource(source.toLocalFile())) return fail(files.errorString());
+    if (files.saveFile(source.toLocalFile(), bytes).isEmpty()) return fail(files.errorString());
+    clearError(); return true;
 }
 bool EditorCanvas::combineVectorPaths(const QString &operation) {
     if (m_pixelLocks.contains(selectedLayerId())) return fail(tr("Unlock the selected layer's pixels first."));
@@ -66,10 +77,10 @@ QUrl EditorCanvas::clippingOverlay() const {
     const bool showShadows = m_histogramShadows || toggle(settingsFor("color"), 18);
     const auto v = settingsFor("color");
     const int white = qRound(number(v, 17, 100) / 100 * 255), black = qRound(number(v, 21) / 100 * 255);
-    const auto cacheKey = QString("%1:%2:%3:%4:%5:%6").arg(revision()).arg(frame()).arg(white).arg(black).arg(showHighlights).arg(showShadows);
+    const auto cacheKey = QString("%1:%2:%3:%4:%5:%6").arg(revision()).arg(frame()).arg(white).arg(black).arg(showHighlights).arg(showShadows) + QString::fromStdString(m_activeArtboard);
     if (cacheKey == m_clippingKey) return m_clippingImage;
-    const auto rendered = renderFrame(*document(), frame()); if (!rendered.ok()) return {};
-    QImage overlay(canvasWidth(), canvasHeight(), QImage::Format_ARGB32); overlay.fill(Qt::transparent);
+    const auto rendered = renderEditingFrame(*document()); if (!rendered.ok()) return {};
+    QImage overlay(editingWidth(), editingHeight(), QImage::Format_ARGB32); overlay.fill(Qt::transparent);
     bool clipped = false;
     for (int y = 0; y < overlay.height(); ++y) for (int x = 0; x < overlay.width(); ++x) {
         const auto p = rendered.pixels.pixels[y * overlay.width() + x]; if (!qAlpha(p)) continue;
@@ -174,28 +185,65 @@ bool EditorCanvas::eraseVector(const QVariantMap &v) {
 }
 
 void EditorCanvas::resetHistory() {
-    m_history.clear(); m_historySettings.clear(); m_historyIndex = -1; m_historySuspended = false;
+    m_history.clear(); m_historySettings.clear(); m_historyElementBounds.clear(); m_historyElementSettings.clear(); m_historyElementPatterns.clear(); m_historyIndex = -1; m_historySuspended = false;
     recordHistory();
+}
+void EditorCanvas::updateElementHistoryMetadata() {
+    // SDK commit notifications record the document before the shape creator can
+    // attach its session metadata. Complete that same history entry afterward.
+    if (m_historySuspended || m_historyIndex < 0 || m_historyIndex >= int(m_history.size())) return;
+    m_historyElementBounds[m_historyIndex] = m_elementBounds;
+    m_historyElementSettings[m_historyIndex] = m_elementSettings;
+    m_historyElementPatterns[m_historyIndex] = m_elementPatterns;
 }
 void EditorCanvas::recordHistory() {
     if (m_historySuspended || liveStrokeActive() || !documentReady()) return;
-    if (m_historyIndex + 1 < int(m_history.size())) { m_history.erase(m_history.begin() + m_historyIndex + 1, m_history.end()); m_historySettings.erase(m_historySettings.begin() + m_historyIndex + 1, m_historySettings.end()); }
+    if (m_historyIndex + 1 < int(m_history.size())) {
+        m_history.erase(m_history.begin() + m_historyIndex + 1, m_history.end());
+        m_historySettings.erase(m_historySettings.begin() + m_historyIndex + 1, m_historySettings.end());
+        m_historyElementBounds.erase(m_historyElementBounds.begin() + m_historyIndex + 1, m_historyElementBounds.end());
+        m_historyElementSettings.erase(m_historyElementSettings.begin() + m_historyIndex + 1, m_historyElementSettings.end());
+        m_historyElementPatterns.erase(m_historyElementPatterns.begin() + m_historyIndex + 1, m_historyElementPatterns.end());
+    }
     m_history.push_back(*document());
     m_historySettings.push_back(m_settings);
+    m_historyElementBounds.push_back(m_elementBounds);
+    m_historyElementSettings.push_back(m_elementSettings);
+    m_historyElementPatterns.push_back(m_elementPatterns);
     // Bound retained raster storage to 128 MiB and 32 edits.
     auto bytes = [&] { std::uint64_t count = 0; for (const auto &entry : m_history) for (const auto &asset : entry.assets) std::visit([&](const auto &a) { using T = std::decay_t<decltype(a)>; if constexpr (std::is_same_v<T, RasterAsset>) count += a.pixels.pixels.size() * 4; else if constexpr (std::is_same_v<T, ChunkedRasterAsset>) for (const auto &chunk : a.chunks) count += chunk.pixels.pixels.size() * 4; else if constexpr (std::is_same_v<T, VideoAsset>) for (const auto &frame : a.frames) count += frame.pixels.size() * 4; }, asset); return count; };
-    while (m_history.size() > 2 && (m_history.size() > 32 || bytes() > 134217728)) { m_history.erase(m_history.begin()); m_historySettings.erase(m_historySettings.begin()); }
+    while (m_history.size() > 2 && (m_history.size() > 32 || bytes() > 134217728)) {
+        m_history.erase(m_history.begin()); m_historySettings.erase(m_historySettings.begin());
+        m_historyElementBounds.erase(m_historyElementBounds.begin()); m_historyElementSettings.erase(m_historyElementSettings.begin());
+        m_historyElementPatterns.erase(m_historyElementPatterns.begin());
+    }
     m_historyIndex = int(m_history.size()) - 1; emit undoRedoChanged();
 }
 bool EditorCanvas::restoreHistory(int index) {
-    if (index < 0 || index >= int(m_history.size()) || liveStrokeActive()) return false;
+    cancelElementTransform();
+    if (index < 0 || index >= int(m_history.size()) || liveStrokeActive()
+        || (m_gestureActive && m_historySuspended)) return false;
+    cancelInteractionGesture();
     const auto selection = selectedLayerId(); m_historySuspended = true;
     const auto snapshot = m_history[index];
     bool success = true;
-    if (m_workingFile) { const auto result = m_workingFile->edit([&](Document &d) { d = snapshot; return true; }); success = result.ok(); if (!success) fail(QString::fromStdString(result.message)); }
-    else m_canvas = snapshot;
-    if (success) { refresh(); if (!selection.isEmpty() && findLayer(*document(), selection.toStdString())) selectLayer(selection); else if (!document()->layers.empty()) selectLayer(QString::fromStdString(layerProperties(document()->layers.back()).id)); else clearSelection(); m_historyIndex = index; }
-    if (success) { m_settings = m_historySettings[index]; m_toolValues = m_settings.value(m_tool); }
+    {
+        QScopedValueRollback<bool> guard(m_changingElementSelection, true);
+        success = synchronizeDocument(snapshot);
+        if (success) m_canvas = snapshot;
+        if (success) {
+            m_elementBounds = m_historyElementBounds[index]; m_elementSettings = m_historyElementSettings[index];
+            m_elementPatterns = m_historyElementPatterns[index];
+            m_patternImage = {};
+            m_settings = m_historySettings[index]; m_toolValues = m_settings.value(m_tool);
+            refresh();
+            if (!selection.isEmpty() && findLayer(*document(), selection.toStdString())) selectLayer(selection);
+            else if (!document()->layers.empty()) selectLayer(QString::fromStdString(layerProperties(document()->layers.back()).id));
+            else clearSelection();
+            m_historyIndex = index;
+        }
+    }
+    if (success) synchronizeElementSelection(true);
     m_historySuspended = false; invalidateToolPreview(); emit undoRedoChanged(); emit documentInfoChanged();
     if (success) { QVariantMap settings; for (auto it = m_settings.cbegin(); it != m_settings.cend(); ++it) settings[it.key()] = it.value(); emit historyRestored(settings); }
     return success;

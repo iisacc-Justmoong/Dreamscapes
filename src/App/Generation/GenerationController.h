@@ -1,9 +1,10 @@
+#include <iiFileProviderDevice.h>
 #pragma once
 
 #include <SharedStorage.h>
 #include <iiSocietyHelper.h>
-#include <iiSocietyClient/Client.h>
-#include <iiSocietyClient/AccountSession.h>
+#include <iiSocietyHelper/Client.h>
+#include <iiSocietyHelper/AccountSession.h>
 #include <iiSocietyGeneration/Remote.h>
 #include <Generation/NativeDiffusion.hpp>
 #include <QFutureWatcher>
@@ -12,7 +13,6 @@
 #include <QStringList>
 #include <QSize>
 #include <QTimer>
-#include <QTemporaryDir>
 #include <QUrl>
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
@@ -55,6 +55,8 @@ class GenerationController : public QObject
     Q_PROPERTY(QObject *account READ account CONSTANT)
     Q_PROPERTY(bool connected READ connected NOTIFY storageChanged)
     Q_PROPERTY(QString containerPath READ containerPath NOTIFY storageChanged)
+    Q_PROPERTY(QUrl filesDirectory READ filesDirectory NOTIFY storageChanged)
+    Q_PROPERTY(iiSocietyContainer::Container *container READ container CONSTANT)
     Q_PROPERTY(QVariantList models READ models NOTIFY modelsChanged)
     Q_PROPERTY(QVariantList videoModels READ videoModels NOTIFY modelsChanged)
     Q_PROPERTY(QString selectedVideoModel READ selectedVideoModel WRITE setSelectedVideoModel NOTIFY modelsChanged)
@@ -64,6 +66,7 @@ class GenerationController : public QObject
     Q_PROPERTY(QString selectedModel READ selectedModel WRITE setSelectedModel NOTIFY modelsChanged)
     Q_PROPERTY(QString defaultImageModel READ defaultImageModel NOTIFY modelPreferencesChanged)
     Q_PROPERTY(QString defaultVideoModel READ defaultVideoModel NOTIFY modelPreferencesChanged)
+    Q_PROPERTY(QVariantMap defaultGenerationPrompts READ defaultGenerationPrompts NOTIFY modelPreferencesChanged)
     Q_PROPERTY(QString modelPreferencesError READ modelPreferencesError NOTIFY modelPreferencesChanged)
     Q_PROPERTY(QVariantList jobs READ jobs NOTIFY jobsChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY jobsChanged)
@@ -87,6 +90,8 @@ public:
     QObject *account() const { return m_accountSession.account(); }
     bool connected() const;
     QString containerPath() const;
+    QUrl filesDirectory() const;
+    iiSocietyContainer::Container *container() const { return m_fileSystem.container(); }
     QVariantList models() const;
     QVariantList videoModels() const;
     QString selectedVideoModel() const;
@@ -99,6 +104,8 @@ public:
     void setSelectedModel(const QString &id);
     QString defaultImageModel() const;
     QString defaultVideoModel() const;
+    QVariantMap defaultGenerationPrompts() const;
+    Q_INVOKABLE bool setDefaultGenerationPrompt(const QString &category, const QString &text, bool negative);
     QString modelPreferencesError() const;
     Q_INVOKABLE bool setDefaultImageModel(const QString &id);
     Q_INVOKABLE bool setDefaultVideoModel(const QString &id);
@@ -108,6 +115,9 @@ public:
     QString errorString() const;
     QUrl latestImage() const;
     QVariantMap latestResult() const;
+    Q_INVOKABLE QVariantMap storedImage(const QVariantMap &file) const;
+    Q_INVOKABLE QUrl imagePreview(const QUrl &source) const;
+    Q_INVOKABLE QUrl imageDocument(const QUrl &source);
     QVariantList completedResults() const;
     QUrl previewImage() const;
     QString previewJobId() const;
@@ -143,6 +153,14 @@ signals:
     void screenActivityChanged();
 
 private:
+    struct ModelInventory {
+        QString selection, root, id, error;
+        QList<iiSocietyContainer::StoredModel> models;
+        QStringList videoModels;
+        quint64 epoch = 0;
+    };
+    void applyModelInventory(QList<iiSocietyContainer::StoredModel> models,
+        QStringList videoModels, const QString &error, bool storageChanged);
     QString enqueueAdvancedRequest(const QVariantMap &parameters, const QString &aspectRatio = {});
     bool saveModelPreferences(const dreamscapes::ModelPreferences &value);
     QString enqueueRequest(const QString &prompt, const QSize &size, const QString &aspectRatio,
@@ -158,6 +176,8 @@ private:
     void clearWorkingFiles();
     bool publishVideo(QString *error);
     bool publishImages(const QStringList &sources, QJsonObject &job, QString *error);
+    QString preserveImageInput(const QString &source, const QString &destination, QString *error);
+    QString imageInputPath(const QString &source, QString *error);
     void updateJob(QJsonObject job);
     void pump();
     void pollDownload();
@@ -182,10 +202,11 @@ private:
     void startLegacyCacheMigration();
 
     GenerationRuntime m_runtime;
-    iiSocietyHelper::FileSystem m_fileSystem;
+    iiSocietyHelper::Helper m_storageHelper;
+    iiSocietyHelper::FileSystem &m_fileSystem;
     // The UI borrows the same SDK account snapshot used by the Society client.
     AccountSession m_accountSession;
-    iiSocietyClient::Client m_societyClient;
+    iiSocietyHelper::Client m_societyClient;
     std::shared_ptr<iiSocietyGeneration::Remote> m_remoteGeneration;
     QMap<QString, QString> m_modelDownloads;
     QStringList m_requiredModelFiles;
@@ -193,6 +214,8 @@ private:
     bool m_societyBackgroundActivity = false;
     QString m_storageSelection;
     QTimer m_storagePoll;
+    QFutureWatcher<ModelInventory> m_inventoryWatcher;
+    quint64 m_inventoryEpoch = 0;
     QFutureWatcher<iiLocalDiffusion::NativeGenerationResult> m_nativeWatcher;
     QFutureWatcher<QString> m_cacheMigrationWatcher;
     std::atomic_bool m_cacheMigrationCancelled{false};
@@ -208,7 +231,7 @@ private:
     bool m_nativePaused = false;
     int m_nativeTimeRemaining = 0;
     QJsonObject m_resumeInferenceStatus;
-    std::optional<iiSocietyContainer::SharedStorage> m_storage;
+    bool m_storageReady = false;
     QList<iiSocietyContainer::StoredModel> m_models;
     QString m_selected;
     QString m_selectedVae;
@@ -224,9 +247,9 @@ private:
     QString m_error;
     QByteArray m_log;
     QByteArray m_pendingOutput;
-    std::unique_ptr<QTemporaryDir> m_workDirectory;
-    std::unique_ptr<QTemporaryDir> m_workerDirectory;
-    std::unique_ptr<QTemporaryDir> m_previewDirectory;
+    std::unique_ptr<iiFileProvider::TemporaryDirectory> m_workDirectory;
+    std::unique_ptr<iiFileProvider::TemporaryDirectory> m_workerDirectory;
+    std::unique_ptr<iiFileProvider::TemporaryDirectory> m_previewDirectory;
     QUrl m_previewImage;
     QString m_previewJobId;
     int m_previewStep = 0;

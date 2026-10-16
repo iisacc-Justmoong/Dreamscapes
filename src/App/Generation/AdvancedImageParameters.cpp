@@ -1,12 +1,9 @@
+#include <iiFileProviderDevice.h>
 #include "AdvancedImageParameters.h"
 #include <Generation/NativePose.hpp>
-#include <QDir>
-#include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QLockFile>
-#include <QSaveFile>
 #include <QStandardPaths>
 #include <QUuid>
 
@@ -127,7 +124,7 @@ bool AdvancedImageParameters::removeLora(const QString &id) { return updateItem(
 
 bool AdvancedImageParameters::readPresets(QVariantMap *presets)
 {
-    QFile file(m_presetFile);
+    iiFileProvider::FileDevice file(m_presetFile);
     if (!file.exists()) { presets->clear(); return true; }
     if (!file.open(QIODevice::ReadOnly)) return fail(file.errorString());
     if (file.size() > 8 * 1024 * 1024) return fail("Preset file exceeds 8 MiB.");
@@ -149,7 +146,7 @@ bool AdvancedImageParameters::readPresets(QVariantMap *presets)
 }
 bool AdvancedImageParameters::writePresets(const QVariantMap &presets)
 {
-    QSaveFile file(m_presetFile);
+    iiFileProvider::SaveFile file(m_presetFile);
     const auto bytes = QJsonDocument(QJsonObject{{"schemaVersion", 1},
         {"presets", QJsonObject::fromVariantMap(presets)}}).toJson();
     if (bytes.size() > 8 * 1024 * 1024) return fail("Preset file exceeds 8 MiB.");
@@ -161,8 +158,8 @@ bool AdvancedImageParameters::savePreset(const QString &name)
 {
     const auto key = name.trimmed();
     if (key.isEmpty() || key.size() > 100 || key.contains(QChar::Null)) return fail("Preset name must contain 1 to 100 characters.");
-    if (!QDir().mkpath(QFileInfo(m_presetFile).absolutePath())) return fail("Cannot create the preset directory.");
-    QLockFile lock(m_presetFile + ".lock");
+    if (!iiFileProvider::Directory().mkpath(QFileInfo(m_presetFile).absolutePath())) return fail("Cannot create the preset directory.");
+    iiFileProvider::LockFile lock(m_presetFile + ".lock");
     if (!lock.tryLock(0)) return fail("Presets are being edited by another process.");
     QVariantMap next;
     if (!readPresets(&next)) return false;
@@ -185,7 +182,7 @@ bool AdvancedImageParameters::loadPreset(const QString &name)
 }
 bool AdvancedImageParameters::removePreset(const QString &name)
 {
-    QLockFile lock(m_presetFile + ".lock");
+    iiFileProvider::LockFile lock(m_presetFile + ".lock");
     if (!lock.tryLock(0)) return fail("Cannot lock the preset file.");
     QVariantMap next;
     if (!readPresets(&next)) return false;

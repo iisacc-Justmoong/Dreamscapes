@@ -10,13 +10,15 @@ Column {
     objectName: "editorToolPanel"
     required property var definition
     required property var values
+    property bool showHeader: true
     property bool sampleLayout: false
     property var engine: null
+    readonly property var engineState: engine ? engine.toolState : ({})
     property string notice: ""
     function capability(field) {
         if (!engine) return ({enabled: true, reason: ""})
         const revision = engine.revision
-        const state = engine.toolState
+        const state = root.engineState
         return engine.toolControlState(definition.key, field, values)
     }
     signal edited(string fieldId, var value)
@@ -35,6 +37,7 @@ Column {
     readonly property int fieldCount: presentedFields.length
 
     LV.HStack {
+        visible: root.showHeader
         width: parent.width
         spacing: 8
         Loader {

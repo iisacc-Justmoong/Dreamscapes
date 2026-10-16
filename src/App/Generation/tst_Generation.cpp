@@ -1,9 +1,12 @@
 #include "../../../tests/native_link.h"
 #include "GenerationController.h"
+#include "ImageCanvas.h"
 #include "VideoGeneration.h"
 #include "AdvancedImageParameters.h"
 #include <Generation/NativePose.hpp>
 #include <StorageMap.h>
+#include <iiSocietyContainer/DashboardFiles.h>
+#include <iiFileProviderPresentation.h>
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
@@ -26,6 +29,12 @@ QJsonObject read(const QString &path)
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) return {};
     return QJsonDocument::fromJson(file.readAll()).object();
+}
+QImage readCanvasImage(const QString &path)
+{
+    QString error;
+    const auto preview = dreamscapes::imageCanvasPreview(path, QFileInfo(path).dir().filePath("../Models/.test-previews"), &error);
+    return QImage(preview);
 }
 GenerationRuntime fakeRuntime()
 {
@@ -53,12 +62,96 @@ bool prepare(const QTemporaryDir &root)
         && write(root.filePath("Models/first model.safetensor"), "test weight A")
         && write(root.filePath("Models/second.SAFETENSORS"), "test weight B");
 }
+QStringList contentEntries(const QDir &directory, QDir::Filters filters)
+{
+    auto entries = directory.entryList(filters);
+    entries.removeIf([](const QString &name) {
+        return iiFileProvider::native::Presentation::isControlFile(
+            std::filesystem::path(name.toStdU16String()));
+    });
+    return entries;
+}
 }
 
 class GenerationTests : public QObject
 {
     Q_OBJECT
 private slots:
+    void helperContainerAvailabilityNotifiesTheApplication() {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/container-state-XXXXXX.societycontainer");
+        QVERIFY(SocietyDrive::create(root.path()));
+        GenerationController controller(fakeRuntime()); QVERIFY(controller.connectStorage(root.path()));
+        QSignalSpy changed(&controller, &GenerationController::storageChanged);
+        const auto manifest = root.filePath(".society-drive.json"), hidden = root.filePath("manifest-unavailable");
+        QVERIFY(QFile::rename(manifest, hidden));
+        controller.container()->refresh();
+        QVERIFY(!controller.connected()); QVERIFY(!controller.container()->available()); QVERIFY(!changed.isEmpty());
+        QVERIFY(QFile::rename(hidden, manifest));
+        changed.clear(); controller.container()->refresh();
+        QVERIFY(controller.connected()); QVERIFY(controller.container()->available()); QVERIFY(!changed.isEmpty());
+    }
+    void generatedPngBecomesCanvasOnlyWhenOpenedForEditing() {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/png-history-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        GenerationController controller(fakeRuntime()); QVERIFY(controller.connectStorage(root.path()));
+        QVERIFY(controller.container()); QVERIFY(controller.container()->available());
+        QCOMPARE(controller.container()->rootPath(), root.path());
+        const auto containerRevision = controller.container()->revision();
+        DashboardFiles history; history.setContainerPath(root.path()); QTRY_VERIFY(!history.loading());
+        QVERIFY(history.generationHistory().isEmpty());
+        const auto id = controller.enqueue("keep the generated PNG"); QVERIFY(!id.isEmpty());
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 10000);
+        const auto path = root.filePath("Generation History/" + id + "-0001.png");
+        QFile original(path); QVERIFY(original.open(QIODevice::ReadOnly));
+        const auto bytes = original.readAll(); original.close();
+        QVERIFY(bytes.startsWith(QByteArray::fromHex("89504e470d0a1a0a")));
+        QCOMPARE(QImage(path).size(), QSize(64, 64));
+        QCOMPARE(controller.latestResult().value("imageSource").toUrl(), QUrl::fromLocalFile(path));
+        QTRY_COMPARE(history.generationHistory().size(), 1);
+        QCOMPARE(history.generationHistory().first().toMap().value("previewSource").toUrl().toLocalFile(), path);
+        QVERIFY(QDir(root.filePath("Generation History")).entryList({"*.iisc"}, QDir::Files).isEmpty());
+        const auto native = controller.imageDocument(QUrl::fromLocalFile(path));
+        const auto pngAlias = controller.container()->alias("generation-history/" + id + "-0001.png");
+        QVERIFY(pngAlias["exists"].toBool()); QVERIFY(pngAlias["available"].toBool());
+        QCOMPARE(pngAlias["previewSource"].toUrl().toLocalFile(), path);
+        const auto documentAlias = controller.container()->alias("files/" + QFileInfo(native.toLocalFile()).fileName());
+        QVERIFY(documentAlias["exists"].toBool()); QVERIFY(controller.container()->revision() > containerRevision);
+        QVERIFY(native.toLocalFile().endsWith(".iisc"));
+        QVERIFY(native.toLocalFile().startsWith(root.filePath("Files/")));
+        QVERIFY(QDir(root.filePath("Generation History")).entryList({"*.iisc"}, QDir::Files).isEmpty());
+        const auto rendered = readCanvasImage(native.toLocalFile()); QCOMPARE(rendered.size(), QImage(path).size());
+        QCOMPARE(rendered.pixelColor(0, 0), QImage(path).pixelColor(0, 0));
+        QVERIFY(original.open(QIODevice::ReadOnly)); QCOMPARE(original.readAll(), bytes);
+        QCOMPARE(controller.latestResult().value("imageSource").toUrl(), QUrl::fromLocalFile(path));
+        history.refresh(); QTRY_VERIFY(!history.loading()); QCOMPARE(history.generationHistory().size(), 1);
+    }
+    void nativeFillCanvasCanBeUsedAsAnAdvancedReference() {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/native-reference-XXXXXX.societycontainer"); QVERIFY(prepare(root));
+        QImage pixels(19, 11, QImage::Format_RGB32); pixels.fill(QColor(10, 20, 30));
+        const auto png = root.filePath("Files/generated.png"); QVERIFY(pixels.save(png));
+        QString error;
+        const auto native = dreamscapes::persistImageCanvas(png, &error); QVERIFY2(!native.isEmpty(), qPrintable(error));
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        bool received = false;
+        runtime.nativeGenerateAdvanced = [&](const auto &request, const auto &, const auto &, const auto &controls,
+            const auto &, const auto &, const auto &) {
+            received = controls.references.size() == 1 && controls.references[0].width == 19
+                && controls.references[0].height == 11 && controls.references[0].rgb[0] == 10;
+            iiLocalDiffusion::NativeGenerationResult result; result.width = request.width; result.height = request.height;
+            result.rgb.resize(request.width * request.height * 3, 100); return result;
+        };
+        GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
+        QCOMPARE(controller.imageDocument(QUrl::fromLocalFile(png)), QUrl::fromLocalFile(native));
+        QVERIFY(QFile::remove(png));
+        QCOMPARE(controller.imageDocument(QUrl::fromLocalFile(native)), QUrl::fromLocalFile(native));
+        QVERIFY(!QImage(controller.imagePreview(QUrl::fromLocalFile(native)).toLocalFile()).isNull());
+        AdvancedImageParameters draft(root.filePath("presets.json"));
+        QVERIFY(draft.updateParameters({{"prompt", "use native reference"}, {"model", "first model.safetensor"},
+            {"width", 64}, {"height", 64}, {"steps", 1}, {"referenceImages", QVariantList{QUrl::fromLocalFile(native).toString()}}}));
+        const auto id = controller.enqueueAdvanced(draft.parameters()); QVERIFY2(!id.isEmpty(), qPrintable(controller.errorString()));
+        controller.setForeground(true); QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 10000);
+        QVERIFY(received); QVERIFY(controller.latestResult().value("imageSource").toUrl().toLocalFile().endsWith(".png"));
+    }
     void videoRecipeValidatesRuntimeContract()
     {
         const QJsonObject defaults{{"prompt","a scene"}};
@@ -68,8 +161,15 @@ private slots:
         QCOMPARE(valid.value("frames").toInt(),120);
         QCOMPARE(valid.value("width").toInt(),1024);
         QCOMPARE(valid.value("shots").toArray().size(),1);
+        for (int fps : {60,120}) {
+            auto recipe=defaults; recipe["fps"]=fps; recipe["duration"]=30;
+            QVERIFY2(dreamscapes::normalizeVideoRecipe(&recipe,&error),qPrintable(error));
+            QCOMPARE(recipe.value("fps").toInt(),fps);
+            QCOMPARE(recipe.value("frames").toInt(),30*fps);
+            QCOMPARE(recipe.value("interpolationFactor").toInt(),2);
+        }
         const QList<QPair<QString,QJsonValue>> invalid{
-            {"width",65},{"height",0},{"duration",31},{"fps",25},{"outputCount",1.5},{"steps",0},
+            {"width",65},{"height",0},{"duration",31},{"fps",25},{"fps",90},{"outputCount",1.5},{"steps",0},
             {"cfgScale",-1},{"seed",4294967296.},{"decodeTimestep",1.1},{"decodeNoiseScale",-.1},
             {"imageConditionNoise",2},{"interpolationFactor",1},{"crf",52},{"cpuTextEncoding",1},
             {"vaeTiling","true"},{"device","unknown"},{"precision","half"},{"offload","swap"},
@@ -100,7 +200,7 @@ private slots:
     }
     void defaultModelsPersistAndPreserveQueuedRequests()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-preferences-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-preferences-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         for (const auto *name : {"ltx-a", "ltx-b"}) {
             const auto directory = "Models/" + QString::fromLatin1(name);
@@ -159,9 +259,82 @@ private slots:
         QCOMPARE(automatic.selectedModel(), QString("first model.safetensor"));
         QCOMPARE(automatic.selectedVideoModel(), QString("ltx-a"));
     }
+    void defaultPromptsPersistAndReadLegacyModels()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/prompt-preferences-XXXXXX");
+        auto runtime = fakeRuntime();
+        runtime.modelPreferencesFile = root.filePath("defaults.conf");
+        GenerationController fresh(runtime);
+        for (const auto &category : {QString("Image"), QString("Video"), QString("Audio"), QString("Agents")}) {
+            const auto prompts = fresh.defaultGenerationPrompts().value(category).toMap();
+            QVERIFY(prompts.value("prompt").toString().isEmpty());
+            QVERIFY(prompts.value("negativePrompt").toString().isEmpty());
+        }
+        QVERIFY(write(runtime.modelPreferencesFile,
+            "Dreamscapes generation models 1\n\"legacy image\"\n\"legacy video\"\n"));
+        QVariantMap expected;
+        {
+            GenerationController controller(runtime);
+            QCOMPARE(controller.defaultImageModel(), QString("legacy image"));
+            QCOMPARE(controller.defaultVideoModel(), QString("legacy video"));
+            QVERIFY(controller.defaultGenerationPrompts().value("Video").toMap().value("negativePrompt").toString().isEmpty());
+            for (const auto &category : {QString("Image"), QString("Video"), QString("Audio"), QString("Agents")}) {
+                const auto prompt = category + QString::fromUtf8(" 기본 \"프롬프트\" \\ 경로\n다음 줄 ").repeated(1000);
+                const auto negative = category + QString::fromUtf8(" 제외할 요소, noise, artifacts");
+                QVERIFY(controller.setDefaultGenerationPrompt(category, prompt, false));
+                QVERIFY(controller.setDefaultGenerationPrompt(category, negative, true));
+                expected[category] = QVariantMap{{"prompt", prompt}, {"negativePrompt", negative}};
+            }
+            QCOMPARE(controller.defaultGenerationPrompts(), expected);
+            QVERIFY(!controller.setDefaultGenerationPrompt("Unknown", "wrong category", false));
+            QVERIFY(!controller.setDefaultGenerationPrompt("Image", QString(32001, 'x'), true));
+            QCOMPARE(controller.defaultGenerationPrompts(), expected);
+        }
+        GenerationController restored(runtime);
+        QCOMPARE(restored.defaultGenerationPrompts(), expected);
+        QCOMPARE(restored.defaultImageModel(), QString("legacy image"));
+        QCOMPARE(restored.defaultVideoModel(), QString("legacy video"));
+        QVERIFY(restored.setDefaultGenerationPrompt("Image", {}, true));
+        GenerationController cleared(runtime);
+        QVERIFY(cleared.defaultGenerationPrompts().value("Image").toMap().value("negativePrompt").toString().isEmpty());
+        QCOMPARE(cleared.defaultGenerationPrompts().value("Video"), expected.value("Video"));
+        QVERIFY(write(runtime.modelPreferencesFile, "Dreamscapes generation preferences 2\n\"image\"\n\"video\"\n"));
+        GenerationController malformed(runtime);
+        QVERIFY(!malformed.modelPreferencesError().isEmpty());
+        QVERIFY(malformed.defaultImageModel().isEmpty());
+        QVERIFY(malformed.defaultGenerationPrompts().value("Image").toMap().value("prompt").toString().isEmpty());
+    }
+    void defaultPromptSaveFailureAndQueuedSnapshot()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/prompt-snapshot-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        auto runtime = fakeRuntime();
+        runtime.modelPreferencesFile = root.filePath("settings/defaults.conf");
+        GenerationController controller(runtime);
+        QVERIFY(controller.connectStorage(root.path()));
+        QVERIFY(controller.setDefaultGenerationPrompt("Image", "first default", false));
+        QVERIFY(controller.setDefaultGenerationPrompt("Image", "first negative", true));
+        const auto first = controller.enqueue("explicit first prompt");
+        QVERIFY(!first.isEmpty());
+        QVERIFY(controller.setDefaultGenerationPrompt("Image", "next negative", true));
+        const auto second = controller.enqueue("explicit next prompt");
+        QVERIFY(!second.isEmpty());
+        QCOMPARE(recordedJob(controller, first).value("prompt").toString(), QString("explicit first prompt"));
+        QCOMPARE(recordedJob(controller, first).value("negativePrompt").toString(), QString("first negative"));
+        QCOMPARE(recordedJob(controller, second).value("negativePrompt").toString(), QString("next negative"));
+        const auto before = controller.defaultGenerationPrompts();
+        QFile saved(runtime.modelPreferencesFile); QVERIFY(saved.open(QIODevice::ReadOnly));
+        const auto bytes = saved.readAll(); saved.close();
+        QVERIFY(QDir().mkpath(runtime.modelPreferencesFile + ".tmp"));
+        QVERIFY(!controller.setDefaultGenerationPrompt("Image", "cannot save", false));
+        QVERIFY(!controller.modelPreferencesError().isEmpty());
+        QCOMPARE(controller.defaultGenerationPrompts(), before);
+        QVERIFY(saved.open(QIODevice::ReadOnly)); QCOMPARE(saved.readAll(), bytes);
+        QCOMPARE(recordedJob(controller, first).value("negativePrompt").toString(), QString("first negative"));
+    }
     void defaultModelSaveFailurePreservesSelection()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-preferences-error-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-preferences-error-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         auto runtime = fakeRuntime();
         runtime.modelPreferencesFile = root.filePath("settings/default-models.conf");
@@ -179,7 +352,7 @@ private slots:
     }
     void malformedModelPreferencesUseSafeDefaults()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-preferences-malformed-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-preferences-malformed-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         auto runtime = fakeRuntime(); runtime.modelPreferencesFile = root.filePath("defaults.conf");
         QVERIFY(write(runtime.modelPreferencesFile, "invalid preferences"));
@@ -196,7 +369,7 @@ private slots:
         const auto model=qEnvironmentVariable("DREAMSCAPES_VIDEO_SMOKE_MODEL");
         const auto launcher=qEnvironmentVariable("DREAMSCAPES_VIDEO_SMOKE_LAUNCHER");
         if(model.isEmpty() || launcher.isEmpty()) QSKIP("Set a local LTX fixture/model and installed SDK launcher for real video inference.");
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/real-video-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/real-video-XXXXXX.societycontainer");
         QVERIFY(iiSocietyContainer::SocietyDrive::create(root.path()));
         const auto target=root.filePath("Models/Checkpoint/LTX-runtime-smoke");
         QVERIFY(QDir().mkpath(target));
@@ -229,21 +402,32 @@ private slots:
         QVERIFY(write(QStringLiteral(DREAMSCAPES_TEST_DIRECTORY "/video-verification/runtime-result.json"),
             QJsonDocument(QJsonObject::fromVariantMap(result)).toJson(QJsonDocument::Indented)));
     }
+    void videoQueuePreservesInputsAndPublishesAllResults_data()
+    {
+        QTest::addColumn<int>("fps");
+        QTest::newRow("24-fps") << 24;
+        QTest::newRow("60-fps") << 60;
+        QTest::newRow("120-fps") << 120;
+    }
     void videoQueuePreservesInputsAndPublishesAllResults()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/video-queue-XXXXXX"); QVERIFY(prepare(root));
+        QFETCH(int,fps);
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/video-queue-XXXXXX.societycontainer"); QVERIFY(prepare(root));
         QVERIFY(QDir().mkpath(root.filePath("Models/Checkpoint/ltx")));
         QVERIFY(write(root.filePath("Models/Checkpoint/ltx/model_index.json"),
             R"({"_class_name":"LTXConditionPipeline"})"));
         QImage image(80,40,QImage::Format_RGB32); image.fill(Qt::red);
-        const auto source = QUrl::fromLocalFile(root.filePath("Files/keyframe.png")); QVERIFY(image.save(source.toLocalFile()));
+        const auto png = root.filePath("Files/keyframe.png"); QVERIFY(image.save(png));
+        QString nativeError;
+        const auto source = QUrl::fromLocalFile(dreamscapes::persistImageCanvas(png, &nativeError));
+        QVERIFY2(source.isLocalFile(), qPrintable(nativeError)); QVERIFY(QFile::remove(png));
         auto runtime = fakeRuntime(); runtime.nativeInference = true;
         GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
         QCOMPARE(controller.videoModels().size(),1);
         QCOMPARE(controller.selectedVideoModel(),QString("Checkpoint/ltx"));
         QVERIFY(controller.models().size() == 2);
         QSignalSpy submitted(&controller,&GenerationController::submissionQueued);
-        const auto id = controller.enqueueVideo("video","16:9",2,source,1,24,42);
+        const auto id = controller.enqueueVideo("video","16:9",2,source,1,fps,42);
         QVERIFY2(!id.isEmpty(),qPrintable(controller.errorString()));
         QCOMPARE(submitted.size(),1); QCOMPARE(submitted[0][0].toStringList().size(),2);
         const auto queued = recordedJob(controller,id);
@@ -261,7 +445,8 @@ private slots:
             QVERIFY(QFileInfo(result.value("mediaSource").toUrl().toLocalFile()).isFile());
             QVERIFY(!QImage(result.value("imageSource").toUrl().toLocalFile()).isNull());
             QCOMPARE(result.value("generation").toMap().value("configuration").toMap().value("first_frame").toString(),owned);
-            QCOMPARE(result.value("generation").toMap().value("configuration").toMap().value("fps").toInt(),24);
+            QCOMPARE(result.value("generation").toMap().value("configuration").toMap().value("fps").toInt(),fps);
+            QCOMPARE(result.value("generation").toMap().value("video").toMap().value("frame_count").toInt(),fps);
         }
         QVERIFY(QDir(root.filePath("Generation History")).entryList({"*.json"},QDir::Files).isEmpty());
         QCOMPARE(QDir(root.filePath("Generation History")).entryList({"*.mp4"},QDir::Files).size(),2);
@@ -281,7 +466,7 @@ private slots:
     void videoRejectsBadOutputAndCancelsWorker()
     {
         QFETCH(QString,prompt); QFETCH(QString,expected);
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/video-errors-XXXXXX"); QVERIFY(prepare(root));
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/video-errors-XXXXXX.societycontainer"); QVERIFY(prepare(root));
         QVERIFY(QDir().mkpath(root.filePath("Models/ltx")));
         QVERIFY(write(root.filePath("Models/ltx/model_index.json"),R"({"_class_name":"LTXPipeline"})"));
         auto runtime=fakeRuntime(); runtime.nativeInference=true;
@@ -306,7 +491,7 @@ private slots:
     void advancedWatermarkIsAppliedAtPublication()
     {
         QFETCH(bool, native);
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/watermark-queue-XXXXXX"); QVERIFY(prepare(root));
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/watermark-queue-XXXXXX.societycontainer"); QVERIFY(prepare(root));
         auto runtime = fakeRuntime(); runtime.nativeInference = native;
         runtime.nativeGenerateAdvanced = [](const auto &request, const auto &, const auto &, const auto &,
             const auto &, const auto &, const auto &) {
@@ -331,7 +516,7 @@ private slots:
         for (const auto &entry : controller.jobs()) {
             const auto job = QJsonObject::fromVariantMap(entry.toMap());
             const bool marked = job.value("advancedParameters").toObject().value("watermark").toBool();
-            const QImage output(root.filePath(job.value("image").toString())); QVERIFY(!output.isNull());
+            const QImage output = readCanvasImage(root.filePath(job.value("image").toString())); QVERIFY(!output.isNull());
             QCOMPARE(output.size(), QSize(128, 128)); QVERIFY(output.textKeys().isEmpty());
             if (!marked) continue;
             ++markedCount;
@@ -348,7 +533,7 @@ private slots:
     }
     void homeCanvasOwnsReferencesAndForwardsNativePixels()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/home-inputs-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/home-inputs-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         QImage reference(80,40,QImage::Format_RGB888); reference.fill(QColor(11,12,13));
         const auto original = root.filePath("Files/reference.png"); QVERIFY(reference.save(original));
@@ -373,6 +558,10 @@ private slots:
         const auto referencePath = job.value("advancedParameters").toObject().value("referenceImages").toArray()[0].toString();
         const auto owned = QUrl(referencePath).isLocalFile() ? QUrl(referencePath).toLocalFile() : referencePath;
         QVERIFY(owned != original); QVERIFY(QFileInfo::exists(owned));
+        QDirIterator inputCanvases(root.filePath("Files/Dreamscapes/GenerationInputs"), {"*.iisc"}, QDir::Files, QDirIterator::Subdirectories);
+        QVERIFY(inputCanvases.hasNext());
+        const auto preserved = dreamscapes::readImageCanvas(inputCanvases.next());
+        QVERIFY(preserved.ok()); QCOMPARE(preserved.document.extent.width, 80);
         QVERIFY(QFile::remove(original));
         controller.setForeground(true);
         QTRY_COMPARE_WITH_TIMEOUT(state(controller,id),QString("completed"),15000);
@@ -385,7 +574,7 @@ private slots:
 
     void homeKreaDefaultsAndAdvancedOverrides()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/home-krea-XXXXXX"); QVERIFY(prepare(root));
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/home-krea-XXXXXX.societycontainer"); QVERIFY(prepare(root));
         // Recognizable metadata under a neutral filename; no pretrained tensor compute.
         const QByteArray header = R"({"model.diffusion_model.txtfusion.projector.weight":{"dtype":"F32","shape":[1],"data_offsets":[0,4]}})";
         const quint64 size = header.size();
@@ -423,7 +612,7 @@ private slots:
 
     void advancedSubmissionSnapshotsAndForwardsParameters()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/advanced-worker-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/advanced-worker-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         QVERIFY(write(root.filePath("Models/style.safetensors"), "test adapter"));
         GenerationController controller(fakeRuntime());
@@ -474,7 +663,7 @@ private slots:
     void advancedPoseResourcesReachNativeQueue()
     {
         if (!iiLocalDiffusion::nativePoseAvailable()) QSKIP("Pose backend disabled");
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/advanced-pose-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/advanced-pose-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         QVERIFY(write(root.filePath("Models/control.safetensors"), "control fixture"));
         QVERIFY(write(root.filePath("Models/detector.onnx"), "detector fixture"));
@@ -516,7 +705,7 @@ private slots:
 
     void advancedNativeReceivesSamplingComponentsAndAdapters()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/advanced-native-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/advanced-native-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         QVERIFY(QDir().mkpath(root.filePath("Models/VAE")));
         QVERIFY(write(root.filePath("Models/VAE/custom.safetensors"), "test vae"));
@@ -721,9 +910,35 @@ private slots:
         QCOMPARE(controller.jobs().size(), 1);
     }
 
+    void backgroundModelInventoryDoesNotReopenTheFileMirror()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/inventory-poll-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        GenerationController controller(fakeRuntime());
+        QVERIFY(controller.connectStorage(root.path()));
+        auto *files = qobject_cast<iiSocietyHelper::FileSystem *>(controller.container()->parent());
+        QVERIFY(files);
+        controller.setSelectedModel("first model.safetensor");
+        controller.setForeground(true);
+        QTRY_VERIFY_WITH_TIMEOUT(!files->containerState().isEmpty(), 8000);
+        QTest::qWait(100);
+        QSignalSpy reopened(files, &iiSocietyHelper::FileSystem::storageChanged);
+        QTest::qWait(2500);
+        QCOMPARE(reopened.size(), 0);
+        QVERIFY(write(root.filePath("Models/poll-added.safetensors"), "new weight"));
+        QTRY_COMPARE_WITH_TIMEOUT(controller.models().size(), 3, 8000);
+        QCOMPARE(controller.selectedModel(), QString("first model.safetensor"));
+        QCOMPARE(reopened.size(), 0);
+        QVERIFY(controller.enqueue("  ").isEmpty());
+        const auto generationError = controller.errorString();
+        QVERIFY(!generationError.isEmpty());
+        QTest::qWait(2500);
+        QCOMPARE(controller.errorString(), generationError);
+    }
+
     void modelInventoryFollowsSocietyOwnerAtStartupAndRefresh()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-inventory-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-inventory-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         const auto drive = SocietyDrive::open(root.path()); QVERIFY(drive);
         StorageMap map(*drive);
@@ -731,6 +946,8 @@ private slots:
             {"kind", "file"}, {"size", "7"}, {"version", QString(64, 'a')}}}));
         QVERIFY(write(root.filePath(".society-sync/primary.json"), QJsonDocument(QJsonObject{
             {"schema", 1}, {"container", drive->identifier()}, {"scope", QString(64, 'a')}, {"host", "test-host"}}).toJson()));
+        QVERIFY(QDir().mkpath(root.filePath("Models/VAE")));
+        QVERIFY(QDir().mkpath(root.filePath("Models/Checkpoint")));
         QVERIFY(write(root.filePath("Models/VAE/selected.safetensors"), "vae"));
         GenerationController controller(fakeRuntime());
         QVERIFY(controller.connectStorage(root.path()));
@@ -753,7 +970,7 @@ private slots:
 
     void explicitVaeIsPinnedPerJobAndForwardedToWorker()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/explicit-vae-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/explicit-vae-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         QVERIFY(QDir().mkpath(root.filePath("Models/VAE")));
         QVERIFY(write(root.filePath("Models/VAE/sdxl.safetensors"), "test vae"));
@@ -793,11 +1010,16 @@ private slots:
     }
     void driveLocationSelectionPersistsAndRejectsInvalidFolders()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/drive-location-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/drive-location-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         const auto settings = qgetenv("SOCIETY_STORAGE_SETTINGS_PATH");
+        const auto containerOverride = qgetenv("SOCIETY_CONTAINER_PATH");
         qputenv("SOCIETY_STORAGE_SETTINGS_PATH", root.filePath("settings.json").toUtf8());
-        const auto restore = qScopeGuard([&] { qputenv("SOCIETY_STORAGE_SETTINGS_PATH", settings); });
+        qunsetenv("SOCIETY_CONTAINER_PATH");
+        const auto restore = qScopeGuard([&] {
+            settings.isNull() ? qunsetenv("SOCIETY_STORAGE_SETTINGS_PATH") : qputenv("SOCIETY_STORAGE_SETTINGS_PATH", settings);
+            containerOverride.isNull() ? qunsetenv("SOCIETY_CONTAINER_PATH") : qputenv("SOCIETY_CONTAINER_PATH", containerOverride);
+        });
         GenerationController controller(fakeRuntime());
         QVERIFY(controller.selectStorageLocation(QUrl::fromLocalFile(root.path()).toString()));
         QCOMPARE(controller.containerPath(), root.path());
@@ -816,7 +1038,7 @@ private slots:
 
     void unifiedModelReachesTheNativeRuntimeAsOnePackage()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/unified-generation-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/unified-generation-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         const auto package = root.filePath("Models/cascade.iildmodel");
         QVERIFY(QDir().mkpath(package + "/members"));
@@ -842,7 +1064,7 @@ private slots:
     }
     void modelSelectionKeepsThePreparingRuntimeAlive()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/obsolete-preparation-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/obsolete-preparation-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         QVERIFY(write(root.filePath("Models/first model.safetensor"), "prepare-retain"));
         GenerationController controller(fakeRuntime());
@@ -873,7 +1095,7 @@ private slots:
     {
         QFETCH(bool, progressing);
         QFETCH(QString, prompt);
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/worker-watchdog-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/worker-watchdog-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         auto runtime = fakeRuntime();
         runtime.steps = 30;
@@ -895,7 +1117,7 @@ private slots:
 
     void nativeWorkerReportsStagesWithoutInventingPreviewImages()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/native-worker-progress-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/native-worker-progress-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         auto runtime = fakeRuntime();
         runtime.steps = 10;
@@ -938,7 +1160,7 @@ private slots:
         QFETCH(QString, ratio);
         QFETCH(QSize, expected);
         QFETCH(bool, native);
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/default-resolution-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/default-resolution-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         GenerationRuntime runtime;
         runtime.executable = QStringLiteral(DREAMSCAPES_FAKE_GENERATOR);
@@ -973,7 +1195,7 @@ private slots:
 
     void completedResultsExposeEveryImageAndExcludeUnpublishedFiles()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/gallery-results-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/gallery-results-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         GenerationController controller(fakeRuntime());
         QVERIFY(controller.connectStorage(root.path()));
@@ -997,6 +1219,7 @@ private slots:
             const auto source = result.value("imageSource").toUrl();
             QVERIFY(!QImage(source.toLocalFile()).isNull());
             QCOMPARE(source.toLocalFile(), root.filePath(result.value("image").toString()));
+            QVERIFY(source.toLocalFile().endsWith(".png")); QVERIFY(!result.contains("documentSource"));
             sources.insert(source);
         }
         QCOMPARE(sources.size(), 3);
@@ -1005,9 +1228,10 @@ private slots:
         const auto firstPath = results.first().toMap().value("imageSource").toUrl().toLocalFile();
         QVERIFY(QFile::remove(firstPath));
         QCOMPARE(controller.property("completedResults").toList().size(), 2);
+        QVERIFY(!QFileInfo::exists(firstPath));
         QVERIFY(createNativeTestLink(results.last().toMap().value("imageSource").toUrl().toLocalFile(), firstPath));
         QCOMPARE(controller.property("completedResults").toList().size(), 2);
-        QTemporaryDir other(DREAMSCAPES_TEST_DIRECTORY "/gallery-other-storage-XXXXXX");
+        QTemporaryDir other(DREAMSCAPES_TEST_DIRECTORY "/gallery-other-storage-XXXXXX.societycontainer");
         QVERIFY(prepare(other));
         QVERIFY(controller.connectStorage(other.path()));
         QVERIFY(controller.property("completedResults").toList().isEmpty());
@@ -1015,7 +1239,7 @@ private slots:
 
     void batchSubmissionKeepsOneModelSnapshotAndRejectsInvalidCounts()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/batch-queue-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/batch-queue-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         auto runtime = fakeRuntime();
         runtime.executable.clear();
@@ -1073,7 +1297,7 @@ private slots:
 
     void batchGenerationPublishesTheSelectedNumberOfImagesSerially()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/batch-generation-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/batch-generation-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         GenerationController controller(fakeRuntime());
         QVERIFY(controller.connectStorage(root.path()));
@@ -1104,7 +1328,7 @@ private slots:
 
     void foregroundPreparationFailureCanRecoverWithAnotherModel()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/foreground-failure-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/foreground-failure-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         QVERIFY(write(root.filePath("Models/first model.safetensor"), "prepare-fail"));
         GenerationController controller(fakeRuntime());
@@ -1120,7 +1344,7 @@ private slots:
 
     void foregroundControlRequiresTheSdkCapability()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/foreground-legacy-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/foreground-legacy-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         const auto executable = root.filePath("legacy.py");
         QVERIFY(write(executable,
@@ -1141,7 +1365,7 @@ private slots:
 
     void foregroundAndGenerationUseMetadataOnlyModelValidation()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/metadata-model-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/metadata-model-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         QVERIFY(write(root.filePath("Models/first model.safetensor"), "prepare-metadata"));
         GenerationController controller(fakeRuntime());
@@ -1155,7 +1379,7 @@ private slots:
 
     void completedModelCheckDoesNotRemainCheckingDuringPreparation()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-check-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-check-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         QVERIFY(write(root.filePath("Models/first model.safetensor"), "prepare-check"));
         GenerationController controller(fakeRuntime());
@@ -1172,7 +1396,7 @@ private slots:
 
     void foregroundPreparesWithoutAQueueAndReusesTheWorker()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/foreground-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/foreground-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         GenerationController controller(fakeRuntime());
         QVERIFY(controller.connectStorage(root.path()));
@@ -1211,7 +1435,7 @@ private slots:
 
     void foregroundModelChangesAndQueuedRequestsRemainSeparate()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/foreground-model-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/foreground-model-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         GenerationController controller(fakeRuntime());
         QVERIFY(controller.connectStorage(root.path()));
@@ -1230,7 +1454,7 @@ private slots:
 
     void queuesBelongOnlyToTheCurrentAppSession()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/memory-queue-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/memory-queue-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         auto runtime = fakeRuntime();
         runtime.executable.clear();
@@ -1265,7 +1489,7 @@ private slots:
     {
         QFETCH(QString, prompt);
         QFETCH(QString, expectedState);
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/live-generation-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/live-generation-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         auto runtime = fakeRuntime();
         runtime.steps = 3;
@@ -1302,7 +1526,7 @@ private slots:
 
     void cancellationClearsLivePreviewBeforeNextJob()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/cancel-preview-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/cancel-preview-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         GenerationController controller(fakeRuntime());
         QVERIFY(controller.connectStorage(root.path()));
@@ -1322,8 +1546,14 @@ private slots:
 
     void sharedModelsAreCapturedAtSubmissionAndOutputsStayPrivate()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/shared-generation-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/shared-generation-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
+        const auto settings = qgetenv("SOCIETY_STORAGE_SETTINGS_PATH");
+        const auto containerOverride = qgetenv("SOCIETY_CONTAINER_PATH");
+        const auto restore = qScopeGuard([&] {
+            settings.isNull() ? qunsetenv("SOCIETY_STORAGE_SETTINGS_PATH") : qputenv("SOCIETY_STORAGE_SETTINGS_PATH", settings);
+            containerOverride.isNull() ? qunsetenv("SOCIETY_CONTAINER_PATH") : qputenv("SOCIETY_CONTAINER_PATH", containerOverride);
+        });
         qputenv("SOCIETY_STORAGE_SETTINGS_PATH", root.filePath("settings.json").toUtf8());
         qunsetenv("SOCIETY_CONTAINER_PATH");
         QVERIFY(SharedStorage::setDefaultContainer(root.path()));
@@ -1371,12 +1601,13 @@ private slots:
         QVERIFY(!QDirIterator(root.filePath("Files"), QDir::Files | QDir::Hidden | QDir::System,
                               QDirIterator::Subdirectories).hasNext());
         QVERIFY(QDir(root.filePath("Asset Library")).isEmpty());
-        const auto history = QDir(root.filePath("Generation History")).entryList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden);
+        const auto history = contentEntries(QDir(root.filePath("Generation History")), QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden);
         QCOMPARE(history.size(), 2);
         QVERIFY(history.contains(first + "-0001.png"));
         QVERIFY(history.contains(second + "-0001.png"));
         QVERIFY(QFileInfo::exists(root.filePath("Models/first model.safetensor")));
-        QCOMPARE(controller.latestImage().toLocalFile(), root.filePath("Generation History/" + second + "-0001.png"));
+        QCOMPARE(controller.latestResult().value("imageSource").toUrl().toLocalFile(), root.filePath("Generation History/" + second + "-0001.png"));
+        QVERIFY(!QImage(controller.latestImage().toLocalFile()).isNull());
         const auto latest = controller.latestResult();
         QCOMPARE(latest.value("imageSource").toUrl(), controller.latestImage());
         QCOMPARE(latest.value("id").toString(), second);
@@ -1388,7 +1619,7 @@ private slots:
 
     void changedModelsAreRejectedInTheCurrentMemoryQueue()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/memory-model-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/memory-model-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         GenerationController controller(fakeRuntime());
         QVERIFY(controller.connectStorage(root.path()));
@@ -1416,7 +1647,7 @@ private slots:
     void failuresCannotBecomeSuccessfulImages()
     {
         QFETCH(QString, prompt);
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/failed-generation-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/failed-generation-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         GenerationController controller(fakeRuntime());
         QVERIFY(controller.connectStorage(root.path()));
@@ -1433,7 +1664,7 @@ private slots:
 
     void cancellationReleasesTheWorkerForTheNextJob()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/cancel-generation-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/cancel-generation-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         GenerationController controller(fakeRuntime());
         QVERIFY(controller.connectStorage(root.path()));
@@ -1465,7 +1696,7 @@ private slots:
     void workerFailureAndCrashDoNotBlockTheNextRequest()
     {
         QFETCH(QString, failure);
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/worker-recovery-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/worker-recovery-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         GenerationController controller(fakeRuntime());
         QVERIFY(controller.connectStorage(root.path()));
@@ -1486,7 +1717,7 @@ private slots:
 
     void redirectedOutputCannotEscapeSociety()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/redirect-generation-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/redirect-generation-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         auto runtime = fakeRuntime();
         runtime.executable.clear();
@@ -1506,7 +1737,7 @@ private slots:
 
     void allImagesShareOneFlatHistoryAndAssetsAreUntouched()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/flat-history-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/flat-history-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         const auto asset = root.filePath("Asset Library/existing.png");
         QVERIFY(write(asset, "an existing asset must remain unchanged"));
@@ -1519,7 +1750,7 @@ private slots:
         QCOMPARE(state(controller, first), QString("completed"));
         const QDir history(root.filePath("Generation History"));
         QCOMPARE(history.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Hidden).size(), 0);
-        QCOMPARE(history.entryList(QDir::Files | QDir::Hidden).size(), 4);
+        QCOMPARE(contentEntries(history, QDir::Files | QDir::Hidden).size(), 4);
         for (const auto &id : {first, second}) {
             for (int index = 1; index <= 2; ++index) {
                 const QImage image(history.filePath(id + QString("-%1.png").arg(index, 4, 10, QLatin1Char('0'))));
@@ -1536,12 +1767,12 @@ private slots:
         QVERIFY(reopened.connectStorage(root.path()));
         QVERIFY(reopened.latestImage().isEmpty());
         QVERIFY(reopened.jobs().isEmpty());
-        QCOMPARE(history.entryList(QDir::Files | QDir::Hidden).size(), 4);
+        QCOMPARE(contentEntries(history, QDir::Files | QDir::Hidden).size(), 4);
     }
 
     void historyNameCollisionPreservesExistingImage()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/history-collision-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/history-collision-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         GenerationController controller(fakeRuntime());
         QVERIFY(controller.connectStorage(root.path()));
@@ -1558,7 +1789,7 @@ private slots:
 
     void legacyQueuesAreDiscardedWhileCompletedImagesArePreserved()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/legacy-memory-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/legacy-memory-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         auto runtime = fakeRuntime();
         runtime.executable.clear();
@@ -1589,8 +1820,9 @@ private slots:
         QTest::qWait(100);
         QVERIFY(!migrated.busy());
         const QDir history(root.filePath("Generation History"));
-        QCOMPARE(history.entryList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden).size(), 1);
-        QCOMPARE(QImage(root.filePath("Generation History/" + completed + "-0001.png")), generated);
+        QCOMPARE(history.entryList({"*.png"}, QDir::Files).size(), 1);
+        const QImage preservedPng(root.filePath("Generation History/" + completed + "-0001.png"));
+        QCOMPARE(preservedPng, generated);
         QCOMPARE(QDir(root.filePath("Asset Library")).entryList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden), QStringList{"preserved.asset"});
         QVERIFY(!QFileInfo::exists(legacy));
         QVERIFY(!QFileInfo::exists(root.filePath(".dreamscapes")));
@@ -1598,7 +1830,7 @@ private slots:
 
     void obsoleteWorkingFilesAreRemovedWithoutFollowingModelLinks()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/obsolete-working-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/obsolete-working-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         const auto legacy = root.filePath(".dreamscapes/generation");
         QVERIFY(QDir().mkpath(legacy + "/Runtime Cache"));
@@ -1619,7 +1851,7 @@ private slots:
 
     void redirectedLegacyStorageIsPreserved()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/redirected-legacy-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/redirected-legacy-XXXXXX.societycontainer");
         QTemporaryDir outside(DREAMSCAPES_TEST_DIRECTORY "/preserved-legacy-XXXXXX");
         QVERIFY(prepare(root));
         QVERIFY(outside.isValid());
@@ -1634,7 +1866,7 @@ private slots:
 
     void obsoleteFilesInUseArePreserved()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/obsolete-busy-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/obsolete-busy-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         const auto legacy = root.filePath(".dreamscapes/generation");
         QVERIFY(QDir().mkpath(legacy));
@@ -1663,7 +1895,7 @@ private slots:
     {
         QFETCH(QString, prompt);
         QFETCH(QString, expected);
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/session-society-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/session-society-XXXXXX.societycontainer");
         QTemporaryDir temporary(DREAMSCAPES_TEST_DIRECTORY "/session-temporary-XXXXXX");
         QVERIFY(prepare(root));
         QVERIFY(temporary.isValid());
@@ -1692,7 +1924,7 @@ private slots:
         QVERIFY(QDir(temporary.path()).isEmpty());
         QVERIFY(!QFileInfo::exists(root.filePath(".dreamscapes")));
         QVERIFY(QDir(root.filePath("Asset Library")).isEmpty());
-        QCOMPARE(QDir(root.filePath("Generation History")).entryList(QDir::Files | QDir::Hidden).size(), expected == "completed" ? 1 : 0);
+        QCOMPARE(contentEntries(QDir(root.filePath("Generation History")), QDir::Files | QDir::Hidden).size(), expected == "completed" ? 1 : 0);
         GenerationController reopened(runtime);
         QVERIFY(reopened.connectStorage(root.path()));
         QVERIFY(reopened.jobs().isEmpty());
@@ -1707,7 +1939,7 @@ private slots:
     void storageDirectoriesCannotBeRedirectedOutsideSociety()
     {
         QFETCH(QString, directory);
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/invalid-temporary-XXXXXX");
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/invalid-temporary-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         auto runtime = fakeRuntime();
 

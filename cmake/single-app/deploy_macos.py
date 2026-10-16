@@ -1,5 +1,6 @@
 """Deploy and sign one application in place, including plain helper executables."""
 import argparse
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -128,7 +129,8 @@ def prepare_native(app, libraries, search_paths, executable=None):
 
 
 def binaries(app):
-    result = {path.resolve() for path in app.rglob("*.dylib") if path.is_file()}
+    result = {path.resolve() for path in app.rglob("*.dylib") if path.is_file()
+              and not any(parent.name.endswith(".dSYM") for parent in path.parents)}
     for framework in app.rglob("*.framework"):
         binary = framework / framework.stem
         if binary.is_file():
@@ -137,6 +139,133 @@ def binaries(app):
         result.add(bundle / "Contents/MacOS" / bundle.stem)
     result.update(path for path in (app / "Contents/MacOS").iterdir() if path.is_file())
     return sorted(result)
+
+
+def deploy_qml_modules(destination, modules, compact=False, quick_style=None, embedded_resources_modules=()):
+    """Copy imported modules without recursively deploying unrelated child modules."""
+    modules = [module for module in modules if module.get("type") == "module"
+               and module.get("path") and module.get("relativePath")]
+    styles = set()
+    for module in modules:
+        if module.get("name") == "QtQuick.Controls":
+            manifest = Path(module["path"]) / "qmldir"
+            if manifest.is_file():
+                styles.update(re.findall(r"^(?:optional|default) import (QtQuick\.Controls\.\w+)\b",
+                                         manifest.read_text(), re.MULTILINE))
+    if quick_style:
+        selected_style = "QtQuick.Controls." + quick_style
+        if not any(module.get("name") == selected_style for module in modules):
+            raise RuntimeError(f"The requested Qt Quick Controls style is unavailable: {quick_style}")
+        modules = [module for module in modules if not any(
+            (module.get("name") == style or module.get("name", "").startswith(style + "."))
+            and style != selected_style for style in styles)]
+    if destination.exists():
+        shutil.rmtree(destination)
+    copied = []
+    for module in modules:
+        source, relative = Path(module["path"]), Path(module["relativePath"])
+        if relative.is_absolute() or ".." in relative.parts:
+            raise RuntimeError(f"Invalid QML module destination: {relative}")
+
+        def ignore(directory, names):
+            if not compact:
+                return []
+            directory = Path(directory)
+            skipped = []
+            for name in names:
+                path = directory / name
+                if name == "designer" or name.endswith((".dSYM", ".qmltypes")):
+                    skipped.append(name)
+                elif (path / "qmldir").is_file():
+                    declaration = re.search(r"^module\s+(\S+)",
+                                            (path / "qmldir").read_text(), re.MULTILINE)
+                    if declaration and declaration.group(1) != module.get("name"):
+                        skipped.append(name)
+                elif (module.get("name") in embedded_resources_modules
+                      and path.is_relative_to(source / "resources")
+                      and path.suffix.lower() in (".svg", ".ttf", ".otf", ".png", ".jpg", ".webp", ".qsb")):
+                    skipped.append(name)
+            return skipped
+
+        shutil.copytree(source, destination / relative, symlinks=False,
+                        dirs_exist_ok=True, ignore=ignore)
+        copied.append(module.get("name"))
+    return copied
+
+
+def prune_native(app):
+    """Remove stale Frameworks entries outside the executable and plugin dependency closure."""
+    frameworks = app / "Contents/Frameworks"
+    native = set(binaries(app))
+    roots = {binary for binary in native if not binary.is_relative_to(frameworks)}
+    reachable = set()
+    queue = list(roots)
+    for binary in queue:
+        if binary in reachable:
+            continue
+        reachable.add(binary)
+        for link in dependencies(binary):
+            if link.startswith(SYSTEM_PREFIXES):
+                continue
+            match = re.search(r"([^/]+\.framework/.+)$", link)
+            target = frameworks / (match.group(1) if match else Path(link).name)
+            if not target.is_file():
+                raise RuntimeError(f"Bundle is missing a dependency: {binary} -> {link}")
+            queue.append(target.resolve())
+    removed = []
+    for path in sorted(frameworks.iterdir()):
+        if path.suffix == ".framework":
+            keep = (path / path.stem).is_file() and (path / path.stem).resolve() in reachable
+        elif path.suffix == ".dylib":
+            keep = path.resolve() in reachable
+        else:
+            continue
+        if not keep:
+            removed.append(str(path.relative_to(app)))
+            if path.is_symlink() or path.is_file():
+                path.unlink()
+            else:
+                shutil.rmtree(path)
+    return removed
+
+
+def thin_native(app):
+    """Keep only architectures supported by the enclosing product executable."""
+    executable = app / "Contents/MacOS" / app.stem
+    required = set(run("lipo", "-archs", executable).split())
+    saved = 0
+    for binary in binaries(app):
+        available = set(run("lipo", "-archs", binary).split())
+        if not required.issubset(available):
+            raise RuntimeError(f"Runtime architectures do not match {sorted(required)}: {binary}")
+        extra = available - required
+        if not extra:
+            continue
+        before = binary.stat().st_size
+        temporary = binary.with_name("." + binary.name + ".thin")
+        # Removing slices can leave the original universal-file padding intact.
+        # A one-architecture product needs a genuinely thin Mach-O file.
+        options = (["-thin", next(iter(required))] if len(required) == 1 else
+                   [arg for architecture in sorted(extra) for arg in ("-remove", architecture)])
+        try:
+            run("lipo", binary, *options, "-output", temporary)
+            shutil.copymode(binary, temporary)
+            os.replace(temporary, binary)
+        finally:
+            temporary.unlink(missing_ok=True)
+        saved += before - binary.stat().st_size
+    return saved
+
+
+def strip_native(app):
+    """Strip local/debug symbols only; retain exported symbols used by plugins and SDK APIs."""
+    saved = 0
+    for binary in binaries(app):
+        before = binary.stat().st_size
+        binary.chmod(binary.stat().st_mode | 0o200)
+        run("strip", "-S", "-x", binary)
+        saved += before - binary.stat().st_size
+    return saved
 
 
 def containing_app(binary):
@@ -219,8 +348,26 @@ def sign(app, identity, entitlements):
     run("codesign", "--verify", "--deep", "--strict", app)
 
 
+@contextmanager
+def deployment_lock(app):
+    """Serialize bundle writers using a persistent lock outside the bundle."""
+    import fcntl
+    app = app.resolve()
+    lock_path = app.parent / f".{app.name}.deploy.lock"
+    with lock_path.open("a") as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        try:
+            yield app
+        finally:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+
+
 def deploy(args):
-    app = args.app.resolve()
+    with deployment_lock(args.app) as app:
+        _deploy_locked(args, app)
+
+
+def _deploy_locked(args, app):
     helpers = [path for path in (app / "Contents/MacOS").iterdir()
                if path.is_file() and path.name != app.stem]
     qt = args.macdeployqt.resolve().parent.parent
@@ -240,22 +387,17 @@ def deploy(args):
         for path in args.qml_import + [qt / "qml"]:
             command += ["-importPath", path]
         modules = json.loads(run(*command))
-        qml = app / "Contents/Resources/qml"
-        if qml.exists():
-            shutil.rmtree(qml)
-        for module in modules:
-            source, relative = module.get("path"), module.get("relativePath")
-            if module.get("type") != "module" or not source or not relative:
-                continue
-            relative = Path(relative)
-            if relative.is_absolute() or ".." in relative.parts:
-                raise RuntimeError(f"Invalid QML module destination: {relative}")
-            shutil.copytree(source, qml / relative, symlinks=False, dirs_exist_ok=True)
+        copied_modules = deploy_qml_modules(app / "Contents/Resources/qml", modules,
+                                             args.compact, args.quick_style, args.embedded_resources_module)
     config = app / "Contents/Resources/qt.conf"
     config.parent.mkdir(parents=True, exist_ok=True)
     config.write_text("[Paths]\nPlugins = PlugIns\nQmlImports = Resources/qml\nQml2Imports = Resources/qml\n")
-    args.log.write_text(json.dumps({"qmlModules": [m.get("name") for m in modules]}, indent=2))
+    report = {"qmlModules": copied_modules if args.qml_dir else [],
+              "compact": args.compact, "quickStyle": args.quick_style,
+              "embeddedResourceModules": args.embedded_resources_module}
     complete_frameworks(app, qt)
+    if args.compact:
+        report["removedNativeEntries"] = prune_native(app)
     # Stage plugin/framework-specific non-Qt libraries too. Each executable's
     # dependency graph is resolved before relocation, with selected SDKs first.
     extra_sources = {}
@@ -271,9 +413,13 @@ def deploy(args):
             shutil.copy2(source, target)
     complete_frameworks(app, qt)
     localize(app)
+    if args.compact and args.configuration in ("Release", "MinSizeRel"):
+        report["thinnedBytes"] = thin_native(app)
+        report["strippedBytes"] = strip_native(app)
     if list(app.rglob("*.app")):
         raise RuntimeError("Nested .app bundles violate the single application output contract")
     sign(app, args.identity, args.entitlements)
+    args.log.write_text(json.dumps(report, indent=2) + "\n")
 
 
 if __name__ == "__main__":
@@ -286,5 +432,10 @@ if __name__ == "__main__":
     parser.add_argument("--search-path", type=Path, action="append", default=[])
     parser.add_argument("--identity", default="-")
     parser.add_argument("--entitlements", type=Path)
+    parser.add_argument("--compact", action="store_true")
+    parser.add_argument("--quick-style", help="Deploy only the configured Qt Quick Controls style")
+    parser.add_argument("--configuration", default="", help="Release/MinSizeRel enable symbol stripping with --compact")
+    parser.add_argument("--embedded-resources-module", action="append", default=[],
+                        help="Module whose fonts/images/icons are already embedded; retain filesystem licenses")
     parser.add_argument("--log", type=Path, required=True)
     deploy(parser.parse_args())

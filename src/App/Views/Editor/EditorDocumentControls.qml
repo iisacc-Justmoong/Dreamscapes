@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import LVRS 1.0 as LV
+import ".." as Shared
 
 Item {
     id: root
@@ -10,19 +11,31 @@ Item {
     required property var project
     property bool mobileLayout: false
     property bool showCommandBar: true
-    readonly property bool modalActive: commandMenu.visible || openDialog.visible || placeDialog.visible || saveDialog.visible || layersSheet.visible || paintColorSheet.visible
+    property url defaultSaveDirectory: ""
+    property bool hasPageNavigation: false
+    function syncPageNavigation() { hasPageNavigation = root.project.canvasCount > 1 }
+    onProjectChanged: Qt.callLater(syncPageNavigation)
+    Component.onCompleted: syncPageNavigation()
+    Connections {
+        target: root.project
+        // Page geometry can refit the native canvas and notify the project.
+        // Apply navigation layout after that document notification completes.
+        function onProjectChanged() { Qt.callLater(root.syncPageNavigation) }
+    }
+    readonly property bool modalActive: commandMenu.visible || openDialog.visible || attachDialog.visible || placeDialog.visible || saveDialog.visible || layersSheet.visible || paintColorSheet.visible
     signal openDocumentRequested(url source, bool asCopy)
-    implicitHeight: navigation.y + navigation.height + (errorLabel.visible ? errorLabel.implicitHeight + 8 : 0)
+    implicitHeight: navigation.y + navigation.height + (root.project.error.length > 0 ? errorLabel.implicitHeight + 8 : 0)
     function requestOpen(asCopy, directory) { openDialog.openAsCopy = Boolean(asCopy); if (directory && directory.toString().length) openDialog.currentFolder = directory; openDialog.open() }
     function requestPlace(placement) { placeDialog.placement = placement || "Fit"; placeDialog.open() }
     function requestSave() {
         if (project.filePath.length > 0) project.saveDocument()
-        else saveDialog.open()
+        else requestSaveAs(canvas.documentName.replace(/\.iisc$/i, ""), defaultSaveDirectory)
     }
     function requestSaveAs(name, directory) {
-        if (directory && directory.toString().length) saveDialog.currentFolder = directory
+        const directoryUrl = defaultSaveDirectory.toString().length ? defaultSaveDirectory : directory
+        if (directoryUrl && directoryUrl.toString().length) saveDialog.currentFolder = directoryUrl
         if (name && name.length) {
-            const suffix = root.project.isProject ? "iiscp" : "iisc"
+            const suffix = "iisc"
             const folder = saveDialog.currentFolder.toString().replace(/\/$/, "")
             saveDialog.selectedFile = folder + "/" + encodeURIComponent(name) + "." + suffix
         }
@@ -38,7 +51,7 @@ Item {
         id: buttons
         width: parent.width
         visible: root.showCommandBar
-        height: visible ? implicitHeight : 0
+        height: root.showCommandBar ? implicitHeight : 0
         spacing: 8
         LV.Label {
             text: (root.project.modified ? "* " : "") + root.project.documentName
@@ -48,6 +61,7 @@ Item {
             elide: Text.ElideRight
         }
         LV.LabelButton { objectName: "editorDocumentOpen"; text: qsTr("Open"); height: 22; onClicked: root.requestOpen() }
+        LV.LabelButton { objectName: "editorDocumentAttach"; text: qsTr("Add Images"); height: 22; onClicked: attachDialog.open() }
         LV.LabelButton { objectName: "editorDocumentSave"; text: qsTr("Save"); height: 22; onClicked: root.requestSave() }
         LV.LabelButton { objectName: "editorDocumentUndo"; text: qsTr("Undo"); height: 22; enabled: root.canvas.canUndo; onClicked: root.canvas.undo() }
         LV.LabelButton { objectName: "editorDocumentRedo"; text: qsTr("Redo"); height: 22; enabled: root.canvas.canRedo; onClicked: root.canvas.redo() }
@@ -65,12 +79,12 @@ Item {
         id: navigation
         objectName: "editorCanvasNavigation"
         anchors.top: buttons.bottom
-        anchors.topMargin: visible && buttons.visible ? 8 : 0
-        height: visible ? 22 : 0
-        visible: root.project.canvasCount > 1
+        anchors.topMargin: root.hasPageNavigation && root.showCommandBar ? 8 : 0
+        height: root.hasPageNavigation ? 22 : 0
+        visible: root.hasPageNavigation
         spacing: 8
         LV.LabelButton { objectName: "editorPreviousCanvas"; text: qsTr("Previous"); height: 22; enabled: root.project.currentIndex > 0; onClicked: root.project.setCurrentIndex(root.project.currentIndex - 1) }
-        LV.Label { objectName: "editorCanvasPosition"; text: qsTr("Canvas %1 / %2").arg(root.project.currentIndex + 1).arg(root.project.canvasCount); height: 22; style: description }
+        LV.Label { objectName: "editorCanvasPosition"; text: qsTr("Artboard %1 / %2").arg(root.project.currentIndex + 1).arg(root.project.canvasCount); height: 22; style: description }
         LV.LabelButton { objectName: "editorNextCanvas"; text: qsTr("Next"); height: 22; enabled: root.project.currentIndex + 1 < root.project.canvasCount; onClicked: root.project.setCurrentIndex(root.project.currentIndex + 1) }
     }
     LV.Label {
@@ -97,7 +111,8 @@ Item {
             { label: qsTr("Redo"), enabled: root.canvas.canRedo },
             { label: qsTr("Layers") },
             { label: qsTr("Fit") },
-            { label: qsTr("Paint Color") }
+            { label: qsTr("Paint Color") },
+            { label: qsTr("Add Images") }
         ]
         onItemTriggered: function(index) {
             if (index === 0) root.requestOpen()
@@ -108,6 +123,7 @@ Item {
             else if (index === 5) root.showLayers()
             else if (index === 6) root.canvas.fitToView()
             else if (index === 7) root.showPaintColor()
+            else if (index === 8) attachDialog.open()
         }
     }
     FileDialog {
@@ -117,6 +133,20 @@ Item {
         property bool openAsCopy: false
         nameFilters: [qsTr("Projects, canvases and images (*.iiscp *.iisc *.png *.jpg *.jpeg *.webp *.bmp *.tif *.tiff)")]
         onAccepted: root.openDocumentRequested(selectedFile, openAsCopy)
+        onVisibleChanged: if (!visible) Qt.callLater(function() { root.canvas.forceActiveFocus() })
+    }
+    FileDialog {
+        id: attachDialog
+        objectName: "editorAttachImagesDialog"
+        title: qsTr("Add Image Artboards")
+        fileMode: FileDialog.OpenFiles
+        nameFilters: [qsTr("Images and canvases (*.iisc *.png *.jpg *.jpeg *.webp *.bmp *.tif *.tiff)")]
+        onAccepted: {
+            const images = []
+            for (let index = 0; index < selectedFiles.length; ++index)
+                images.push(selectedFiles[index].toString())
+            root.project.attachImages(images)
+        }
         onVisibleChanged: if (!visible) Qt.callLater(function() { root.canvas.forceActiveFocus() })
     }
     FileDialog {
@@ -133,8 +163,8 @@ Item {
         objectName: "editorDocumentSaveDialog"
         title: root.project.isProject ? qsTr("Save Project As") : qsTr("Save Canvas As")
         fileMode: FileDialog.SaveFile
-        defaultSuffix: root.project.isProject ? "iiscp" : "iisc"
-        nameFilters: root.project.isProject ? [qsTr("Dreamscapes project (*.iiscp)")] : [qsTr("iiSharedCanvas (*.iisc)"), qsTr("Dreamscapes project (*.iiscp)")]
+        defaultSuffix: "iisc"
+        nameFilters: [qsTr("iiSharedCanvas (*.iisc)")]
         onAccepted: root.project.saveDocumentAs(selectedFile)
         onVisibleChanged: if (!visible) Qt.callLater(function() { root.canvas.forceActiveFocus() })
     }
@@ -145,7 +175,7 @@ Item {
         title: qsTr("Paint Color")
         presentation: root.mobileLayout ? LV.Sheet.Mobile : LV.Sheet.Desktop
         contentPadding: 16
-        contentComponent: LV.ColorPicker {
+        contentComponent: Shared.ColorPicker {
             objectName: "editorPaintColorPicker"
             Component.onCompleted: setColor(root.canvas.brushColor)
             onAccepted: function(color) { root.canvas.brushColor = color; paintColorSheet.close() }
@@ -169,13 +199,17 @@ Item {
                     width: parent.width
                     spacing: 8
                     LV.LabelButton {
+                        id: selectionButton1
                         objectName: "editorLayerSelect-" + layerRow.modelData.id
                         text: layerRow.modelData.name + " · " + layerRow.modelData.type
-                        tone: layerRow.modelData.selected ? LV.AbstractButton.Primary : LV.AbstractButton.Default
+                        tone: LV.AbstractButton.Default
                         Layout.fillWidth: true
                         Accessible.checkable: true
                         Accessible.checked: layerRow.modelData.selected
                         onClicked: root.canvas.selectLayer(layerRow.modelData.id)
+
+                        EditorButtonState { button: selectionButton1; selected: Boolean(layerRow.modelData.selected) }
+                        Accessible.onToggleAction: selectionButton1.click()
                     }
                     LV.ToggleSwitch {
                         objectName: "editorLayerVisible-" + layerRow.modelData.id

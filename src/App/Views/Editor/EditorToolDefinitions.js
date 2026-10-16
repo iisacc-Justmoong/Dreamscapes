@@ -1,4 +1,7 @@
 .pragma library
+.import "EditorTextDefinitions.js" as TextDefinitions
+.import "EditorCameraPhotoDefinitions.js" as PhotoDefinitions
+.import "EditorFileDefinitions.js" as FileDefinitions
 
 // Figma Dreamscapes 165:3042. Stable field IDs keep independent tool drafts.
 var tools = [
@@ -22,76 +25,10 @@ var tools = [
         {"id": "field-16", "type": "Color", "label": "Fill color", "initial": "#8B7CFF"},
         {"id": "field-17", "type": "Color", "label": "Stroke color", "initial": "#FFFFFF"},
     ]},
-    {"key": "text", "title": "Text", "number": 2, "figmaNode": "196:3413", "selector": {"id": "selector", "type": "Choices", "label": "Role", "options": ["Free Text", "Caption", "Header Title", "Callout", "Footer"], "desktopColumns": 4, "initial": "Free Text"}, "fields": [
-        {"id": "field-0", "type": "Field", "label": "Free Text · Content", "initial": "Enter your text…"},
-        {"id": "field-1", "type": "Choices", "label": "Typeface", "desktopColumns": 3, "initial": "Pretendard", "options": ["Pretendard", "Serif", "Mono"]},
-        {"id": "field-2", "type": "Slider", "label": "Font size", "initial": 48.0, "minimum": 1, "maximum": 512, "step": 1, "unit": "pt", "decimals": 0},
-        {"id": "field-3", "type": "Segmented", "label": "Alignment", "desktopColumns": 3, "initial": "Left", "options": ["Left", "Center", "Right"]},
-        {"id": "field-4", "type": "Field", "label": "Time range", "initial": "00:02.4 — 00:06.8"},
-        {"id": "field-5", "type": "Segmented", "label": "Placement", "desktopColumns": 3, "initial": "Bottom", "options": ["Bottom", "Center", "Top"]},
-        {"id": "field-6", "type": "Slider", "label": "Backdrop", "initial": 72.0, "minimum": 0, "maximum": 100, "step": 1, "unit": "%", "decimals": 0},
-        {"id": "field-7", "type": "Choices", "label": "Scale", "desktopColumns": 3, "initial": "Display", "options": ["Display", "H1", "H2"]},
-        {"id": "field-8", "type": "Slider", "label": "Tracking", "initial": 12.0, "minimum": 0, "maximum": 100, "step": 1, "unit": "", "decimals": 0},
-        {"id": "field-9", "type": "Toggle", "label": "Auto fit width", "initial": true, "description": "캔버스 폭에 맞춘다"},
-        {"id": "field-10", "type": "Segmented", "label": "Bubble", "desktopColumns": 3, "initial": "Round", "options": ["Round", "Sharp", "Cloud"]},
-        {"id": "field-11", "type": "Segmented", "label": "Pointer", "desktopColumns": 3, "initial": "Left", "options": ["Left", "Bottom", "Right"]},
-        {"id": "field-12", "type": "Slider", "label": "Padding", "initial": 20.0, "minimum": 0, "maximum": 256, "step": 1, "unit": "px", "decimals": 0},
-        {"id": "field-13", "type": "Segmented", "label": "Footer · Content", "desktopColumns": 3, "initial": "Custom", "options": ["Custom", "Page no.", "Metadata"]},
-        {"id": "field-14", "type": "Slider", "label": "Bottom inset", "initial": 32.0, "minimum": 0, "maximum": 256, "step": 1, "unit": "px", "decimals": 0},
-        {"id": "field-15", "type": "Toggle", "label": "Repeat on pages", "initial": true, "description": "모든 아트보드에 반복한다"},
-    ]},
-    {"key": "camera-photo", "title": "Camera / Photo", "number": 3, "figmaNode": "196:3703", "selector": {"id": "selector", "type": "Choices", "label": "Source", "options": ["Camera", "Photo Library", "Document Scan", "RAW Capture"], "desktopColumns": 2, "initial": "Camera"}, "desktopActionColumns": 2, "fields": [
-        {"id": "field-0", "type": "Segmented", "label": "Lens", "desktopColumns": 3, "initial": "0.5×", "options": ["0.5×", "1×", "3×"]},
-        {"id": "field-1", "type": "Slider", "label": "Exposure", "initial": 0.0, "minimum": -5, "maximum": 5, "step": 0.01, "unit": "EV", "decimals": 1},
-        {"id": "field-2", "type": "Toggle", "label": "AE/AF lock", "initial": true, "description": "노출과 초점을 고정한다"},
-        {"id": "field-3", "type": "Action", "label": "Capture photo", "initial": ""},
-        {"id": "field-4", "type": "Choices", "label": "Source", "desktopColumns": 3, "initial": "Recents", "options": ["Recents", "Favorites", "RAW"]},
-        {"id": "field-5", "type": "Segmented", "label": "Sort", "desktopColumns": 3, "initial": "Newest", "options": ["Newest", "Oldest", "Name"]},
-        {"id": "field-6", "type": "Toggle", "label": "Include metadata", "initial": true, "description": "EXIF와 위치를 유지한다"},
-        {"id": "field-7", "type": "Action", "label": "Place selected", "initial": ""},
-        {"id": "field-8", "type": "Toggle", "label": "Auto capture", "initial": true, "description": "안정된 프레임을 자동 촬영한다"},
-        {"id": "field-9", "type": "Segmented", "label": "Color", "desktopColumns": 3, "initial": "Color", "options": ["Color", "Gray", "B&W"]},
-        {"id": "field-10", "type": "Slider", "label": "Scan contrast", "initial": 68.0, "minimum": 0, "maximum": 100, "step": 1, "unit": "%", "decimals": 0},
-        {"id": "field-11", "type": "Action", "label": "Scan page", "initial": ""},
-        {"id": "field-12", "type": "Segmented", "label": "Format", "desktopColumns": 3, "initial": "DNG", "options": ["DNG", "ProRAW", "RAW+"]},
-        {"id": "field-13", "type": "Choices", "label": "Bit depth", "desktopColumns": 3, "initial": "12-bit", "options": ["12-bit", "14-bit", "16-bit"]},
-        {"id": "field-14", "type": "Toggle", "label": "Long exposure NR", "initial": true, "description": "장노출 노이즈를 감소한다"},
-        {"id": "field-15", "type": "Action", "label": "Capture RAW", "initial": ""},
-    ]},
-    {"key": "asset", "title": "Asset", "number": 4, "figmaNode": "196:3911", "desktopActionColumns": 2, "fields": [
-        {"id": "field-0", "type": "Field", "label": "Search", "initial": ""},
-        {"id": "field-1", "type": "Choices", "label": "Type", "desktopColumns": 4, "initial": "All", "options": ["All", "Image", "Vector", "Audio"]},
-        {"id": "field-2", "type": "Segmented", "label": "Library Browser · License", "desktopColumns": 3, "initial": "Owned", "options": ["Owned", "Free", "Premium"]},
-        {"id": "field-3", "type": "Visual", "label": "Asset results", "initial": ""},
-        {"id": "field-4", "type": "Field", "label": "Collection", "initial": "Campaign 2026"},
-        {"id": "field-5", "type": "Segmented", "label": "Sort", "desktopColumns": 3, "initial": "Manual", "options": ["Manual", "Recent", "Name"]},
-        {"id": "field-6", "type": "Toggle", "label": "Shared collection", "initial": true, "description": "팀과 동기화한다"},
-        {"id": "field-7", "type": "Action", "label": "Create collection", "initial": ""},
-        {"id": "field-8", "type": "Field", "label": "Source", "initial": ""},
-        {"id": "field-9", "type": "Toggle", "label": "Auto update", "initial": true, "description": "최신 버전을 반영한다"},
-        {"id": "field-10", "type": "Segmented", "label": "On conflict", "desktopColumns": 3, "initial": "Ask", "options": ["Ask", "Keep local", "Replace"]},
-        {"id": "field-11", "type": "Action", "label": "Relink source", "initial": ""},
-        {"id": "field-12", "type": "Segmented", "label": "Version", "desktopColumns": 3, "initial": "Latest", "options": ["Latest", "v12", "v11"]},
-        {"id": "field-13", "type": "Field", "label": "License & Version · License", "desktopStacked": true, "initial": "Commercial / Global"},
-        {"id": "field-14", "type": "Toggle", "label": "Pin version", "initial": true, "description": "현재 버전을 고정한다"},
-        {"id": "field-15", "type": "Action", "label": "Inspect local files", "initial": ""},
-    ]},
-    {"key": "file", "title": "File", "number": 5, "figmaNode": "197:3529", "desktopActionColumns": 2, "fields": [
-        {"id": "field-0", "type": "Field", "label": "File location", "initial": "iCloud Drive / Dreamscapes"},
-        {"id": "field-1", "type": "Choices", "label": "Format", "desktopColumns": 4, "initial": "IISC", "options": ["IISC", "PNG", "JPEG", "TIFF"]},
-        {"id": "field-2", "type": "Toggle", "label": "Open as copy", "initial": true, "description": "원본 연결을 끊는다"},
-        {"id": "field-3", "type": "Action", "label": "Choose file…", "initial": ""},
-        {"id": "field-4", "type": "Segmented", "label": "Placement", "desktopColumns": 3, "initial": "Fit", "options": ["Fit", "Fill", "1:1"]},
-        {"id": "field-5", "type": "Choices", "label": "Mode", "desktopColumns": 3, "initial": "Embed", "options": ["Embed", "Link", "Smart"]},
-        {"id": "field-6", "type": "Action", "label": "Place into canvas", "initial": ""},
-        {"id": "field-7", "type": "Toggle", "label": "Watch changes", "initial": true, "description": "외부 수정을 감지한다"},
-        {"id": "field-8", "type": "Segmented", "label": "Missing file", "desktopColumns": 3, "initial": "Locate", "options": ["Locate", "Ignore", "Embed"]},
-        {"id": "field-9", "type": "Action", "label": "Update now", "initial": ""},
-        {"id": "field-10", "type": "Field", "label": "Name", "initial": "dreamscape-final"},
-        {"id": "field-11", "type": "Toggle", "label": "Preserve layers", "initial": true, "description": "편집 구조를 유지한다"},
-        {"id": "field-12", "type": "Action", "label": "Save document", "initial": ""},
-    ]},
-    {"key": "background", "title": "Background", "number": 6, "figmaNode": "197:3649", "desktopActionColumns": 2, "fields": [
+    TextDefinitions.definition(),
+    PhotoDefinitions.definition(),
+    FileDefinitions.definition(),
+    {"key": "background", "title": "Background", "number": 6, "initialValues": {"backgroundView":"Color","maskTool":"Brush","maskMode":"Add","maskTarget":"Selected canvas layer","maskSize":40,"maskHardness":60,"maskFlow":100,"maskOpacity":100,"maskPressure":true,"maskNewEach":true,"maskOverlay":true,"maskOverlayColor":"#FF5C77","maskOverlayOpacity":50,"maskFuzziness":50}, "figmaNode": "777:82068", "desktopActionColumns": 2, "fields": [
         {"id": "field-0", "type": "Choices", "label": "Fill", "desktopColumns": 3, "initial": "Solid", "options": ["Solid", "Linear", "Radial"]},
         {"id": "field-1", "type": "Field", "label": "Hex", "initial": "#12131A"},
         {"id": "field-2", "type": "Slider", "label": "Opacity", "initial": 100.0, "minimum": 0, "maximum": 100, "step": 1, "unit": "%", "decimals": 0},
@@ -470,6 +407,9 @@ var tools = [
     ]},
 ]
 
+// Panel headings follow the active toolbar order; Figma node IDs stay stable.
+tools.forEach(function(definition, index) { definition.number = index + 1 })
+
 function tool(key) {
     return tools.find(function(entry) { return entry.key === key }) || null
 }
@@ -494,12 +434,6 @@ function runtimeDefinition(source) {
             return Object.assign({}, field, {label: "Reduce color fringe", initial: false, description: "수동으로 색수차를 줄인다"})
         if (source.key === "layers" && field.id === "field-19")
             return Object.assign({}, field, {label: "Layer name", initial: ""})
-        if (source.key === "file" && field.id === "field-12")
-            return Object.assign({}, field, {label: "Save as…"})
-        if (source.key === "asset" && field.id === "field-11")
-            return Object.assign({}, field, {label: "Import source…"})
-        if (source.key === "asset" && field.id === "field-5")
-            return Object.assign({}, field, {options: ["Recent", "Name"], initial: "Recent"})
         if (source.key === "text" && field.id === "field-2")
             return Object.assign({}, field, {unit: "px"})
         if (source.key === "generative" && field.id === "field-22")
@@ -542,7 +476,7 @@ function applicableFields(definition, values) {
 }
 
 function defaults(definition) {
-    var result = {}
+    var result = Object.assign({}, definition ? definition.initialValues || {} : {})
     if (!definition) return result
     if (definition.selector) result.selector = definition.selector.initial
     definition.fields.forEach(function(field) {

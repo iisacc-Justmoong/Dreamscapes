@@ -4,13 +4,15 @@ Editor의 중앙 영역은 `EditorCanvas`, 즉 `iiSharedCanvas::CanvasItem`의 �
 
 ## 열기와 저장
 
-상단의 Open, File 패널의 Open, 플랫폼 Open 단축키, 로컬 파일 드롭, Home의 `.iisc` 파일 선택은 동일한 `openDocumentSource()`로 들어간다. SQLite 작업 문서는 `DocumentFile::open()` 후 직접 바인딩한다. 바이너리 `.iisc` 스냅샷은 한계를 적용해 디코딩한 네이티브 문서로 열며, Save As에서 새 SQLite 작업 파일을 만든다. 알 수 없는 형식, 손상된 파일과 원격 URL은 오류를 표시하고 현재 문서를 유지한다. 현재 의존 패키지는 iiSharedCanvas 0.26.0이며 `.iisc` 1.17까지의 자산·레이어 계약을 사용한다.
+드래그 중 선택·도형 윤곽, 확정 선택 영역의 점선, 브러시 크기 커서와 입력 취소는 [캔버스 도구 피드백](CanvasToolFeedback.md)에 정리한다. 표시층은 입력을 받지 않으며 문서와 별도로 작은 영역만 그린다.
 
-Save와 플랫폼 Save 단축키는 아직 파일에 연결되지 않은 문서에 저장 대화상자를 연다. 새 경로의 `.iisc`를 만든 뒤 작업 파일에 바인딩한다. 그 이후 브러시 완료, Undo/Redo와 레이어 편집은 SDK의 검증된 편집 경로를 통해 즉시 동기 커밋한다. 별도 타이머나 문서 전체 덤프를 사용하지 않는다. Save As는 새 경로만 허용하며 이미 존재하는 다른 파일을 덮어쓰지 않는다. 기존 작업 파일의 Save는 이미 커밋된 상태를 유지한다. 파일 CRUD와 SQLite 실행은 SDK의 iiFileProvider 경로가 담당한다.
+Open, platform shortcuts, local drops and Home file selection use `openDocumentSource()`. Helper reads SQLite or serialized `.iisc` documents and returns detached data and a file Alias. The editor binds its in-memory document; Helper owns file transactions. Explicit external `.iisc` open/save operations also work when no Society container is selected. Society destinations must still belong to the selected container's Files section. Invalid formats and corrupt documents preserve the current editor document. Artboard presentation uses iiSharedCanvas 0.30.0 with iiSocietyHelper 0.8.1 and retains the asset/layer contracts through `.iisc` 1.20, including older document reads.
 
-PNG·JPEG 등의 생성 결과는 원본 픽셀을 가진 `RasterAsset`과 `BitmapLayer`로 가져온다. File 패널의 Place Image는 현재 문서에 별도 비트맵 레이어를 추가하며 Fit, Fill, 1:1 배치를 지원한다. 이미지 파일을 직접 수정하거나 네이티브 문서를 미리보기 이미지로 평탄화하지 않는다. 현재 가져오기는 Qt 이미지 코덱을 사용하며 선택적인 외부 코덱 실행은 활성화하지 않는다.
+Save와 플랫폼 Save 단축키는 아직 Alias에 연결되지 않은 문서에 저장 대화상자를 연다. 에디터는 메모리 문서와 Alias를 보유하며, `.iisc` 생성·갱신은 iiSocietyHelper에 요청한다. Helper가 SDK의 SQLite 작업 파일이나 직렬화 문서의 트랜잭션을 소유한다. 브러시 완료, Undo/Redo와 레이어 편집도 예상 버전과 문서 스냅샷을 전달하여 동기 커밋한다. 외부에서 바뀐 문서는 덮어쓰지 않고 오류를 표시한다. Save As는 기존 다른 파일을 덮어쓰지 않는다. 앱이 수정 가능한 DocumentFile에 직접 바인딩하지 않는다. [Society Alias 구조](SocietyAliases.md)에 소유권과 상태 동기화를 정리한다.
 
-Home의 파일 선택기, 최근 파일, 새 캔버스와 생성 이미지 단일·다중 선택은 같은 Editor를 사용한다. 여러 원본은 프로젝트 안의 독립적인 캔버스로 가져온다. 모든 입력을 먼저 검증하고 실패 시 현재 프로젝트를 유지한다. [여러 캔버스 프로젝트](MultiCanvasProject.md)에 선택·페이지 전환·저장을, [Home 연결](HomeEditorRoutes.md)에 진입·복귀를 정리한다.
+PNG·JPEG 등은 Society의 Files에 같은 크기의 `.iisc` fill 문서로 먼저 영속화하고 `RasterAsset`과 `StaticBitmapLayer`로 가져온다. 기존 `.iisc` 생성 결과는 네이티브 문서를 직접 연다. File 패널의 Place Image는 현재 문서에 별도 비트맵 레이어를 추가하며 Fit, Fill, 1:1 배치를 지원한다. 원본 이미지는 보존하며 선택적인 외부 코덱 실행은 활성화하지 않는다. 래핑 위치, 재사용 및 파생 PNG 계약은 [이미지 캔버스 저장](ImageCanvasStorage.md)에 정의한다.
+
+Home의 파일 선택기, 최근 파일, 새 캔버스와 생성 이미지 단일·다중 선택은 같은 Editor를 사용한다. 여러 원본은 하나의 `.iisc` 문서 안의 독립적인 대지로 가져오고 문서 순서에 따른 수평 페이지 뷰로 표시한다. 선택 페이지는 중앙에 맞추며 이웃 페이지와 하단의 작은 프리뷰를 눌러 이동한다. 모든 입력을 먼저 검증하고 실패 시 현재 프로젝트를 유지한다. [여러 캔버스 프로젝트](MultiCanvasProject.md)에 선택·대지 탐색·저장을, [Home 연결](HomeEditorRoutes.md)에 진입·복귀를 정리한다.
 
 File 패널의 Open as copy를 켜면 작업 파일도 분리된 메모리 문서로 가져와 원본에 바인딩하지 않는다. 새 `.iisc` 경로에 저장하기 전까지 그 편집은 원본 파일에 반영되지 않는다. 상단 Open과 Home 파일 열기는 해당 작업 파일을 직접 편집하는 경로이다. Place Image의 Embed 모드를 연결했으며 Link와 Smart 모드는 안내 후 거부한다. 네이티브 저장은 레이어를 항상 보존한다. File 패널의 형식 필터·외부 변경 감시·평탄화 같은 나머지 초안 설정은 아직 적용하지 않는다.
 
@@ -18,26 +20,47 @@ File 패널의 Open as copy를 켜면 작업 파일도 분리된 메모리 문�
 
 에디터 하단의 상시 안내문을 제거했다. 유한 캔버스는 실제 캔버스 표시 영역을 기준으로 중앙 정렬되며, 화면 안에 들어오는 축은 패닝할 수 없다. 확대되어 화면을 넘는 축은 캔버스 가장자리까지만 이동할 수 있다. 상세 계약과 검증은 [EditorViewport.md](EditorViewport.md)에 정리했다.
 
+여러 대지의 보기 배치는 저장된 X/Y 위치와 독립적이다. 선택 대지는 실제 네이티브 렌더러로 편집하며 SDK의 `renderArtboardId`로 해당 대지의 배경과 소유 레이어만 표시한다. 원래 좌표에서 다른 대지와 겹쳐도 다른 대지·소속 없는 레이어가 선택 페이지 위에 나타나지 않는다. 대지 경계의 클립은 이 선택 렌더를 감싸며 입력 좌표와 전체 문서의 원점은 유지한다. 표시 focus는 원본 레이어의 표시 여부, 선택·Undo 이력, 문서 revision이나 저장 형식을 바꾸지 않는다. [SDK의 대지 표시 계약](../../../SDK/iiSharedCanvas/docs/ARTBOARD_PRESENTATION.md)에 렌더와 편집의 경계를 정리한다.
+
+앞뒤 세 페이지는 실제 문서의 작은 렌더를 수평으로 배치한다. 선택 페이지를 가장 위에 두고 가까운 페이지부터 먼 페이지 순서로 겹친다. 멀어지는 페이지의 너비·높이·축소율을 앞 단계의 86% 이하로 제한하므로 가로·세로 대지가 섞여도 멀리 있는 페이지가 커지지 않는다. 페이지 바깥쪽 경계는 선택 페이지 양옆 여백의 62%·80%·98%에 배치하여 먼 페이지의 가장자리가 단계별로 드러나게 한다. 각 프리뷰 뒤에 불투명 매트 바탕을 두고 이미지와 매트 전체에 Darken을 적용한다. 블러·Darken은 거리에 따라 강해지며, 수직 중심선은 동일하게 유지한다. 확대·패닝은 선택 페이지에 적용하며 클립 바깥의 캔버스 배경에서도 휠·중간 버튼 이동을 사용할 수 있다.
+
+하단의 76px 프리뷰 스트립은 88×68px 선택 영역과 72×48px 이미지 영역을 사용하며 수평으로 스크롤하고 누른 페이지를 선택한다. 덱은 최대 512×512px, 하단 프리뷰는 최대 144×96px로 실제 대지를 렌더한다. 프리뷰 API는 축별 1024px와 128개 캐시 항목으로 제한한다. 같은 편집에서 발생한 revision·문서 변경 알림은 합치며, 브러시 스트로크 중에는 UI 프리뷰 갱신을 유예하여 완료·취소 시 한 번 갱신한다. 편집 중인 네이티브 캔버스는 계속 표시한다. 숨겨진 프리뷰 스트립은 렌더하지 않는다. 페이지를 선택하거나 화면 구성을 바꾸어도 네이티브 대지 좌표와 저장 문서는 바뀌지 않는다.
+
+에디터를 숨기면 프리뷰 delegate는 제거하되 페이지 표시 모드의 76px 예약 높이는 유지한다. 다시 표시하면 `project.currentIndex`에 대한 ListView의 선택 binding을 복구하고 현재 페이지의 프리뷰가 보이도록 스크롤한다. 도크·툴바의 예약 너비와 프레임 컨트롤 높이, 문서 명령·페이지 탐색·오류 영역의 예약 높이도 실제 레이아웃 상태를 기준으로 유지한다. 부모 뷰가 숨겨졌다는 이유만으로 편집 영역의 치수를 바꾸거나 자동 Fit을 호출하지 않으므로 네이티브 viewport와 확대율·패닝을 보존한다. `multiCanvasProjectSelection`의 회귀 검사는 두 차례 숨김·재표시 후 마지막 페이지 선택과 프리뷰 노출, viewport·zoom·pan 및 직렬화 문서 바이트의 불변성을 확인하도록 구성한다.
+
 - SDK의 혼합 레이어 렌더러가 현재 프레임의 실제 문서를 표시한다. Fit 버튼, SDK 확대·축소, 중간 버튼 이동을 사용한다. 저장된 무한 캔버스와 자산·타임라인 정보도 네이티브 문서에 보존한다. 현재 화면에는 프레임 탐색 컨트롤을 추가하지 않았다.
 - Brush는 크기, 경도, 투명도, 흐름, 간격, 안정화와 상단 Paint Color를 iiPaintEngine 브러시에 전달한다. 입력 경로는 `EditorCanvas → iiSharedCanvas::CanvasItem → BitmapEditor / ChunkedBitmapEditor → iiPaintEngine`이다. iiPaintEngine의 `appendRasterDabs()`, `projectBrushDabs()`, `paintRasterSamples()`가 실제 픽셀을 생성하며, 제품은 별도의 브러시 래스터라이저를 구현하지 않는다. 비트맵 레이어가 선택되지 않았으면 새 Paint 레이어를 만든다. 포인터 궤적과 Dab은 실행 중에만 사용하고, 커밋된 픽셀만 `.iisc` 문서에 저장한다.
 - Eraser의 Pixel 모드는 같은 iiPaintEngine의 `DestinationOut` 합성으로 선택된 비트맵 레이어를 지운다. 다른 지우개 모드에는 엔진 동작을 연결하지 않았다. Undo/Redo는 SDK가 제공하는 선택 비트맵의 픽셀 편집 이력에 적용된다. 구조·벡터·레이어 속성 편집을 취소하는 전체 문서 이력은 아직 없다.
-- Elements에서 캔버스를 드래그하면 Rectangle, Ellipse, Polygon 또는 직선의 네이티브 벡터 레이어를 만든다. 모서리 반경, 다각형 변 수, Solid/None 채우기, 채우기·선 색, 선 두께, 투명도, Normal/Multiply/Screen 합성을 반영한다. 세부 Arc·Star·선 끝 장식·획 정렬·Gradient/Image 채우기는 아직 연결하지 않았다. `Line / Arrow` 선택은 현재 직선 생성으로 제한된다.
+- Elements는 [10개 Figma 상태별 패널](EditorElements.md)을 사용한다. Rectangle·Ellipse·Polygon·Line / Arrow 생성과 선택 요소의 크기·기하·색상·불투명도·합성을 편집한다. Arc·내부 반경·Star·선 끝 장식·획 정렬·Gradient/Image 채우기도 현재 렌더러에 연결되어 있다. 도형 목록과 선택 개수는 현재 대지의 실제 요소에서 읽으며 전체·반전·해제 선택은 문서 내용을 바꾸지 않는다. 세션에서 생성한 도형의 설정은 문서 Undo/Redo와 함께 복원된다. 재개방한 외부 벡터의 생성 파라미터 복원과 복수 도형 일괄 편집은 지원하지 않는다. 상세 범위는 [ElementsSelection.md](ElementsSelection.md)에 기록한다.
 - Select의 Object 모드는 최상단부터 현재 프레임의 렌더링 픽셀을 검사해 실제 레이어를 선택한다. Layers 버튼은 문서의 실제 레이어를 위에서 아래 순서로 표시한다. 선택, 표시 여부, 이름, 투명도, X/Y 이동, Paint 레이어 추가와 레이어 삭제를 제공한다. Layers 패널의 Opacity와 Blend 입력, Canvas 패널의 Dimensions도 네이티브 편집에 연결된다.
 
 유한 비트맵 레이어는 SDK의 64×1024×1024 픽셀 할당 한계를 적용한다. 큰 인쇄용 캔버스의 벡터 배경과 희소 렌더링은 유지하며, 무한 캔버스의 새 Paint 레이어는 청크 기반 자산을 사용한다.
 
 19개 Figma 도구의 외형과 초안 설정은 유지한다. Reset은 현재 도구의 초안과 브러시 설정을 초기화하며, 이미 편집한 문서를 복원하지 않는다. 카메라·생성·필터·마스크·외부 연결 등의 다른 동작은 미구현 안내를 표시한다. 초안은 Editor 수명 동안 메모리에 유지하며, 네이티브 문서에 설정값 전체를 저장한 것으로 취급하지 않는다.
 
-## Native image presentation (iiSharedCanvas 0.25.0)
+## Native image presentation and artboard focus (iiSharedCanvas 0.29.0)
 
 The editor consumes the SDK's full-resolution raster assets from binary `.iisc`
-snapshots and SQLite working documents. It does not mount a reduced thumbnail or
-resize source pixels. `EditorProject::attachCanvas` selects the SDK's smooth
+snapshots and SQLite working documents for the active editing page, without
+resizing source pixels. Neighbor cards and the bottom navigation strip use
+separate bounded artboard previews; they do not replace the active native canvas.
+`EditorProject::attachCanvas` selects the SDK's smooth
 presentation policy, mounts the native document item in its destination window,
 and supplies the actual viewport size before fitting. Remounting an unchanged
 viewport preserves the user's zoom and permitted pan; fitting axes are locked to
 the center as described in [EditorViewport.md](EditorViewport.md). Presentation changes do not mark the
-document as edited.
+document as edited. In page presentation mode, fitting and pan constraints use
+the active artboard's extent and origin instead of the complete native workspace.
+The SDK's `renderArtboardId` isolates the active artboard's composition in a
+detached render snapshot, including when saved artboard regions overlap. The
+workspace coordinate system remains intact, and the native renderer retains
+physical-resolution tiles, layer blends, clipping and timeline sampling. Binding
+another document updates or clears the selected presentation ID. The editor
+retains one editing owner shared by all pages.
+Hiding the editor releases preview delegates while retaining layout reservations,
+so the native viewport size and camera do not change. On restoration, the preview
+list reinstalls its binding to the selected project page and brings that preview
+into view.
 
 SDK tile LOD includes the window's physical pixel ratio. A 45% view on a 2× display
 retains native-resolution texture tiles. Minification uses alpha-correct filtering,
@@ -105,3 +128,61 @@ GUI 증거와 `.iisc` 예시는 로컬 `build/native-editor/`에 보관한다. Q
 `build/native-editor/example.iisc`는 GUI에서 그린 비트맵과 네이티브 벡터 레이어를 함께 보존한 64×64 검증 문서이다. SQLite 무결성 검사 결과는 `ok`이다. `editor-native.png`는 이 문서를 확대해 표시한 실제 Editor 캡처이며 문서 자체의 대체물이 아니다. 실행 로그와 산출물 SHA-256은 `verification.json`에 기록했다. 실행 중인 사용자 앱을 재시작하거나 설치된 앱 번들을 교체하지 않았다.
 
 2026-10-03 검증에서는 iiSharedCanvas 소스의 빌드와 전체 SDK 검사도 실행했다. 기능 검사 52개는 통과했으며, 기존 한국어 문서 번역 이후 영어 문구를 찾는 `iiSharedCanvas.ProjectContract` 1개가 실패했다. 해당 기존 변경은 보존했다. 스테이징 패키지의 독립 설치 소비자 17개와 별도 소비자 실행 프로그램은 모두 통과했으며, 검증한 SDK 0.24.0 설치본에 제품을 연결했다. 그 당시에는 SDK 코드 변경이 없었다.
+
+### 2026-10-09 page presentation and SDK 0.29.0
+
+The final page-presentation product build succeeded. Ten scoped CTest groups
+passed in 125.60 seconds, including EditorCanvas, EditorProject, MultiCanvasGui,
+EditorCanvasGui and EditorRenderQuality. The separate Cocoa/Metal page test passed
+both desktop and mobile layouts on Apple M1 Max (four QtTest results including
+setup/cleanup, zero failures/skips and zero binding-loop warnings). It checks
+native selected-artboard pixels even with overlapping persisted regions, real
+bounded neighboring/strip previews, measured blur and Darken, editing and native
+save/reopen, and camera/document preservation across two hide/show cycles.
+The two saved SQLite working documents passed `quick_check`.
+
+The prerequisite SDK 0.29.0 build passed all 59 source tests and both independent
+23-test staged and host-installed consumer suites. The host consumer loaded the
+verified 0.29.0 library; the previous 0.28 library was preserved. SDK focus changes
+retain document ownership, world coordinates and revisions and remain outside
+the serialized editing document. See
+[ARTBOARD_PRESENTATION.md](../../../SDK/iiSharedCanvas/docs/ARTBOARD_PRESENTATION.md)
+for the SDK focus contract.
+
+The canonical `build/bin/Dreamscapes.app` passed strict recursive signature
+verification and a fresh one-app/no-nested-app audit. A native Cocoa entry-point
+probe with isolated storage settings, container/helper endpoints and disabled
+session restoration loaded the QML root and one window in 1.700260 seconds. Actual
+loader output confirmed its embedded iiSharedCanvas 0.29 library, and the
+executable hash did not change during the probe. A packaged-start QtTest attempted
+in parallel exceeded its root-load deadline; that diagnostic remains recorded
+alongside the independent successful native probe rather than being reported as
+a passing QtTest. Existing unrelated linker/lint warnings are not treated as
+page-view failures.
+
+The verified source checkpoint, exact scoped results, screenshots, hashes and
+diagnostics are in `build/page-document-20261009/final-verification.json`.
+Later concurrent changes to unrelated shared GUI test helpers are distinguished
+from the compiled checkpoint. This task did not replace `/Applications` or restart
+the active user app. The mobile layout was tested on macOS; it is not a physical
+iOS/Android or Windows runtime result. GPU blur is unavailable on the software
+renderer, where darkening and navigation remain supported.
+
+## Native layer timeline
+
+The bottom editor timeline reads this same `EditorCanvas` document through
+`EditorTimelineModel`. Static and dynamic visual layers retain independent,
+potentially overlapping frame ranges; dynamic source keys select their actual
+frame contents. Timing, source, visibility, duplication and audio edits use
+`EditorCanvas::commit`, so synchronization, undo/redo and working-file storage
+remain shared with other editor operations. No second serialized timeline recipe
+is maintained. See [EditorLayerTimeline.md](EditorLayerTimeline.md).
+
+Static layers created without an explicit range use at least one second of the
+current rational document FPS, rounded up to a whole frame. A single bitmap or
+vector source remains visible for that entire range. The editor applies this
+default to new backgrounds, imported stills and newly inserted static layers,
+and upgrades implicit all-static one-frame documents when opening them. Explicit
+trim ranges and existing dynamic/audio timing are preserved. The policy uses
+iiSharedCanvas's native frame count and inclusive layer ranges; it does not add
+SDK schema fields or duplicate static frame contents.

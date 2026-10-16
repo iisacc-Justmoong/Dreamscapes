@@ -1,3 +1,5 @@
+#include <File.h>
+#include <iiFileProviderDevice.h>
 #include "GenerationController.h"
 #include "ImageParameterCodec.h"
 #include "VideoGeneration.h"
@@ -5,7 +7,7 @@
 #include "AdvancedImageInputs.h"
 #include <Generation/NativePose.hpp>
 #include "SocietyGenerationStorage.h"
-#include <StorageMap.h>
+#include "ImageCanvas.h"
 #include <QtConcurrent/QtConcurrentRun>
 #include <QRandomGenerator>
 #include <QRegularExpression>
@@ -16,16 +18,12 @@
 #endif
 
 #include <QDateTime>
-#include <QDir>
-#include <QFile>
 #include <QFileInfo>
 #include <QImageReader>
 #include <QGuiApplication>
 #include <QJsonArray>
 #include <QJsonDocument>
-#include <QSaveFile>
 #include <QStandardPaths>
-#include <QLockFile>
 #include <QCryptographicHash>
 #include <QUuid>
 #include <algorithm>
@@ -47,21 +45,6 @@ QString now() { return QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithM
 bool jobId(const QString &value)
 {
     return !QUuid(value).isNull() && QUuid(value).toString(QUuid::WithoutBraces) == value;
-}
-bool removeObsoleteEntry(const QFileInfo &entry)
-{
-    if (entry.isSymLink() || entry.isJunction()) {
-#ifdef Q_OS_WIN
-        if (entry.isDir())
-            return RemoveDirectoryW(reinterpret_cast<LPCWSTR>(entry.filePath().utf16())) != 0;
-#endif
-        return QFile::remove(entry.filePath());
-    }
-    if (!entry.isDir()) return QFile::remove(entry.filePath());
-    for (const auto &child : QDir(entry.filePath()).entryInfoList(
-             QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System))
-        if (!removeObsoleteEntry(child)) return false;
-    return QDir().rmdir(entry.filePath());
 }
 QSize imageSize(const QString &ratio, int extent)
 {
@@ -97,7 +80,7 @@ GenerationRuntime defaultRuntime()
     runtime.backgroundActivity = nativeGenerationBackgroundActivity();
     const QFileInfo previousCache(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
     // Normalize OS aliases such as /var before checking for redirected cache entries.
-    runtime.legacyQ8CacheDirectory = QDir(previousCache.exists()
+    runtime.legacyQ8CacheDirectory = iiFileProvider::Directory(previousCache.exists()
         ? previousCache.canonicalFilePath() : previousCache.absoluteFilePath()).filePath("iiLocalDiffusion/q8");
 #endif
     if (runtime.executable.isEmpty())
@@ -124,9 +107,18 @@ std::filesystem::path preferencePath(const QString &path)
 
 GenerationController::GenerationController(QObject *parent) : GenerationController(defaultRuntime(), parent) {}
 GenerationController::GenerationController(GenerationRuntime runtime, QObject *parent)
-    : QObject(parent), m_runtime(std::move(runtime)), m_societyClient(&m_accountSession, nullptr)
+    : QObject(parent), m_runtime(std::move(runtime)), m_fileSystem(*m_storageHelper.fileSystem()), m_societyClient(&m_accountSession, nullptr)
 {
     std::string preferenceError;
+    connect(container(), &iiSocietyContainer::Container::stateChanged, this,
+        [this, previousId = container()->containerId(), previousRoot = container()->rootPath(),
+         previousAvailable = container()->available()]() mutable {
+            const auto current = container();
+            if (previousId == current->containerId() && previousRoot == current->rootPath()
+                && previousAvailable == current->available()) return;
+            previousId = current->containerId(); previousRoot = current->rootPath();
+            previousAvailable = current->available(); emit storageChanged();
+        });
     dreamscapes::readModelPreferences(preferencePath(m_runtime.modelPreferencesFile), m_modelPreferences, preferenceError);
     m_modelPreferencesError = QString::fromStdString(preferenceError);
 #ifdef Q_OS_WIN
@@ -138,10 +130,35 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
     m_storagePoll.setInterval(2000);
     connect(&m_storagePoll, &QTimer::timeout, this, &GenerationController::pollStorage);
     connect(&m_storagePoll, &QTimer::timeout, this, &GenerationController::pollDownload);
-    connect(&m_societyClient, &iiSocietyClient::Client::synchronized, this, [this] { pollDownload(); if (!busy()) refreshModels(); });
+    connect(&m_societyClient, &iiSocietyHelper::Client::synchronized, this, [this] { pollDownload(); pollStorage(); });
+    connect(&m_inventoryWatcher, &QFutureWatcher<ModelInventory>::finished, this, [this] {
+        auto inventory = m_inventoryWatcher.result();
+        if (inventory.epoch != m_inventoryEpoch || inventory.selection != m_storageSelection
+            || !m_foreground || busy() || m_cacheMigrationActive) return;
+        // Opening a storage selection also reconstructs its complete file mirror.
+        // Do that only for an actual selection/availability transition.
+        if (!m_storageReady || inventory.root != container()->rootPath()
+            || inventory.id != container()->containerId() || !inventory.error.isEmpty()) {
+            const auto previousError = m_error;
+            const bool previouslyReady = connected();
+            refreshModels();
+            if (previouslyReady && m_error.isEmpty() && !previousError.isEmpty()) fail(previousError);
+            return;
+        }
+        const bool unchanged = inventory.models.size() == m_models.size()
+            && std::equal(inventory.models.cbegin(), inventory.models.cend(), m_models.cbegin(),
+                [](const StoredModel &a, const StoredModel &b) {
+                    return a.id == b.id && a.name == b.name && a.format == b.format
+                        && a.fingerprint == b.fingerprint && a.available == b.available && a.bytes == b.bytes;
+                }) && inventory.videoModels == m_videoModelIds;
+        if (unchanged) return;
+        const auto previousError = m_error;
+        applyModelInventory(std::move(inventory.models), std::move(inventory.videoModels), {}, false);
+        if (m_error.isEmpty() && !previousError.isEmpty()) fail(previousError);
+    });
     m_remoteGeneration = m_runtime.remoteGeneration ? m_runtime.remoteGeneration
         : std::make_shared<iiSocietyGeneration::Remote>([this](const QJsonObject &request) { return m_societyClient.requestHost(request); });
-    connect(&m_societyClient, &iiSocietyClient::Client::hostResponse, m_remoteGeneration.get(), &iiSocietyGeneration::Remote::receive);
+    connect(&m_societyClient, &iiSocietyHelper::Client::hostResponse, m_remoteGeneration.get(), &iiSocietyGeneration::Remote::receive);
     connect(m_remoteGeneration.get(), &iiSocietyGeneration::Remote::accepted, this, [this] {
         if (!m_remoteActive || !busy()) return;
         m_active["state"] = "running"; m_active["execution"] = "host"; m_active["startedAt"] = now();
@@ -162,7 +179,7 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
             }
         }
     });
-    connect(&m_societyClient, &iiSocietyClient::Client::progress, this, [this](const QString &, qint64 done, qint64 total) {
+    connect(&m_societyClient, &iiSocietyHelper::Client::progress, this, [this](const QString &, qint64 done, qint64 total) {
         if (m_societyBackgroundActivity && m_runtime.backgroundActivity && total > 0)
             m_runtime.backgroundActivity->update({iiLocalDiffusion::NativeGenerationStage::Preparing,
                 int(done * 1000 / total), 1000});
@@ -174,7 +191,7 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
         QString error;
         if (!createWorkingFiles(&error)) { finish("failed", error); return; }
         const auto path = m_workDirectory->filePath("remote.png");
-        QFile image(path);
+        iiFileProvider::FileDevice image(path);
         if (!image.open(QIODevice::WriteOnly) || image.write(png) != png.size()) {
             finish("failed", tr("Cannot save the image received from Society.")); return;
         }
@@ -292,8 +309,8 @@ GenerationController::~GenerationController()
     clearWorkingFiles();
 }
 
-bool GenerationController::connected() const { return m_storage && m_storage->drive().isReady(); }
-QString GenerationController::containerPath() const { return m_storage ? m_storage->drive().rootPath() : QString(); }
+bool GenerationController::connected() const { return m_storageReady && container()->available(); }
+QString GenerationController::containerPath() const { return container()->rootPath(); }
 QString GenerationController::selectedModel() const { return m_selected; }
 bool GenerationController::busy() const { return !m_active.isEmpty(); }
 QString GenerationController::errorString() const { return m_error; }
@@ -330,8 +347,8 @@ void GenerationController::setInferenceStatus(QJsonObject status)
 void GenerationController::setForeground(bool foreground)
 {
     if (m_foreground == foreground) {
-        if (!foreground && m_societyBackgroundActivity && m_storage && m_runtime.backgroundActivity->allowsBackgroundExecution()) {
-            m_societyClient.start(m_storage->drive().rootPath());
+        if (!foreground && m_societyBackgroundActivity && connected() && m_runtime.backgroundActivity->allowsBackgroundExecution()) {
+            m_societyClient.start(containerPath());
             m_remoteGeneration->setPaused(false);
             QTimer::singleShot(0, this, &GenerationController::pump);
         }
@@ -340,7 +357,7 @@ void GenerationController::setForeground(bool foreground)
         return;
     }
     m_foreground = foreground;
-    if (foreground && m_storage) m_societyClient.start(m_storage->drive().rootPath());
+    if (foreground && connected()) m_societyClient.start(containerPath());
     const bool canTransfer = foreground || (m_runtime.backgroundActivity && m_runtime.backgroundActivity->allowsBackgroundExecution());
     if (!canTransfer) m_societyClient.stop();
     if (m_remoteGeneration) m_remoteGeneration->setPaused(!canTransfer);
@@ -472,6 +489,33 @@ void GenerationController::setSelectedModel(const QString &id)
 }
 QString GenerationController::defaultImageModel() const { return QString::fromStdString(m_modelPreferences.imageModel); }
 QString GenerationController::defaultVideoModel() const { return QString::fromStdString(m_modelPreferences.videoModel); }
+QVariantMap GenerationController::defaultGenerationPrompts() const
+{
+    QVariantMap result;
+    for (std::size_t i = 0; i < dreamscapes::generationPromptCategories.size(); ++i) {
+        const auto category = dreamscapes::generationPromptCategories[i];
+        const auto &prompts = m_modelPreferences.prompts[i];
+        result.insert(QString::fromUtf8(category.data(), qsizetype(category.size())),
+            QVariantMap{{"prompt", QString::fromStdString(prompts.prompt)},
+                {"negativePrompt", QString::fromStdString(prompts.negativePrompt)}});
+    }
+    return result;
+}
+bool GenerationController::setDefaultGenerationPrompt(const QString &category, const QString &text, bool negative)
+{
+    const auto &categories = dreamscapes::generationPromptCategories;
+    const auto found = std::find_if(categories.begin(), categories.end(), [&](const auto name) {
+        return QString::fromUtf8(name.data(), qsizetype(name.size())) == category;
+    });
+    if (found == categories.end() || text.size() > 32000) {
+        m_modelPreferencesError = tr("Choose a generation category and a prompt of at most 32,000 characters.");
+        emit modelPreferencesChanged(); return false;
+    }
+    auto value = m_modelPreferences;
+    auto &prompts = value.prompts[std::size_t(found - categories.begin())];
+    (negative ? prompts.negativePrompt : prompts.prompt) = text.toStdString();
+    return saveModelPreferences(value);
+}
 QString GenerationController::modelPreferencesError() const { return m_modelPreferencesError; }
 bool GenerationController::saveModelPreferences(const dreamscapes::ModelPreferences &value)
 {
@@ -549,27 +593,56 @@ QVariantList GenerationController::completedResults() const
 
 QVariantMap GenerationController::resultForImage(const QJsonObject &job, const QString &relative) const
 {
-    if (!m_storage || !m_storage->drive().isValid() || job.value("state") != "completed") return {};
+    if (!container()->available() || job.value("state") != "completed") return {};
     const auto prefix = QStringLiteral("Generation History/");
     const auto name = relative.mid(prefix.size());
     if (!relative.startsWith(prefix) || !name.startsWith(job.value("id").toString() + '-')
         || name.contains('/') || name.contains('\\')) return {};
-    const auto path = QDir(containerPath()).filePath(relative);
-    const QFileInfo info(path);
-    if (!info.isFile() || info.isSymLink() || info.canonicalFilePath() != path) return {};
+    const auto alias = m_fileSystem.alias("generation-history", name);
+    if (!alias.value("available").toBool()) return {};
     auto result = job.toVariantMap();
+    result.insert("alias", alias);
     result.insert("image", relative);
     result.insert("mediaType", job.value("mediaType").toString("Image"));
-    result.insert("mediaSource", QUrl::fromLocalFile(path));
+    result.insert("mediaSource", alias.value("source"));
     if (job.value("mediaType") == "Video") {
         const auto poster = job.value("poster").toString();
         if (poster != prefix + job.value("id").toString() + "-poster.png") return {};
-        const auto posterPath = QDir(containerPath()).filePath(poster);
-        const QFileInfo posterInfo(posterPath);
-        if (!posterInfo.isFile() || posterInfo.isSymLink() || posterInfo.canonicalFilePath() != posterPath) return {};
-        result.insert("imageSource", QUrl::fromLocalFile(posterPath));
-    } else result.insert("imageSource", QUrl::fromLocalFile(path));
+        const auto image = m_fileSystem.alias("generation-history", poster.mid(prefix.size()));
+        if (!image.value("available").toBool()) return {};
+        result.insert("imageSource", image.value("source"));
+    } else if (name.endsWith(".iisc", Qt::CaseInsensitive)) {
+        result.insert("path", alias.value("path")); return storedImage(result);
+    } else result.insert("imageSource", alias.value("source"));
     return result;
+}
+QVariantMap GenerationController::storedImage(const QVariantMap &file) const
+{
+    const auto path = file.value("path").toString();
+    if (!path.endsWith(".iisc", Qt::CaseInsensitive)) return file;
+    const auto alias = m_fileSystem.aliasForPath(path);
+    if (!alias.value("available").toBool() || alias.value("containerId").toString() != container()->containerId()) return {};
+    const auto preview = m_fileSystem.preview(path); if (preview.isEmpty()) return {};
+    auto result = file;
+    result.insert("alias", alias); result.insert("mediaType", "Image");
+    result.insert("documentSource", alias.value("source"));
+    result.insert("imageSource", preview); result.insert("previewSource", preview); result.insert("thumbnailSource", preview);
+    return result;
+}
+QUrl GenerationController::imagePreview(const QUrl &source) const
+{
+    return source.isLocalFile() ? m_fileSystem.preview(source.toLocalFile()) : QUrl{};
+}
+QUrl GenerationController::imageDocument(const QUrl &source)
+{
+    if (!source.isLocalFile()) { fail(tr("Choose a local image or canvas.")); return {}; }
+    const auto alias = m_fileSystem.importCanvas(source.toLocalFile());
+    if (alias.isEmpty()) { fail(m_fileSystem.errorString()); return {}; }
+    fail({}); return alias.value("source").toUrl();
+}
+QUrl GenerationController::filesDirectory() const
+{
+    return m_fileSystem.url("files");
 }
 
 bool GenerationController::selectStorageLocation(const QString &path)
@@ -578,33 +651,27 @@ bool GenerationController::selectStorageLocation(const QString &path)
         return fail(tr("Wait for the current storage operation before changing storage."));
     const QUrl url(path);
     const auto local = url.isLocalFile() ? url.toLocalFile() : path;
-    if (local.trimmed().isEmpty() || !QDir::isAbsolutePath(local))
+    if (local.trimmed().isEmpty() || !iiFileProvider::Directory::isAbsolutePath(local))
         return fail(tr("Choose an existing Society drive folder using an absolute path."));
-    QString error;
-    // Validate before replacing the active storage or its saved shared location.
-    auto candidate = SharedStorage::open(local, &error);
-    if (!candidate) return fail(error);
-    if (!SharedStorage::setDefaultContainer(candidate->drive().rootPath(), &error))
-        return fail(error);
-    return connectStorage(candidate->drive().rootPath());
+    if (!m_fileSystem.selectDefaultContainer(local)) return fail(m_fileSystem.errorString());
+    return connectStorage(m_fileSystem.rootPath());
 }
 
 bool GenerationController::connectStorage(const QString &path)
 {
     if (busy() || m_cacheMigrationActive) return fail(tr("Wait for the current storage operation before changing storage."));
+    ++m_inventoryEpoch;
     QString error;
-    m_storageSelection = path;
+    m_storageSelection = path; m_storageReady = false;
     if (!m_fileSystem.open(path)) return fail(m_fileSystem.errorString());
-    auto storage = SharedStorage::open(m_fileSystem.rootPath(), &error);
-    if (!storage) return fail(error);
-    m_storage = std::move(storage);
+    m_storageReady = true;
     m_selected.clear();
     m_selectedVideo.clear();
     m_imageModelOverridden = m_videoModelOverridden = false;
     m_selectedVae.clear();
     m_jobs.clear();
     if (!discardLegacyStorage()) {
-        m_storage.reset();
+        m_storageReady = false;
         emit storageChanged();
         return false;
     }
@@ -616,45 +683,65 @@ bool GenerationController::connectStorage(const QString &path)
 }
 void GenerationController::pollStorage()
 {
-    if (m_foreground && !busy() && m_controlId.isEmpty()) {
-        const auto previousError = m_error;
-        const bool previouslyReady = connected();
-        refreshModels();
-        // A background inventory poll must not erase a generation failure.
-        if (previouslyReady && m_error.isEmpty() && !previousError.isEmpty()) fail(previousError);
-    }
+    if (!m_foreground || busy() || !m_controlId.isEmpty() || m_cacheMigrationActive
+        || m_inventoryWatcher.isRunning()) return;
+    const auto selection = m_storageSelection;
+    const auto epoch = m_inventoryEpoch;
+    m_inventoryWatcher.setFuture(QtConcurrent::run([selection, epoch] {
+        ModelInventory inventory;
+        inventory.selection = selection;
+        inventory.epoch = epoch;
+        try {
+            const auto storage = SharedStorage::open(selection, &inventory.error);
+            if (!storage) return inventory;
+            inventory.root = storage->drive().rootPath();
+            inventory.id = storage->drive().identifier();
+            inventory.models = storage->models(&inventory.error);
+            for (const auto &model : inventory.models)
+                if (model.format == "diffusers" && dreamscapes::isVideoModel(
+                    iiFileProvider::Directory(inventory.root).filePath("Models/" + model.id)))
+                    inventory.videoModels.append(model.id);
+        } catch (const std::exception &error) {
+            inventory.error = QString::fromUtf8(error.what());
+        }
+        return inventory;
+    }));
 }
 void GenerationController::refreshModels()
 {
     if (busy() || m_cacheMigrationActive) return;
+    ++m_inventoryEpoch;
     QString error;
-    auto storage = m_fileSystem.open(m_storageSelection)
-        ? SharedStorage::open(m_fileSystem.rootPath(), &error) : std::optional<SharedStorage>();
-    if (!storage) {
-        if (error.isEmpty()) error = m_fileSystem.errorString();
-        m_storage.reset(); m_models.clear(); m_selected.clear(); m_selectedVae.clear(); m_selectedVideo.clear(); m_videoModelIds.clear();
-        emit storageChanged(); emit modelsChanged();
-        fail(error);
-        return;
+    const auto previousId = container()->containerId(), previousRoot = container()->rootPath();
+    const bool wasReady = m_storageReady;
+    if (!m_fileSystem.open(m_storageSelection)) {
+        error = m_fileSystem.errorString(); m_storageReady = false;
+        m_models.clear(); m_selected.clear(); m_selectedVae.clear(); m_selectedVideo.clear(); m_videoModelIds.clear();
+        emit storageChanged(); emit modelsChanged(); fail(error); return;
     }
-    const bool storageChangedNow = !m_storage || m_storage->drive().identifier() != storage->drive().identifier()
-        || m_storage->drive().rootPath() != storage->drive().rootPath();
+    const bool storageChangedNow = !wasReady || previousId != container()->containerId() || previousRoot != container()->rootPath();
+    m_storageReady = true;
     auto models = m_fileSystem.models();
     error = m_fileSystem.errorString();
+    QStringList videoModels;
+    const auto root = containerPath();
+    for (const auto &model : models)
+        if (model.format == "diffusers" && dreamscapes::isVideoModel(
+            iiFileProvider::Directory(root).filePath("Models/" + model.id)))
+            videoModels.append(model.id);
+    applyModelInventory(std::move(models), std::move(videoModels), error, storageChangedNow);
+}
+void GenerationController::applyModelInventory(QList<StoredModel> models, QStringList videoModels,
+                                              const QString &error, bool storageChangedNow)
+{
     const bool changed = storageChangedNow || models.size() != m_models.size()
         || !std::equal(models.cbegin(), models.cend(), m_models.cbegin(), m_models.cend(),
             [](const StoredModel &a, const StoredModel &b) { return a.id == b.id && a.name == b.name && a.format == b.format && a.fingerprint == b.fingerprint
                 && a.available == b.available && a.bytes == b.bytes; });
-    m_storage = std::move(storage);
-    if (m_foreground) m_societyClient.start(m_storage->drive().rootPath());
+    if (m_foreground) m_societyClient.start(containerPath());
     m_models = std::move(models);
     const auto previousVideoModels = m_videoModelIds;
-    m_videoModelIds.clear();
-    for (const auto &model : m_models) {
-        if (model.format == "diffusers" && dreamscapes::isVideoModel(
-            QDir(containerPath()).filePath("Models/" + model.id)))
-            m_videoModelIds.append(model.id);
-    }
+    m_videoModelIds = std::move(videoModels);
     const auto previousImage = m_selected;
     const auto previousVideo = m_selectedVideo;
     if (!m_videoModelOverridden || !m_videoModelIds.contains(m_selectedVideo)) {
@@ -694,11 +781,12 @@ void GenerationController::refreshModels()
 void GenerationController::startLegacyCacheMigration()
 {
     const auto source = m_runtime.legacyQ8CacheDirectory;
-    if (!m_storage || m_cacheMigrationActive || source.isEmpty()
+    if (!connected() || m_cacheMigrationActive || source.isEmpty()
         || (!QFileInfo::exists(source) && !QFileInfo(source).isSymLink())) return;
     QString error;
-    const auto target = m_storage->ensureDirectory(StoreSection::Models,
-        ".society-runtime/iiLocalDiffusion/q8", &error);
+    const auto target = m_fileSystem.ensureDirectory("models",
+        ".society-runtime/iiLocalDiffusion/q8");
+    error = m_fileSystem.errorString();
     if (target.isEmpty()) { fail(error); return; }
     m_cacheMigrationActive = true;
     m_cacheMigrationCancelled = false;
@@ -708,74 +796,8 @@ void GenerationController::startLegacyCacheMigration()
         return error;
     }));
 }
-bool GenerationController::discardLegacyStorage()
-{
-    // Upgrade cleanup only. New sessions never serialize or restore their queue.
-    for (const auto &relative : {QStringLiteral(".dreamscapes/generation"), QStringLiteral("Generation History/Dreamscapes")}) {
-        const auto directory = QDir(containerPath()).filePath(relative);
-        const QFileInfo info(directory);
-        if (!info.exists() && !info.isSymLink() && !info.isJunction()) continue;
-        if (!info.isDir() || info.isSymLink() || info.isJunction() || info.canonicalFilePath() != directory)
-            return fail(tr("The obsolete generation directory was redirected; it was preserved."));
-        QLockFile legacyWorker(directory + "/.worker.lock");
-        legacyWorker.setStaleLockTime(0);
-        if (!legacyWorker.tryLock())
-            return fail(tr("The previous Dreamscapes version is still using its generation files."));
-        for (const auto &entry : QDir(directory).entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::NoSymLinks)) {
-            if (!jobId(entry.fileName()) || entry.canonicalFilePath() != entry.absoluteFilePath()) continue;
-            QFile request(entry.filePath() + "/request.json");
-            const QFileInfo record(request);
-            if (!record.isFile() || record.isSymLink() || record.size() > 1024 * 1024 || !request.open(QIODevice::ReadOnly)) continue;
-            auto job = QJsonDocument::fromJson(request.readAll()).object();
-            if (job.value("id") != entry.fileName() || job.value("appId") != "com.iisacc.dreamscapes"
-                || job.value("schemaVersion") != 1 || job.value("state") != "completed") continue;
-            const auto prefix = "Asset Library/Dreamscapes/" + entry.fileName() + '/';
-            const auto image = job.value("image").toString();
-            if (!image.startsWith(prefix)) continue; // Already published in flat History.
-            const auto name = image.mid(prefix.size());
-            if (name.contains('/') || name.contains('\\') || name.startsWith('.')
-                || !QStringList{"png", "jpg", "jpeg", "webp"}.contains(QFileInfo(name).suffix().toLower()))
-                return fail(tr("The previous generation record contains an invalid image path."));
-            const auto original = QDir(containerPath()).filePath(image);
-            if (!QFileInfo::exists(original) && !QFileInfo(original).isSymLink()) continue; // User-deleted result.
-            QString error;
-            const auto source = m_storage->filePath(StoreSection::AssetLibrary, "Dreamscapes/" + entry.fileName() + '/' + name, &error);
-            if (source.isEmpty()) return fail(error);
-            const auto destination = m_storage->filePath(StoreSection::GenerationHistory,
-                entry.fileName() + "-0001." + QFileInfo(name).suffix().toLower(), &error);
-            if (destination.isEmpty()) return fail(error);
-            if (QFileInfo::exists(destination)) {
-                // Retry a cleanup interrupted after the final image was committed.
-                QFile left(source), right(destination);
-                QCryptographicHash a(QCryptographicHash::Sha256), b(QCryptographicHash::Sha256);
-                if (!left.open(QIODevice::ReadOnly) || !right.open(QIODevice::ReadOnly)
-                    || !a.addData(&left) || !b.addData(&right) || a.result() != b.result())
-                    return fail(tr("A generated image with this name already exists. Existing files were preserved."));
-            } else if (!publishImages({source}, job, &error)) return fail(error);
-            if (!QFile::remove(source)) return fail(tr("Cannot remove the old generated image after publishing it."));
-            const auto oldOutput = QFileInfo(source).absolutePath();
-            for (const auto &name : QStringList{"generation.json", QFileInfo(source).fileName() + ".json", QFileInfo(source).completeBaseName() + ".json"}) {
-                const auto path = oldOutput + '/' + name;
-                const QFileInfo metadata(path);
-                if (metadata.isFile() && !metadata.isSymLink() && metadata.canonicalFilePath() == path)
-                    QFile::remove(path);
-            }
-            QDir().rmdir(oldOutput); // Preserve unrelated Assets in nonempty directories.
-            QDir().rmdir(QFileInfo(oldOutput).absolutePath());
-        }
-        for (const auto &entry : QDir(directory).entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System)) {
-            if (entry.fileName() == ".worker.lock") continue;
-            const bool removed = removeObsoleteEntry(entry);
-            if (!removed) return fail(tr("Cannot remove the obsolete generation working files."));
-        }
-        legacyWorker.unlock();
-        if (!QDir().rmdir(directory)) return fail(tr("Cannot remove the obsolete generation directory."));
-    }
-    const QFileInfo parent(QDir(containerPath()).filePath(".dreamscapes"));
-    if (parent.isDir() && !parent.isSymLink() && !parent.isJunction()
-        && parent.canonicalFilePath() == parent.absoluteFilePath())
-        QDir().rmdir(parent.filePath()); // Empty app-owned parent only.
-    return true;
+bool GenerationController::discardLegacyStorage() {
+    return m_fileSystem.discardLegacyGenerationStorage() || fail(m_fileSystem.errorString());
 }
 
 void GenerationController::updateJob(QJsonObject job)
@@ -792,32 +814,32 @@ void GenerationController::updateJob(QJsonObject job)
 
 bool GenerationController::createWorkingFiles(QString *error)
 {
-    const auto path = m_storage ? dreamscapes::generationRuntimeDirectory(*m_storage, error) : QString();
+    const auto path = connected() ? dreamscapes::generationRuntimeDirectory(m_fileSystem, error) : QString();
     if (path.isEmpty()) return false;
-    m_workDirectory = std::make_unique<QTemporaryDir>(QDir(path).filePath("dreamscapes-generation-XXXXXX"));
+    m_workDirectory = std::make_unique<iiFileProvider::TemporaryDirectory>(iiFileProvider::Directory(path).filePath("dreamscapes-generation-XXXXXX"));
     if (!m_workDirectory->isValid()) { *error = m_workDirectory->errorString(); return false; }
     for (const auto &name : {"output", "runtime", "cache"}) {
-        if (!QDir(m_workDirectory->path()).mkdir(name)) {
+        if (!iiFileProvider::Directory(m_workDirectory->path()).mkdir(name)) {
             *error = tr("Cannot prepare generation files in Society.");
             return false;
         }
     }
     m_output = m_workDirectory->filePath("output");
-    m_previewDirectory = std::make_unique<QTemporaryDir>(m_workDirectory->filePath("preview-XXXXXX"));
+    m_previewDirectory = std::make_unique<iiFileProvider::TemporaryDirectory>(m_workDirectory->filePath("preview-XXXXXX"));
     if (!m_previewDirectory->isValid()) { *error = m_previewDirectory->errorString(); return false; }
     return true;
 }
 
 QStringList GenerationController::resourceArguments(QString *error)
 {
-    if (!m_storage) { *error = tr("Open Society to access generation resources."); return {}; }
-    const auto resources = dreamscapes::generationResourceDirectory(*m_storage, error);
+    if (!connected()) { *error = tr("Open Society to access generation resources."); return {}; }
+    const auto resources = dreamscapes::generationResourceDirectory(m_fileSystem, error);
     if (resources.isEmpty()) return {};
-    const auto manifest = m_storage->filePath(StoreSection::Models,
+    const auto manifest = m_fileSystem.path(StoreSection::Models,
         ".generation-resources/iiLocalDiffusion/generation-defaults.json", error);
     if (manifest.isEmpty()) return {};
     return {"--generation-resources", resources,
-        QFileInfo::exists(manifest) ? "--default-modifiers" : "--no-default-modifiers"};
+        m_fileSystem.aliasForPath(manifest).value("available").toBool() ? "--default-modifiers" : "--no-default-modifiers"};
 }
 
 void GenerationController::clearWorkingFiles()
@@ -832,36 +854,54 @@ QString GenerationController::enqueue(const QString &prompt, const QString &aspe
     return enqueueRequest(prompt, imageSize(aspectRatio, m_runtime.imageExtent), aspectRatio, count, seed, m_runtime.steps);
 }
 
+QString GenerationController::preserveImageInput(const QString &source, const QString &destination, QString *error)
+{
+    if (!dreamscapes::storeImageCanvas(source, destination, error)) return {};
+    const auto runtime = dreamscapes::generationRuntimeDirectory(m_fileSystem, error);
+    return runtime.isEmpty() ? QString{} : dreamscapes::imageCanvasPreview(destination, iiFileProvider::Directory(runtime).filePath("image-previews"), error);
+}
+
+QString GenerationController::imageInputPath(const QString &source, QString *error)
+{
+    const auto native = dreamscapes::persistImageCanvas(source, error, containerPath());
+    if (native.isEmpty()) return {};
+    if (QFileInfo(source).suffix().compare("iisc", Qt::CaseInsensitive) != 0) return QFileInfo(source).canonicalFilePath();
+    const auto runtime = dreamscapes::generationRuntimeDirectory(m_fileSystem, error);
+    return runtime.isEmpty() ? QString{} : dreamscapes::imageCanvasPreview(native, iiFileProvider::Directory(runtime).filePath("image-previews"), error);
+}
+
 QString GenerationController::enqueueVideo(const QString &prompt, const QString &aspectRatio,
     int count, const QUrl &firstFrame, int duration, int fps, qint64 seed)
 {
     if (!videoRuntimeAvailable()) { fail(tr("Video generation requires the desktop iiLocalDiffusion runtime.")); return {}; }
-    if (duration < 1 || duration > 30 || (fps != 12 && fps != 24 && fps != 30)) {
-        fail(tr("Choose a video duration from 1 to 30 seconds and 12, 24 or 30 FPS.")); return {};
+    if (duration < 1 || duration > 30 || !QList<int>{12,24,30,60,120}.contains(fps)) {
+        fail(tr("Choose a video duration from 1 to 30 seconds and 12, 24, 30, 60 or 120 FPS.")); return {};
     }
     if (!connected()) { fail(tr("Open Society on this device to load its storage map.")); return {}; }
     QJsonObject video{{"duration",duration},{"fps",fps},{"frames",duration*fps}};
     QString directory;
     if (!firstFrame.isEmpty()) {
-        QImageReader reader(firstFrame.toLocalFile()); reader.setAutoTransform(true);
+        QString error;
+        const auto input = firstFrame.isLocalFile() ? imageInputPath(firstFrame.toLocalFile(), &error) : QString{};
+        QImageReader reader(input); reader.setAutoTransform(true);
         const auto size = reader.size();
         if (!firstFrame.isLocalFile() || !reader.canRead() || size.isEmpty()
             || qint64(size.width())*size.height() > 64LL*1024*1024
             || QFileInfo(firstFrame.toLocalFile()).size() > 256LL*1024*1024 || reader.read().isNull()) {
             fail(tr("Choose a readable local image for the video's first frame.")); return {};
         }
-        QString error;
-        directory = m_storage->ensureDirectory(StoreSection::AssetLibrary,
-            "Dreamscapes/GenerationInputs/" + QUuid::createUuid().toString(QUuid::WithoutBraces), &error);
-        const auto target = QDir(directory).filePath("first-frame." + QFileInfo(firstFrame.toLocalFile()).suffix());
-        if (directory.isEmpty() || !QFile::copy(firstFrame.toLocalFile(),target)) {
-            if (!directory.isEmpty()) QDir(directory).removeRecursively();
+        directory = m_fileSystem.ensureDirectory("files",
+            "Dreamscapes/GenerationInputs/" + QUuid::createUuid().toString(QUuid::WithoutBraces));
+        error = m_fileSystem.errorString();
+        const auto target = directory.isEmpty() ? QString{} : preserveImageInput(firstFrame.toLocalFile(), iiFileProvider::Directory(directory).filePath("first-frame.iisc"), &error);
+        if (target.isEmpty()) {
+            if (!directory.isEmpty()) m_fileSystem.removeGenerationInputs(directory);
             fail(error.isEmpty() ? tr("Cannot preserve the video's first frame.") : error); return {};
         }
         video["firstFrame"] = target;
     }
     const auto id = enqueueRequest(prompt,dreamscapes::videoSize(aspectRatio),aspectRatio,count,seed,30,{},video);
-    if (id.isEmpty() && !directory.isEmpty()) QDir(directory).removeRecursively();
+    if (id.isEmpty() && !directory.isEmpty()) m_fileSystem.removeGenerationInputs(directory);
     return id;
 }
 
@@ -881,17 +921,19 @@ QString GenerationController::enqueueVideoRecipe(const QVariantMap &parameters)
         for (const auto &entry : *conditions) {
             auto condition = entry.toObject();
             const QUrl source(condition.value("image").toString());
-            QImageReader reader(source.toLocalFile()); reader.setAutoTransform(true);
+            const auto input = source.isLocalFile() ? imageInputPath(source.toLocalFile(), &error) : QString{};
+            QImageReader reader(input); reader.setAutoTransform(true);
             const auto size = reader.size();
             if (!source.isLocalFile() || !reader.canRead() || size.isEmpty()
                 || qint64(size.width()) * size.height() > 64LL * 1024 * 1024
                 || QFileInfo(source.toLocalFile()).size() > 256LL * 1024 * 1024 || reader.read().isNull()) {
                 error = tr("Choose readable local images for video keyframes."); return false;
             }
-            if (directory.isEmpty()) directory = m_storage->ensureDirectory(StoreSection::AssetLibrary,
-                "Dreamscapes/GenerationInputs/" + QUuid::createUuid().toString(QUuid::WithoutBraces), &error);
-            const auto target = QDir(directory).filePath(QString::number(imageIndex++) + "." + QFileInfo(source.toLocalFile()).suffix());
-            if (directory.isEmpty() || !QFile::copy(source.toLocalFile(), target)) {
+            if (directory.isEmpty()) directory = m_fileSystem.ensureDirectory("files",
+                "Dreamscapes/GenerationInputs/" + QUuid::createUuid().toString(QUuid::WithoutBraces));
+        error = m_fileSystem.errorString();
+            const auto target = directory.isEmpty() ? QString{} : preserveImageInput(source.toLocalFile(), iiFileProvider::Directory(directory).filePath(QString::number(imageIndex++) + ".iisc"), &error);
+            if (target.isEmpty()) {
                 if (error.isEmpty()) error = tr("Cannot preserve video image conditions."); return false;
             }
             condition["image"] = target; owned.append(condition);
@@ -901,7 +943,7 @@ QString GenerationController::enqueueVideoRecipe(const QVariantMap &parameters)
     auto shots = video.value("shots").toArray();
     for (int index = 0; index < shots.size(); ++index) {
         auto shot = shots[index].toObject(); auto conditions = shot.value("conditions").toArray();
-        if (!preserve(&conditions)) { if (!directory.isEmpty()) QDir(directory).removeRecursively(); fail(error); return {}; }
+        if (!preserve(&conditions)) { if (!directory.isEmpty()) m_fileSystem.removeGenerationInputs(directory); fail(error); return {}; }
         shot["conditions"] = conditions; shots[index] = shot;
     }
     video["shots"] = shots;
@@ -911,7 +953,7 @@ QString GenerationController::enqueueVideoRecipe(const QVariantMap &parameters)
     const auto id = enqueueRequest(video.value("prompt").toString(), size,
         QString::number(size.width() / divisor) + ":" + QString::number(size.height() / divisor),
         video.value("outputCount").toInt(), video.value("seed").toInteger(), video.value("steps").toInt(), {}, video);
-    if (id.isEmpty() && !directory.isEmpty()) QDir(directory).removeRecursively();
+    if (id.isEmpty() && !directory.isEmpty()) m_fileSystem.removeGenerationInputs(directory);
     return id;
 }
 
@@ -929,6 +971,7 @@ QString GenerationController::enqueueHomeCanvas(const QVariantMap &parameters, c
     if (!connected()) { fail(tr("Open Society on this device to load its storage map.")); return {}; }
     // Own immutable inputs before enqueueing: queued jobs survive draft edits and removal.
     auto snapshot = parameters;
+    snapshot["negativePrompt"] = QString::fromStdString(m_modelPreferences.prompts[0].negativePrompt);
     // QuickGenerate owns these defaults; the advanced form owns explicit values.
     // Resolve from model tensor metadata rather than its user-editable filename.
     const auto requestedModel = snapshot.value("model").toString();
@@ -938,10 +981,10 @@ QString GenerationController::enqueueHomeCanvas(const QVariantMap &parameters, c
     });
     if (m_runtime.nativeInference && selected != m_models.cend() && selected->available) {
         QString modelError;
-        const auto path = m_storage->resolveModel(selected->reference(m_storage->drive().identifier()), &modelError);
+        const auto path = m_fileSystem.resolveModel(selected->reference(container()->containerId()), &modelError);
         if (!path.isEmpty()) {
             const auto defaults = dreamscapes::imageParametersToMap(
-                iiLocalDiffusion::nativeImageParameterDefaults(QFile::encodeName(path).toStdString()));
+                iiLocalDiffusion::nativeImageParameterDefaults(iiFileProvider::FileDevice::encodeName(path).toStdString()));
             snapshot["steps"] = defaults.value("steps");
             snapshot["cfgScale"] = defaults.value("cfgScale");
         }
@@ -949,29 +992,31 @@ QString GenerationController::enqueueHomeCanvas(const QVariantMap &parameters, c
     const auto references = parameters.value("referenceImages").toList();
     if (references.isEmpty()) return enqueueAdvancedRequest(snapshot, aspectRatio);
     QString error;
-    const auto directory = m_storage->ensureDirectory(StoreSection::AssetLibrary,
-        "Dreamscapes/GenerationInputs/" + QUuid::createUuid().toString(QUuid::WithoutBraces), &error);
+    const auto directory = m_fileSystem.ensureDirectory("files",
+        "Dreamscapes/GenerationInputs/" + QUuid::createUuid().toString(QUuid::WithoutBraces));
+        error = m_fileSystem.errorString();
     if (directory.isEmpty()) { fail(error); return {}; }
     QVariantList owned;
     int index = 0;
     for (const auto &reference : references) {
         const auto source = QUrl(reference.toString());
-        QImageReader reader(source.toLocalFile()); reader.setAutoTransform(true);
+        const auto input = source.isLocalFile() ? imageInputPath(source.toLocalFile(), &error) : QString{};
+        QImageReader reader(input); reader.setAutoTransform(true);
         const auto dimensions = reader.size();
         if (!source.isLocalFile() || !reader.canRead() || dimensions.isEmpty()
             || qint64(dimensions.width()) * dimensions.height() > 64LL * 1024 * 1024
             || QFileInfo(source.toLocalFile()).size() > 256LL * 1024 * 1024) {
-            QDir(directory).removeRecursively(); fail(tr("A reference image is no longer readable.")); return {};
+            m_fileSystem.removeGenerationInputs(directory); fail(tr("A reference image is no longer readable.")); return {};
         }
-        const auto target = QDir(directory).filePath(QString::number(index++) + "." + QFileInfo(source.toLocalFile()).suffix());
-        if (!QFile::copy(source.toLocalFile(), target)) {
-            QDir(directory).removeRecursively(); fail(tr("Cannot preserve the generation inputs.")); return {};
+        const auto target = preserveImageInput(source.toLocalFile(), iiFileProvider::Directory(directory).filePath(QString::number(index++) + ".iisc"), &error);
+        if (target.isEmpty()) {
+            m_fileSystem.removeGenerationInputs(directory); fail(error); return {};
         }
         owned.append(QUrl::fromLocalFile(target).toString());
     }
     snapshot["referenceImages"] = owned;
     const auto id = enqueueAdvancedRequest(snapshot, aspectRatio);
-    if (id.isEmpty()) QDir(directory).removeRecursively();
+    if (id.isEmpty()) m_fileSystem.removeGenerationInputs(directory);
     return id;
 }
 
@@ -1001,6 +1046,11 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
     int count, qint64 seed, int steps, QJsonObject advanced, QJsonObject video)
 {
     const bool isVideo = !video.isEmpty();
+    const auto &explicitParameters = isVideo ? video : advanced;
+    const auto negativePrompt = explicitParameters.contains("negativePrompt")
+        ? explicitParameters.value("negativePrompt").toString()
+        : QString::fromStdString(m_modelPreferences.prompts[isVideo ? 1 : 0].negativePrompt);
+    if (isVideo) video["negativePrompt"] = negativePrompt;
 #if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
     if (!runtimeAvailable()) { fail(tr("Local image generation is unavailable in this build.")); return {}; }
 #endif
@@ -1019,7 +1069,7 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
         fail(isVideo ? tr("Add a local LTX Diffusers model package to Society's Models folder, then refresh models.")
             : tr("Add a Diffusion model to Society, then refresh the model list.")); return {};
     }
-    const StorageMap map(m_storage->drive());
+    auto &map = m_fileSystem;
     auto required = map.files("models/" + selected->id);
     if (!isVideo) required.append(map.files("models/.generation-resources/iiLocalDiffusion")); required.removeDuplicates();
     const bool localReady = required.isEmpty() ? selected->available : map.available(required);
@@ -1039,11 +1089,11 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
                 ? tr("Explicit VAE selection currently requires locally available models and the desktop runtime.")
                 : tr("Select a locally available VAE from the Society inventory.")); return {};
         }
-        vaeReference = vae->reference(m_storage->drive().identifier());
+        vaeReference = vae->reference(container()->containerId());
     }
-    const auto reference = selected->reference(m_storage->drive().identifier());
+    const auto reference = selected->reference(container()->containerId());
     QString error;
-    if (localReady && m_storage->resolveModel(reference, &error).isEmpty()) { fail(error); return {}; }
+    if (localReady && m_fileSystem.resolveModel(reference, &error).isEmpty()) { fail(error); return {}; }
     if (!advanced.isEmpty()) {
         advanced["model"] = selected->id;
         advanced["prompt"] = trimmed;
@@ -1056,7 +1106,7 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
             if (url.isLocalFile()) path = url.toLocalFile();
             else if (QFileInfo(source).isAbsolute()) path = source;
             else if (!url.scheme().isEmpty()) { fail(tr("LoRA sources must be local files.")); return {}; }
-            else path = m_storage->filePath(StoreSection::Models, source, &error);
+            else path = m_fileSystem.path(StoreSection::Models, source, &error);
             const QFileInfo info(path);
             if (!info.isFile() || info.size() == 0
                 || !QStringList{"safetensors", "safetensor", "gguf"}.contains(info.suffix().toLower())) {
@@ -1073,15 +1123,17 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
             if (url.isLocalFile()) path = url.toLocalFile();
             else if (QFileInfo(source).isAbsolute()) path = source;
             else if (!url.scheme().isEmpty()) { fail(tr("Reference images must be local files.")); return {}; }
-            else path = m_storage->filePath(StoreSection::Files, source, &error);
+            else path = m_fileSystem.path(StoreSection::Files, source, &error);
             const QFileInfo info(path);
-            QImageReader reader(info.canonicalFilePath());
+            const auto input = imageInputPath(info.canonicalFilePath(), &error);
+            if (input.isEmpty()) { fail(error); return {}; }
+            QImageReader reader(input);
             const auto dimensions = reader.size();
             if (!info.isFile() || info.size() == 0 || !reader.canRead() || dimensions.isEmpty()
                 || qint64(dimensions.width()) * dimensions.height() > 64 * 1024 * 1024) {
                 fail(tr("Choose a readable local reference image of at most 64 megapixels: %1").arg(source)); return {};
             }
-            references.append(info.canonicalFilePath());
+            references.append(input);
         }
         advanced["referenceImages"] = references;
         QJsonArray controls;
@@ -1103,7 +1155,7 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
                     if (url.isLocalFile()) path = url.toLocalFile();
                     else if (QFileInfo(source).isAbsolute()) path = source;
                     else if (!url.scheme().isEmpty()) { fail(tr("ControlNet sources must be local files.")); return {}; }
-                    else path = m_storage->filePath(weightFile ? StoreSection::Models : StoreSection::Files, source, &error);
+                    else path = m_fileSystem.path(weightFile ? StoreSection::Models : StoreSection::Files, source, &error);
                     const QFileInfo info(path);
                     if (!info.isFile() || info.size() < 1) { fail(tr("Choose an available local ControlNet source: %1").arg(source)); return {}; }
                     if (poseFile) {
@@ -1115,12 +1167,16 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
                             fail(tr("Choose safetensors or GGUF ControlNet/IP-Adapter/vision weights.")); return {};
                         }
                     } else {
-                        QImageReader reader(info.canonicalFilePath());
+                        const auto input = imageInputPath(info.canonicalFilePath(), &error);
+                        if (input.isEmpty()) { fail(error); return {}; }
+                        QImageReader reader(input);
                         const auto dimensions = reader.size();
                         if (!reader.canRead() || dimensions.isEmpty()
                             || qint64(dimensions.width()) * dimensions.height() > 64 * 1024 * 1024) {
                             fail(tr("Choose a readable ControlNet image of at most 64 megapixels.")); return {};
                         }
+                        item[field] = input;
+                        continue;
                     }
                     item[field] = info.canonicalFilePath();
                 }
@@ -1143,7 +1199,7 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
             if (url.isLocalFile()) path = url.toLocalFile();
             else if (QFileInfo(source).isAbsolute()) path = source;
             else if (!url.scheme().isEmpty()) { fail(tr("%1 weights must be local files.").arg(label)); return {}; }
-            else path = m_storage->filePath(StoreSection::Models, source, &error);
+            else path = m_fileSystem.path(StoreSection::Models, source, &error);
             const QFileInfo info(path);
             if (!info.isFile() || info.size() < 1
                 || !QStringList{"safetensors", "safetensor", "gguf"}.contains(info.suffix().toLower())) {
@@ -1158,7 +1214,7 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
             if (url.isLocalFile()) path = url.toLocalFile();
             else if (QFileInfo(embeddingSource).isAbsolute()) path = embeddingSource;
             else if (!url.scheme().isEmpty()) { fail(tr("Textual embeddings must be local files.")); return {}; }
-            else path = m_storage->filePath(StoreSection::Models, embeddingSource, &error);
+            else path = m_fileSystem.path(StoreSection::Models, embeddingSource, &error);
             const QFileInfo info(path);
             if (!info.isFile() || info.size() < 1 || info.size() > 100 * 1024 * 1024
                 || !QStringList{"safetensors", "safetensor", "gguf"}.contains(info.suffix().toLower())) {
@@ -1181,7 +1237,7 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
         jobIds.append(id);
         QJsonObject job{{"schemaVersion", 1}, {"id", id}, {"appId", "com.iisacc.dreamscapes"},
             {"createdAt", created.addMSecs(index).toString(Qt::ISODateWithMs)}, {"updatedAt", updated},
-            {"state", "queued"}, {"execution", localReady ? "local" : "host"}, {"prompt", trimmed},
+            {"state", "queued"}, {"execution", localReady ? "local" : "host"}, {"prompt", trimmed}, {"negativePrompt", negativePrompt},
             {"aspectRatio", aspectRatio}, {"width", size.width()}, {"height", size.height()},
             {"steps", steps}, {"seed", double(seed < 0 ? QRandomGenerator::global()->generate() : seed + index)},
             {"device", m_runtime.device}, {"model", reference}, {"modelName", selected->name}, {"vae", vaeReference}};
@@ -1202,7 +1258,7 @@ void GenerationController::pump()
 {
     if (m_runtime.nativeInference && !m_foreground
         && !(m_runtime.backgroundActivity && m_runtime.backgroundActivity->allowsBackgroundExecution())) return;
-    if (!m_storage || busy() || !m_controlId.isEmpty() || !runtimeAvailable()) return;
+    if (!connected() || busy() || !m_controlId.isEmpty() || !runtimeAvailable()) return;
     QString error;
     const auto queued = std::find_if(m_jobs.cbegin(), m_jobs.cend(), [](const auto &job) { return job.value("state") == "queued"; });
     if (queued == m_jobs.cend()) { prepareForeground(); return; }
@@ -1213,7 +1269,7 @@ void GenerationController::pump()
     m_cancelled = false;
     m_interrupted = false;
     m_nativeTimedOut = false;
-    iiSocietyContainer::StorageMap map(m_storage->drive());
+    auto &map = m_fileSystem;
     auto required = map.files("models/" + m_active.value("model").toObject().value("path").toString());
     const auto resources = map.files("models/.generation-resources/iiLocalDiffusion");
     if (m_active.value("mediaType") != "Video") required.append(resources); required.removeDuplicates();
@@ -1223,7 +1279,7 @@ void GenerationController::pump()
         }
         m_remoteActive = true; m_requiredModelFiles = required;
         m_active["state"] = "connecting-host"; m_active["execution"] = "host";
-        m_societyClient.start(m_storage->drive().rootPath());
+        m_societyClient.start(containerPath());
         m_remoteGeneration->setPaused(!m_foreground
             && !(m_runtime.backgroundActivity && m_runtime.backgroundActivity->allowsBackgroundExecution()));
         if (!m_remoteGeneration->start(m_active)) { finish("failed", tr("The Society host queue is already busy.")); return; }
@@ -1232,7 +1288,7 @@ void GenerationController::pump()
         return;
     }
     if (m_cacheMigrationActive || (m_runtime.nativeInference && !m_foreground)) { m_active = {}; return; }
-    const auto model = m_storage->resolveModel(m_active.value("model").toObject(), &error);
+    const auto model = m_fileSystem.resolveModel(m_active.value("model").toObject(), &error);
     if (model.isEmpty()) { finish("failed", error); return; }
     if (!createWorkingFiles(&error)) { finish("failed", error); return; }
     m_active["state"] = "running";
@@ -1247,12 +1303,15 @@ void GenerationController::pump()
         "--width", QString::number(m_active.value("width").toInt()), "--height", QString::number(m_active.value("height").toInt()),
         "--steps", QString::number(m_active.value("steps").toInt()),
         "--seed", QString::number(m_active.value("seed").toInteger()), "--device", m_active.value("device").toString(),
-        "--output-dir", m_output};
+        "--output-dir", m_output, "--negative-prompt", m_active.value("negativePrompt").toString(
+            m_active.value(m_active.value("mediaType") == "Video" ? "videoParameters" : "advancedParameters")
+                .toObject().value("negativePrompt").toString())};
     if (m_active.value("mediaType") == "Video") {
         if (m_runtime.nativeInference) iiLocalDiffusion::releaseNativeDiffusionCache();
-        arguments.removeLast(); arguments.removeLast();
+        const auto outputIndex = arguments.indexOf("--output-dir");
+        arguments.removeAt(outputIndex + 1); arguments.removeAt(outputIndex);
         const auto video = m_active.value("videoParameters").toObject();
-        arguments.append({"--backend","video","--output",QDir(m_output).filePath("video.mp4"),
+        arguments.append({"--backend","video","--output",iiFileProvider::Directory(m_output).filePath("video.mp4"),
             "--duration",QString::number(video.value("duration").toInt()),"--fps",QString::number(video.value("fps").toInt()),
             "--cache-dir",m_workDirectory->filePath("cache"),"--cpu-text-encoding",
             "--ffmpeg",QStringLiteral(DREAMSCAPES_FFMPEG_EXECUTABLE),"--ffprobe",QStringLiteral(DREAMSCAPES_FFPROBE_EXECUTABLE)});
@@ -1263,7 +1322,7 @@ void GenerationController::pump()
             arguments.removeOne("--duration");
             arguments.removeOne("--cpu-text-encoding");
             const auto storyPath = m_workDirectory->filePath("storyboard.json");
-            QFile story(storyPath);
+            iiFileProvider::FileDevice story(storyPath);
             auto shots = video.value("shots").toArray();
             for (int index = 0; index < shots.size(); ++index) {
                 auto shot = shots[index].toObject();
@@ -1276,7 +1335,7 @@ void GenerationController::pump()
             }
             story.close();
             arguments[arguments.indexOf("--device") + 1] = video.value("device").toString();
-            arguments.append({"--storyboard", storyPath, "--negative-prompt", video.value("negativePrompt").toString(),
+            arguments.append({"--storyboard", storyPath,
                 "--guidance-scale", QString::number(video.value("cfgScale").toDouble()),
                 "--interpolation-factor", QString::number(video.value("interpolationFactor").toInt()),
                 "--dtype", video.value("precision").toString(), "--offload", video.value("offload").toString(),
@@ -1299,7 +1358,7 @@ void GenerationController::pump()
         "--preview-dir", m_previewDirectory->path()});
     const auto vaeReference = m_active.value("vae").toObject();
     if (!vaeReference.isEmpty()) {
-        const auto vae = m_storage->resolveModel(vaeReference, &error);
+        const auto vae = m_fileSystem.resolveModel(vaeReference, &error);
         if (vae.isEmpty()) { finish("failed", error); return; }
         arguments.append({"--vae", vae});
     }
@@ -1309,7 +1368,7 @@ void GenerationController::pump()
     if (!advanced.isEmpty()) {
         // Force the capability-checked native route rather than silently selecting
         // a pipeline with a different sampling/weighting contract.
-        arguments.append({"--engine", "native", "--negative-prompt", advanced.value("negativePrompt").toString(),
+        arguments.append({"--engine", "native",
             "--guidance-scale", QString::number(advanced.value("cfgScale").toDouble(), 'g', 17),
             "--native-sampler", advanced.value("sampler").toString()});
         for (const auto &value : advanced.value("loras").toArray()) {
@@ -1328,8 +1387,8 @@ void GenerationController::pump()
 
 void GenerationController::pollDownload()
 {
-    if (m_modelDownloads.isEmpty() || !m_storage) return;
-    iiSocietyContainer::StorageMap map(m_storage->drive());
+    if (m_modelDownloads.isEmpty() || !connected()) return;
+    auto &map = m_fileSystem;
     for (auto it = m_modelDownloads.begin(); it != m_modelDownloads.end();) {
         const auto download = map.requestState(it.value());
         const auto state = download.value("state").toString();
@@ -1372,9 +1431,9 @@ void GenerationController::beginSocietyBackgroundActivity()
 
 void GenerationController::downloadModelInBackground()
 {
-    if (!m_storage || m_requiredModelFiles.isEmpty()) return;
+    if (!connected() || m_requiredModelFiles.isEmpty()) return;
     const auto model = m_active.value("model").toObject().value("path").toString();
-    if (iiSocietyContainer::StorageMap(m_storage->drive()).available(m_requiredModelFiles)) {
+    if (m_fileSystem.available(m_requiredModelFiles)) {
         m_active["modelDownload"] = QJsonObject{{"state", "ready"}};
         updateJob(m_active); return;
     }
@@ -1383,7 +1442,7 @@ void GenerationController::downloadModelInBackground()
         updateJob(m_active); return;
     }
     QString error;
-    const auto request = iiSocietyContainer::StorageMap(m_storage->drive()).request(m_requiredModelFiles, &error);
+    const auto request = m_fileSystem.requestFiles(m_requiredModelFiles, &error);
     m_active["modelDownload"] = request.isEmpty() ? QJsonObject{{"state", "failed"}, {"error", error}}
         : QJsonObject{{"state", "background"}, {"requestId", request}};
     if (!request.isEmpty()) { m_modelDownloads.insert(model, request); m_societyClient.synchronizeNow(); }
@@ -1396,7 +1455,7 @@ void GenerationController::startNative(const QString &model)
     if (m_cancelled) { finish(m_interrupted ? "interrupted" : "cancelled"); return; }
     m_nativeCancelled = false;
     iiLocalDiffusion::NativeGenerationRequest request;
-    request.modelPath = QFile::encodeName(model).toStdString();
+    request.modelPath = iiFileProvider::FileDevice::encodeName(model).toStdString();
     request.prompt = m_active.value("prompt").toString().toStdString();
     request.width = m_active.value("width").toInt();
     request.height = m_active.value("height").toInt();
@@ -1414,19 +1473,20 @@ void GenerationController::startNative(const QString &model)
     const auto resources = resourceArguments(&storageError);
     if (resources.isEmpty()) { finish("failed", storageError); return; }
     iiLocalDiffusion::NativeGenerationOptions options;
-    options.resourceDirectory = QFile::encodeName(resources[1]).toStdString();
+    options.negativePrompt = m_active.value("negativePrompt").toString(
+        m_active.value("advancedParameters").toObject().value("negativePrompt").toString()).toStdString();
+    options.resourceDirectory = iiFileProvider::FileDevice::encodeName(resources[1]).toStdString();
     options.defaultModifiers = resources[2] == "--default-modifiers";
     const auto advanced = m_active.value("advancedParameters").toObject();
     iiLocalDiffusion::NativeModelComponents components;
     iiLocalDiffusion::NativeAdvancedControls sampling;
     if (!advanced.isEmpty()) {
-        options.negativePrompt = advanced.value("negativePrompt").toString().toStdString();
         components.guidanceScale = float(advanced.value("cfgScale").toDouble());
         const auto vaeReference = m_active.value("vae").toObject();
         if (!vaeReference.isEmpty()) {
-            const auto vae = m_storage->resolveModel(vaeReference, &storageError);
+            const auto vae = m_fileSystem.resolveModel(vaeReference, &storageError);
             if (vae.isEmpty()) { finish("failed", storageError); return; }
-            components.vae = QFile::encodeName(vae).toStdString();
+            components.vae = iiFileProvider::FileDevice::encodeName(vae).toStdString();
         }
         sampling.sampler = advanced.value("sampler").toString().toStdString();
         sampling.scheduler = advanced.value("scheduler").toString().toStdString();
@@ -1436,12 +1496,12 @@ void GenerationController::startNative(const QString &model)
         sampling.hires = advanced.value("hiresFix").toBool();
         sampling.denoiseStrength = float(advanced.value("denoiseStrength").toDouble());
         sampling.upscaler = advanced.value("upscaler").toString().toStdString();
-        sampling.upscalerModel = QFile::encodeName(advanced.value("upscalerModel").toString()).toStdString();
+        sampling.upscalerModel = iiFileProvider::FileDevice::encodeName(advanced.value("upscalerModel").toString()).toStdString();
         sampling.detailer = advanced.value("detailer").toBool();
-        sampling.detailerModel = QFile::encodeName(advanced.value("detailerModel").toString()).toStdString();
+        sampling.detailerModel = iiFileProvider::FileDevice::encodeName(advanced.value("detailerModel").toString()).toStdString();
         sampling.refiner = advanced.value("refiner").toBool();
         sampling.refinerSwitch = float(advanced.value("refinerSwitch").toDouble());
-        sampling.refinerModel = QFile::encodeName(advanced.value("refinerModel").toString()).toStdString();
+        sampling.refinerModel = iiFileProvider::FileDevice::encodeName(advanced.value("refinerModel").toString()).toStdString();
         sampling.imageStrength = float(advanced.value("imageStrength").toDouble());
         sampling.promptWeighting = advanced.value("promptWeighting").toBool();
         sampling.freeU = advanced.value("freeU").toBool();
@@ -1449,11 +1509,11 @@ void GenerationController::startNative(const QString &model)
         if (!embeddingPath.isEmpty()) {
             const auto token = "user_" + QFileInfo(embeddingPath).completeBaseName().toLower()
                 .replace(QRegularExpression("[^a-z0-9_]"), "_").left(100);
-            sampling.embeddings.push_back({token.toStdString(), QFile::encodeName(embeddingPath).toStdString()});
+            sampling.embeddings.push_back({token.toStdString(), iiFileProvider::FileDevice::encodeName(embeddingPath).toStdString()});
         }
         for (const auto &value : advanced.value("loras").toArray()) {
             const auto lora = value.toObject();
-            options.loras.push_back({QFile::encodeName(lora.value("source").toString()).toStdString(),
+            options.loras.push_back({iiFileProvider::FileDevice::encodeName(lora.value("source").toString()).toStdString(),
                 float(lora.value("weight").toDouble())});
         }
     }
@@ -1585,7 +1645,7 @@ void GenerationController::finishNative()
     if (m_cancelled || result.cancelled) { finish("cancelled"); return; }
     if (!result.error.empty()) { finish("failed", QString::fromStdString(result.error)); return; }
     QString error;
-    if (m_storage->resolveModel(m_active.value("model").toObject(), &error).isEmpty()) {
+    if (m_fileSystem.resolveModel(m_active.value("model").toObject(), &error).isEmpty()) {
         finish("failed", error); return;
     }
     if (result.width != m_active.value("width").toInt() || result.height != m_active.value("height").toInt()
@@ -1593,8 +1653,8 @@ void GenerationController::finishNative()
         finish("failed", tr("The local engine returned an incomplete image.")); return;
     }
     const QImage image(result.rgb.data(), result.width, result.height, result.width * 3, QImage::Format_RGB888);
-    const auto path = QDir(m_output).filePath("image.png");
-    if (!image.save(path, "PNG")) { finish("failed", tr("Cannot save the generated image.")); return; }
+    const auto path = iiFileProvider::Directory(m_output).filePath("image.png");
+    if (!iiFileProvider::File::saveImage(image, path, "PNG")) { finish("failed", tr("Cannot save the generated image.")); return; }
     if (!publishImages({path}, m_active, &error)) finish("failed", error);
     else finish("completed");
 }
@@ -1603,15 +1663,15 @@ bool GenerationController::startWorker(QString *error)
 {
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
     if (m_process.state() == QProcess::NotRunning) {
-        const auto path = m_storage ? dreamscapes::generationRuntimeDirectory(*m_storage, error) : QString();
+        const auto path = connected() ? dreamscapes::generationRuntimeDirectory(m_fileSystem, error) : QString();
         if (path.isEmpty()) return false;
         // Python imports/JIT may retain temporary paths. Keep their directory valid
         // for the SDK worker's lifetime, separately from disposable per-job files.
-        m_workerDirectory = std::make_unique<QTemporaryDir>(
-            QDir(path).filePath("dreamscapes-inference-XXXXXX"));
+        m_workerDirectory = std::make_unique<iiFileProvider::TemporaryDirectory>(
+            iiFileProvider::Directory(path).filePath("dreamscapes-inference-XXXXXX"));
         if (!m_workerDirectory->isValid()) { *error = m_workerDirectory->errorString(); return false; }
         auto environment = m_process.processEnvironment();
-        environment.insert("IILD_NATIVE_TELEMETRY_DIR", QDir(path).filePath("diagnostics"));
+        environment.insert("IILD_NATIVE_TELEMETRY_DIR", iiFileProvider::Directory(path).filePath("diagnostics"));
         for (const auto &name : {"TMPDIR", "TEMP", "TMP"}) environment.insert(name, m_workerDirectory->path());
         // Backend/model caches also belong to Society. The client consumes
         // already available local sources; missing models are managed in Society.
@@ -1670,7 +1730,7 @@ void GenerationController::prepareForeground()
             setInferenceStatus({{"state", "model-on-host"}, {"ready", false}});
             return;
         }
-        const auto model = m_storage->resolveModel(selected->reference(m_storage->drive().identifier()), &error);
+        const auto model = m_fileSystem.resolveModel(selected->reference(container()->containerId()), &error);
         if (model.isEmpty()) { setInferenceStatus({{"state", "error"}, {"ready", false}, {"error", error}}); return; }
         arguments = {"--model-path", model, "--device", m_runtime.device,
                      "--width", QString::number(m_runtime.imageExtent), "--height", QString::number(m_runtime.imageExtent),
@@ -1678,7 +1738,7 @@ void GenerationController::prepareForeground()
         if (!m_selectedVae.isEmpty()) {
             const auto vae = std::find_if(m_models.cbegin(), m_models.cend(), [&](const auto &value) { return value.id == m_selectedVae; });
             if (vae == m_models.cend()) { fail(tr("The selected VAE is no longer available.")); return; }
-            const auto path = m_storage->resolveModel(vae->reference(m_storage->drive().identifier()), &error);
+            const auto path = m_fileSystem.resolveModel(vae->reference(container()->containerId()), &error);
             if (path.isEmpty()) { fail(error); return; }
             arguments.append({"--vae", path});
         }
@@ -1708,7 +1768,7 @@ void GenerationController::prepareForeground()
 
 bool GenerationController::collectResult(QString *error)
 {
-    if (m_storage->resolveModel(m_active.value("model").toObject(), error).isEmpty()) return false;
+    if (m_fileSystem.resolveModel(m_active.value("model").toObject(), error).isEmpty()) return false;
     const QFileInfo output(m_output);
     if (!m_workDirectory || m_output != m_workDirectory->filePath("output") || !output.isDir()
         || output.isSymLink() || output.canonicalFilePath() != m_output) {
@@ -1717,7 +1777,7 @@ bool GenerationController::collectResult(QString *error)
     }
     if (m_active.value("mediaType") == "Video") return publishVideo(error);
     const QFileInfo provenance(m_output + "/generation.json");
-    QFile record(provenance.filePath());
+    iiFileProvider::FileDevice record(provenance.filePath());
     if (!provenance.isFile() || provenance.isSymLink() || provenance.size() > 16 * 1024 * 1024
         || !record.open(QIODevice::ReadOnly)) {
         *error = tr("The engine exited without a readable image and generation record.");
@@ -1727,7 +1787,7 @@ bool GenerationController::collectResult(QString *error)
     if (generation.isEmpty()) { *error = tr("The engine returned an invalid generation record."); return false; }
     m_active["generation"] = generation; // Session-only provenance; no JSON is stored in Society.
     QStringList sources;
-    for (const auto &file : QDir(m_output).entryInfoList(QDir::Files, QDir::Name))
+    for (const auto &file : iiFileProvider::Directory(m_output).entryInfoList(iiFileProvider::Directory::Files, iiFileProvider::Directory::Name))
         if (QStringList{"png", "jpg", "jpeg", "webp"}.contains(file.suffix().toLower()))
             sources.append(file.filePath());
     return publishImages(sources, m_active, error);
@@ -1735,10 +1795,10 @@ bool GenerationController::collectResult(QString *error)
 
 bool GenerationController::publishVideo(QString *error)
 {
-    const auto path = QDir(m_output).filePath("video.mp4");
-    const auto reportPath = QDir(m_output).filePath("video.json");
+    const auto path = iiFileProvider::Directory(m_output).filePath("video.mp4");
+    const auto reportPath = iiFileProvider::Directory(m_output).filePath("video.json");
     const QFileInfo reportInfo(reportPath);
-    QFile report(reportPath);
+    iiFileProvider::FileDevice report(reportPath);
     if (!reportInfo.isFile() || reportInfo.isSymLink() || reportInfo.canonicalFilePath() != reportPath
         || reportInfo.size() > 16*1024*1024 || !report.open(QIODevice::ReadOnly)) {
         *error = tr("The engine exited without a readable video generation record."); return false;
@@ -1747,7 +1807,7 @@ bool GenerationController::publishVideo(QString *error)
     const auto parameters = m_active.value("videoParameters").toObject();
     const QSize size(m_active.value("width").toInt(),m_active.value("height").toInt());
     if (!dreamscapes::validateVideoOutput(path,generation,size,parameters.value("frames").toInt(),parameters.value("fps").toInt(),error)) return false;
-    const auto posterPath = QDir(m_output).filePath("video-frames/frame-000000.png");
+    const auto posterPath = iiFileProvider::Directory(m_output).filePath("video-frames/frame-000000.png");
     const QFileInfo posterInfo(posterPath);
     QImageReader reader(posterPath);
     if (!posterInfo.isFile() || posterInfo.isSymLink() || posterInfo.canonicalFilePath() != posterPath
@@ -1759,21 +1819,16 @@ bool GenerationController::publishVideo(QString *error)
     const QStringList sources{path,posterPath};
     QStringList destinations;
     for (const auto &name:names) {
-        const auto destination = m_storage->filePath(StoreSection::GenerationHistory,name,error);
+        const auto destination = m_fileSystem.path("generation-history", name);
         if (destination.isEmpty()) return false;
-        if (QFileInfo::exists(destination)) { *error = tr("A video result with this name already exists."); return false; }
+        if (m_fileSystem.alias("generation-history", name).value("exists").toBool()) { *error = tr("A video result with this name already exists."); return false; }
         destinations.append(destination);
     }
-    for (int index=0; index<sources.size(); ++index) {
-        QFile input(sources[index]); QSaveFile output(destinations[index]);
-        bool copied = input.open(QIODevice::ReadOnly) && output.open(QIODevice::WriteOnly);
-        while (copied && !input.atEnd()) {
-            const auto bytes=input.read(1024*1024);
-            copied=input.error()==QFile::NoError && output.write(bytes)==bytes.size();
-        }
-        if (!copied || !output.commit()) {
-            for (int previous=0; previous<index; ++previous) QFile::remove(destinations[previous]);
-            *error=tr("Cannot save the generated video in Society."); return false;
+    for (int index = 0; index < sources.size(); ++index) {
+        const auto published = m_fileSystem.publishFile(sources[index], "generation-history", names[index]);
+        if (published.isEmpty()) {
+            for (int previous = 0; previous < index; ++previous) m_fileSystem.removeFile("generation-history", names[previous]);
+            *error = m_fileSystem.errorString(); return false;
         }
     }
     m_active["generation"]=generation;
@@ -1802,34 +1857,48 @@ bool GenerationController::publishImages(const QStringList &sources, QJsonObject
             return false;
         }
         const auto name = job.value("id").toString()
-            + QString("-%1.").arg(destinations.size() + 1, 4, 10, QLatin1Char('0')) + file.suffix().toLower();
-        const auto destination = m_storage->filePath(StoreSection::GenerationHistory, name, error);
+            + QString("-%1.png").arg(destinations.size() + 1, 4, 10, QLatin1Char('0'));
+        const auto destination = m_fileSystem.path("generation-history", name);
         if (destination.isEmpty()) return false;
-        if (QFileInfo::exists(destination)) {
+        if (m_fileSystem.alias("generation-history", name).value("exists").toBool()) {
             *error = tr("A generated image with this name already exists. Existing files were preserved.");
             return false;
         }
         destinations.append(destination);
         images.append("Generation History/" + name);
     }
+    const auto advanced = job.value("advancedParameters").toObject();
+    std::unique_ptr<iiFileProvider::TemporaryDirectory> publication;
+    if (!m_workDirectory) {
+        const auto runtime = dreamscapes::generationRuntimeDirectory(m_fileSystem, error);
+        if (runtime.isEmpty()) return false;
+        publication = std::make_unique<iiFileProvider::TemporaryDirectory>(iiFileProvider::Directory(runtime).filePath("image-publication-XXXXXX"));
+        if (!publication->isValid()) { *error = tr("Cannot prepare the generated PNG publication."); return false; }
+    }
     for (qsizetype i = 0; i < sources.size(); ++i) {
-        // Only validated final images are published into Generation History.
-        // Engine intermediates remain in Society's private runtime area.
-        QFile source(sources[i]);
-        QSaveFile destination(destinations[i]);
-        const auto advanced = job.value("advancedParameters").toObject();
-        bool copied = destination.open(QIODevice::WriteOnly);
-        if (copied && !advanced.isEmpty())
-            copied = dreamscapes::writeAdvancedImage(sources[i], &destination, advanced, job.value("seed").toInteger(), error);
-        else if (copied) copied = source.open(QIODevice::ReadOnly);
-        while (copied && advanced.isEmpty() && !source.atEnd()) {
-            const auto bytes = source.read(1024 * 1024);
-            copied = source.error() == QFile::NoError && destination.write(bytes) == bytes.size();
+        // Generation owns the original PNG. Native wrapping happens on editor use.
+        auto source = sources[i];
+        bool copied = true;
+        if (!advanced.isEmpty()) {
+            source = (m_workDirectory ? m_workDirectory.get() : publication.get())->filePath(QString("Generated image-%1.png").arg(i));
+            iiFileProvider::SaveFile transformed(source);
+            copied = transformed.open(QIODevice::WriteOnly)
+                && dreamscapes::writeAdvancedImage(sources[i], &transformed, advanced, job.value("seed").toInteger(), error)
+                && transformed.commit();
+        } else if (QImageReader(source).format().toLower() != "png") {
+            const auto decoded = QImageReader(source).read();
+            source = (m_workDirectory ? m_workDirectory.get() : publication.get())->filePath(QString("Generated image-%1.png").arg(i));
+            iiFileProvider::SaveFile converted(source);
+            copied = converted.open(QIODevice::WriteOnly) && decoded.save(&converted, "PNG") && converted.commit();
         }
-        if (!copied || !destination.commit()) {
-            for (qsizetype previous = 0; previous < i; ++previous) QFile::remove(destinations[previous]);
-            if (error->isEmpty()) *error = tr("Cannot save the generated image: %1").arg(source.error() == QFile::NoError
-                ? destination.errorString() : source.errorString());
+        if (copied) {
+            const auto published = m_fileSystem.publishGeneratedImage(source, QFileInfo(destinations[i]).fileName());
+            copied = published == destinations[i];
+            if (!copied) *error = m_fileSystem.errorString();
+        }
+        if (!copied) {
+            for (qsizetype previous = 0; previous < i; ++previous) m_fileSystem.removeFile("generation-history", QFileInfo(destinations[previous]).fileName());
+            if (error->isEmpty()) *error = tr("Cannot save the generated PNG in Society History.");
             return false;
         }
     }
@@ -2084,7 +2153,7 @@ void GenerationController::acceptNativePreview(const iiLocalDiffusion::NativeGen
         || preview.rgb.size() != static_cast<std::size_t>(preview.width) * preview.height * 3) return;
     const QImage image(preview.rgb.data(), preview.width, preview.height, preview.width * 3, QImage::Format_RGB888);
     const auto name = QString("step-%1.png").arg(preview.sequence, 6, 10, QLatin1Char('0'));
-    QSaveFile file(m_previewDirectory->filePath(name));
+    iiFileProvider::SaveFile file(m_previewDirectory->filePath(name));
     if (!file.open(QIODevice::WriteOnly) || !image.save(&file, "PNG") || !file.commit()) return;
     acceptPreview(QJsonDocument(QJsonObject{{"schema", "iild-preview-v1"}, {"step", preview.step},
         {"total_steps", preview.total}, {"sequence", preview.sequence}, {"image", name}}).toJson(QJsonDocument::Compact));
@@ -2125,7 +2194,7 @@ bool GenerationController::cancel(const QString &id)
         QTimer::singleShot(2000, this, [this, id] { if (m_active.value("id") == id) stopProcess(true); });
         return true;
     }
-    if (!m_storage || !jobId(id)) return false;
+    if (!connected() || !jobId(id)) return false;
     for (auto job : m_jobs) {
         if (job.value("id") == id && job.value("state") == "queued") {
             job["state"] = "cancelled";

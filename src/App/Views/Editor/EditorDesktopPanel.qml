@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
+import "EditorCompactDefinitions.js" as Compact
 
 Rectangle {
     id: root
@@ -9,6 +10,10 @@ Rectangle {
     required property var toolState
     readonly property var layerPresenter: layerLoader.item
     readonly property bool layerModalActive: layerPresenter ? layerPresenter.modalActive : false
+    readonly property bool backgroundModalActive: backgroundLoader.item ? backgroundLoader.item.modalActive : false
+    readonly property bool graphicModalActive: graphicLoader.item ? graphicLoader.item.modalActive : false
+    readonly property bool elementsModalActive: elementsLoader.item ? elementsLoader.item.modalActive : false
+    readonly property bool photoModalActive: photoLoader.item ? photoLoader.item.modalActive : false
     signal closeRequested()
     signal actionRequested(string toolId, string fieldId, var values)
     color: LV.Theme.panelBackground05
@@ -16,13 +21,22 @@ Rectangle {
     border.width: 1
     border.color: LV.Theme.panelBackground08
 
+    Loader {
+        id: fileLoader
+        anchors.fill: parent
+        anchors.margins: LV.Theme.gap16 + root.border.width
+        active: root.toolState.toolId === "file"
+        sourceComponent: EditorFilePanel { toolState: root.toolState }
+    }
+
     Flickable {
         id: viewport
+        visible: !fileLoader.active
         objectName: "editorDesktopPanelViewport"
         anchors.fill: parent
         anchors.margins: LV.Theme.gap16 + root.border.width
         contentWidth: width
-        contentHeight: layerLoader.active ? layerLoader.height : panel.implicitHeight
+        contentHeight: backgroundLoader.active ? backgroundLoader.height : photoLoader.active ? photoLoader.height : elementsLoader.active ? elementsLoader.height : graphicLoader.active ? graphicLoader.height : textLoader.active ? textLoader.height : layerLoader.active ? layerLoader.height : compactLoader.active ? compactLoader.height : genericLoader.height
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         flickableDirection: Flickable.VerticalFlick
@@ -32,6 +46,41 @@ Rectangle {
             function onToolIdChanged() { viewport.contentY = 0 }
         }
         Controls.ScrollBar.vertical: Controls.ScrollBar { policy: Controls.ScrollBar.AsNeeded }
+        Loader {
+            id: backgroundLoader
+            width: viewport.width
+            height: item ? item.implicitHeight : 0
+            active: root.toolState.toolId === "background"
+            sourceComponent: EditorBackgroundPanel { toolState: root.toolState }
+        }
+        Loader {
+            id: photoLoader
+            width: viewport.width
+            height: item ? (item as Item).implicitHeight : 0
+            active: root.toolState.toolId === "camera-photo"
+            sourceComponent: EditorCameraPhotoPanel { toolState: root.toolState }
+        }
+        Loader {
+            id: elementsLoader
+            width: viewport.width
+            height: item ? (item as Item).implicitHeight : 0
+            active: root.toolState.toolId === "elements"
+            sourceComponent: EditorElementsPanel { toolState: root.toolState }
+        }
+        Loader {
+            id: graphicLoader
+            width: viewport.width
+            height: item ? (item as Item).implicitHeight : 0
+            active: ["color", "auto-enhance", "masking", "effects"].indexOf(root.toolState.toolId) >= 0
+            sourceComponent: EditorGraphicPanel { toolState: root.toolState }
+        }
+        Loader {
+            id: textLoader
+            width: viewport.width
+            active: root.toolState.toolId === "text"
+            height: item ? (item as Item).implicitHeight : 0
+            sourceComponent: EditorTextPanel { toolState: root.toolState }
+        }
         Loader {
             id: layerLoader
             width: viewport.width
@@ -46,21 +95,33 @@ Rectangle {
             onActiveChanged: loadPanel()
             Component.onCompleted: loadPanel()
         }
-        EditorToolPanel {
-            id: panel
-            visible: !layerLoader.active
+        Loader {
+            id: compactLoader
             width: viewport.width
-            engine: root.toolState.engine
-            notice: root.toolState.notice
-            definition: root.toolState.definition
-            values: root.toolState.values
-            sampleLayout: true
-            onEdited: function(fieldId, value) { root.toolState.setValue(fieldId, value) }
-            onResetRequested: root.toolState.resetTool()
-            onCloseRequested: root.closeRequested()
-            onColorRequested: function(fieldId) { root.toolState.chooseColor(fieldId) }
-            onActionRequested: function(fieldId, label) {
-                root.actionRequested(root.toolState.toolId, fieldId, root.toolState.values)
+            height: item ? (item as Item).implicitHeight : 0
+            active: Boolean(Compact.tool(root.toolState.toolId))
+            sourceComponent: EditorCompactPanel { toolState: root.toolState }
+        }
+        Loader {
+            id: genericLoader
+            active: !compactLoader.active && !backgroundLoader.active && !fileLoader.active && !photoLoader.active && !elementsLoader.active && !graphicLoader.active && !layerLoader.active && !textLoader.active
+            width: viewport.width
+            height: item ? (item as Item).implicitHeight : 0
+            sourceComponent: EditorToolPanel {
+                engine: root.toolState.engine
+                notice: root.toolState.notice
+                definition: root.toolState.definition
+                values: root.toolState.values
+                sampleLayout: true
+                onEdited: function(fieldId, value) {
+                    if (genericLoader.active) root.toolState.setValue(fieldId, value)
+                }
+                onResetRequested: root.toolState.resetTool()
+                onCloseRequested: root.closeRequested()
+                onColorRequested: function(fieldId) { root.toolState.chooseColor(fieldId) }
+                onActionRequested: function(fieldId, label) {
+                    root.actionRequested(root.toolState.toolId, fieldId, root.toolState.values)
+                }
             }
         }
     }

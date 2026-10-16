@@ -10,7 +10,9 @@
       "bytes": 957,
       "label": "Elements",
       "x": 1.95,
-      "y": 1.95
+      "y": 1.95,
+      "strokeColor": "#8E8EFF",
+      "colorName": "Periwinkle"
     },
     {
       "file": "text.svg",
@@ -21,7 +23,9 @@
       "bytes": 382,
       "label": "Text",
       "x": 3.7833,
-      "y": 1.95
+      "y": 1.95,
+      "strokeColor": "#CBA6F7",
+      "colorName": "Lavender"
     },
     {
       "file": "camera-photo.svg",
@@ -32,18 +36,9 @@
       "bytes": 696,
       "label": "Camera/Photo",
       "x": 2.8667,
-      "y": 2.8667
-    },
-    {
-      "file": "asset.svg",
-      "node": "144:1669",
-      "width": "18.1",
-      "height": "18.1",
-      "viewBox": "0 0 18.1 18.1",
-      "bytes": 1447,
-      "label": "Asset",
-      "x": 1.95,
-      "y": 1.95
+      "y": 2.8667,
+      "strokeColor": "#64B5F6",
+      "colorName": "Sky blue"
     },
     {
       "file": "file.svg",
@@ -54,7 +49,9 @@
       "bytes": 541,
       "label": "File",
       "x": 4.7,
-      "y": 1.0333
+      "y": 1.0333,
+      "strokeColor": "#80CBC4",
+      "colorName": "Seafoam"
     },
     {
       "file": "background.svg",
@@ -65,7 +62,9 @@
       "bytes": 994,
       "label": "Background",
       "x": 1.95,
-      "y": 2.8667
+      "y": 2.8667,
+      "strokeColor": "#62BA46",
+      "colorName": "Green"
     },
     {
       "file": "audio-track.svg",
@@ -76,7 +75,9 @@
       "bytes": 938,
       "label": "Audio track",
       "x": 1.95,
-      "y": 1.95
+      "y": 1.95,
+      "strokeColor": "#F74F9E",
+      "colorName": "Pink"
     },
     {
       "file": "canvas.svg",
@@ -87,7 +88,9 @@
       "bytes": 760,
       "label": "Canvas",
       "x": 1.95,
-      "y": 1.95
+      "y": 1.95,
+      "strokeColor": "#FFC600",
+      "colorName": "Yellow"
     },
     {
       "file": "generative.svg",
@@ -98,7 +101,9 @@
       "bytes": 686,
       "label": "Generative",
       "x": 0.1167,
-      "y": 1.0333
+      "y": 1.0333,
+      "strokeColor": "#A550A7",
+      "colorName": "Purple"
     },
     {
       "file": "layers.svg",
@@ -109,7 +114,9 @@
       "bytes": 588,
       "label": "Layers",
       "x": 1.95,
-      "y": 1.95
+      "y": 1.95,
+      "strokeColor": "#007AFF",
+      "colorName": "Blue"
     },
     {
       "file": "select.svg",
@@ -120,7 +127,9 @@
       "bytes": 730,
       "label": "Select",
       "x": 1.95,
-      "y": 1.95
+      "y": 1.95,
+      "strokeColor": "#CDDC39",
+      "colorName": "Lime"
     },
     {
       "file": "color.svg",
@@ -131,7 +140,9 @@
       "bytes": 878,
       "label": "Color",
       "x": 1.95,
-      "y": 1.95
+      "y": 1.95,
+      "strokeColor": "#F7821B",
+      "colorName": "Orange"
     },
     {
       "file": "effects.svg",
@@ -142,7 +153,9 @@
       "bytes": 596,
       "label": "Effects",
       "x": 1.0333,
-      "y": 1.0333
+      "y": 1.0333,
+      "strokeColor": "#E879F9",
+      "colorName": "Magenta"
     },
     {
       "file": "retouch.svg",
@@ -153,7 +166,9 @@
       "bytes": 934,
       "label": "Retouch",
       "x": 1.6816,
-      "y": 1.6816
+      "y": 1.6816,
+      "strokeColor": "#FFB4A2",
+      "colorName": "Peach"
     },
     {
       "file": "fill.svg",
@@ -164,7 +179,9 @@
       "bytes": 609,
       "label": "Fill",
       "x": 1.95,
-      "y": 1.95
+      "y": 1.95,
+      "strokeColor": "#2DD4BF",
+      "colorName": "Turquoise"
     },
     {
       "file": "brush.svg",
@@ -175,7 +192,9 @@
       "bytes": 620,
       "label": "Brush",
       "x": 1.95,
-      "y": 2.8667
+      "y": 2.8667,
+      "strokeColor": "#FF5257",
+      "colorName": "Red"
     },
     {
       "file": "auto-enhance.svg",
@@ -186,7 +205,9 @@
       "bytes": 688,
       "label": "Auto enhance",
       "x": 1.95,
-      "y": 1.95
+      "y": 1.95,
+      "strokeColor": "#F2C55C",
+      "colorName": "Gold"
     },
     {
       "file": "masking.svg",
@@ -197,7 +218,9 @@
       "bytes": 1116,
       "label": "Masking",
       "x": 1.0333,
-      "y": 3.7833
+      "y": 3.7833,
+      "strokeColor": "#A5C7E8",
+      "colorName": "Powder blue"
     },
     {
       "file": "eraser.svg",
@@ -208,7 +231,9 @@
       "bytes": 558,
       "label": "Eraser",
       "x": 2.8667,
-      "y": 3.7833
+      "y": 3.7833,
+      "strokeColor": "#F58CA8",
+      "colorName": "Rose"
     }
   ]
 }

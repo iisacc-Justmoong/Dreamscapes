@@ -66,7 +66,7 @@ public class DreamscapesActivity extends QtActivity {
             } else {
                 File directory = new File(Environment.getExternalStoragePublicDirectory(
                         Environment.DIRECTORY_PICTURES), "Dreamscapes");
-                if (!directory.isDirectory() && !directory.mkdirs())
+                if (!directory.isDirectory() && !com.iisacc.iifileprovider.FileStorage.mkdirs(directory))
                     throw new IOException("Could not create the photo folder.");
                 // Legacy MediaStore needs a unique destination path; never overwrite another image.
                 values.put(MediaStore.Images.Media.DATA,

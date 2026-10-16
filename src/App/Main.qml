@@ -81,6 +81,13 @@ LV.ApplicationWindow {
     Loader { id: agentQuestions }
     property bool resultVisible: false
     property bool editorVisible: false
+    property string storageBrowserSection: ""
+    readonly property bool storageBrowserVisible: storageBrowserSection.length > 0 && !resultVisible && !editorVisible
+    readonly property var editorView: editorLoader.item
+    function ensureEditor() {
+        editorLoader.active = true
+        return editorLoader.item
+    }
     property url canvasImageSource: ""
     property var canvasSpecification: ({})
     property var canvasGenerationResult: ({})
@@ -88,7 +95,8 @@ LV.ApplicationWindow {
     property var currentResult: ({})
     property var resultJobIds: []
     property string generationRequestError: ""
-    readonly property var generationHistoryEntries: historyModel.generationHistory.map(function(file) {
+    readonly property var generationHistoryEntries: ImageSelection.historyImages(historyModel.generationHistory).map(function(file) {
+        if (/\.iisc$/i.test(file.name || "")) return generation.storedImage(file)
         if (!/^[0-9a-f-]{36}-poster\.png$/.test(file.name || "")) return file
         const video = Object.assign({},file)
         video.mediaType = "Video"
@@ -171,7 +179,7 @@ LV.ApplicationWindow {
             ? Math.max(0, windowDragHandleTopMargin + windowDragHandleHeight) : 0,
         !useMobileHomeLayout
             ? (visibility === Window.FullScreen
-                ? (!resultVisible && !editorVisible ? LV.Theme.controlHeightSm + LV.Theme.gap12 : 0)
+                ? (!resultVisible || editorVisible ? LV.Theme.controlHeightSm + LV.Theme.gap12 : 0)
                 : desktopTitleBarHeight + desktopTitleBarContentGap)
             : 0)
     title: "Dreamscapes"
@@ -193,9 +201,10 @@ LV.ApplicationWindow {
     windowDragExclusionItems: [appContent, desktopToolbar]
 
     signal generateRequested(string prompt, string mediaType, string aspectRatio, int count)
-    signal newProjectRequested(url imageSource, var generationResult)
 
     function openCanvas(imageSource, generationResult) {
+        ensureEditor()
+        imageSource = generationResult && generationResult.documentSource || imageSource
         quickGenerate.dismissInput()
         modelMenu.close()
         const opened = imageSource ? editorView.openDocumentSource(imageSource)
@@ -220,7 +229,8 @@ LV.ApplicationWindow {
             generationRequestError = qsTr("Select images to open in the editor.")
             return false
         }
-        const sources = images.map(entry => entry.path ? editorView.localFileSource(String(entry.path)) : ImageSelection.source(entry))
+        ensureEditor()
+        const sources = images.map(entry => entry.source || (entry.path ? editorView.localFileSource(String(entry.path)) : ImageSelection.source(entry)))
         if (!editorView.openImages(sources)) {
             generationRequestError = editorView.documentError
             return false
@@ -271,7 +281,18 @@ LV.ApplicationWindow {
         generationRequestError = ""
         resultView.resetPresentation()
     }
+    function cancelSubmission() {
+        const pendingJobs = submissionJobs.filter(job => ["queued", "running", "connecting-host", "downloading"].indexOf(job.state) >= 0)
+        // Retire the queued tail before an active worker can release the queue.
+        pendingJobs.filter(job => job.state === "queued").forEach(job => generation.cancel(job.id))
+        pendingJobs.filter(job => job.state !== "queued").forEach(job => generation.cancel(job.id))
+        quickGenerate.dismissInput()
+        dismissResult()
+        desktopHome.showHome()
+        mobileHome.showHome()
+    }
     function showSubmission(jobIds) {
+        storageBrowserSection = ""
         editorVisible = false
         dismissResult()
         resultJobIds = jobIds.slice()
@@ -291,14 +312,22 @@ LV.ApplicationWindow {
     onActiveChanged: { if (active) { generation.refreshModels(); historyModel.refresh() } }
     onResultVisibleChanged: if (!resultVisible) historyModel.refresh()
 
-    DashboardFiles {
+    // Helper owns the container mirror and supplies Alias metadata and previews.
+    readonly property var societyContainer: generation.container
+    QtObject {
         id: historyModel
         objectName: "generationHistoryModel"
-        containerPath: generation.connected ? generation.containerPath : ""
-        query: window.useMobileHomeLayout ? "" : desktopToolbar.query
+        readonly property var snapshot: window.societyContainer
+        readonly property string containerPath: snapshot.rootPath
+        readonly property var recentFiles: snapshot.recentFiles
+        readonly property var recentPublished: snapshot.recentPublished
+        readonly property var generationHistory: snapshot.generationHistory
+        readonly property bool loading: snapshot.loading
+        readonly property string errorString: snapshot.errorString
+        property string query: window.useMobileHomeLayout ? "" : desktopToolbar.query
+        onQueryChanged: snapshot.query = query
+        function refresh() { snapshot.refresh() }
     }
-    SocietyApplication { id: societyApplication }
-
     GenerationController {
         id: generation
         objectName: "generationController"
@@ -311,11 +340,7 @@ LV.ApplicationWindow {
         }
     }
 
-    Rectangle {
-        anchors.fill: parent
-        color: LV.Theme.surfaceSolid
-        visible: !window.useMobileHomeLayout && !window.resultVisible && !window.editorVisible
-    }
+    // Home exposes the shared ApplicationWindow accent material.
     DesktopHomeToolbar {
         id: desktopToolbar
         anchors.top: parent.top
@@ -324,7 +349,7 @@ LV.ApplicationWindow {
         anchors.rightMargin: LV.Theme.gap12
         width: Math.min(LV.Theme.scaleMetric(265), Math.max(0,
             window.width - anchors.rightMargin - window.desktopTitleBarLeadingClearance))
-        visible: !window.useMobileHomeLayout && !window.resultVisible && !window.editorVisible
+        visible: !window.useMobileHomeLayout && !window.resultVisible && !window.editorVisible && !window.storageBrowserVisible
         jobs: generation.jobs
         onPreferencesRequested: window.openPreferences()
         onSocietyRequested: window.openSociety()
@@ -332,8 +357,8 @@ LV.ApplicationWindow {
     }
     Shortcut {
         sequence: StandardKey.Find
-        enabled: desktopToolbar.visible && !newCanvasDialog.visible
-        onActivated: desktopToolbar.focusSearch()
+        enabled: (desktopToolbar.visible || window.storageBrowserVisible) && !newCanvasDialog.visible
+        onActivated: window.storageBrowserVisible ? storageBrowserLoader.item.focusSearch() : desktopToolbar.focusSearch()
     }
     Shortcut { sequence: StandardKey.New; enabled: !newCanvasDialog.visible; onActivated: window.openNewCanvas() }
     Shortcut {
@@ -353,6 +378,7 @@ LV.ApplicationWindow {
         id: newCanvasDialog
         availableArea: appContent
         onCanvasRequested: function(specification) {
+            window.ensureEditor()
             if (!editorView.createBlankCanvas(specification)) {
                 creationError = qsTr("Could not create the canvas. Adjust its dimensions and try again.")
                 return
@@ -372,15 +398,36 @@ LV.ApplicationWindow {
             ? "" : qsTr("Could not open Society. Open Society on this device and try again.")
     }
     function openHomeFile(file) {
-        const source = file.path ? editorView.localFileSource(String(file.path)) : ImageSelection.source(file)
-        if (file.path && /\.iiscp?$/i.test(file.path)) return window.openCanvas(source, file)
+        if (file.available === false || file.exists === false) {
+            generationRequestError = qsTr("This file has not been downloaded to the mirrored drive yet.")
+            return false
+        }
         if (file.mediaType === "Video") {
             editorVisible = false
             dismissResult()
             currentResult = file
             resultVisible = true
-        } else if (ImageSelection.source(file).length > 0) return window.openCanvas(source, file)
-        else window.openSociety()
+            return
+        }
+        const name = String(file.name || file.path || "")
+        if (/\.iiscp?$/i.test(name) || file.isImage === true || (file.isImage === undefined && ImageSelection.isImage(file))) {
+            const source = file.source || (file.path ? window.ensureEditor().localFileSource(String(file.path)) : ImageSelection.source(file))
+            return window.openCanvas(source, file)
+        }
+        if (file.source && Qt.openUrlExternally(file.source)) return true
+        generationRequestError = qsTr("This file could not be opened on this device.")
+        return false
+    }
+    function showStorage(section) {
+        if (["files", "published", "generation-history"].indexOf(section) < 0) return
+        quickGenerate.dismissInput()
+        modelMenu.close()
+        editorVisible = false
+        resultVisible = false
+        generationRequestError = ""
+        storageBrowserSection = section
+        storageBrowserLoader.opened = true
+        desktopHome.selectedAction = section === "generation-history" ? "history" : section === "published" ? "published" : "files"
     }
 
     Item {
@@ -396,7 +443,7 @@ LV.ApplicationWindow {
         MobileHome {
             id: mobileHome
             anchors.fill: parent
-            visible: window.useMobileHomeLayout && !window.resultVisible && !window.editorVisible
+            visible: window.useMobileHomeLayout && !window.resultVisible && !window.editorVisible && !window.storageBrowserVisible
             onQuickActionRequested: function(action) {
                 if (action === "canvas") window.openNewCanvas()
                 else if (action === "open") window.openHomeFileDialog()
@@ -414,19 +461,17 @@ LV.ApplicationWindow {
             errorText: window.generationRequestError || historyModel.errorString
             onFileRequested: function(file) { window.openHomeFile(file) }
             onImagesRequested: function(images) { window.openImages(images) }
-            onViewAllRecentFilesRequested: window.openSociety()
-            onViewAllPublishedRequested: window.openSociety()
+            onViewAllRecentFilesRequested: window.showStorage("files")
+            onViewAllPublishedRequested: window.showStorage("published")
+            onSearchRequested: { window.showStorage("files"); Qt.callLater(() => storageBrowserLoader.item.focusSearch()) }
             onDestinationRequested: function(index) {
                 if (index === 0) mobileHome.showHome()
                 else if (index === 1) window.openCanvas("", ({}))
-                else if (index === 2) window.openHomeFileDialog()
-                else if (index === 3) societyApplication.openGenerationHistory()
+                else if (index === 2) window.showStorage("files")
+                else if (index === 3) window.showStorage("generation-history")
                 else if (index === 4) window.openSociety()
             }
-            onViewAllGenerationHistoryRequested: {
-                const opened = societyApplication.openGenerationHistory()
-                if (!opened) console.warn(qsTr("Could not open Society. Open Society on this device and try again."))
-            }
+            onViewAllGenerationHistoryRequested: window.showStorage("generation-history")
         }
 
         DesktopHome {
@@ -438,7 +483,10 @@ LV.ApplicationWindow {
             generationHistory: window.generationHistoryEntries
             loading: historyModel.loading
             errorText: window.generationRequestError || historyModel.errorString
+            browserSection: window.storageBrowserSection
+            onHomeRequested: window.storageBrowserSection = ""
             onQuickActionRequested: function(action) {
+                window.storageBrowserSection = ""
                 if (action === "canvas") window.openNewCanvas()
                 else if (action === "tools") window.openCanvas("", ({}))
                 else if (action === "image") {
@@ -456,16 +504,37 @@ LV.ApplicationWindow {
                         : qsTr("Board creation is not available yet. Your prompt is preserved.")
                 }
             }
-            onBrowseRequested: window.openSociety()
-            onPublishedRequested: window.openSociety()
-            onHistoryRequested: {
-                if (!societyApplication.openGenerationHistory())
-                    window.generationRequestError = qsTr("Could not open Society. Open Society on this device and try again.")
-            }
+            onBrowseRequested: window.showStorage("files")
+            onPublishedRequested: window.showStorage("published")
+            onHistoryRequested: window.showStorage("generation-history")
             onFileRequested: function(file) { window.openHomeFile(file) }
             onOpenFileRequested: window.openHomeFileDialog()
             onImagesRequested: function(images) { window.openImages(images) }
             onPromptRequested: function(prompt) { quickGenerate.prompt = prompt; quickGenerate.focusPrompt() }
+        }
+
+        Loader {
+            id: storageBrowserLoader
+            objectName: "storageBrowserLoader"
+            property bool opened: false
+            active: opened
+            parent: window.useMobileHomeLayout ? appContent : desktopHome.storageBrowserContainer
+            anchors.fill: parent
+            visible: window.storageBrowserVisible
+            sourceComponent: StorageBrowser {
+                container: window.societyContainer
+                section: window.storageBrowserSection || "files"
+                errorText: window.generationRequestError
+                onBackRequested: {
+                    window.storageBrowserSection = ""
+                    desktopHome.showHome()
+                    mobileHome.showHome()
+                }
+                onSectionRequested: function(section) { window.showStorage(section) }
+                onFileRequested: function(file) { window.openHomeFile(file) }
+                onImagesRequested: function(images) { window.openImages(images) }
+                onOpenFileRequested: window.openHomeFileDialog()
+            }
         }
 
         Loader {
@@ -514,41 +583,41 @@ LV.ApplicationWindow {
             previewPrompt: window.activeGeneration.prompt || ""
             generationPending: window.generationPending
             statusText: window.generationStatusText
-            generationCancellable: !!window.activeGeneration.id && generation.inferenceStatus.state !== "cancelling"
-            onCancelRequested: generation.cancel(window.activeGeneration.id || "")
+            onCancelRequested: window.cancelSubmission()
             errorText: window.generationRequestError || (window.generationPending ? ""
                 : (window.submissionJobs.find(function(job) { return job.state === "failed" }) || {}).error || "")
             onBackRequested: {
                 quickGenerate.dismissInput()
                 window.dismissResult()
             }
-            onNewProjectRequested: function(imageSource, generationResult) {
-                window.openCanvas(imageSource, generationResult)
-                window.newProjectRequested(imageSource, generationResult)
-            }
             onImagesRequested: function(images) { window.openImages(images) }
         }
 
-        CanvasEditor {
-            id: editorView
-            generationRuntime: generation
-            mobileLayout: window.useMobileHomeLayout
+        Loader {
+            id: editorLoader
+            objectName: "canvasEditorLoader"
+            active: false
             anchors.fill: parent
             visible: window.editorVisible
-            imageSource: window.canvasImageSource
-            generationResult: window.canvasGenerationResult
-            generationResults: window.canvasGenerationResults
-            canvasSpecification: window.canvasSpecification
-            onDocumentOpened: function(source) {
-                window.canvasImageSource = source
-                window.canvasGenerationResult = ({})
-                window.canvasGenerationResults = []
-                window.canvasSpecification = ({})
-            }
-            onBackRequested: window.closeCanvas()
-            onNavigationRequested: function(action) {
-                window.closeCanvas()
-                desktopHome.activate(action)
+            sourceComponent: CanvasEditor {
+                generationRuntime: generation
+                mobileLayout: window.useMobileHomeLayout
+                visible: window.editorVisible
+                imageSource: window.canvasImageSource
+                generationResult: window.canvasGenerationResult
+                generationResults: window.canvasGenerationResults
+                canvasSpecification: window.canvasSpecification
+                onDocumentOpened: function(source) {
+                    window.canvasImageSource = source
+                    window.canvasGenerationResult = ({})
+                    window.canvasGenerationResults = []
+                    window.canvasSpecification = ({})
+                }
+                onBackRequested: window.closeCanvas()
+                onNavigationRequested: function(action) {
+                    window.closeCanvas()
+                    desktopHome.activate(action)
+                }
             }
         }
 
@@ -559,7 +628,7 @@ LV.ApplicationWindow {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             visible: window.resultVisible && !window.editorVisible
-            // Preserve access to Back when a prompt grows beyond the window.
+            // Preserve access to Cancel when a prompt grows beyond the window.
             height: Math.min(quickGenerate.implicitHeight,
                 Math.max(0, parent.height - LV.Theme.controlHeightSm * 2))
             contentWidth: width
@@ -572,7 +641,7 @@ LV.ApplicationWindow {
 
         QuickGenerate {
             id: quickGenerate
-            visible: !window.editorVisible && (window.resultVisible || window.useMobileHomeLayout || desktopHome.selectedAction !== "image")
+            visible: !window.editorVisible && !window.storageBrowserVisible && (window.resultVisible || window.useMobileHomeLayout || desktopHome.selectedAction !== "image")
             parent: window.resultVisible ? resultComposerViewport.contentItem : window.useMobileHomeLayout
                 ? mobileHome.quickGenerateContainer : desktopHome.quickGenerateContainer
             y: 0
@@ -582,6 +651,8 @@ LV.ApplicationWindow {
             contentInset: window.resultVisible ? LV.Theme.gap10 : 0
             canvasEnabled: !window.useMobileHomeLayout && !window.resultVisible
             menusOpenUpward: window.resultVisible
+            generationPending: window.generationPending
+            defaultPrompts: generation.defaultGenerationPrompts
             videoModels: generation.videoModels
             selectedVideoModel: generation.selectedVideoModel
             onVideoModelSelected: function(id) { generation.selectedVideoModel = id }

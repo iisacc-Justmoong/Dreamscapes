@@ -1,24 +1,28 @@
+#include <File.h>
+#include <iiFileProviderDevice.h>
 #include "EditorCanvas.h"
+#include "App/Generation/ImageCanvas.h"
 #include "EditorToolUtils.h"
 #include "EditorMedia.h"
+#include "EditorCameraPhoto.h"
 #include <QColorSpace>
-#include <QDir>
 #include <QFileInfo>
 #include <QPainter>
-#include <QSaveFile>
 #include <QStandardPaths>
 #include <numeric>
 using namespace iiSharedCanvas;
 using namespace editorTools;
 QObject *EditorCanvas::media() const { return m_media.get(); }
+QObject *EditorCanvas::photoSources() const { return m_photoSources.get(); }
 QString EditorCanvas::toolHint() const {
     if (!m_media->error().isEmpty()) return m_media->error();
     if (m_pickCloneSource) return tr("Click the source point to clone or heal from.");
     if (m_pickNeutral) return tr("Click a neutral point to set white balance.");
-    if (m_tool == "elements") return tr("Drag to create a shape. Change its controls to edit the selected shape.");
+    if (m_tool == "elements") return tr("Click a shape to select it. Drag its grid to move, resize or rotate. Shift constrains proportions or angles; Alt resizes from the center. Drag empty space to draw; Control/Command-drag draws over another shape.");
     if (m_tool == "text") return tr("Click to place text. Content and typography update the selected text.");
     if (m_tool == "select") return tr("Drag a selection, click with Magic Wand, or select an object layer.");
     if (m_tool == "fill") return m_toolValues.value("selector").toString() == "Generative" ? tr("Click a connected region, then Generate fill to queue its replacement.") : tr("Click to fill connected pixels; an active selection limits the fill.");
+    if (backgroundMaskActive()) return tr("White reveals and black hides. Paint or drag a shape, close polygon paths, then Apply mask. Source pixels remain editable.");
     if (m_tool == "masking") return tr("Drag to define a mask. Apply the selection in Layers → Mask.");
     if (m_tool == "retouch") return tr("Paint the repair region. Set a source point for Clone or Heal.");
     if (m_tool == "brush") return tr("Paint on the selected bitmap layer. A new paint layer is created when needed.");
@@ -42,9 +46,9 @@ QVariantMap EditorCanvas::toolState() const {
     };
     const double ppi = m_specification.value("ppi", 300).toDouble();
     const QVariantMap guide{{"mode", text(guides, 16, "Crop")},
-        {"bleed", measure(text(guides, 17, "3 mm"), canvasWidth(), ppi)},
-        {"safeX", measure(text(guides, 18, "5%"), canvasWidth(), ppi)},
-        {"safeY", measure(text(guides, 18, "5%"), canvasHeight(), ppi)}};
+        {"bleed", measure(text(guides, 17, "3 mm"), editingWidth(), ppi)},
+        {"safeX", measure(text(guides, 18, "5%"), editingWidth(), ppi)},
+        {"safeY", measure(text(guides, 18, "5%"), editingHeight(), ppi)}};
     return {{"selectionActive", count > 0}, {"selectedPixels", qlonglong(count)}, {"audioTracks", documentReady() ? int(document()->audioTracks.size()) : 0},
         {"generationSeed", generationSeed()},
         {"canvasGuide", guide}, {"clippingOverlay", clippingOverlay()},
@@ -53,19 +57,34 @@ QVariantMap EditorCanvas::toolState() const {
 bool EditorCanvas::insertPixels(const QImage &input, const QString &name, bool background) {
     if (!documentReady() || input.isNull() || std::uint64_t(input.width()) * input.height() > MediaLimits{}.maxPixelsPerFrame) return fail(tr("Choose a decodable image within the canvas import limit."));
     const auto assetId = unique("media.asset."), id = unique("media.layer."); auto pixels = raster(input);
-    if (!commit([&](Document &d) { LayerProperties p{id, name.toStdString()};
-        const double scale = std::min(double(d.extent.width) / pixels.width, double(d.extent.height) / pixels.height);
-        p.transform.m11 = p.transform.m22 = scale; p.transform.translationX = (d.extent.width - pixels.width * scale) / 2; p.transform.translationY = (d.extent.height - pixels.height * scale) / 2;
+    if (!commit([&](Document &d) { LayerProperties p{id, name.toStdString()}; if (activeArtboard()) p.artboardId = m_activeArtboard;
+        const double scale = std::min(double(editingWidth()) / pixels.width, double(editingHeight()) / pixels.height);
+        p.transform.m11 = p.transform.m22 = scale; p.transform.translationX = (editingWidth() - pixels.width * scale) / 2; p.transform.translationY = (editingHeight() - pixels.height * scale) / 2;
         d.assets.emplace_back(RasterAsset{assetId, pixels}); auto layer = StaticBitmapLayer{p, StaticSource{assetId}};
         if (background) {
-            if (auto *existing = findLayer(d, "canvas.background.layer")) { p.id = "canvas.background.layer"; *existing = StaticBitmapLayer{p, StaticSource{assetId}}; }
-            else { p.id = "canvas.background.layer"; d.layers.insert(d.layers.begin(), StaticBitmapLayer{p, StaticSource{assetId}}); }
+            if (auto *existing = findLayer(d, backgroundLayerId())) { p.id = backgroundLayerId(); *existing = StaticBitmapLayer{p, StaticSource{assetId}}; }
+            else { p.id = backgroundLayerId(); d.layers.insert(d.layers.begin(), StaticBitmapLayer{p, StaticSource{assetId}}); }
         } else d.layers.emplace_back(layer); return true; })) return false;
-    invalidateToolPreview(); return selectLayer(background ? "canvas.background.layer" : QString::fromStdString(id));
+    invalidateToolPreview(); return selectLayer(QString::fromStdString(background ? backgroundLayerId() : id));
 }
 bool EditorCanvas::importToolSource(const QUrl &source, const QString &tool, const QVariantMap &values) {
     const auto path = source.isLocalFile() ? source.toLocalFile() : source.scheme().isEmpty() ? source.toString() : QString{};
     if (path.isEmpty()) return fail(tr("Choose a local source file."));
+    // Raster sources used by any editor tool receive the same persisted wrapper.
+    QString wrappedSource;
+    if (QStringList{"png", "jpg", "jpeg", "webp", "bmp", "tif", "tiff", "heic", "iisc"}.contains(QFileInfo(path).suffix().toLower())) {
+        QString error;
+        wrappedSource = dreamscapes::persistImageCanvas(path, &error, values.value("libraryDirectory").toString());
+        if (wrappedSource.isEmpty()) return fail(error);
+    }
+    const auto sourceImage = [&]() {
+        if (QFileInfo(path).suffix().compare("iisc", Qt::CaseInsensitive) != 0) return QImage(path);
+        const auto native = dreamscapes::readImageCanvas(wrappedSource);
+        if (!native.ok() || native.document.canvasMode != CanvasMode::Finite
+            || std::uint64_t(native.document.extent.width) * native.document.extent.height > MediaLimits{}.maxPixelsPerFrame) return QImage{};
+        const auto rendered = renderFrame(native.document, 0);
+        return rendered.ok() ? editorTools::image(rendered.pixels) : QImage{};
+    };
     if (tool == "audio-track" || QFileInfo(path).suffix().compare("wav", Qt::CaseInsensitive) == 0) {
         AudioImportOptions options; options.assetId = unique("audio.asset."); auto imported = importAudioWav(path.toStdString(), options);
         if (!imported.ok()) return fail(QString::fromStdString(imported.result.message));
@@ -75,7 +94,35 @@ bool EditorCanvas::importToolSource(const QUrl &source, const QString &tool, con
         const auto range = timeRange(text(settings, 5));
         if (range.first < 0 || range.first >= duration || range.second <= range.first) settings["field-5"] = QString("00:00 — %1").arg(duration, 0, 'f', 3); m_settings["audio-track"] = settings; return updateAudio(settings);
     }
-    if (tool == "elements") { m_patternImage = QImage(path); if (m_patternImage.isNull()) return fail(tr("The element fill image could not be decoded.")); emit toolStateChanged(); return m_elementBounds.contains(selectedLayerId()) ? updateElement() : true; }
+    if (tool == "elements") {
+        const auto pattern = sourceImage();
+        if (pattern.isNull()) return fail(tr("The element fill image could not be decoded."));
+        // The Image request may have restored its last accepted draft while the
+        // picker was open. Apply the requested draft only after decoding succeeds.
+        auto settings = values.isEmpty() ? m_settings.value("elements") : values;
+        settings["field-2"] = "Image";
+        m_settings["elements"] = settings;
+        const auto previousToolValues = m_toolValues;
+        m_toolValues = settings;
+        m_lastEditedField = "field-2";
+        const auto id = selectedLayerId();
+        const bool known = m_elementBounds.contains(id);
+        const bool hadPattern = m_elementPatterns.contains(id);
+        const auto previousPattern = m_elementPatterns.value(id);
+        const auto previousSource = m_patternImage;
+        m_patternImage = pattern;
+        if (known) m_elementPatterns[id] = pattern;
+        const bool updated = !known || updateElement();
+        if (!updated && known) {
+            if (hadPattern) m_elementPatterns[id] = previousPattern; else m_elementPatterns.remove(id);
+            m_patternImage = previousSource;
+            restoreSelectedElementSettings();
+            emit elementSelectionChanged();
+        }
+        if (m_tool != "elements") m_toolValues = previousToolValues;
+        emit toolStateChanged();
+        return updated;
+    }
     if (QStringList{"mp4", "mov", "mkv", "webm"}.contains(QFileInfo(path).suffix().toLower())) {
         VideoImportOptions options; options.frameRate = document()->timeline.frameRate;
         options.limits.maxDecodedBytes = 256ULL * 1024 * 1024; options.limits.maxFrames = 512;
@@ -83,7 +130,7 @@ bool EditorCanvas::importToolSource(const QUrl &source, const QString &tool, con
         const auto assetId = unique("video.asset."); const auto imported = importVideoAsset(path.toStdString(), assetId, options);
         if (!imported.ok()) return fail(QString::fromStdString(imported.result.message));
         const auto id = unique("video.layer.");
-        if (!commit([&](Document &d) { d.assets.emplace_back(imported.asset); LayerProperties p{id, QFileInfo(path).fileName().toStdString()}; const auto &pixels = imported.asset.frames.front(); const double scale = std::min(double(d.extent.width) / pixels.width, double(d.extent.height) / pixels.height); p.transform.m11 = p.transform.m22 = scale; p.transform.translationX = (d.extent.width - pixels.width * scale) / 2; p.transform.translationY = (d.extent.height - pixels.height * scale) / 2; d.layers.emplace_back(VideoLayer{p, StaticSource{assetId}}); d.timeline.frameCount = std::max(d.timeline.frameCount, FrameIndex(imported.asset.frames.size())); return true; })) return false;
+        if (!commit([&](Document &d) { d.assets.emplace_back(imported.asset); LayerProperties p{id, QFileInfo(path).fileName().toStdString()}; const auto &pixels = imported.asset.frames.front(); const double scale = std::min(double(editingWidth()) / pixels.width, double(editingHeight()) / pixels.height); p.transform.m11 = p.transform.m22 = scale; p.transform.translationX = (editingWidth() - pixels.width * scale) / 2; p.transform.translationY = (editingHeight() - pixels.height * scale) / 2; d.layers.emplace_back(VideoLayer{p, StaticSource{assetId}}); d.timeline.frameCount = std::max(d.timeline.frameCount, FrameIndex(imported.asset.frames.size())); return true; })) return false;
         return selectLayer(QString::fromStdString(id));
     }
     if (QFileInfo(path).suffix().compare("svg", Qt::CaseInsensitive) == 0) {
@@ -92,7 +139,7 @@ bool EditorCanvas::importToolSource(const QUrl &source, const QString &tool, con
         if (!commit([&](Document &d) { d.assets.emplace_back(imported.asset); d.layers.emplace_back(StaticVectorLayer{{id, QFileInfo(path).fileName().toStdString()}, StaticSource{imported.asset.id}}); return true; })) return false;
         return selectLayer(QString::fromStdString(id));
     }
-    auto image = QImage(path); if (image.isNull()) return fail(tr("The selected source cannot be decoded as an image. Choose an image, SVG or PCM16 WAV."));
+    auto image = sourceImage(); if (image.isNull()) return fail(tr("The selected source cannot be decoded as an image. Choose an image, SVG or PCM16 WAV."));
     if (tool == "camera-photo" && values.value("selector").toString() == "Document Scan") {
         ColorAdjustment a; a.saturation = text(values, 9, "Color") == "Color" ? 0 : -1; a.contrast = number(values, 10, 68) / 100;
         auto processed = adjustRaster(raster(image), a); if (!processed.ok()) return fail(QString::fromStdString(processed.error)); image = editorTools::image(processed.pixels);
@@ -169,7 +216,7 @@ bool EditorCanvas::transformCanvas(const QVariantMap &v, bool mirror) {
         else m_previewMirrorY = !m_previewMirrorY;
         emit toolStateChanged(); return true;
     }
-    const double oldWidth = canvasWidth(), oldHeight = canvasHeight(); QTransform operation; double newWidth = oldWidth, newHeight = oldHeight;
+    const double oldWidth = editingWidth(), oldHeight = editingHeight(); QTransform operation; double newWidth = oldWidth, newHeight = oldHeight;
     if (mirror) { if (text(v, 12, "Horizontal") == "Horizontal") { operation.translate(oldWidth, 0); operation.scale(-1, 1); } else { operation.translate(0, oldHeight); operation.scale(1, -1); } }
     else {
         const auto preset = text(v, 8, "90° L"); const double angle = (preset == "180°" ? 180 : preset == "90° R" ? 90 : -90) + number(v, 9);
@@ -177,8 +224,9 @@ bool EditorCanvas::transformCanvas(const QVariantMap &v, bool mirror) {
         const auto bounds = operation.mapRect(QRectF(0, 0, oldWidth, oldHeight)); newWidth = std::ceil(bounds.width()); newHeight = std::ceil(bounds.height()); QTransform move; move.translate(-bounds.left(), -bounds.top()); operation = operation * move;
     }
     if (!commit([&](Document &d) {
-        d.extent = {int(newWidth), int(newHeight)};
+        resizeEditingCanvas(d, {int(newWidth), int(newHeight)});
         if (mirror || toggle(v, 10, true)) for (auto &layer : d.layers) {
+            if (!belongsToActiveArtboard(layer)) continue;
             auto &p = layerProperties(layer); if (mirror && toggle(v, 13)) continue;
             if (mirror && toggle(v, 14) && QString::fromStdString(p.id).startsWith("text.layer.")) {
                 const auto *asset = resolveAssetAt(d, layer, frame()); const auto *vector = asset ? std::get_if<VectorAsset>(asset) : nullptr;
@@ -190,7 +238,7 @@ bool EditorCanvas::transformCanvas(const QVariantMap &v, bool mirror) {
         }
         return true;
     })) return false;
-    m_specification["pixelWidth"] = canvasWidth(); m_specification["pixelHeight"] = canvasHeight(); clearAreaSelection(); emit specificationChanged(); fitToView(); return true;
+    m_specification["pixelWidth"] = editingWidth(); m_specification["pixelHeight"] = editingHeight(); clearAreaSelection(); emit specificationChanged(); fitToView(); return true;
 }
 bool EditorCanvas::executeToolAction(const QString &tool, const QString &field, const QVariantMap &values) {
     m_settings[tool] = values;
@@ -252,7 +300,32 @@ QVariantMap EditorCanvas::toolPreview(const QString &tool, const QString &field,
     QVariantMap result{{"title", tool}, {"description", documentName()}}; QVariantList items;
     if (!documentReady()) return result;
     const auto selectionItem = [&] { if (!m_selection.alpha.empty()) items.append(QVariantMap{{"label", tr("Clear selection")}, {"action", "clearSelection"}}); };
-    if (tool == "layers" && field == "field-0") {
+    if (tool == "retouch" && field == "field-18") {
+        result["title"] = tr("Preview fill");
+        const auto capability = toolControlState(tool, field, v);
+        if (!capability.value("enabled").toBool()) result["description"] = capability.value("reason");
+        else {
+            // Render a detached document with the same repair operation used by Apply.
+            // No source paths, history or mutable document storage are shared.
+            EditorCanvas preview;
+            if (preview.loadProjectPage(*document(), documentName())) {
+                preview.m_activeArtboard = m_activeArtboard;
+                preview.setFrame(frame());
+                preview.selectLayer(selectedLayerId());
+                preview.configureTool(tool, v);
+                preview.m_selection = m_selection;
+                preview.m_historySuspended = true;
+                if (preview.repairSelection()) {
+                    const auto rendered = preview.renderEditingFrame(*preview.document());
+                    if (rendered.ok()) {
+                        result["imageSource"] = dataImage(image(rendered.pixels).scaled(512, 512, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                        result["description"] = tr("Apply to replace the marked pixels. The document is unchanged until Apply.");
+                        items.append(QVariantMap{{"label", tr("Apply repair")}, {"action", "applyRepair"}});
+                    } else result["description"] = QString::fromStdString(rendered.message);
+                } else result["description"] = preview.error();
+            }
+        }
+    } else if (tool == "layers" && field == "field-0") {
         if (document()->stableDiffusionMetadata) {
             const auto &metadata = *document()->stableDiffusionMetadata;
             result["description"] = QString::fromStdString(metadata.generationParametersText);
@@ -260,10 +333,10 @@ QVariantMap EditorCanvas::toolPreview(const QString &tool, const QString &field,
             items.append(QVariantMap{{"label", tr("Negative prompt")}, {"description", QString::fromStdString(metadata.negativePrompt)}});
         } else result["description"] = tr("This document has no persisted generation metadata.");
     } else if (tool == "retouch" && field == "field-15") {
-        const auto rendered = renderFrame(*document(), frame());
+        const auto rendered = renderEditingFrame(*document());
         if (rendered.ok() && m_cloneReady) {
             auto preview = image(rendered.pixels); QPainter painter(&preview);
-            painter.setPen(QPen(QColor("#8B7CFF"), std::max(1.0, canvasWidth() / 512.0)));
+            painter.setPen(QPen(QColor("#8B7CFF"), std::max(1.0, editingWidth() / 512.0)));
             const double radius = std::max(2.0, number(v, 0, 84) / 2);
             painter.drawEllipse(m_cloneSource, radius, radius);
             painter.drawLine(m_cloneSource - QPointF(radius, 0), m_cloneSource + QPointF(radius, 0));
@@ -299,7 +372,7 @@ QVariantMap EditorCanvas::toolPreview(const QString &tool, const QString &field,
             items.append(QVariantMap{{"label", m_media->playing() ? tr("Stop playback") : tr("Play edited track")}, {"action", m_media->playing() ? "stopAudio" : "playAudio"}});
         } else result["description"] = tr("Import a WAV track to view its actual waveform.");
     } else if (tool == "color") {
-        const auto rendered = renderFrame(*document(), frame()); if (rendered.ok()) {
+        const auto rendered = renderEditingFrame(*document()); if (rendered.ok()) {
             std::array<int, 256> bins{}; for (auto pixel : rendered.pixels.pixels) if (qAlpha(pixel)) ++bins[qGray(pixel)]; const int maximum = std::max(1, *std::max_element(bins.begin(), bins.end()));
             QImage chart(512, 160, QImage::Format_ARGB32); chart.fill(QColor("#202027")); QPainter p(&chart); p.setPen(QColor("#8B7CFF"));
             if (field == "field-0" || field == "field-7" || field == "field-19" || field == "field-23") {
@@ -317,11 +390,11 @@ QVariantMap EditorCanvas::toolPreview(const QString &tool, const QString &field,
             p.end(); result["imageSource"] = dataImage(chart);
         }
     } else if (tool == "select" || tool == "masking" || tool == "background") {
-        for (const auto &layer : document()->layers) if (const auto *semantic = std::get_if<SemanticSegmentLayer>(&layer)) for (const auto &region : semantic->segmentation.regions) items.append(QVariantMap{{"label", QString::fromStdString(region.name)}, {"description", tr("Region %1 · confidence %2").arg(region.id).arg(region.confidence.value_or(0))}, {"action", "region"}});
+        for (const auto &layer : document()->layers) if (const auto *semantic = belongsToActiveArtboard(layer) ? std::get_if<SemanticSegmentLayer>(&layer) : nullptr) for (const auto &region : semantic->segmentation.regions) items.append(QVariantMap{{"label", QString::fromStdString(region.name)}, {"description", tr("Region %1 · confidence %2").arg(region.id).arg(region.confidence.value_or(0))}, {"action", "region"}});
         result["imageSource"] = m_selectionOverlay; result["description"] = tr("%1 selected pixels · %2 supplied semantic regions").arg(toolState().value("selectedPixels").toLongLong()).arg(items.size()); selectionItem();
     } else {
         if (!m_selectionOverlay.isEmpty() && (tool == "generative" || tool == "retouch")) result["imageSource"] = m_selectionOverlay;
-        else { const auto rendered = renderFrame(*document(), frame()); if (rendered.ok()) result["imageSource"] = dataImage(image(rendered.pixels).scaled(512, 512, Qt::KeepAspectRatio, Qt::SmoothTransformation)); }
+        else { const auto rendered = renderEditingFrame(*document()); if (rendered.ok()) result["imageSource"] = dataImage(image(rendered.pixels).scaled(512, 512, Qt::KeepAspectRatio, Qt::SmoothTransformation)); }
         result["description"] = tr("Current document frame %1 / %2").arg(frame() + 1).arg(frameCount());
     }
     result["items"] = items; return result;
@@ -352,8 +425,6 @@ QVariantMap EditorCanvas::toolControlState(const QString &tool, const QString &f
     };
     const bool supported = !unavailable.value(tool).contains(n);
     if (!supported) reason = tr("This option is unavailable in the connected editing engine.");
-    if (tool == "file" && n == 5) reason = tr("This document embeds media. Persistent external links and smart objects are unavailable.");
-    if (tool == "file" && n == 11 && text(v, 1, "IISC") != "IISC") reason = tr("This image format exports a flattened frame. Choose IISC to preserve editable layers.");
     if (tool == "asset" && unavailable.value(tool).contains(n)) reason = tr("The local media library has no shared collection, license or version service attached.");
     if (tool == "canvas" && n >= 4 && n <= 7) reason = tr("The document stores untagged RGB. Persistent ICC profiles are unavailable.");
     if (tool == "generative" && unavailable.value(tool).contains(n)) reason = tr("Open Advanced generation to supply conditioning and enhancement model resources.");
@@ -372,6 +443,8 @@ QVariantMap EditorCanvas::toolControlState(const QString &tool, const QString &f
         bool found = false; if (documentReady()) for (const auto &layer : document()->layers) found = found || std::holds_alternative<SemanticSegmentLayer>(layer);
         if (!found) reason = tr("Import a semantic segmentation layer to use detected subjects and regions.");
     }
+    if (tool == "file" && n == 5) reason = tr("This document embeds media. Persistent external links and smart objects are unavailable.");
+    if (tool == "file" && n == 11 && text(v, 1, "IISC") != "IISC") reason = tr("This image format exports a flattened frame. Choose IISC to preserve editable layers.");
     if (tool == "camera-photo" && (n == 0 || n == 1 || n == 3 || n == 11) && !m_media->cameraAvailable()) reason = tr("No camera is available. Choose Photo Library to import an image.");
     if (tool == "camera-photo" && mode == "RAW Capture" && n >= 12) reason = tr("The camera backend does not expose RAW sensor output.");
     if (tool == "brush" && n == 14) reason = tr("This canvas input bridge currently forwards pressure, without stylus tilt.");
@@ -383,9 +456,23 @@ QVariantMap EditorCanvas::toolControlState(const QString &tool, const QString &f
     return {{"supported", supported}, {"enabled", reason.isEmpty()}, {"reason", reason}};
 }
 QVariantMap EditorCanvas::generationParameters(const QString &operation, const QVariantMap &v) {
-    QVariantMap parameters{{"prompt", text(v, 0)}, {"negativePrompt", text(v, 1)}, {"outputCount", 4}, {"width", std::clamp(canvasWidth(), 64, 4096)}, {"height", std::clamp(canvasHeight(), 64, 4096)}};
-    m_generationExtent = QSize(canvasWidth(), canvasHeight()); m_generationOffset = {};
-    m_generationMask = m_selection; m_generationLayer = selectedLayerId();
+    if(operation!="Text-to-image"&&!documentReady()){fail(tr("Open a canvas first."));return {};}
+    QVariantMap parameters{{"prompt", text(v, 0)}, {"negativePrompt", text(v, 1)}, {"outputCount", 4}, {"width", std::clamp(editingWidth(), 64, 4096)}, {"height", std::clamp(editingHeight(), 64, 4096)}};
+    if (operation == "Background") {
+        bool countOk=false,seedOk=false;
+        const auto count=v.value("replaceVariations",4).toDouble(&countOk);
+        const auto seed=v.value("replaceSeed",-1).toDouble(&seedOk);
+        if (!countOk || !seedOk || !std::isfinite(count) || !std::isfinite(seed)
+            || count<1 || count>16 || count!=std::floor(count)
+            || seed<-1 || seed>4294967295.0-(count-1) || seed!=std::floor(seed)
+            || !std::isfinite(number(v,5,60)) || number(v,5,60)<0 || number(v,5,60)>100) {
+            fail(tr("Choose 1–16 variations and a valid strength and seed."));return {};
+        }
+        parameters["outputCount"]=int(count);parameters["seed"]=qint64(seed);
+        m_backgroundGenerationValues=v;
+    }
+    m_generationExtent = QSize(editingWidth(), editingHeight()); m_generationOffset = {};
+    m_generationMask = m_selection; m_generationLayer = selectedLayerId(); m_generationArtboard = m_activeArtboard;
     if (m_tool == "eraser" && operation == "Inpaint") {
         const auto expanded = expandedObjectMask(m_generationMask, number(settingsFor("eraser"), 5));
         if (!expanded) { fail(tr("Use a smaller or simpler object mask to expand its boundary.")); return {}; }
@@ -399,34 +486,52 @@ QVariantMap EditorCanvas::generationParameters(const QString &operation, const Q
     const auto vae = text(v, 25); if (!vae.isEmpty() && vae != "Auto / model default") parameters["vae"] = vae;
     if (!text(v, 23).isEmpty()) parameters["loras"] = QVariantList{QVariantMap{{"id", "editor-lora"}, {"source", text(v, 23)}, {"weight", number(v, 24, 1)}}};
     if (operation != "Text-to-image") {
-        const auto rendered = renderFrame(*document(), frame()); if (!rendered.ok()) { fail(QString::fromStdString(rendered.message)); return {}; }
+        const auto rendered = renderEditingFrame(*document()); if (!rendered.ok()) { fail(QString::fromStdString(rendered.message)); return {}; }
         const auto directory = qEnvironmentVariable("DREAMSCAPES_EDITOR_CACHE", QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/EditorInputs");
-        if (!QDir().mkpath(directory)) { fail(tr("Create a writable editor input directory.")); return {}; }
+        if (!iiFileProvider::Directory().mkpath(directory)) { fail(tr("Create a writable editor input directory.")); return {}; }
         const auto file = directory + "/" + QString::fromStdString(unique("reference-")) + ".png";
         auto reference = image(rendered.pixels);
         if (operation == "Outpaint") {
             bool valid; const int expansion = text(v, 12, "512 px").split(' ').first().toInt(&valid);
             if (!valid || expansion < 1 || expansion > 1024) { fail(tr("Choose an expansion from 1 to 1024 pixels.")); return {}; }
             const auto direction = text(v, 11, "All"); const int dx = direction == "Top/Bottom" ? 0 : expansion, dy = direction == "Left/Right" ? 0 : expansion;
-            const QSize extent(canvasWidth() + dx * 2, canvasHeight() + dy * 2);
+            const QSize extent(editingWidth() + dx * 2, editingHeight() + dy * 2);
             if (extent.width() > 4096 || extent.height() > 4096) { fail(tr("The expanded generation extent must be at most 4096 pixels per side.")); return {}; }
             QImage expanded(extent, QImage::Format_ARGB32); expanded.fill(Qt::transparent); QPainter p(&expanded); p.drawImage(dx, dy, reference); p.end(); reference = expanded;
             parameters["width"] = extent.width(); parameters["height"] = extent.height(); m_generationExtent = extent; m_generationOffset = {double(dx), double(dy)};
         }
         const auto supplied = text(v, 4);
         if (QFileInfo(QUrl(supplied).isLocalFile() ? QUrl(supplied).toLocalFile() : supplied).isFile()) { reference = QImage(QUrl(supplied).isLocalFile() ? QUrl(supplied).toLocalFile() : supplied); if (reference.isNull()) { fail(tr("The reference file cannot be decoded.")); return {}; } }
-        if (!reference.save(file)) { fail(tr("The canvas reference image could not be saved.")); return {}; }
+        if (!iiFileProvider::File::saveImage(reference, file)) { fail(tr("The canvas reference image could not be saved.")); return {}; }
         parameters["referenceImages"] = QVariantList{QUrl::fromLocalFile(file).toString()}; parameters["imageStrength"] = number(v, 5, 58) / 100;
     }
     if (operation == "Inpaint" && m_selection.alpha.empty()) { fail(tr("Create an inpaint selection first.")); return {}; }
     return parameters;
 }
 bool EditorCanvas::placeGenerated(const QUrl &source, const QString &operation) {
-    QImage input(source.toLocalFile()); if (input.isNull()) return fail(tr("The generated image could not be read."));
+    if (!m_generationArtboard.empty() && m_generationArtboard != m_activeArtboard) {
+        const auto &boards = document()->artboards;
+        for (int i = 0; i < int(boards.size()); ++i) if (boards[i].id == m_generationArtboard) { if (!selectArtboard(i)) return false; break; }
+        if (m_generationArtboard != m_activeArtboard) return fail(tr("The generation target artboard was removed."));
+    }
+    if (!source.isLocalFile()) return fail(tr("Choose a local generated image."));
+    if (operation == "Background" && (m_backgroundGenerationValues.value("backgroundView").toString()=="Replace"
+        || m_backgroundGenerationValues.contains("replaceResult"))) return applyBackgroundReplacement(source,m_backgroundGenerationValues);
+    QString wrapError;
+    const auto wrapper = dreamscapes::persistImageCanvas(source.toLocalFile(), &wrapError);
+    if (wrapper.isEmpty()) return fail(wrapError);
+    auto native = dreamscapes::readImageCanvas(wrapper);
+    if (!native.ok()) return fail(QString::fromStdString(native.result.message));
+    if (native.document.canvasMode != CanvasMode::Finite
+        || std::uint64_t(native.document.extent.width) * native.document.extent.height > MediaLimits{}.maxPixelsPerFrame)
+        return fail(tr("Place a finite canvas of at most 64 megapixels."));
+    auto rendered = renderFrame(native.document, 0);
+    if (!rendered.ok()) return fail(QString::fromStdString(rendered.message));
+    QImage input = image(rendered.pixels);
     if (operation == "Inpaint" || operation == "Fill") {
         if (m_generationLayer.isEmpty() || !selectLayer(m_generationLayer)) return fail(tr("The generation target layer is no longer available."));
         if (m_pixelLocks.contains(selectedLayerId())) return fail(tr("Unlock the generation target layer's pixels first."));
-        if (!m_generationMask.alpha.empty() && (m_generationMask.extent.width != canvasWidth() || m_generationMask.extent.height != canvasHeight())) return fail(tr("The canvas dimensions changed after generation was submitted."));
+        if (!m_generationMask.alpha.empty() && (m_generationMask.extent.width != editingWidth() || m_generationMask.extent.height != editingHeight())) return fail(tr("The canvas dimensions changed after generation was submitted."));
         m_selection = m_generationMask; updateSelectionOverlay();
         if (!rasterizeSelected()) return false;
         const auto *pixels = selectedRasterPixels(); const auto *layer = findLayer(*document(), selectedLayerId().toStdString()); const auto &t = layerProperties(*layer).transform;
@@ -434,14 +539,14 @@ bool EditorCanvas::placeGenerated(const QUrl &source, const QString &operation) 
         if (!invertible) return fail(tr("The generation target transform cannot be inverted."));
         QImage mapped(pixels->width, pixels->height, QImage::Format_ARGB32_Premultiplied); mapped.fill(Qt::transparent);
         QPainter painter(&mapped); painter.setRenderHint(QPainter::SmoothPixmapTransform); painter.setTransform(inverse);
-        painter.drawImage(QRectF(0, 0, canvasWidth(), canvasHeight()), input); painter.end();
+        painter.drawImage(QRectF(0, 0, editingWidth(), editingHeight()), input); painter.end();
         auto result = blendRaster(*pixels, raster(mapped), layerMask()); return result.ok() && replaceSelectedPixels(result.pixels);
     }
     if (operation == "Outpaint") {
         const auto assetId = unique("outpaint.asset."), layerId = unique("outpaint.layer.");
         const auto pixels = raster(input.scaled(m_generationExtent, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
-        if (!commit([&](Document &d) { d.extent = {m_generationExtent.width(), m_generationExtent.height()}; for (auto &layer : d.layers) { auto &p = layerProperties(layer); p.transform.translationX += m_generationOffset.x(); p.transform.translationY += m_generationOffset.y(); } d.assets.emplace_back(RasterAsset{assetId, pixels}); d.layers.insert(d.layers.begin(), StaticBitmapLayer{{layerId, "Generated outpaint"}, StaticSource{assetId}}); return true; })) return false;
-        m_specification["pixelWidth"] = canvasWidth(); m_specification["pixelHeight"] = canvasHeight(); emit specificationChanged();
+        if (!commit([&](Document &d) { resizeEditingCanvas(d, {m_generationExtent.width(), m_generationExtent.height()}); for (auto &layer : d.layers) { if (!belongsToActiveArtboard(layer)) continue; auto &p = layerProperties(layer); p.transform.translationX += m_generationOffset.x(); p.transform.translationY += m_generationOffset.y(); } d.assets.emplace_back(RasterAsset{assetId, pixels}); d.layers.insert(d.layers.begin(), StaticBitmapLayer{{layerId, "Generated outpaint"}, StaticSource{assetId}}); return true; })) return false;
+        m_specification["pixelWidth"] = editingWidth(); m_specification["pixelHeight"] = editingHeight(); emit specificationChanged();
         clearAreaSelection(); fitToView(); return selectLayer(QString::fromStdString(layerId));
     }
     return insertPixels(input, tr("Generated %1").arg(operation), operation == "Background");
