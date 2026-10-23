@@ -1,11 +1,16 @@
 #include "EditorTimelineModel.h"
+#include "EditorTimelineThumbnails_p.h"
+#include "EditorAudioPlayback.h"
 #include "EditorToolUtils.h"
 #include "App/Generation/ImageCanvas.h"
 #include <QScopedValueRollback>
 #include <QUuid>
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <map>
+#include <limits>
+#include <span>
 
 using namespace iiSharedCanvas;
 namespace {
@@ -13,6 +18,46 @@ std::string uniqueId(const char *prefix) { return std::string(prefix)+QUuid::cre
 QVariantMap findRow(const QVariantList &rows,const QString &id) {
     for(const auto &row:rows) if(row.toMap().value("id").toString()==id)return row.toMap();
     return {};
+}
+using SnapAnchor=std::pair<int,std::size_t>;
+std::vector<SnapAnchor> clipSnapAnchors(const QVariantList &clips,const QString &id,const QStringList &selection,bool linked) {
+    const QSet<QString> moving(selection.cbegin(),selection.cend());
+    std::vector<SnapAnchor> anchors;anchors.reserve(std::size_t(clips.size())*2);
+    std::size_t priority=5; // Live document/playhead/range anchors precede clip edges.
+    for(const auto &value:clips) {
+        const auto row=value.toMap();const auto clipId=row["id"].toString();
+        if(clipId==id||(linked&&moving.contains(clipId)))continue;
+        anchors.emplace_back(row["in"].toInt(),priority++);
+        anchors.emplace_back(row["out"].toInt(),priority++);
+    }
+    std::sort(anchors.begin(),anchors.end());
+    // Keep the first original priority at coincident boundaries.
+    anchors.erase(std::unique(anchors.begin(),anchors.end(),[](const auto &a,const auto &b){return a.first==b.first;}),anchors.end());
+    return anchors;
+}
+int snapToAnchors(const QVariantMap &clip,int delta,const QString &edge,int tolerance,
+    std::span<const SnapAnchor> clips,const std::array<int,5> &live) {
+    std::int64_t nearest=std::int64_t(tolerance)+1,adjustment=0;
+    for(const auto position:{clip["in"].toInt(),clip["out"].toInt()}) {
+        if((edge=="in"&&position!=clip["in"].toInt())||(edge=="out"&&position!=clip["out"].toInt()))continue;
+        std::int64_t distance=std::int64_t(tolerance)+1,offset=0;
+        auto priority=std::numeric_limits<std::size_t>::max();
+        const auto consider=[&](int frame,std::size_t rank) {
+            const auto candidate=std::int64_t(frame)-position-delta;
+            const auto result=std::int64_t(delta)+candidate;
+            if(result<std::numeric_limits<int>::min()||result>std::numeric_limits<int>::max())return;
+            const auto amount=std::abs(candidate);
+            if(amount<distance||(amount==distance&&rank<priority)) {distance=amount;priority=rank;offset=candidate;}
+        };
+        for(std::size_t index=0;index<live.size();++index)consider(live[index],index);
+        const auto target=std::int64_t(position)+delta;
+        const auto next=std::lower_bound(clips.begin(),clips.end(),target,[](const auto &anchor,std::int64_t frame){return anchor.first<frame;});
+        if(next!=clips.end())consider(next->first,next->second);
+        if(next!=clips.begin()){const auto previous=std::prev(next);consider(previous->first,previous->second);}
+        // Equal-distance In/Out candidates preserve the first edge's priority.
+        if(distance<nearest){nearest=distance;adjustment=offset;}
+    }
+    return nearest<=tolerance?int(std::int64_t(delta)+adjustment):delta;
 }
 LayerFrameRange rangeOf(const Document &d,const Layer &layer) {
     return layerProperties(layer).frameRange.value_or(LayerFrameRange{0,d.timeline.frameCount-1});
@@ -22,6 +67,12 @@ std::vector<KeyframePlacement> contentKeys(const Document &d,const std::string &
     std::vector<KeyframePlacement> result;
     for(const auto &frame:d.frames)for(const auto &key:frame.keyframes)if(key.layerId==id)result.push_back({frame.index,key.assetId});
     return result;
+}
+QUrl renderThumbnail(const Document &document,const QString &id,int frame,const FrameRenderTileRequest &request) {
+    const auto *layer=findLayer(document,id.toStdString());if(!layer)return {};
+    const auto rendered=renderFrameLayerTiles(document,FrameIndex(frame),std::size_t(layer-document.layers.data()),{request});
+    if(!rendered.ok()||rendered.tiles.empty())return {};
+    return editorTools::dataImage(editorTools::image(rendered.tiles.front().pixels));
 }
 Layer cloneLayer(Document &d,const Layer &original,const std::string &id) {
     auto copy=original; const auto previous=layerProperties(original).id;
@@ -77,30 +128,65 @@ bool shiftLayer(Document &d,const std::string &id,int delta) {
     return editor.setLayerFrameRange(id,LayerFrameRange{in,out}).ok();
 }
 }
-EditorTimelineModel::EditorTimelineModel(QObject *parent):QObject(parent) {}
+EditorTimelineModel::EditorTimelineModel(QObject *parent):EditorTimelineModel(nullptr,parent) {}
+EditorTimelineModel::EditorTimelineModel(EditorAudioPlayback *playback,QObject *parent):QObject(parent),m_overridePlayback(playback) {
+    connect(&m_playbackTimer,&QTimer::timeout,this,&EditorTimelineModel::updatePlaybackPosition);
+    m_scrubTimer.setSingleShot(true);m_scrubTimer.setInterval(16);m_scrubTimer.setTimerType(Qt::PreciseTimer);
+    connect(&m_scrubTimer,&QTimer::timeout,this,&EditorTimelineModel::flushScrub);
+}
+EditorTimelineModel::~EditorTimelineModel(){
+    disconnect(this,nullptr,nullptr,nullptr);if(m_canvas)disconnect(m_canvas,nullptr,this,nullptr);
+    if(m_playback)disconnect(m_playback,nullptr,this,nullptr);
+    endPlayback(true,false);m_thumbnailWorker.reset();
+}
+void EditorTimelineModel::invalidateThumbnails() {
+    cancelThumbnails();m_thumbnails.clear();m_thumbnailSnapshot.reset();
+    ++m_thumbnailRevision;emit thumbnailsChanged();
+}
+void EditorTimelineModel::cancelThumbnails() {
+    ++m_thumbnailGeneration;m_requestedThumbnails.clear();
+    if(m_thumbnailWorker)m_thumbnailWorker->cancelPending();
+}
 const Document *EditorTimelineModel::document() const { return m_canvas && m_canvas->documentReady()?m_canvas->document():nullptr; }
 void EditorTimelineModel::setCanvas(EditorCanvas *canvas) {
     if(m_canvas==canvas)return;
+    const auto owner=QPointer<EditorTimelineModel>(this);endPlayback();if(!owner)return;
+    if(discardScrub())emit scrubbingChanged();if(!owner)return;
+    if(m_playback)disconnect(m_playback,nullptr,this,nullptr);
     if(m_canvas)disconnect(m_canvas,nullptr,this,nullptr);
-    m_canvas=canvas; m_selected.clear(); m_selectedKey.clear(); m_selectedTrack.clear(); m_solo.clear(); m_soloVisibility.clear(); m_audioLocks.clear();
-    m_thumbnails.clear();
+    cancelDrag();
+    m_canvas=canvas; m_strokeRefreshPending=false; m_selected.clear(); m_selectedKey.clear(); m_selectedTrack.clear(); m_solo.clear(); m_soloVisibility.clear(); m_audioLocks.clear();
+    invalidateThumbnails();
     if(canvas) {
-        const auto contentChanged=[this]{m_thumbnails.clear();refresh();};
+        const auto contentChanged=[this] {
+            const auto owner=QPointer<EditorTimelineModel>(this);endPlayback();if(!owner)return;
+            if(discardScrub())emit scrubbingChanged();if(!owner)return;
+            if(m_canvas&&m_canvas->liveStrokeActive()){m_strokeRefreshPending=true;return;}
+            m_strokeRefreshPending=false;invalidateThumbnails();refresh();
+        };
         connect(canvas,&CanvasItem::documentChanged,this,contentChanged);
         connect(canvas,&CanvasItem::revisionChanged,this,contentChanged);
+        connect(canvas,&CanvasItem::liveStrokeActiveChanged,this,[this,contentChanged] {
+            if(m_canvas&&!m_canvas->liveStrokeActive()&&m_strokeRefreshPending)contentChanged();
+        });
         connect(canvas,&CanvasItem::selectionChanged,this,[this] {
             if(m_refreshing)return;
             const auto id=m_canvas->selectedLayerId();
-            if(!id.isEmpty() && m_selected!=QStringList{id}){m_selected={id};emit changed();}
+            if(!id.isEmpty() && m_selected!=QStringList{id}){cancelDrag();m_selected={id};emit changed();}
         });
-        connect(canvas,&CanvasItem::frameChanged,this,&EditorTimelineModel::playheadChanged);
+        connect(canvas,&CanvasItem::frameChanged,this,[this] {
+            const auto owner=QPointer<EditorTimelineModel>(this);
+            if(m_scrubbing&&!m_advancingScrub){discardScrub();emit scrubbingChanged();if(!owner)return;}
+            if(m_playing&&!m_advancingPlayback)endPlayback();
+            if(owner)emit playheadChanged();
+        });
         connect(canvas,&EditorCanvas::activeArtboardChanged,this,contentChanged);
         connect(canvas,&EditorCanvas::undoRedoChanged,this,&EditorTimelineModel::changed);
         connect(canvas,&EditorCanvas::toolStateChanged,this,&EditorTimelineModel::updateLocks);
-        connect(canvas,&QObject::destroyed,this,[this]{m_canvas=nullptr;m_thumbnails.clear();refresh();});
+        connect(canvas,&QObject::destroyed,this,[this]{m_canvas=nullptr;invalidateThumbnails();refresh();});
     }
     if(canvas&&!canvas->selectedLayerId().isEmpty())m_selected={canvas->selectedLayerId()};
-    m_markIn=0; m_markOut=totalFrames(); refresh(); emit playheadChanged();
+    bindPlayback();m_markIn=0; m_markOut=totalFrames(); refresh(); emit playheadChanged();
 }
 double EditorTimelineModel::fps() const { const auto *d=document();return d?double(d->timeline.frameRate.numerator)/d->timeline.frameRate.denominator:24; }
 int EditorTimelineModel::totalFrames() const { return document()?int(document()->timeline.frameCount):1; }
@@ -121,9 +207,16 @@ bool EditorTimelineModel::mutate(const std::function<bool(Document &)> &edit) {
 }
 void EditorTimelineModel::refresh() {
     if(m_refreshing)return;
+    const auto owner=QPointer<EditorTimelineModel>(this);
+    if(discardScrub())emit scrubbingChanged();if(!owner)return;
     QScopedValueRollback<bool> guard(m_refreshing,true);
+    cancelDrag();
+    const auto oldTracks=m_tracks,oldClips=m_clips,oldKeys=m_keys;
     m_tracks.clear();m_clips.clear();m_keys.clear();
     if(const auto *d=document()) {
+        std::map<std::string,std::vector<KeyframePlacement>> keysByLayer;
+        for(const auto &frame:d->frames)for(const auto &key:frame.keyframes)
+            keysByLayer[key.layerId].push_back({frame.index,key.assetId});
         bool soloActive=!m_solo.isEmpty();
         for(const auto &layer:d->layers)if(m_canvas->belongsToActiveArtboard(layer)) {
             const auto &p=layerProperties(layer);soloActive&=p.visible==(QString::fromStdString(p.id)==m_solo);
@@ -139,7 +232,7 @@ void EditorTimelineModel::refresh() {
             m_clips.push_back(QVariantMap{{"id",id},{"trackId",id},{"name",name},{"type","Layer"},{"in",int(range.firstFrame)},{"out",int(range.lastFrame+1)},
                 {"frames",int(range.lastFrame-range.firstFrame+1)},{"timing",dynamic(*it)?"Dynamic":"Static"},{"representation",representation},
                 {"opacity",p.opacity},{"excluded",!p.visible},{"locked",locked(id)},{"sourceFrame",video?int(video->playback.sourceInFrame):0},{"sourceEditable",video!=nullptr}});
-            for(const auto &key:contentKeys(*d,p.id))m_keys.push_back(QVariantMap{{"id",id+":content:"+QString::number(key.frame)}, {"trackId",id},{"frame",int(key.frame)},
+            for(const auto &key:keysByLayer[p.id])m_keys.push_back(QVariantMap{{"id",id+":content:"+QString::number(key.frame)}, {"trackId",id},{"frame",int(key.frame)},
                 {"kind","Content"},{"assetId",QString::fromStdString(key.assetId)},{"value",p.opacity}});
             for(const auto &key:p.motion)m_keys.push_back(QVariantMap{{"id",id+":motion:"+QString::number(key.frame)},{"trackId",id},{"frame",int(key.frame)},
                 {"kind","Motion"},{"value",key.value.opacity},{"interpolation",key.interpolation==MotionInterpolation::Hold?"Hold":key.interpolation==MotionInterpolation::SmoothStep?"Smooth":"Linear"}});
@@ -172,7 +265,43 @@ void EditorTimelineModel::refresh() {
     if(!m_solo.isEmpty()&&findRow(m_tracks,m_solo).isEmpty()){m_solo.clear();m_soloVisibility.clear();}
     if(findRow(m_keys,m_selectedKey).isEmpty())m_selectedKey.clear();
     m_markIn=std::clamp(m_markIn,0,totalFrames()-1);m_markOut=std::clamp(m_markOut,1,totalFrames());
+    const bool projectionUpdated=oldTracks!=m_tracks||oldClips!=m_clips||oldKeys!=m_keys
+        ||m_projectedFps!=fps()||m_projectedFrames!=totalFrames();
+    m_projectedFps=fps();m_projectedFrames=totalFrames();
+    m_layerCount=0;m_keptCount=0;m_hasAudio=false;
+    for(const auto &value:m_clips){const auto clip=value.toMap();if(clip["type"]=="Layer"){
+        ++m_layerCount;if(!clip["excluded"].toBool())++m_keptCount;}}
+    for(const auto &value:m_tracks)m_hasAudio|=value.toMap()["type"]=="Audio";
+    updateLayout();
+    if(projectionUpdated){emit projectionChanged();emit playheadChanged();}
     emit changed();
+}
+void EditorTimelineModel::updateLayout() {
+    QHash<QString,QVariantList> clips,keys,motion;
+    for(const auto &value:m_clips){const auto row=value.toMap();
+        if(row["type"]=="Audio"||m_filter=="All"||(m_filter=="Out"?row["excluded"].toBool():!row["excluded"].toBool()))
+            clips[row["trackId"].toString()].append(value);}
+    for(const auto &value:m_keys){const auto row=value.toMap();const auto id=row["trackId"].toString();
+        keys[id].append(value);if(row["kind"]=="Motion")motion[id].append(value);}
+    QVariantList layout;int top=44;
+    for(const auto &value:m_tracks){auto row=value.toMap();const auto id=row["id"].toString();
+        if(row["type"]!="Audio"&&m_filter!="All"&&clips.value(id).isEmpty())continue;
+        auto motionKeys=motion.value(id);
+        std::stable_sort(motionKeys.begin(),motionKeys.end(),[](const QVariant &a,const QVariant &b){return a.toMap()["frame"].toInt()<b.toMap()["frame"].toInt();});
+        const bool curve=m_mode=="Curves"&&!motionKeys.isEmpty();
+        const int height=(row["type"]=="Audio"?48:40)+(curve?64:0);
+        row["top"]=top;row["height"]=height;row["curve"]=curve;
+        row["clips"]=clips.value(id);row["keys"]=m_mode=="Layers"?QVariantList{}:keys.value(id);row["motionKeys"]=motionKeys;
+        top+=height;layout.append(row);
+    }
+    const int height=layout.isEmpty()?126:top;
+    if(m_trackLayout!=layout||m_laneHeight!=height){m_trackLayout=std::move(layout);m_laneHeight=height;emit layoutChanged();}
+}
+QString EditorTimelineModel::timecode() const {
+    const int rate=std::max(1,int(std::round(fps()))),frame=playhead();
+    const auto padded=[](int value){return QString::number(value).rightJustified(2,'0');};
+    return padded(frame/rate/3600)+':'+padded(frame/rate/60%60)+':'+padded(frame/rate%60)+':'+padded(frame%rate)
+        +QStringLiteral(" · F")+QString::number(frame).rightJustified(3,'0');
 }
 void EditorTimelineModel::updateLocks() {
     if(m_refreshing)return;
@@ -182,17 +311,17 @@ void EditorTimelineModel::updateLocks() {
             if(row.value("locked").toBool()!=value){row["locked"]=value;entry=std::move(row);updated=true;}}
     };
     update(m_tracks,"id");update(m_clips,"trackId");
-    if(updated)emit changed();
+    if(updated){cancelDrag();updateLayout();emit projectionChanged();emit changed();}
 }
-void EditorTimelineModel::setMode(const QString &value){if(QStringList{"Layers","Keyframes","Curves"}.contains(value)&&m_mode!=value){m_mode=value;emit changed();}}
-void EditorTimelineModel::setTool(const QString &value){if(QStringList{"Select","Blade","Trim","Ripple","Roll","Slip","Slide","Range"}.contains(value)){m_tool=value;emit changed();}}
-void EditorTimelineModel::setFilter(const QString &value){if(QStringList{"All","Kept","Out"}.contains(value)){m_filter=value;emit changed();}}
-void EditorTimelineModel::setSnap(bool value){m_snap=value;emit changed();}
-void EditorTimelineModel::setLinked(bool value){m_linked=value;emit changed();}
-void EditorTimelineModel::seek(int frame){if(m_canvas){QScopedValueRollback<bool> guard(m_refreshing,true);m_canvas->setFrame(quint32(std::clamp(frame,0,totalFrames()-1)));}}
+void EditorTimelineModel::setMode(const QString &value){if(QStringList{"Layers","Keyframes","Curves"}.contains(value)&&m_mode!=value){cancelDrag();m_mode=value;updateLayout();emit changed();}}
+void EditorTimelineModel::setTool(const QString &value){if(QStringList{"Select","Blade","Trim","Ripple","Roll","Slip","Slide","Range"}.contains(value)){if(m_tool!=value){cancelDrag();m_tool=value;emit changed();}}}
+void EditorTimelineModel::setFilter(const QString &value){if(QStringList{"All","Kept","Out"}.contains(value)){if(m_filter!=value){cancelDrag();m_filter=value;updateLayout();emit changed();}}}
+void EditorTimelineModel::setSnap(bool value){if(m_snap!=value){cancelDrag();m_snap=value;emit changed();}}
+void EditorTimelineModel::setLinked(bool value){if(m_linked!=value){cancelDrag();m_linked=value;emit changed();}}
 void EditorTimelineModel::jumpCut(int direction){int next=direction<0?0:totalFrames()-1;for(const auto &row:m_clips){const auto clip=row.toMap();for(const auto f:{clip["in"].toInt(),clip["out"].toInt()})if(direction<0&&f<playhead())next=std::max(next,f);else if(direction>0&&f>playhead())next=std::min(next,f);}seek(next);}
 bool EditorTimelineModel::selectClip(const QString &id,bool multiple) {
     const auto clip=findRow(m_clips,id);if(clip.isEmpty())return false;
+    cancelDrag();
     m_selectedKey.clear();m_selectedTrack=clip["trackId"].toString();
     if(multiple){if(m_selected.contains(id))m_selected.removeAll(id);else m_selected.push_back(id);}else m_selected={id};
     if(m_canvas&&clip["type"]=="Layer") {QScopedValueRollback<bool> guard(m_refreshing,true);m_canvas->selectLayer(id);}
@@ -200,16 +329,16 @@ bool EditorTimelineModel::selectClip(const QString &id,bool multiple) {
 }
 bool EditorTimelineModel::selectTrack(const QString &id) {
     if(findRow(m_tracks,id).isEmpty())return false;
-    m_selectedTrack=id;m_selectedKey.clear();m_selected.clear();
+    cancelDrag();m_selectedTrack=id;m_selectedKey.clear();m_selected.clear();
     for(const auto &value:m_clips)if(value.toMap()["trackId"].toString()==id)m_selected.push_back(value.toMap()["id"].toString());
     if(findRow(m_tracks,id)["type"]=="Layer" && m_canvas) {
         QScopedValueRollback<bool> guard(m_refreshing,true);m_canvas->selectLayer(id);
     }
     emit changed();return true;
 }
-void EditorTimelineModel::selectAll(){m_selected.clear();for(const auto &row:m_clips)m_selected.push_back(row.toMap()["id"].toString());m_selectedKey.clear();emit changed();}
-void EditorTimelineModel::clearSelection(){m_selected.clear();m_selectedKey.clear();m_selectedTrack.clear();emit changed();}
-bool EditorTimelineModel::selectKey(const QString &id){const auto key=findRow(m_keys,id);if(key.isEmpty())return false;selectClip(key["trackId"].toString());m_selectedKey=id;m_mode="Keyframes";emit changed();return true;}
+void EditorTimelineModel::selectAll(){cancelDrag();m_selected.clear();for(const auto &row:m_clips)m_selected.push_back(row.toMap()["id"].toString());m_selectedKey.clear();emit changed();}
+void EditorTimelineModel::clearSelection(){cancelDrag();m_selected.clear();m_selectedKey.clear();m_selectedTrack.clear();emit changed();}
+bool EditorTimelineModel::selectKey(const QString &id){const auto key=findRow(m_keys,id);if(key.isEmpty())return false;selectClip(key["trackId"].toString());m_selectedKey=id;if(m_mode=="Layers")m_mode="Keyframes";updateLayout();emit changed();return true;}
 QUrl EditorTimelineModel::thumbnail(const QString &id,int frame) const {
     const auto *d=document();const auto *layer=d?findLayer(*d,id.toStdString()):nullptr;if(!layer)return {};
     const auto range=rangeOf(*d,*layer);frame=std::clamp(frame,int(range.firstFrame),int(range.lastFrame));
@@ -217,9 +346,35 @@ QUrl EditorTimelineModel::thumbnail(const QString &id,int frame) const {
     const auto key=id+":"+QString::number(frame);if(const auto *cached=m_thumbnails.object(key))return *cached;
     const auto origin=m_canvas->editingOrigin();
     const FrameRenderTileRequest request{{{int(origin.x()),int(origin.y())},{m_canvas->editingWidth(),m_canvas->editingHeight()}},{64,64},RasterSampling::Smooth};
-    const auto rendered=renderFrameLayerTiles(*d,FrameIndex(frame),std::size_t(layer-d->layers.data()),{request});
-    if(!rendered.ok()||rendered.tiles.empty())return {};
-    const auto source=editorTools::dataImage(editorTools::image(rendered.tiles.front().pixels));m_thumbnails.insert(key,new QUrl(source));return source;
+    const auto source=renderThumbnail(*d,id,frame,request);m_thumbnails.insert(key,new QUrl(source));return source;
+}
+QUrl EditorTimelineModel::requestThumbnail(const QString &id,int frame) {
+    const auto *d=document();const auto *layer=d?findLayer(*d,id.toStdString()):nullptr;if(!layer)return {};
+    const auto range=rangeOf(*d,*layer);frame=std::clamp(frame,int(range.firstFrame),int(range.lastFrame));
+    if(!dynamic(*layer)&&layerProperties(*layer).motion.empty())frame=int(range.firstFrame);
+    const auto key=id+":"+QString::number(frame);
+    if(const auto *cached=m_thumbnails.object(key)) {
+        m_requestedThumbnails.remove(id);
+        if(m_thumbnailWorker)m_thumbnailWorker->cancel(id);
+        return *cached;
+    }
+    if(m_canvas->liveStrokeActive())return {};
+    if(m_requestedThumbnails.value(id)==key)return {};
+    m_requestedThumbnails.insert(id,key);
+    if(!m_thumbnailSnapshot)m_thumbnailSnapshot=m_canvas->editingFrameSnapshot().document;
+    if(!m_thumbnailWorker)m_thumbnailWorker=std::make_unique<EditorTimelineThumbnails>();
+    const auto snapshot=m_thumbnailSnapshot;const auto generation=m_thumbnailGeneration;
+    const auto origin=m_canvas->editingOrigin();
+    const FrameRenderTileRequest request{{{int(origin.x()),int(origin.y())},{m_canvas->editingWidth(),m_canvas->editingHeight()}},{64,64},RasterSampling::Smooth};
+    const auto discarded=m_thumbnailWorker->request(id,[snapshot,id,frame,request] {
+        return snapshot?renderThumbnail(*snapshot,id,frame,request):QUrl{};
+    },[this,generation,id,key](const QUrl &source) {
+        if(generation!=m_thumbnailGeneration||m_requestedThumbnails.value(id)!=key)return;
+        m_requestedThumbnails.remove(id);m_thumbnails.insert(key,new QUrl(source));
+        emit thumbnailReady(id);
+    });
+    if(!discarded.isEmpty())m_requestedThumbnails.remove(discarded);
+    return {};
 }
 bool EditorTimelineModel::setRange(const QString &id,int in,int out) {
     const auto clip=findRow(m_clips,id);if(clip.isEmpty()||in<0||out<=in||locked(clip["trackId"].toString()))return reject(tr("Choose an unlocked layer and a positive duration."));
@@ -254,22 +409,140 @@ void EditorTimelineModel::markRange(int first,int last) {
     m_markOut=std::clamp(std::max(first,last)+1,1,totalFrames());emit changed();
 }
 void EditorTimelineModel::selectMarkedRange() {
-    m_selected.clear();m_selectedKey.clear();
+    cancelDrag();m_selected.clear();m_selectedKey.clear();
     for(const auto &value:m_clips) {const auto clip=value.toMap();if(clip["in"].toInt()<m_markOut && clip["out"].toInt()>m_markIn)m_selected.push_back(clip["id"].toString());}
     emit changed();
 }
+int EditorTimelineModel::snappedDelta(const QString &id,int delta,const QString &edge,int tolerance) const {
+    if(!m_snap||tolerance<=0||m_tool=="Slip")return delta;
+    return snapToAnchors(findRow(m_clips,id),delta,edge,tolerance,
+        clipSnapAnchors(m_clips,id,m_selected,m_linked),{0,totalFrames(),playhead(),m_markIn,m_markOut});
+}
+bool EditorTimelineModel::beginDrag(const QString &id,const QString &edge,double pointer,double pixelsPerFrame,int tolerance) {
+    cancelDrag();
+    const auto clip=findRow(m_clips,id);
+    if(!document()||clip.isEmpty()||locked(clip["trackId"].toString())||m_tool=="Blade"
+        ||!std::isfinite(pointer)||!std::isfinite(pixelsPerFrame)||pixelsPerFrame<=0
+        ||(!edge.isEmpty()&&edge!="in"&&edge!="out"))return false;
+    m_dragId=id;m_dragEdge=edge;m_dragPointer=pointer;m_dragPixelsPerFrame=pixelsPerFrame;
+    m_dragTolerance=std::max(0,tolerance);
+    m_dragClip=clip;m_dragToolAvailable=toolAvailable(m_tool);
+    if(m_snap&&m_dragTolerance>0&&m_tool!="Slip")m_dragSnapAnchors=clipSnapAnchors(m_clips,id,m_selected,m_linked);
+    const QSet<QString> selected(m_selected.cbegin(),m_selected.cend());
+    const bool linked=m_linked&&selected.contains(id);
+    const bool serial=m_tool=="Roll"||m_tool=="Slide"||m_tool=="Ripple";
+    for(const auto &value:m_clips) {
+        const auto row=value.toMap();const auto rowId=row["id"].toString();
+        if(serial?(row["trackId"]==clip["trackId"]&&rowId!=id):(linked?selected.contains(rowId):rowId==id))m_dragRows.append(value);
+    }
+    return updateDrag(pointer);
+}
+bool EditorTimelineModel::beginKeyDrag(const QString &id,double pointer,double pixelsPerFrame,int tolerance) {
+    cancelDrag();
+    const auto key=findRow(m_keys,id);
+    if(!document()||key.isEmpty()||locked(key["trackId"].toString())
+        ||(key["kind"]=="Content"&&key["frame"].toInt()==0)
+        ||!std::isfinite(pointer)||!std::isfinite(pixelsPerFrame)||pixelsPerFrame<=0)return false;
+    if(m_selectedKey!=id&&!selectKey(id))return false;
+    m_dragId=id;m_dragKey=key;m_dragPointer=pointer;m_dragPixelsPerFrame=pixelsPerFrame;
+    m_dragTolerance=std::max(0,tolerance);
+    if(m_snap&&m_dragTolerance>0)m_dragSnapAnchors=clipSnapAnchors(m_clips,{}, {},false);
+    std::size_t priority=5+std::size_t(m_clips.size())*2;
+    for(const auto &value:m_keys) {
+        const auto other=value.toMap();
+        if(other["id"]==id)continue;
+        if(other["trackId"]==key["trackId"]&&other["kind"]==key["kind"])
+            m_dragOccupiedKeys.push_back(other["frame"].toInt());
+        if(m_snap&&m_dragTolerance>0)m_dragSnapAnchors.emplace_back(other["frame"].toInt(),priority++);
+    }
+    std::sort(m_dragOccupiedKeys.begin(),m_dragOccupiedKeys.end());
+    std::sort(m_dragSnapAnchors.begin(),m_dragSnapAnchors.end());
+    m_dragSnapAnchors.erase(std::unique(m_dragSnapAnchors.begin(),m_dragSnapAnchors.end(),
+        [](const auto &a,const auto &b){return a.first==b.first;}),m_dragSnapAnchors.end());
+    return updateDrag(pointer);
+}
+bool EditorTimelineModel::updateDrag(double pointer) {
+    if(!dragging()||!std::isfinite(pointer))return false;
+    const auto &clip=m_dragClip;
+    int delta=int(std::clamp(std::round((pointer-m_dragPointer)/m_dragPixelsPerFrame),
+        double(std::numeric_limits<int>::min()/4),double(std::numeric_limits<int>::max()/4)));
+    if(!m_dragKey.isEmpty()) {
+        const int initial=m_dragKey["frame"].toInt();
+        if(m_snap&&m_dragTolerance>0)delta=snapToAnchors({{"in",initial},{"out",initial}},delta,{},
+            m_dragTolerance,m_dragSnapAnchors,{0,totalFrames()-1,playhead(),m_markIn,m_markOut});
+        const auto target=qint64(initial)+delta;
+        const bool valid=target>=0&&target<totalFrames()
+            &&!std::binary_search(m_dragOccupiedKeys.begin(),m_dragOccupiedKeys.end(),int(target));
+        auto preview=m_dragKey;preview["frame"]=int(std::clamp<qint64>(target,0,std::numeric_limits<int>::max()));
+        preview["valid"]=valid;
+        const bool updated=m_keyDragPreview!=preview||m_dragValid!=valid;
+        m_dragDelta=delta;m_dragValid=valid;m_keyDragPreview=std::move(preview);
+        if(updated)emit dragPreviewChanged();
+        return valid;
+    }
+    if(m_snap&&m_dragTolerance>0&&m_tool!="Slip")
+        delta=snapToAnchors(clip,delta,m_dragEdge,m_dragTolerance,m_dragSnapAnchors,{0,totalFrames(),playhead(),m_markIn,m_markOut});
+    QVariantMap preview;
+    bool valid=true;
+    const auto place=[&](const QVariantMap &original,qint64 in,qint64 out,qint64 source) {
+        if(original.isEmpty()){valid=false;return;}
+        auto row=original;
+        valid&=in>=0&&out>in&&out<std::numeric_limits<int>::max()&&source>=0&&source<std::numeric_limits<int>::max()
+            &&!locked(original["trackId"].toString());
+        row["in"]=int(std::clamp<qint64>(in,0,std::numeric_limits<int>::max()));
+        row["out"]=int(std::clamp<qint64>(out,0,std::numeric_limits<int>::max()));
+        row["frames"]=row["out"].toInt()-row["in"].toInt();
+        row["sourceFrame"]=int(std::clamp<qint64>(source,0,std::numeric_limits<int>::max()));
+        preview.insert(row["id"].toString(),row);
+    };
+    const qint64 first=clip["in"].toInt(),last=clip["out"].toInt(),source=clip["sourceFrame"].toInt();
+    if(!m_dragEdge.isEmpty()||m_tool=="Trim") {
+        const auto edge=m_dragEdge.isEmpty()?QStringLiteral("out"):m_dragEdge;
+        place(clip,first+(edge=="in"?delta:0),last+(edge=="out"?delta:0),source);
+    } else if(m_tool=="Slip") {
+        valid=clip["sourceEditable"].toBool();
+        place(clip,first,last,source+delta);
+    } else if(m_tool=="Roll"||m_tool=="Slide"||m_tool=="Ripple") {
+        valid=m_dragToolAvailable;
+        bool previous=false,next=false;
+        for(const auto &value:m_dragRows){const auto row=value.toMap();
+            const qint64 in=row["in"].toInt(),out=row["out"].toInt(),offset=row["sourceFrame"].toInt();
+            if(m_tool=="Slide"&&out==first){place(row,in,out+delta,offset);previous=true;}
+            if((m_tool=="Roll"||m_tool=="Slide")&&in==last){place(row,in+delta,out,offset+delta);next=true;}
+            if(m_tool=="Ripple"&&in>=last)place(row,in+delta,out+delta,offset);
+        }
+        if(m_tool=="Slide"){place(clip,first+delta,last+delta,source);valid&=previous&&next;}
+        else {place(clip,first,last+delta,source);if(m_tool=="Roll")valid&=next;}
+    } else {
+        for(const auto &value:m_dragRows){const auto row=value.toMap();
+            place(row,qint64(row["in"].toInt())+delta,qint64(row["out"].toInt())+delta,row["sourceFrame"].toInt());}
+    }
+    for(auto it=preview.begin();it!=preview.end();++it){auto row=it->toMap();row["valid"]=valid;it.value()=row;}
+    const bool updated=m_dragPreview!=preview||m_dragValid!=valid;
+    m_dragDelta=delta;m_dragValid=valid;m_dragPreview=std::move(preview);
+    if(updated)emit dragPreviewChanged();
+    return valid;
+}
+bool EditorTimelineModel::finishDrag() {
+    if(!dragging())return false;
+    const auto id=m_dragId,edge=m_dragEdge;const int delta=m_dragDelta;const bool valid=m_dragValid;
+    const auto key=m_dragKey,preview=m_keyDragPreview;
+    cancelDrag();
+    if(!valid)return reject(key.isEmpty()?tr("The drag is outside the unlocked clip or source range.")
+        :tr("A keyframe must stay within the timeline and cannot replace an existing key."));
+    if(!key.isEmpty())return !delta||moveKey(id,preview["frame"].toInt());
+    return dragClip(id,delta,edge,0);
+}
+void EditorTimelineModel::cancelDrag() {
+    if(!dragging())return;
+    m_dragId.clear();m_dragEdge.clear();m_dragDelta=0;m_dragValid=false;m_dragPreview.clear();
+    m_dragClip.clear();m_dragRows.clear();m_dragSnapAnchors.clear();m_dragToolAvailable=false;
+    m_dragKey.clear();m_keyDragPreview.clear();m_dragOccupiedKeys.clear();
+    emit dragPreviewChanged();
+}
 bool EditorTimelineModel::dragClip(const QString &id,int delta,const QString &edge,int tolerance) {
     const auto clip=findRow(m_clips,id);if(clip.isEmpty()||locked(clip["trackId"].toString()))return false;
-    if(m_snap&&tolerance>0 && m_tool!="Slip") {
-        int nearest=tolerance+1,adjustment=0;
-        QList<int> anchors{0,totalFrames(),playhead(),m_markIn,m_markOut};
-        for(const auto &value:m_clips){const auto row=value.toMap();if(row["id"]==id || (m_linked&&m_selected.contains(row["id"].toString())))continue;anchors<<row["in"].toInt()<<row["out"].toInt();}
-        for(const auto position:{clip["in"].toInt(),clip["out"].toInt()}) {
-            if((edge=="in"&&position!=clip["in"].toInt())||(edge=="out"&&position!=clip["out"].toInt()))continue;
-            for(int anchor:anchors){const int offset=anchor-position-delta;if(std::abs(offset)<nearest){nearest=std::abs(offset);adjustment=offset;}}
-        }
-        if(nearest<=tolerance)delta+=adjustment;
-    }
+    delta=snappedDelta(id,delta,edge,tolerance);
     if(!delta)return true;
     if(!edge.isEmpty()||m_tool=="Trim")return trim(id,edge.isEmpty()?QStringLiteral("out"):edge,delta);
     if(m_tool=="Slip")return setSourceFrame(id,clip["sourceFrame"].toInt()+delta);
@@ -338,7 +611,7 @@ bool EditorTimelineModel::setTrackMuted(const QString &id,bool muted) {
 bool EditorTimelineModel::setTrackLocked(const QString &id,bool value) {
     if(!m_canvas||findRow(m_tracks,id).isEmpty())return false;
     if(findRow(m_tracks,id)["type"]=="Audio"){if(value)m_audioLocks.insert(id);else m_audioLocks.remove(id);}
-    else {if(value){m_canvas->m_pixelLocks.insert(id);m_canvas->m_positionLocks.insert(id);}else{m_canvas->m_pixelLocks.remove(id);m_canvas->m_positionLocks.remove(id);}emit m_canvas->toolStateChanged();emit m_canvas->documentInfoChanged();}
+    else {if(value){m_canvas->m_pixelLocks.insert(id);m_canvas->m_positionLocks.insert(id);}else{m_canvas->m_pixelLocks.remove(id);m_canvas->m_positionLocks.remove(id);}emit m_canvas->toolStateChanged();emit m_canvas->layerStateChanged();}
     refresh();return true;
 }
 bool EditorTimelineModel::setTrackSolo(const QString &id) {
@@ -433,10 +706,14 @@ bool EditorTimelineModel::rippleDelete() {
 }
 bool EditorTimelineModel::moveKey(const QString &id,int frame) {
     const auto key=findRow(m_keys,id);if(key.isEmpty()||frame<0||frame>=totalFrames()||locked(key["trackId"].toString()))return false;
+    if(frame==key["frame"].toInt())return true;
     const auto layer=key["trackId"].toString().toStdString();
-    return mutate([&](Document &d){DocumentEditor e(d);if(key["kind"]=="Content")return e.moveKeyframe(layer,FrameIndex(key["frame"].toInt()),FrameIndex(frame)).ok();
+    const bool selected=m_selectedKey==id;
+    const bool moved=mutate([&](Document &d){DocumentEditor e(d);if(key["kind"]=="Content")return e.moveKeyframe(layer,FrameIndex(key["frame"].toInt()),FrameIndex(frame)).ok();
         auto motion=layerProperties(*findLayer(d,layer)).motion;for(auto &value:motion)if(value.frame==FrameIndex(key["frame"].toInt()))value.frame=FrameIndex(frame);
         std::sort(motion.begin(),motion.end(),[](const auto &a,const auto &b){return a.frame<b.frame;});return e.setLayerMotion(layer,std::move(motion)).ok();});
+    if(moved&&selected){m_selectedKey=key["trackId"].toString()+(key["kind"]=="Content"?":content:":":motion:")+QString::number(frame);emit changed();}
+    return moved;
 }
 bool EditorTimelineModel::setKeyOpacity(const QString &id,double value) {
     const auto key=findRow(m_keys,id);if(key["kind"]!="Motion"||!std::isfinite(value)||value<0||value>1||locked(key["trackId"].toString()))return false;

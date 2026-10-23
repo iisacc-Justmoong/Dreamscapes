@@ -1,6 +1,8 @@
 #include "CanvasPreview.h"
+#include "App/Generation/ImageCanvas.h"
 
 #include <iiSharedCanvas/Render/DocumentPreview.h>
+#include <iiFileProviderPresentation.h>
 #include <QFileInfo>
 #include <QImage>
 #include <QQmlEngine>
@@ -8,6 +10,7 @@
 #include <QUrlQuery>
 
 #include <algorithm>
+#include <exception>
 #include <filesystem>
 
 namespace {
@@ -25,6 +28,12 @@ QString fileVersion(const QString &path)
         const auto size = std::filesystem::file_size(native, error);
         version += ':' + QString::number(static_cast<qlonglong>(modified.time_since_epoch().count())) + ':'
             + QString::number(static_cast<qulonglong>(error ? 0 : size));
+    }
+    try {
+        version += ':' + QString::fromStdString(iiFileProvider::native::Presentation::cacheChangeToken(
+            std::filesystem::path(path.toStdU16String())));
+    } catch (const std::exception &) {
+        version += ":unavailable";
     }
     return version;
 }
@@ -66,12 +75,7 @@ QUrl dreamscapes::canvasPreviewSource(const QVariantMap &file)
     const auto path = source.toLocalFile();
     const QFileInfo info(path);
     if (!info.isAbsolute() || info.suffix().compare("iisc", Qt::CaseInsensitive) != 0) return existing;
-    const auto encoded = path.toUtf8().toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
-    QUrl result(QStringLiteral("image://iisc-preview/") + QString::fromLatin1(encoded));
-    QUrlQuery query;
-    query.addQueryItem("revision", file.value("version").toString() + fileVersion(path));
-    result.setQuery(query);
-    return result;
+    return imageCanvasPreviewSource(path, file.value("version").toString() + fileVersion(path));
 }
 
 void dreamscapes::installCanvasPreviewProvider(QQmlEngine &engine)
@@ -83,4 +87,20 @@ QUrl CanvasPreview::sourceForFile(const QVariantMap &file)
 {
     if (auto *engine = qmlEngine(this)) dreamscapes::installCanvasPreviewProvider(*engine);
     return dreamscapes::canvasPreviewSource(file);
+}
+
+QUrl CanvasPreview::sourceForUrl(const QUrl &source)
+{
+    if (!source.isLocalFile()) return {};
+    const auto path = source.toLocalFile();
+    const QFileInfo file(path);
+    if (!file.isAbsolute()) return {};
+    if (file.suffix().compare("iisc", Qt::CaseInsensitive) == 0)
+        return sourceForFile({{"source", source}});
+    auto result = source;
+    QUrlQuery query(result);
+    query.removeAllQueryItems("_dreamscapes_source");
+    query.addQueryItem("_dreamscapes_source", fileVersion(path));
+    result.setQuery(query);
+    return result;
 }

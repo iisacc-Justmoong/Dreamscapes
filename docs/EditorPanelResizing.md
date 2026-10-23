@@ -2,10 +2,11 @@
 
 Reference: [Dreamscapes Elements panel, Figma 353:22022](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=353-22022&m=dev).
 
-The desktop editor's right panel starts at 342 logical pixels, following the
-updated [Figma 353:22614 editor layout](EditorLayout.md). Drag its left
+The desktop editor's right panel starts at 304 logical pixels with no outer
+border and a 12-pixel content inset. This provides 280 pixels for the controls.
+Drag its left
 boundary horizontally to change its width. The boundary has a 10-pixel hit
-area and a horizontal resize cursor; double-click restores 342 pixels. The
+area and a horizontal resize cursor; double-click restores 304 pixels. The
 panel normally ranges from 280 to 720 pixels, reserving the 52-pixel vertical
 toolbar beside it and 320 pixels for the canvas where the window permits.
 Dragging the panel boundary moves the toolbar with it. Collapsing the panel
@@ -16,7 +17,7 @@ values for the editor session. Width is not a persisted user preference.
 Mobile editors keep their existing tool sheets and have no resize boundary.
 
 Titles and field captions start at the upper left. Parameter groups align to
-the right content edge, inside the existing 17-pixel panel inset. Input fields
+the right content edge, inside the 12-pixel panel inset. Input fields
 keep their 206-by-22 size where space permits and move below their caption
 when the caption and field cannot fit beside each other. Long captions wrap.
 Dimension fields remain stacked. Slider value inputs also keep their 206-pixel
@@ -37,15 +38,17 @@ through the same tool-state signals.
 `desktopEditorPanelResizes` verifies pointer dragging, both width limits,
 window clamping/restoration, double-click reset, tool values across panel
 collapse/reopen, and mobile boundary removal. It checks the active 18-tool
-catalog at 280/342/432/720 pixels: caption origin, parameter edges, wrapping order,
+catalog at 280/304/342/432/720 pixels: caption origin, parameter edges, wrapping order,
 row containment and caption/control separation. Existing Figma panel tests
 retain semantic defaults, option interaction and local disclosure asset checks;
 fixed historical field coordinates are superseded by this responsive layout.
+Tests that compare the original 398-pixel Figma content use a 422-pixel outer
+panel, keeping those content checks independent of the compact outer margin.
 Existing native toolbar and mobile sheet tests verify operation compatibility.
 
 ```sh
 cmake --build build --target Dreamscapes DreamscapesGuiTests Dreamscapes_qmllint --parallel 4
-ctest --test-dir build -R '^Dreamscapes\.(EditorPanelResize|EditorToolPanels|EditorCanvasGui)$' --output-on-failure
+ctest --test-dir build -R '^Dreamscapes\.(CompactEditorDefaults|EditorPanelResize|EditorToolPanels|EditorCanvasGui|ViewOptions|ViewOptionsHost)$' --output-on-failure
 ```
 
 Build logs, layout captures, test logs and bundle verification are saved under

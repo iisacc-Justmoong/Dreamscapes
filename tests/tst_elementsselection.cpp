@@ -1,4 +1,5 @@
 #include "App/Views/Editor/EditorCanvas.h"
+#include <SocietyDrive.h>
 #include <iiSharedCanvas.h>
 #include <QImage>
 #include <QMouseEvent>
@@ -14,6 +15,7 @@ using namespace iiSharedCanvas;
 class ElementsSelectionTests : public QObject {
     Q_OBJECT
 private:
+    QTemporaryDir m_storage{DREAMSCAPES_TEST_DIRECTORY "/element-selection-XXXXXX.societycontainer"};
     static QVariantMap settings(const QString &shape = "Rectangle", const QString &fill = "Solid") {
         return {{"selector", shape}, {"field-0", QVariantList{1080, 1080}}, {"field-1", 2},
             {"field-2", fill}, {"field-3", false}, {"field-4", 360}, {"field-5", 0},
@@ -52,6 +54,12 @@ private:
         QVERIFY(canvas.createCanvas({{"width", 64}, {"height", 48}, {"unit", "px"}, {"background", background}}));
     }
 private slots:
+    void initTestCase() {
+        QVERIFY(m_storage.isValid());
+        qputenv("SOCIETY_STORAGE_SETTINGS_PATH", m_storage.filePath("storage.json").toUtf8());
+        qputenv("SOCIETY_CONTAINER_PATH", m_storage.path().toUtf8());
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(m_storage.path()));
+    }
     void selectedDimensionsFollowTheRealLayerTransform() {
         EditorCanvas canvas; create(canvas);
         canvas.configureTool("elements", settings());
@@ -310,7 +318,7 @@ private slots:
         QSignalSpy restoredSettings(&canvas, &EditorCanvas::historyRestored);
         const auto vectorBytes = encodeIisc(*canvas.document()).bytes;
         const auto vectorPixels = renderFrame(*canvas.document(), 0).pixels.pixels;
-        QVERIFY(canvas.applyToolField("elements", "field-1", 7));
+        QVERIFY2(canvas.applyToolField("elements", "field-1", 7), qPrintable(canvas.error()));
         const auto roundedPixels = renderFrame(*canvas.document(), 0).pixels.pixels;
         QVERIFY(roundedPixels != vectorPixels);
         QVERIFY(canvas.undo());
@@ -323,7 +331,7 @@ private slots:
         QVERIFY(canvas.redo());
         QCOMPARE(canvas.selectedElementSettings().value("field-1").toInt(), 7);
         QCOMPARE(renderFrame(*canvas.document(), 0).pixels.pixels, roundedPixels);
-        QVERIFY(canvas.applyToolField("elements", "field-0", QVariantList{36, 24}));
+        QVERIFY2(canvas.applyToolField("elements", "field-0", QVariantList{36, 24}), qPrintable(canvas.error()));
         const auto resizedPixels = renderFrame(*canvas.document(), 0).pixels.pixels;
         QVERIFY(canvas.undo());
         QCOMPARE(canvas.selectedElementSettings().value("field-0").toList(), QVariantList({24.0, 16.0}));
@@ -463,7 +471,7 @@ private slots:
         QVERIFY(canvas.applyToolField("layers", "field-8", "None"));
         QVERIFY(canvas.applyToolField("elements", "field-1", 3)); colors();
         replacement = canvas.selectedElementSettings();
-        QVERIFY(canvas.importToolSource(QUrl::fromLocalFile(paths[2]), "elements", replacement));
+        QVERIFY2(canvas.importToolSource(QUrl::fromLocalFile(paths[2]), "elements", replacement), qPrintable(canvas.error()));
         QCOMPARE(renderFrame(*canvas.document(), 0).pixels.pixels[12 * 64 + 12], 0xffffff00U);
         QVERIFY(canvas.undo()); colors();
         // An edit after Undo must use the restored red pattern and discard Redo.

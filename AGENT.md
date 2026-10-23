@@ -1,5 +1,14 @@
 # Dreamscapes
 
+## 작업 실패 진단
+
+실패 설명은 iiMultimodalAgent의 공통 C++23 진단과 데스크톱 에이전트를 사용한다.
+연결부는 `src/App/Generation/FailureAgent.*`, 상태 투영은 `GenerationController`에 있다.
+분석 완료가 생성 작업의 오류·진행 상태·캔버스 문서를 변경해서는 안 된다.
+원문 오류를 보존하고 추정 원인은 검증이 필요한 해석으로 구분한다.
+로컬 언어 모델 패키지는 Society의 `Models/.society-runtime/iiLocalLLM/Models`를
+사용한다. 자세한 계약·제한·검증 방법은 `docs/FailureAgent.md`를 참조한다.
+
 ## 0. Dreamscapes의 기원
 
 Dreamscapes는 iisacc 제품군에서 생성형 AI를 이용하여 이미지·비디오·오디오 등의 창작 에셋을 생성하고 이를 실제 제작 과정으로 연결하는 크로스플랫폼 콘텐츠 제작 도구이다. 단순한 이미지 생성기보다는 Canva·Adobe Express·Adobe Firefly 계열과 어느 정도 겹치지만, 궁극적으로는 생성형 에셋을 iisacc 생태계의 다른 창작 도구와 연결하는 입구에 해당한다. 현재 가격은 크로스플랫폼 일회성 $99로 정리되어 있으며, 사용자가 iisacc 생태계에 진입하기 위한 비교적 저렴한 접근점이라는 전략적 의미도 가지고 있다.

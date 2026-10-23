@@ -1,5 +1,20 @@
 # Dreamscapes
 
+Failed generation jobs return detailed iiMultimodalAgent explanations with the
+original error, captured settings, progress, logs and recommended checks.
+Analysis runs separately from generation; available local chat models may add
+an explicitly labelled interpretation. See [failure agent](docs/FailureAgent.md).
+
+Society model discovery reads architecture metadata from both directories and
+single-file checkpoints. LTX 2 packages appear in Video; common metadata supports
+manual or multiple output modalities without changing the generation UI.
+See [model discovery](docs/ModelDiscovery.md).
+
+Editor view navigation, temporary transforms and window/result visibility are
+independent of document persistence. They update focused presentation signals;
+accepted edits retain synchronous saving and conflict handling. Details and
+regression coverage are in [Performance](docs/Performance.md#ui-lifecycle-and-invalidation).
+
 Native `.iisc` cards in Continue creating use iiSharedCanvas's composed document
 preview API through an asynchronous image provider on desktop and mobile. Existing
 files need no resave. See [Canvas previews](docs/CanvasPreviews.md).
@@ -10,13 +25,16 @@ synchronization and media-cache previews. Home's native canvas thumbnails use
 iiSharedCanvas composition through the application adapter described above.
 See [Society Aliases](docs/SocietyAliases.md).
 
-Models that exist only on the host run first on the Society host without waiting for download completion. The iiSocietyGeneration SDK handles creation requests, progress, and result reception via an authenticated Society connection, and after host acceptance, asynchronously requests the download of model and shared generation resources to Society. Download errors or generation cancellations do not cancel each other's work. Fully synchronized models use existing local inference from subsequent requests.
+Models that exist only on the host run first on the Society host without waiting for download completion. The iiSocietyHelper Generation SDK handles creation requests, progress, and result reception via an authenticated Society connection, and after host acceptance, asynchronously requests the download of model and shared generation resources to Society. Download errors or generation cancellations do not cancel each other's work. Fully synchronized models use existing local inference from subsequent requests.
 
 Remote results are saved to the local Society's Generation History after checksum and size verification, and then transferred to other devices via Society synchronization. iOS continues transmission during the allowed background execution time and preserves the download request upon expiration. Even if the app is suspended, accepted host work continues and resumes result reception upon return. If the host is restarted, the running queue is not recovered and failure is indicated. Both the host Society and the client Dreamscapes must be updated together.
 
 Bundles submitted remotely maintain the host path even during download. After download completion, new submissions recheck the disk's actual readiness status to select the local path. Remote generation and replication iOS background requests do not require GPU resources. While OS permission is granted, subsequent host work also runs, and upon permission expiration, pending unsubmitted work and transmission wait for foreground return.
 
-Mobile builds link the consolidated iiSocietyHelper and the Remote library of iiSocietyGeneration. The Android build script builds ServerHost and Sync, plus the canvas and monitor packages, before the consolidated Helper. The Host library that provides inference is included only in the desktop Society.
+Mobile builds link iiSocietyHelper Core, which includes Sync and Generation::Remote.
+The Android build script builds the lower-level ServerHost, Container and canvas
+dependencies before Helper. Desktop Society explicitly selects Helper GenerationHost;
+mobile consumers do not link the inference host.
 
 Dreamscapes uses `LV.ApplicationWindow` and `LV.Theme.defaultPrimary` ( `#0A84FF` ). The entire window is filled with `#0B0B0B`, almost black without gradient, and fill opacity is 50%. The window background is separated from Primary, and button and selected states maintain the app accent color. 64px material blur and macOS native background blur are maintained, and text and button opacity is not reduced. `Dreamscapes.Gui`'s `mainCreatesOneSharedWindow` validates color, opacity, and gradient removal together with the actual window material.
 
@@ -49,7 +67,7 @@ Use the following native SDK packages with `find_package(... CONFIG REQUIRED)` a
 | iiUpdateManager | `iiUpdateManager::iiUpdateManager` |
 | LVRS | `LVRS::LVRS` |
 
-The native editor also requires `iiSharedCanvas 0.31.0` and `iiGraphicAdjust 0.4.0`
+The native editor also requires `iiSharedCanvas 0.31.2` and `iiGraphicAdjust 0.4.0`
 (`iiGraphicAdjust::iiGraphicAdjust`). The Color, Adjust, Mask and Effects panels
 use the installed Qt-free C++23 adjustment SDK through a product-side QImage
 adapter. The shared LVRS renderer covers the requested 381 detailed Figma views;
@@ -225,7 +243,7 @@ Start `iild-generate --worker` for each app instance and pass argument arrays su
 
 Python The temporary directory used by the JIT executor is retained until the process terminates, and images, previews, and request files are placed in separate temporary directories for each job, removing them upon completion, failure, or cancellation. Both directories are located in Society's `.society-runtime`. HF · Transformers · Torch · JIT cache also uses this executor directory, and model downloads are blocked with offline settings. When the app terminates, the executor is stopped and the temporary directory is removed. `PYTHONDONTWRITEBYTECODE=1` is retained, but no new `PYTHONPYCACHEPREFIX` is specified, so the installed Python bytecode cache is read.
 
-For Generate, models not held are first executed on iiSocietyGeneration at Society host. After host acceptance, iiSocietyHelper downloads the selected model and shared generation resources to the local Society asynchronously; this replication is not a completion condition. SDK completes by verifying completion events, execution logs, and the size and decoding of all images, then atomically saves only the completed image file to `Generation History/`. Society preserves the image extension and bytes from the temporary location to the final save location. Multiple images are saved directly below the same area. Failure, cancellation, preview, JSON, and cache are added to the results list without overwriting existing files.
+For Generate, models not held are first executed on iiSocietyHelper Generation at Society host. After host acceptance, iiSocietyHelper downloads the selected model and shared generation resources to the local Society asynchronously; this replication is not a completion condition. SDK completes by verifying completion events, execution logs, and the size and decoding of all images, then atomically saves only the completed image file to `Generation History/`. Society preserves the image extension and bytes from the temporary location to the final save location. Multiple images are saved directly below the same area. Failure, cancellation, preview, JSON, and cache are added to the results list without overwriting existing files.
 
 The `.dreamscapes/generation/` and `Generation History/Dreamscapes/` of Society created by previous versions are cleaned up when connecting to the repository. Previous pending requests are not executed. If a valid completed request points to a previous Asset Library image, it is moved to Generation History for preservation, and existing completed images, models, and other assets are retained. If the previous worker is in use or the parent path is redirected, the corresponding file is not deleted. In this case only, the previous worker's lock is checked and is not used for saving the new queue.
 
@@ -264,10 +282,10 @@ iOS accesses the Society source container of the same device as `iiSocietyContai
 1. Desktop Society and iPhone Society connect with the same account.
 2. Since Society synchronizes the host's model list and version first, selection is possible even before the original download.
 3. Dreamscapes uses the local App Group's storage map and iiSocietyHelper's authenticated host connection. The user does not separately enter the host URL.
-4. In the state of no original possession, it is immediately submitted to the Society host's iiSocietyGeneration queue, and the model is asynchronously replicated after acceptance. Held models use the existing local engine. Results are saved to the local Society Generation History.
+4. In the state of no original possession, it is immediately submitted to the Society host's iiSocietyHelper Generation queue, and the model is asynchronously replicated after acceptance. Held models use the existing local engine. Results are saved to the local Society Generation History.
 5. Device-to-device replication of the completed image is also performed by Society in the next synchronization. No host connection is required for local generation after model reception.
 
-Dreamscapes uses iiSocietyHelper and iiSocietyGeneration SDKs and does not implement direct authentication and transmission. Society host also calls the iiLocalDiffusion engine of the SDK instead of the Product executor.
+Dreamscapes uses the consolidated iiSocietyHelper SDK and does not implement direct authentication and transmission. Society host also calls the iiLocalDiffusion engine of the SDK instead of the Product executor.
 
 Native generation requires iiLocalDiffusion 0.5.0's `IILD_ENABLE_NATIVE_DIFFUSION=ON` package. The current API takes a single checkpoint file as input, and model loading and inference are performed on the app worker thread. There is no guarantee that any model will fit in iPhone memory, and upon failure or cancellation, the completed image is not posted. Builds without the engine display a local generation unavailable status. Refer to [SDK contract](../../SDK/iiLocalDiffusion/docs/native-image-generation.md).
 
@@ -508,7 +526,7 @@ Do not modify the original model or existing generation records. VAE Numerical a
 
 ## Local MCP control
 
-Desktop POSIX builds provide the Dreamscapes controller running iiLocalLLM 0.10.0 as an authenticated local MCP tool. Automatic discovery, input/permission/cancellation contracts, and actual app execution tests are recorded in [Mcp.md](docs/Mcp.md). It can be disabled via `IILOCALLLM_DISABLE_APP_MCP=1`.
+Desktop POSIX builds expose the running Dreamscapes controller through iiMultimodalAgent as authenticated local MCP tools. The inference runtime remains iiLocalLLM. Automatic discovery, input/permission/cancellation contracts, and actual app execution tests are recorded in [Mcp.md](docs/Mcp.md). It can be disabled via `IILOCALLLM_DISABLE_APP_MCP=1`. The `failure_analysis` tool returns the complete failure explanation and original evidence for a job.
 
 <a id="ios-지속-실행-진행-보고"></a>
 
@@ -680,7 +698,33 @@ states of Figma 777:82068 with dedicated Color, Remove, Mask and Replace views.
 Color uses iiColorManager; replacement uses the existing generation/file paths.
 The editor Background → Mask panel follows the Photoshop mask controls and Figma
 1023:70880. Independent mask operands remain editable in IISC 1.21 through
-iiSharedCanvas 0.31.0 and iiSocietyHelper 0.8.3; painting, shapes, color-range and
+iiSharedCanvas 0.31.2 and iiSocietyHelper 0.8.3; painting, shapes, color-range and
 semantic selections preserve original artwork. See
 [Editor background masks](docs/EditorBackgroundMask.md) for UI, persistence,
 model availability and verification boundaries.
+
+The editor timeline uses a native indexed viewport and a stable gesture owner,
+adapting the local FilmCraft reference's visible-range rendering and command
+boundary. Large documents create only visible row/clip/key/ruler delegates.
+Control/Command + wheel zooms around the pointer, Shift + wheel scrolls
+horizontally, the middle mouse button pans, and Escape cancels a drag without a
+file edit. See [native editor timeline](docs/EditorLayerTimeline.md) for data,
+interaction and regression details.
+
+The [application interaction audit](docs/InteractionAudit.md) tracks command-to-work
+and completion ownership across the whole app. Its first fixes cover consistent
+Home file-open outcomes, manual result ownership, unsupported mobile commands and
+immediate cancellation of queued publishing work. Whole-application per-method
+coverage remains in progress; focused regression success is reported separately.
+## Interaction state reads
+
+Editor selection counts and published generation results are retained by their
+native owners and updated when their inputs change. Presentation reads do not
+rescan full-resolution selection masks or rebuild result snapshots. The active
+application-wide review and its remaining verification are documented in
+[`docs/InteractionAudit.md`](docs/InteractionAudit.md).
+
+Working-file writes and preview source copies share native file-identity access
+through iiFileProvider and iiSharedCanvas. Idle file bindings and detached preview
+rendering do not retain that access. Changed source data invalidates in-flight
+previews; concurrent previews can reuse the current validated projection.

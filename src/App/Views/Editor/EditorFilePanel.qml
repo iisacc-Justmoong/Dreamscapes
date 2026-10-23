@@ -14,6 +14,7 @@ Item {
     readonly property string figmaNode: selectedView.figmaNode
     readonly property var information: toolState.projectRuntime && toolState.projectRuntime.currentCanvas === toolState.engine
         ? toolState.projectRuntime.fileInformation : toolState.engine ? toolState.engine.fileInformation : ({})
+    readonly property var viewInformation: toolState.engine ? toolState.engine.fileViewInformation : ({})
     readonly property int fieldCount: selectedView.sections.reduce(function(count, section) { return count + section.rows.length }, 0)
     readonly property int segmentCount: Files.views.length
     implicitWidth: 398
@@ -25,6 +26,7 @@ Item {
         return true
     }
     function value(key) {
+        if (Object.prototype.hasOwnProperty.call(viewInformation, key)) return String(viewInformation[key])
         const recorded = information[key]
         return recorded === undefined || recorded === null ? qsTr("Not available") : String(recorded)
     }

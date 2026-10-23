@@ -10,6 +10,8 @@ Item {
     property var recentFiles: []
     property var recentPublished: []
     property var generationHistory: []
+    property var jobs: []
+    property string generationStatus: ""
     property bool settingsExpanded: false
     property bool loading: false
     property string errorText: ""
@@ -31,6 +33,10 @@ Item {
     signal imagesRequested(var images)
     signal promptRequested(string prompt)
     signal homeRequested()
+    function showQueue() {
+        settingsExpanded = true
+        Qt.callLater(function() { root.scrollToItem(storageSlot) })
+    }
     function choosePrompt(prompt) { showHome(); root.promptRequested(prompt) }
 
     function scrollToItem(target) {
@@ -81,7 +87,7 @@ Item {
                 x: root.contentHorizontalInset
                 y: 20
                 width: Math.max(0, viewport.width - root.contentHorizontalInset * 2)
-                spacing: LV.Theme.gap24
+                spacing: LV.Theme.gap20
                 Item {
                     id: promptSlot
                     objectName: "desktopQuickGenerateSlot"
@@ -98,12 +104,17 @@ Item {
                     sizeToContentHeight: true
                     Layout.fillWidth: true
                 }
+                HomeQueueBar {
+                    Layout.fillWidth: true
+                    jobs: root.jobs
+                    statusText: root.generationStatus
+                    onViewQueueRequested: root.showQueue()
+                }
                 HomeContentRow {
                     id: recentRow
                     objectName: "desktopRecentFiles"
                     Layout.fillWidth: true
-                    title: qsTr("Continue creating")
-                    subtitle: qsTr("Pick up a draft or open a recent project.")
+                    title: qsTr("Recent files")
                     actionText: qsTr("All files")
                     files: root.recentFiles
                     openFileAction: true
@@ -119,8 +130,7 @@ Item {
                 HomeContentRow {
                     objectName: "generationHistory"
                     Layout.fillWidth: true
-                    title: qsTr("Recent generations")
-                    subtitle: qsTr("Every variation stays here. Choose what to take forward.")
+                    title: qsTr("Recent Generations")
                     actionText: qsTr("Generation history")
                     actionObjectName: "viewAllGenerationHistory"
                     cardsObjectName: "generationHistoryCards"
@@ -135,47 +145,10 @@ Item {
                     onFileRequested: function(file) { root.fileRequested(file) }
                     onImagesRequested: function(images) { root.imagesRequested(images) }
                 }
-                HomeContentRow {
-                    id: stylesRow
-                    objectName: "desktopStyles"
-                    Layout.fillWidth: true
-                    title: qsTr("Explore a direction")
-                    subtitle: qsTr("A new visual language for your next project.")
-                    actionText: qsTr("Explore styles")
-                    itemObjectNamePrefix: "desktopStyle"
-                    files: [
-                        {name: qsTr("Quiet landscapes"), description: qsTr("Soft tones · Natural light"), previewSource: Qt.resolvedUrl("Assets/Directions/landscape.svg"), prompt: "A quiet landscape, soft tones and natural light."},
-                        {name: qsTr("Objects in orbit"), description: qsTr("Studio · Sculptural"), previewSource: Qt.resolvedUrl("Assets/Directions/studio.svg"), prompt: "A sculptural object in orbit, soft studio lighting and a simple backdrop."},
-                        {name: qsTr("Modern editorial"), description: qsTr("Graphic · Bold shapes"), previewSource: Qt.resolvedUrl("Assets/Directions/poster.svg"), prompt: "A modern editorial composition, bold graphic shapes and a warm palette."},
-                        {name: qsTr("Organic abstraction"), description: qsTr("Texture · Muted color"), previewSource: Qt.resolvedUrl("Assets/Directions/fluid.svg"), prompt: "Organic abstraction, tactile textures and muted colors."},
-                        {name: qsTr("Architectural calm"), description: qsTr("Warm light · Minimal"), previewSource: Qt.resolvedUrl("Assets/Directions/fluid.svg"), prompt: "Minimal architecture, warm natural light and a calm atmosphere."}
-                    ]
-                    onScrollRequested: function(delta) { root.scrollBy(delta) }
-                    onViewAllRequested: { root.scrollToItem(stylesRow); stylesRow.focusFirstCard() }
-                    onFileRequested: function(file) { root.choosePrompt(file.prompt) }
-                }
-                HomePromptStarters {
-                    Layout.fillWidth: true
-                    onPromptRequested: function(prompt) { root.choosePrompt(prompt) }
-                }
-                HomeContentRow {
-                    objectName: "desktopPublishedList"
-                    Layout.fillWidth: true
-                    title: qsTr("From your workspace")
-                    subtitle: qsTr("Published ideas and collections worth revisiting.")
-                    actionText: qsTr("All published")
-                    actionObjectName: "desktopPublishedViewAll"
-                    maximumItems: 4
-                    files: root.recentPublished
-                    loading: root.loading
-                    emptyText: qsTr("No published work yet")
-                    onScrollRequested: function(delta) { root.scrollBy(delta) }
-                    onViewAllRequested: root.publishedRequested()
-                    onFileRequested: function(file) { root.fileRequested(file) }
-                }
                 LV.LabelButton {
                     objectName: "desktopGenerationSettings"
-                    text: root.settingsExpanded ? qsTr("Hide generation settings") : qsTr("Generation settings")
+                    visible: root.settingsExpanded
+                    text: qsTr("Hide generation settings")
                     tone: LV.AbstractButton.Borderless
                     onClicked: root.settingsExpanded = !root.settingsExpanded
                 }

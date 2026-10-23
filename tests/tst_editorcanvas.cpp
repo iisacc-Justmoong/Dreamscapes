@@ -38,12 +38,31 @@ private slots:
         QVERIFY(iiSocietyContainer::SocietyDrive::create(m_storage.path()));
         qputenv("SOCIETY_CONTAINER_PATH", m_storage.path().toUtf8());
     }
+    void dataOnlyCanvasDoesNotActivateStorageUntilSaving() {
+        EditorCanvas canvas;
+        auto *storage=canvas.findChild<iiSocietyHelper::FileSystem *>("editorDocumentStorage");QVERIFY(storage);
+        QCOMPARE(storage->parent(),&canvas);QVERIFY(!storage->isAvailable());QVERIFY(storage->rootPath().isEmpty());
+        QSignalSpy activated(storage,&iiSocietyHelper::FileSystem::storageChanged);
+        QVERIFY(canvas.createCanvas({{"width",8},{"height",8},{"unit","px"},{"background","White"}}));
+        const auto revision=canvas.revision();const auto before=encodeIisc(*canvas.document()).bytes;
+        canvas.setFrame(1);canvas.setZoom(2);canvas.setPanX(3);
+        QCOMPARE(canvas.revision(),revision);QCOMPARE(encodeIisc(*canvas.document()).bytes,before);
+        QVERIFY(canvas.setLayerName(canvas.selectedLayerId(),"Unsaved artwork"));
+        QCOMPARE(activated.count(),0);QVERIFY(!storage->isAvailable());QVERIFY(storage->container()->aliases().isEmpty());
+        const auto path=m_storage.filePath("Files/deferred-activation.iisc");QVERIFY(canvas.saveDocumentAs(QUrl::fromLocalFile(path)));
+        QVERIFY(storage->isAvailable());QCOMPARE(storage->rootPath(),m_storage.path());QVERIFY(activated.count()>0);
+        QVERIFY(canvas.setLayerOpacity(canvas.selectedLayerId(),.5));
+        EditorCanvas reopened;QVERIFY(reopened.openDocumentSource(QUrl::fromLocalFile(path)));
+        QCOMPARE(reopened.selectedLayer()["name"].toString(),"Unsaved artwork");QCOMPARE(reopened.selectedLayer()["opacity"].toDouble(),.5);
+    }
     void societyDocumentsSaveOnlyInFiles() {
         EditorCanvas canvas; QVERIFY(canvas.createCanvas({{"width", 32}, {"height", 24}, {"unit", "px"}, {"background", "White"}}));
         QVERIFY(!canvas.saveDocumentAs(QUrl::fromLocalFile(m_storage.filePath("Generation History/document.iisc"))));
         QVERIFY(!canvas.saveDocumentAs(QUrl::fromLocalFile(m_storage.filePath("Asset Library/document.iisc"))));
         QVERIFY(!canvas.saveDocumentAs(QUrl::fromLocalFile(m_storage.filePath("document.iisc"))));
-        QVERIFY(!canvas.exportImage(QUrl::fromLocalFile(m_storage.filePath("Generation History/export.iisc")), "IISC"));
+        QVERIFY(canvas.exportImage(QUrl::fromLocalFile(m_storage.filePath("Generation History/export.iisc")), "IISC"));
+        QTRY_VERIFY(!canvas.frameExporter()->property("busy").toBool());QVERIFY(!canvas.frameExporter()->property("error").toString().isEmpty());
+        QVERIFY(!QFileInfo::exists(m_storage.filePath("Generation History/export.iisc")));
         QVERIFY(!QFileInfo::exists(m_storage.filePath("Generation History/document.iisc")));
         const auto path = m_storage.filePath("Files/document.iisc"); QVERIFY(canvas.saveDocumentAs(QUrl::fromLocalFile(path)));
         QCOMPARE(canvas.filePath(), path); EditorCanvas reopened; QVERIFY(reopened.openDocumentSource(QUrl::fromLocalFile(path)));

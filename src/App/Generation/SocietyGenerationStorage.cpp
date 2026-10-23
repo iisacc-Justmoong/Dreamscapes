@@ -11,12 +11,12 @@ QString generationResourceDirectory(iiSocietyHelper::FileSystem &files, QString 
     if (error) *error = files.errorString(); return path;
 }
 QString generationRuntimeDirectory(const QString &containerPath, QString *error) {
-    iiSocietyHelper::FileSystem files;
+    iiSocietyHelper::FileSystem files(iiSocietyHelper::FileSystem::Initialization::Deferred);
     const auto path = files.open(containerPath) ? files.ensureDirectory("models", ".society-runtime/iiLocalDiffusion") : QString{};
     if (error) *error = files.errorString(); return path;
 }
 QString generationResourceDirectory(const QString &containerPath, QString *error) {
-    iiSocietyHelper::FileSystem files;
+    iiSocietyHelper::FileSystem files(iiSocietyHelper::FileSystem::Initialization::Deferred);
     const auto path = files.open(containerPath) ? files.ensureDirectory("models", ".generation-resources/iiLocalDiffusion") : QString{};
     if (error) *error = files.errorString(); return path;
 }

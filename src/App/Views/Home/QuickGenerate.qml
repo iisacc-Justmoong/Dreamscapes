@@ -34,6 +34,11 @@ Item {
     readonly property var generationCounts: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
         15, 20, 25, 30, 40, 50, 100, 200, 500, 1000]
     property bool canvasEnabled: false
+    property bool desktopLayout: false
+    property var generation: null
+    property bool desktopComposerLoaded: false
+    readonly property DesktopGenerationComposer desktopComposer: desktopLoader.item as DesktopGenerationComposer
+    onDesktopLayoutChanged: if (desktopLayout) desktopComposerLoaded = true
     property alias homePaint: homePaint
     readonly property bool hasCanvasInputs: homePaint.hasInputs
     function addAttachment(source) {
@@ -46,10 +51,26 @@ Item {
     property real contentInset: LV.Theme.gap10
     readonly property var platformInputMethod: Qt.inputMethod
     signal generateRequested(string prompt, string mediaType, string aspectRatio, int count)
+    signal paintRequested()
+    signal mediaActionRequested(string action)
+    signal advancedRequested(var parameters)
+
+    function chooseAttachments() { attachmentDialog.open() }
+    function openRatioMenu(button) { openMenu(ratioMenu, button) }
+    function openCountMenu(button) { openMenu(countMenu, button) }
 
     implicitWidth: 402
-    implicitHeight: content.implicitHeight + contentInset * 2
+    implicitHeight: (desktopLayout && desktopComposer ? desktopComposer.implicitHeight : content.implicitHeight + contentInset * 2)
         + (notice.visible ? notice.implicitHeight + LV.Theme.gap8 : 0)
+
+    Loader {
+        id: desktopLoader
+        width: parent.width
+        height: root.desktopComposer ? root.desktopComposer.implicitHeight : 0
+        active: root.desktopComposerLoaded || root.desktopLayout
+        visible: root.desktopLayout
+        sourceComponent: DesktopGenerationComposer { composer: root; generation: root.generation }
+    }
 
     function openMenu(menu, button) {
         const offset = menusOpenUpward
@@ -59,6 +80,7 @@ Item {
     }
 
     function dismissInput() {
+        if (desktopComposer) desktopComposer.dismissInput()
         homePaint.dismissPopovers()
         mediaMenu.close()
         ratioMenu.close()
@@ -73,7 +95,7 @@ Item {
         if (submitting || generationPending) return
         const trimmedPrompt = prompt.trim()
         if (trimmedPrompt.length === 0) {
-            promptField.inputItem.forceActiveFocus()
+            focusPrompt()
             return
         }
         dismissInput()
@@ -86,12 +108,14 @@ Item {
     }
 
     function focusPrompt() {
-        promptField.inputItem.forceActiveFocus()
+        if (desktopLayout && desktopComposer) desktopComposer.focusPrompt()
+        else promptField.inputItem.forceActiveFocus()
     }
 
     LV.VStack {
         id: content
         objectName: "quickGenerateContent"
+        visible: !root.desktopLayout
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
@@ -110,7 +134,7 @@ Item {
         }
         PromptField {
             id: promptField
-            objectName: "promptField"
+            objectName: root.desktopLayout ? "compactPromptField" : "promptField"
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             placeholderColor: LV.Theme.titleHeaderColor
@@ -123,7 +147,7 @@ Item {
 
         Item {
             id: attachmentsSlot
-            objectName: "homeAttachmentsSlot"
+            objectName: root.desktopLayout ? "compactAttachmentsSlot" : "homeAttachmentsSlot"
             visible: root.canvasEnabled && homePaint.attachmentsHeight > 0
             Layout.fillWidth: true
             Layout.preferredHeight: homePaint.attachmentsHeight
@@ -131,7 +155,7 @@ Item {
 
         LV.HStack {
             id: actions
-            objectName: "quickGenerateActions"
+            objectName: root.desktopLayout ? "compactGenerateActions" : "quickGenerateActions"
             Layout.fillWidth: true
             Layout.preferredHeight: root.canvasEnabled ? 28 : 22
             spacing: 0
@@ -148,7 +172,7 @@ Item {
 
                 LV.IconButton {
                     id: attachButton
-                    objectName: "homeAttachButton"
+                    objectName: root.desktopLayout ? "compactAttachButton" : "homeAttachButton"
                     visible: root.canvasEnabled
                     implicitWidth: 22; implicitHeight: 22; iconSize: 18
                     iconName: "generaladd"
@@ -167,7 +191,7 @@ Item {
 
                 ChoiceButton {
                     id: ratioButton
-                    objectName: "aspectRatioButton"
+                    objectName: root.desktopLayout ? "compactAspectRatioButton" : "aspectRatioButton"
                     text: root.aspectRatio
                     tone: LV.AbstractButton.Default
                     Accessible.name: qsTr("Aspect ratio: %1").arg(root.aspectRatio)
@@ -176,7 +200,7 @@ Item {
 
                 ChoiceButton {
                     id: countButton
-                    objectName: "generationCountButton"
+                    objectName: root.desktopLayout ? "compactGenerationCountButton" : "generationCountButton"
                     text: root.canvasEnabled && root.width >= 520
                         ? String(root.generationCount) + (root.mediaType === "Video"
                             ? root.generationCount === 1 ? qsTr(" video") : qsTr(" videos")
@@ -195,7 +219,7 @@ Item {
 
             LV.PushButton {
                 id: generateButton
-                objectName: "generateButton"
+                objectName: root.desktopLayout ? "compactGenerateButton" : "generateButton"
                 Layout.minimumWidth: implicitWidth
                 text: qsTr("Generate")
                 iconMode: root.canvasEnabled && root.width < 320
@@ -309,12 +333,13 @@ Item {
     LV.Label {
         id: notice
         objectName: "quickGenerateNotice"
-        anchors.top: content.bottom
+        anchors.top: root.desktopLayout ? desktopLoader.bottom : content.bottom
         anchors.topMargin: LV.Theme.gap8
-        anchors.left: content.left
-        anchors.right: content.right
+        anchors.left: parent.left
+        anchors.right: parent.right
         visible: text.length > 0
-        text: root.errorText.length > 0 ? root.errorText : root.canvasEnabled ? homePaint.canvas.inputError : ""
+        text: root.errorText || (root.desktopLayout && root.desktopComposer ? root.desktopComposer.errorText : "")
+            || (root.canvasEnabled ? homePaint.canvas.inputError : "")
         color: LV.Theme.descriptionColor
         wrapMode: Text.Wrap
         sizeToContentHeight: true

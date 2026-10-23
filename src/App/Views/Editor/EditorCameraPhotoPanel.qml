@@ -13,13 +13,16 @@ Column {
     objectName: "editorCameraPhotoPanel"
     required property var toolState
     readonly property var backend: toolState.engine ? toolState.engine.photoSources : null
+    property VideoOutput cameraOutput: null
+    onCameraOutputChanged: syncPreview()
     readonly property var values: Object.assign({}, Photo.defaults(), toolState.toolId === "camera-photo" ? toolState.values : toolState.settingsByTool["camera-photo"] || {})
     readonly property string currentViewId: Photo.views.some(function(view) { return view.id === values.selector }) ? values.selector : "Camera"
     readonly property bool modalActive: options.visible || libraryFolder.visible || regionPicker.visible
     readonly property real inputWidth: Math.min(206, width * 206 / 398)
     readonly property real previewAspectRatio: {
         const parts = String(value("cameraAspect")).split(":")
-        let ratio = parts.length === 2 ? Number(parts[0]) / Number(parts[1]) : video.sourceRect.height > 0 ? video.sourceRect.width / video.sourceRect.height : 16 / 9
+        const sourceRect = cameraOutput ? cameraOutput.sourceRect : Qt.rect(0, 0, 0, 0)
+        let ratio = parts.length === 2 ? Number(parts[0]) / Number(parts[1]) : sourceRect.height > 0 ? sourceRect.width / sourceRect.height : 16 / 9
         if (value("cameraAngle") === "90°" || value("cameraAngle") === "270°") ratio = 1 / ratio
         return ratio
     }
@@ -44,9 +47,16 @@ Column {
         options.entries = entries || Photo.field(id).options.map(function(option) { return {id: option, label: option} })
         options.openFor(control, 0, control.height)
     }
-    function syncPreview() { if (backend) backend.setPreviewEnabled(currentViewId === "Camera" && visible, values) }
+    function syncPreview() {
+        if (!backend || !cameraOutput) return
+        if (currentViewId === "Camera" && visible) {
+            backend.attachPreview(cameraOutput)
+            backend.setPreviewEnabled(true, values)
+        } else backend.detachPreview(cameraOutput)
+    }
     function refreshGallery() {
-        if (!backend) return
+        if (!backend || !visible || currentViewId !== "Gallery") return
+        backend.attachGallery(root)
         backend.loadGallery(value("galleryLibrary"), value("galleryFolder") || "")
         backend.filterGallery(value("gallerySearch"), value("gallerySort"))
     }
@@ -76,15 +86,19 @@ Column {
         syncPreview()
         if (currentViewId === "Capture" && backend) backend.refreshCaptureTargets()
         if (currentViewId === "Gallery") refreshGallery()
+        else if (backend) backend.detachGallery(root)
     }
-    onVisibleChanged: syncPreview()
+    onVisibleChanged: {
+        syncPreview()
+        if (visible && currentViewId === "Gallery") refreshGallery()
+        else if (backend) backend.detachGallery(root)
+    }
     Component.onCompleted: {
-        if (backend) backend.attachPreview(video)
         syncPreview()
         if (currentViewId === "Gallery") refreshGallery()
         if (currentViewId === "Capture" && backend) backend.refreshCaptureTargets()
     }
-    Component.onDestruction: if (backend) { backend.cancel(); backend.attachPreview(null) }
+    Component.onDestruction: if (backend) { backend.detachGallery(root); backend.cancel(); if (cameraOutput) backend.detachPreview(cameraOutput) }
 
     component Heading: Views.PanelRow {
         type: LV.ListItem.Mini; showLeadingIcon: false; minItemWidth: 0; miniItemWidth: 0
@@ -276,7 +290,7 @@ Column {
             id: importButton
             objectName: "photoImport-" + root.currentViewId
             text: qsTr("Import"); tone: LV.AbstractButton.Default
-            enabled: root.backend && (root.currentViewId === "Gallery" ? root.backend.selectionCount > 0 && !root.backend.galleryBusy : root.backend.currentCapture.toString().length > 0 && !root.backend.busy)
+            enabled: root.backend && !root.backend.importing && (root.currentViewId === "Gallery" ? root.backend.selectionCount > 0 && !root.backend.galleryBusy : root.backend.currentCapture.toString().length > 0 && !root.backend.busy)
             onClicked: root.importSources()
         }
     }
@@ -302,101 +316,113 @@ Column {
             }
         }
     }
-    Column {
-        visible: root.currentViewId === "Camera"
-        width: parent.width; spacing: 12
-        Rectangle {
-            id: preview
-            objectName: "photoCameraPreview"
-            width: parent.width; height: 144; radius: 8; clip: true
-            color: LV.Theme.panelBackground08
-            Image { anchors.fill: parent; source: "Assets/CameraPhoto/preview-background.png"; fillMode: Image.PreserveAspectCrop }
-            VideoOutput {
-                id: video
-                anchors.fill: parent
-                visible: root.backend && root.backend.previewActive
-                fillMode: VideoOutput.PreserveAspectCrop
-                orientation: parseInt(root.value("cameraAngle"))
-                transform: Scale { origin.x: video.width / 2; xScale: root.value("cameraMirror") ? -1 : 1 }
-            }
+    Loader {
+        id: cameraContent
+        objectName: "photoCameraContent"
+        active: root.visible && root.currentViewId === "Camera"
+        visible: active
+        width: parent.width
+        readonly property Item cameraView: item as Item
+        height: cameraView ? cameraView.implicitHeight : 0
+        sourceComponent: Component {
             Column {
-                visible: !video.visible
-                anchors.centerIn: parent; width: parent.width - 32; spacing: 8
-                Image { anchors.horizontalCenter: parent.horizontalCenter; width: 18; height: 18; source: root.asset("preview-camera") }
-                LV.Label { width: parent.width; height: 18; style: body; font.pixelSize: 15; font.weight: Font.Medium; color: LV.Theme.window; text: qsTr("Camera preview"); horizontalAlignment: Text.AlignHCenter }
-                LV.Label { width: parent.width; style: caption; color: LV.Theme.window; text: root.backend ? root.backend.cameraDescription : qsTr("Camera is not attached"); horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight }
-            }
-            TapHandler { onTapped: if (root.backend && !root.backend.busy) root.backend.startPreview(root.values) }
-            Rectangle {
-                visible: video.visible && root.value("cameraGuides")
-                anchors.centerIn: parent
-                width: Math.min(parent.width - 16, (parent.height - 16) * root.previewAspectRatio)
-                height: width / root.previewAspectRatio
-                color: "transparent"; border.width: 1; border.color: LV.Theme.accentWhite; opacity: 0.5
-            }
-            Repeater {
-                model: 4
+                width: cameraContent.width; spacing: 12
+                Binding { target: root; property: "cameraOutput"; value: video; restoreMode: Binding.RestoreBindingOrValue }
+                Component.onDestruction: if (root.backend) root.backend.detachPreview(video)
                 Rectangle {
-                    required property int index
-                    visible: video.visible && root.value("cameraGrid")
-                    color: LV.Theme.accentWhite; opacity: 0.35
-                    x: index < 2 ? preview.width * (index + 1) / 3 : 0
-                    y: index < 2 ? 0 : preview.height * (index - 1) / 3
-                    width: index < 2 ? 1 : preview.width
-                    height: index < 2 ? preview.height : 1
+                    id: preview
+                    objectName: "photoCameraPreview"
+                    width: parent.width; height: 144; radius: 8; clip: true
+                    color: LV.Theme.panelBackground08
+                    Image { anchors.fill: parent; source: "Assets/CameraPhoto/preview-background.png"; fillMode: Image.PreserveAspectCrop }
+                    VideoOutput {
+                        id: video
+                        anchors.fill: parent
+                        visible: root.backend && root.backend.previewActive
+                        fillMode: VideoOutput.PreserveAspectCrop
+                        orientation: parseInt(root.value("cameraAngle"))
+                        transform: Scale { origin.x: video.width / 2; xScale: root.value("cameraMirror") ? -1 : 1 }
+                    }
+                    Column {
+                        visible: !video.visible
+                        anchors.centerIn: parent; width: parent.width - 32; spacing: 8
+                        Image { anchors.horizontalCenter: parent.horizontalCenter; width: 18; height: 18; source: root.asset("preview-camera") }
+                        LV.Label { width: parent.width; height: 18; style: body; font.pixelSize: 15; font.weight: Font.Medium; color: LV.Theme.window; text: qsTr("Camera preview"); horizontalAlignment: Text.AlignHCenter }
+                        LV.Label { width: parent.width; style: caption; color: LV.Theme.window; text: root.backend ? root.backend.cameraDescription : qsTr("Camera is not attached"); horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight }
+                    }
+                    TapHandler { onTapped: if (root.backend && !root.backend.busy) root.backend.startPreview(root.values) }
+                    Rectangle {
+                        visible: video.visible && root.value("cameraGuides")
+                        anchors.centerIn: parent
+                        width: Math.min(parent.width - 16, (parent.height - 16) * root.previewAspectRatio)
+                        height: width / root.previewAspectRatio
+                        color: "transparent"; border.width: 1; border.color: LV.Theme.accentWhite; opacity: 0.5
+                    }
+                    Repeater {
+                        model: 4
+                        Rectangle {
+                            required property int index
+                            visible: video.visible && root.value("cameraGrid")
+                            color: LV.Theme.accentWhite; opacity: 0.35
+                            x: index < 2 ? preview.width * (index + 1) / 3 : 0
+                            y: index < 2 ? 0 : preview.height * (index - 1) / 3
+                            width: index < 2 ? 1 : preview.width
+                            height: index < 2 ? preview.height : 1
+                        }
+                    }
+                    LV.Label {
+                        visible: root.backend && root.backend.countdown > 0
+                        anchors.centerIn: parent; style: title; text: root.backend ? String(root.backend.countdown) : ""
+                        color: LV.Theme.accentWhite
+                    }
+                    Corners {}
                 }
+                Column {
+                    width: parent.width; spacing: 8
+                    Row {
+                        width: parent.width; height: 17
+                        Heading { width: parent.width / 2; label: qsTr("Device") }
+                        LV.Label { width: parent.width / 2; height: 17; style: body; color: root.backend && root.backend.previewActive ? LV.Theme.success : LV.Theme.captionColor; text: root.backend ? root.backend.cameraStatus : qsTr("Unavailable"); horizontalAlignment: Text.AlignRight; elide: Text.ElideRight }
+                    }
+                    LV.ComboBox {
+                        id: deviceBox
+                        objectName: "photoDevice"
+                        width: parent.width; height: 20
+                        text: root.backend ? (root.backend.devices.find(function(device) { return device.id === (root.value("cameraDevice") || root.backend.deviceId) }) || {label: qsTr("No camera connected")}).label : qsTr("No camera connected")
+                        tone: LV.AbstractButton.Primary; arrow: LV.Stepper.UpDown
+                        enabled: root.backend && !root.backend.busy && root.backend.devices.length > 0
+                        activeFocusOnTab: true
+                        Accessible.role: Accessible.Button
+                        Accessible.name: qsTr("Camera device")
+                        Accessible.onPressAction: deviceBox.clicked()
+                        Keys.onReturnPressed: deviceBox.clicked()
+                        Keys.onSpacePressed: deviceBox.clicked()
+                        onClicked: root.openOptions("cameraDevice", deviceBox, root.backend.devices)
+                    }
+                    Row {
+                        width: parent.width; height: 22
+                        Item { width: parent.width - refresh.width; height: 22 }
+                        LV.LabelButton { id: refresh; objectName: "photoRefreshDevices"; text: qsTr("Refresh devices"); tone: LV.AbstractButton.Default; onClicked: if (root.backend) root.backend.refreshDevices() }
+                    }
+                }
+                OptionRow { fieldId: "cameraAspect" }
+                OptionRow { fieldId: "cameraAngle" }
+                TimerRow { fieldId: "cameraTimer" }
+                ChoiceGroup { fieldId: "cameraDrive" }
+                ToggleRow { fieldId: "cameraGuides" }
+                ToggleRow { fieldId: "cameraGrid" }
+                ToggleRow { fieldId: "cameraMirror" }
+                ToggleRow { fieldId: "cameraSavePhotos" }
+                Row {
+                    width: parent.width; height: 22; spacing: 8
+                    LV.LabelButton { objectName: "photoCapturePhoto"; text: qsTr("Capture photo"); tone: LV.AbstractButton.Default; enabled: root.backend && root.backend.cameraAvailable && !root.backend.busy; onClicked: root.backend.capturePhoto(root.values) }
+                    LV.LabelButton { id: videoButton; objectName: "photoCaptureVideo"; text: root.backend && root.backend.recording ? qsTr("Stop video") : qsTr("Capture video"); tone: LV.AbstractButton.Default; enabled: root.backend && root.backend.cameraAvailable && (!root.backend.busy || root.backend.recording); onClicked: root.backend.toggleVideo(root.values) }
+                    LV.Label { width: Math.max(0, parent.width - x); height: 22; style: body; text: root.recordingTime(); color: LV.Theme.danger; horizontalAlignment: Text.AlignRight; visible: root.backend && root.backend.recording }
+                }
+                CapturedCard {}
+                ImportRow {}
             }
-            LV.Label {
-                visible: root.backend && root.backend.countdown > 0
-                anchors.centerIn: parent; style: title; text: root.backend ? String(root.backend.countdown) : ""
-                color: LV.Theme.accentWhite
-            }
-            Corners {}
         }
-        Column {
-            width: parent.width; spacing: 8
-            Row {
-                width: parent.width; height: 17
-                Heading { width: parent.width / 2; label: qsTr("Device") }
-                LV.Label { width: parent.width / 2; height: 17; style: body; color: root.backend && root.backend.previewActive ? LV.Theme.success : LV.Theme.captionColor; text: root.backend ? root.backend.cameraStatus : qsTr("Unavailable"); horizontalAlignment: Text.AlignRight; elide: Text.ElideRight }
-            }
-            LV.ComboBox {
-                id: deviceBox
-                objectName: "photoDevice"
-                width: parent.width; height: 20
-                text: root.backend ? (root.backend.devices.find(function(device) { return device.id === (root.value("cameraDevice") || root.backend.deviceId) }) || {label: qsTr("No camera connected")}).label : qsTr("No camera connected")
-                tone: LV.AbstractButton.Primary; arrow: LV.Stepper.UpDown
-                enabled: root.backend && !root.backend.busy && root.backend.devices.length > 0
-                activeFocusOnTab: true
-                Accessible.role: Accessible.Button
-                Accessible.name: qsTr("Camera device")
-                Accessible.onPressAction: deviceBox.clicked()
-                Keys.onReturnPressed: deviceBox.clicked()
-                Keys.onSpacePressed: deviceBox.clicked()
-                onClicked: root.openOptions("cameraDevice", deviceBox, root.backend.devices)
-            }
-            Row {
-                width: parent.width; height: 22
-                Item { width: parent.width - refresh.width; height: 22 }
-                LV.LabelButton { id: refresh; objectName: "photoRefreshDevices"; text: qsTr("Refresh devices"); tone: LV.AbstractButton.Default; onClicked: if (root.backend) root.backend.refreshDevices() }
-            }
-        }
-        OptionRow { fieldId: "cameraAspect" }
-        OptionRow { fieldId: "cameraAngle" }
-        TimerRow { fieldId: "cameraTimer" }
-        ChoiceGroup { fieldId: "cameraDrive" }
-        ToggleRow { fieldId: "cameraGuides" }
-        ToggleRow { fieldId: "cameraGrid" }
-        ToggleRow { fieldId: "cameraMirror" }
-        ToggleRow { fieldId: "cameraSavePhotos" }
-        Row {
-            width: parent.width; height: 22; spacing: 8
-            LV.LabelButton { objectName: "photoCapturePhoto"; text: qsTr("Capture photo"); tone: LV.AbstractButton.Default; enabled: root.backend && root.backend.cameraAvailable && !root.backend.busy; onClicked: root.backend.capturePhoto(root.values) }
-            LV.LabelButton { id: videoButton; objectName: "photoCaptureVideo"; text: root.backend && root.backend.recording ? qsTr("Stop video") : qsTr("Capture video"); tone: LV.AbstractButton.Default; enabled: root.backend && root.backend.cameraAvailable && (!root.backend.busy || root.backend.recording); onClicked: root.backend.toggleVideo(root.values) }
-            LV.Label { width: Math.max(0, parent.width - x); height: 22; style: body; text: root.recordingTime(); color: LV.Theme.danger; horizontalAlignment: Text.AlignRight; visible: root.backend && root.backend.recording }
-        }
-        CapturedCard {}
-        ImportRow {}
     }
     Column {
         visible: root.currentViewId === "Capture"
@@ -494,30 +520,31 @@ Column {
                 objectName: "photoGalleryGrid"
                 anchors.fill: parent
                 clip: true; cellWidth: (width + 8) / 2; cellHeight: 112
-                model: root.backend ? root.backend.gallery : []
+                model: root.backend ? root.backend.galleryModel : null
                 boundsBehavior: Flickable.StopAtBounds
                 Controls.ScrollBar.vertical: Controls.ScrollBar { policy: Controls.ScrollBar.AsNeeded }
                 delegate: Rectangle {
                     id: tile
-                    required property var modelData
+                    required property var entry
                     required property int index
                     objectName: "photoGalleryTile-" + index
                     width: galleryGrid.cellWidth - 8; height: 104; radius: 8; clip: true
                     color: LV.Theme.panelBackground08
-                    border.width: modelData.selected ? 2 : 0; border.color: LV.Theme.accent
-                    Image { anchors.fill: parent; anchors.margins: tile.border.width; source: tile.modelData.thumbnail || ""; asynchronous: true; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(400, 208) }
-                    Image { visible: !tile.modelData.thumbnail.toString().length; anchors.centerIn: parent; width: 18; height: 18; source: root.asset("panel-photo-source") }
+                    border.width: entry.selected ? 2 : 0; border.color: LV.Theme.accent
+                    Image { anchors.fill: parent; anchors.margins: tile.border.width; source: tile.entry.thumbnail || ""; asynchronous: true; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(400, 208) }
+                    Image { visible: !tile.entry.thumbnail.toString().length; anchors.centerIn: parent; width: 18; height: 18; source: root.asset("panel-photo-source") }
                     Accessible.role: Accessible.CheckBox
-                    Accessible.name: modelData.label
-                    Accessible.description: modelData.previewError || ""
-                    Accessible.checkable: true; Accessible.checked: modelData.selected
-                    Accessible.onToggleAction: if (root.backend) root.backend.setSelected(modelData.id, root.value("galleryMultiple"))
-                    TapHandler { onTapped: if (root.backend) root.backend.setSelected(tile.modelData.id, root.value("galleryMultiple")) }
-                    Controls.ToolTip.visible: hover.hovered
-                    Controls.ToolTip.text: modelData.label
-                    HoverHandler { id: hover }
+                    Accessible.name: entry.label
+                    Accessible.description: entry.previewError || ""
+                    Accessible.checkable: true; Accessible.checked: entry.selected
+                    Accessible.onToggleAction: if (root.backend) root.backend.setSelected(entry.id, root.value("galleryMultiple"))
+                    TapHandler { onTapped: if (root.backend) root.backend.setSelected(tile.entry.id, root.value("galleryMultiple")) }
+                    LV.Tooltip {
+                        target: tile
+                        text: tile.entry.label
+                    }
                     Corners {}
-                    Component.onCompleted: if (root.backend) root.backend.requestThumbnail(modelData.id)
+                    Component.onCompleted: if (root.backend) root.backend.requestThumbnail(entry.id)
                 }
             }
             Column {
@@ -540,11 +567,11 @@ Column {
         Row {
             width: parent.width; height: 22
             Caption { width: parent.width - selectAll.width; height: 22; text: qsTr("%1 selected").arg(root.backend ? root.backend.selectionCount : 0) }
-            LV.LabelButton { id: selectAll; objectName: "photoSelectAll"; text: qsTr("Select all"); tone: LV.AbstractButton.Default; enabled: root.backend && root.backend.gallery.length > 0; onClicked: { root.edit("galleryMultiple", true); root.backend.selectAll(true) } }
+            LV.LabelButton { id: selectAll; objectName: "photoSelectAll"; text: qsTr("Select all"); tone: LV.AbstractButton.Default; enabled: root.backend && galleryGrid.count > 0; onClicked: { root.edit("galleryMultiple", true); root.backend.selectAll(true) } }
         }
         ToggleRow { fieldId: "galleryMultiple" }
         ImportRow {}
-        LV.Label { visible: root.backend && root.backend.gallery.length > 0 && root.backend.galleryStatus.length > 0; width: parent.width; style: caption; text: root.backend ? root.backend.galleryStatus : ""; wrapMode: Text.WordWrap; sizeToContentHeight: true }
+        LV.Label { visible: root.backend && galleryGrid.count > 0 && root.backend.galleryStatus.length > 0; width: parent.width; style: caption; text: root.backend ? root.backend.galleryStatus : ""; wrapMode: Text.WordWrap; sizeToContentHeight: true }
     }
     LV.ContextMenu {
         id: options
@@ -589,7 +616,7 @@ Column {
         objectName: "photoStatus"
         visible: text.length > 0
         width: parent.width; style: caption; wrapMode: Text.WordWrap; sizeToContentHeight: true
-        text: root.backend && root.backend.error.length ? root.backend.error : root.toolState.notice
+        text: root.backend && root.backend.importError.length ? root.backend.importError : root.backend && root.backend.error.length ? root.backend.error : root.toolState.notice
     }
 }
 

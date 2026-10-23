@@ -11,35 +11,35 @@ LV.HStack {
     property string anchorKey: ""
     property bool toggleOnClick: false
     readonly property var images: entries.filter(entry => Selection.isImage(entry))
-    readonly property var selectedImages: images.filter(entry => selectedKeys.indexOf(Selection.source(entry)) >= 0)
+    readonly property var selectedImages: images.filter(entry => selectedKeys.indexOf(Selection.key(entry)) >= 0)
     signal openRequested(var images)
     spacing: LV.Theme.gap6
     visible: images.length > 1 || selectionMode
-    function isSelected(entry) { return selectionMode && selectedKeys.indexOf(Selection.source(entry)) >= 0 }
+    function isSelected(entry) { return selectionMode && selectedKeys.indexOf(Selection.key(entry)) >= 0 }
     function toggle(entry) {
         if (!Selection.isImage(entry)) return
-        const key = Selection.source(entry)
+        const key = Selection.key(entry)
         selectedKeys = selectedKeys.indexOf(key) >= 0
             ? selectedKeys.filter(value => value !== key) : selectedKeys.concat([key])
     }
     function selectAt(index, modifiers, previousIndex) {
         const entry = entries[index]
         if (!Selection.isImage(entry)) return
-        const key = Selection.source(entry)
+        const key = Selection.key(entry)
         const additive = (modifiers & (Qt.ControlModifier | Qt.MetaModifier)) !== 0
         const range = (modifiers & Qt.ShiftModifier) !== 0
         if ((additive || range) && !selectionMode) {
             const previous = entries[previousIndex]
-            selectedKeys = Selection.isImage(previous) ? [Selection.source(previous)] : []
-            anchorKey = Selection.isImage(previous) ? Selection.source(previous) : key
+            selectedKeys = Selection.isImage(previous) ? [Selection.key(previous)] : []
+            anchorKey = Selection.isImage(previous) ? Selection.key(previous) : key
             toggleOnClick = false
             selectionMode = true
         }
         if (range) {
-            let anchor = entries.findIndex(value => Selection.source(value) === anchorKey)
+            let anchor = entries.findIndex(value => Selection.key(value) === anchorKey)
             if (anchor < 0) { anchor = index; anchorKey = key }
             const keys = entries.slice(Math.min(anchor, index), Math.max(anchor, index) + 1)
-                .filter(value => Selection.isImage(value)).map(value => Selection.source(value))
+                .filter(value => Selection.isImage(value)).map(value => Selection.key(value))
             selectedKeys = additive ? Array.from(new Set(selectedKeys.concat(keys))) : keys
         } else if (additive || (selectionMode && toggleOnClick)) {
             toggle(entry); anchorKey = key
@@ -49,12 +49,12 @@ LV.HStack {
     }
     function selectAll() {
         toggleOnClick = false
-        selectedKeys = images.map(entry => Selection.source(entry))
+        selectedKeys = images.map(entry => Selection.key(entry))
         anchorKey = selectedKeys[0] || ""
         selectionMode = true
     }
     function reset() { selectionMode = false; selectedKeys = []; anchorKey = ""; toggleOnClick = false }
-    onEntriesChanged: selectedKeys = selectedKeys.filter(key => images.some(entry => Selection.source(entry) === key))
+    onEntriesChanged: selectedKeys = selectedKeys.filter(key => images.some(entry => Selection.key(entry) === key))
     LV.LabelButton {
         objectName: root.objectName + "Toggle"
         text: root.selectionMode ? qsTr("Cancel") : qsTr("Select")

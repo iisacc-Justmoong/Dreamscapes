@@ -14,6 +14,8 @@ class CanvasPreview : public QObject {
 public:
     using QObject::QObject;
     Q_INVOKABLE QUrl sourceForFile(const QVariantMap &file);
+    // Local reference display only; generation input preparation stays separate.
+    Q_INVOKABLE QUrl sourceForUrl(const QUrl &source);
 };
 
 namespace dreamscapes {

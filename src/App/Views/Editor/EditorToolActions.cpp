@@ -16,6 +16,9 @@ QObject *EditorCanvas::media() const { return m_media.get(); }
 QObject *EditorCanvas::photoSources() const { return m_photoSources.get(); }
 QString EditorCanvas::toolHint() const {
     if (!m_media->error().isEmpty()) return m_media->error();
+    if (!m_colorReadError.isEmpty()) return m_colorReadError;
+    if (m_colorRead != ColorRead::None) return tr("Reading the captured canvas point…");
+    if (m_layerColorPicking) return tr("Click a color on the canvas. Escape cancels sampling.");
     if (m_pickCloneSource) return tr("Click the source point to clone or heal from.");
     if (m_pickNeutral) return tr("Click a neutral point to set white balance.");
     if (m_tool == "elements") return tr("Click a shape to select it. Drag its grid to move, resize or rotate. Shift constrains proportions or angles; Alt resizes from the center. Drag empty space to draw; Control/Command-drag draws over another shape.");
@@ -37,7 +40,7 @@ QString EditorCanvas::generationSeed() const {
     return seed;
 }
 QVariantMap EditorCanvas::toolState() const {
-    const auto count = std::count_if(m_selection.alpha.begin(), m_selection.alpha.end(), [](auto a) { return a != 0; });
+    const auto count = m_selectedPixelCount;
     const auto guides = settingsFor("canvas");
     const auto measure = [](QString value, double length, double ppi) {
         const bool percentage = value.endsWith('%'), millimeters = value.endsWith("mm");
@@ -50,9 +53,10 @@ QVariantMap EditorCanvas::toolState() const {
         {"safeX", measure(text(guides, 18, "5%"), editingWidth(), ppi)},
         {"safeY", measure(text(guides, 18, "5%"), editingHeight(), ppi)}};
     return {{"selectionActive", count > 0}, {"selectedPixels", qlonglong(count)}, {"audioTracks", documentReady() ? int(document()->audioTracks.size()) : 0},
+        {"colorReadPending", m_colorRead != ColorRead::None}, {"neutralPicking", m_pickNeutral}, {"colorReadError", m_colorReadError},
         {"generationSeed", generationSeed()},
-        {"canvasGuide", guide}, {"clippingOverlay", clippingOverlay()},
-        {"eraserOverlay", toggle(settingsFor("eraser"), 13) ? m_eraserOverlay : QUrl{}}, {"frameRate", documentReady() ? double(document()->timeline.frameRate.numerator) / document()->timeline.frameRate.denominator : 24.0}, {"frameCount", frameCount()}, {"pixelLocked", m_pixelLocks.contains(selectedLayerId())}, {"positionLocked", m_positionLocks.contains(selectedLayerId())}};
+        {"canvasGuide", guide}, {"clipping", clippingState()},
+        {"eraserOverlay", toggle(settingsFor("eraser"), 13) && restoreSourceMatches() ? m_eraserOverlay : QUrl{}}, {"frameRate", documentReady() ? double(document()->timeline.frameRate.numerator) / document()->timeline.frameRate.denominator : 24.0}, {"frameCount", frameCount()}, {"pixelLocked", m_pixelLocks.contains(selectedLayerId())}, {"positionLocked", m_positionLocks.contains(selectedLayerId())}};
 }
 bool EditorCanvas::insertPixels(const QImage &input, const QString &name, bool background) {
     if (!documentReady() || input.isNull() || std::uint64_t(input.width()) * input.height() > MediaLimits{}.maxPixelsPerFrame) return fail(tr("Choose a decodable image within the canvas import limit."));
@@ -266,7 +270,10 @@ bool EditorCanvas::executeToolAction(const QString &tool, const QString &field, 
         for (auto &a : m_selection.alpha) a = 255 - a; updateSelectionOverlay(); return applySelectionMask({{"field-25", 100}, {"field-26", number(values, 5)}});
     }
     if (tool == "select" && field == "field-16") return semanticSelection(values, false);
-    if (tool == "color" && field == "field-31") { m_pickNeutral = true; emit toolStateChanged(); return true; }
+    if (tool == "color" && field == "field-31") {
+        if (infiniteCanvas() || liveStrokeActive()) return fail(tr("Choose a finite canvas after finishing the current stroke."));
+        retireColorRead(); m_colorReadError.clear(); m_pickNeutral = true; emit toolStateChanged(); return true;
+    }
     if (tool == "retouch" && field == "field-11") { m_pickCloneSource = true; emit toolStateChanged(); return true; }
     if (tool == "auto-enhance" && (field == "field-3" || field == "field-7" || field == "field-11")) return applyPixelTool(tool, field, true);
     if (tool == "audio-track" && field == "field-15") {
@@ -314,6 +321,7 @@ QVariantMap EditorCanvas::toolPreview(const QString &tool, const QString &field,
                 preview.selectLayer(selectedLayerId());
                 preview.configureTool(tool, v);
                 preview.m_selection = m_selection;
+                preview.m_selectedPixelCount = m_selectedPixelCount;
                 preview.m_historySuspended = true;
                 if (preview.repairSelection()) {
                     const auto rendered = preview.renderEditingFrame(*preview.document());
@@ -369,7 +377,8 @@ QVariantMap EditorCanvas::toolPreview(const QString &tool, const QString &field,
             QImage wave(512, 160, QImage::Format_ARGB32); wave.fill(QColor("#202027")); QPainter p(&wave); p.setPen(QColor("#8B7CFF")); const auto frames = audio->samples.size() / audio->channelCount;
             for (int x = 0; x < 512; ++x) { int peak = 0; for (std::size_t i = x * frames / 512; i < std::min(frames, (x + 1) * frames / 512 + 1); ++i) peak = std::max(peak, std::abs(int(audio->samples[i * audio->channelCount]))); const int h = peak * 75 / 32768; p.drawLine(x, 80 - h, x, 80 + h); }
             p.end(); result["imageSource"] = dataImage(wave); result["description"] = tr("Edited PCM: %1 Hz · %2 channels · %3 seconds").arg(audio->sampleRate).arg(audio->channelCount).arg(double(frames) / audio->sampleRate, 0, 'f', 2);
-            items.append(QVariantMap{{"label", m_media->playing() ? tr("Stop playback") : tr("Play edited track")}, {"action", m_media->playing() ? "stopAudio" : "playAudio"}});
+            const bool active=m_media->playing()||m_media->preparing();
+            items.append(QVariantMap{{"label", active ? tr("Stop playback") : tr("Play edited track")}, {"action", active ? "stopAudio" : "playAudio"}});
         } else result["description"] = tr("Import a WAV track to view its actual waveform.");
     } else if (tool == "color") {
         const auto rendered = renderEditingFrame(*document()); if (rendered.ok()) {

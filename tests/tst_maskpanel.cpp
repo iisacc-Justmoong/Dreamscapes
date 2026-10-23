@@ -1,5 +1,6 @@
 #include "App/Views/Editor/EditorCanvas.h"
 #include "App/Views/ColorManagerModel.h"
+#include "App/StorageViewTypes.h"
 #include <iiSharedCanvas.h>
 #include <SocietyDrive.h>
 #include <QtTest>
@@ -46,6 +47,16 @@ class MaskPanelTests:public QObject {
 private slots:
     void initTestCase() {oldContainer=qgetenv("SOCIETY_CONTAINER_PATH");QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));qputenv("SOCIETY_CONTAINER_PATH",storage.path().toUtf8());}
     void cleanupTestCase() {if(oldContainer.isNull())qunsetenv("SOCIETY_CONTAINER_PATH");else qputenv("SOCIETY_CONTAINER_PATH",oldContainer);}
+    void selectionStatisticsFollowMaskOwnership() {
+        EditorCanvas canvas; QVERIFY(canvas.loadProjectPage(fixture(), "Mask statistics"));
+        const auto selected = [&] { return canvas.toolState().value("selectedPixels").toLongLong(); };
+        QVERIFY(shape(canvas, "Rectangle", {2, 2}, {14, 14}));
+        QCOMPARE(selected(), 144);
+        const auto first = QString::fromStdString(appearance(canvas).maskStack.front().id);
+        QVERIFY(canvas.createBackgroundMask()); QCOMPARE(selected(), 0);
+        QVERIFY(canvas.selectBackgroundMask(first)); QCOMPARE(selected(), 144);
+        QVERIFY(canvas.deleteBackgroundMask()); QCOMPARE(selected(), 0);
+    }
     void sourceAndMaskPersistenceAreIndependent() {
         EditorCanvas canvas;QVERIFY(canvas.loadProjectPage(fixture(),"Masks"));QVERIFY(shape(canvas,"Rectangle"));
         QCOMPARE(appearance(canvas).maskStack.size(),std::size_t(1));QVERIFY(!appearance(canvas).maskStackEnabled);
@@ -323,7 +334,7 @@ private slots:
         auto *panel=qobject_cast<QQuickItem*>(object.get());QVERIFY(panel);QQuickWindow window;window.resize(width,720);window.setColor(QColor("#1E1E1E"));panel->setParentItem(window.contentItem());panel->setSize({qreal(width),720});
         QVERIFY(state->setProperty("parent",QVariant::fromValue(window.contentItem())));
         window.show();QVERIFY(QTest::qWaitForWindowExposed(&window));QTest::qWait(200);
-        auto *body=visual(panel,"editorBackgroundPanel");QVERIFY(body);QCOMPARE(qRound(body->width()),width-34);
+        auto *body=visual(panel,"editorBackgroundPanel");QVERIFY(body);QCOMPARE(qRound(body->width()),width-24);
         for(const auto &tool:{"Brush","Eraser","Lasso","Polygon","Rectangle","Ellipse","Gradient","Color range"}) {
             auto *button=visual(panel,"maskTool-"+QString(tool));QVERIFY(button);
             QVERIFY(button->property("iconMode").toBool());QVERIFY(button->property("text").toString().isEmpty());
@@ -400,5 +411,5 @@ private slots:
     }
     void panelDraftChanged(const QString &tool,const QString &field,const QVariant &value) {if(panelCanvas&&panelState){panelCanvas->configureTool(tool,panelState->property("values").toMap());panelCanvas->applyToolField(tool,field,value);}}
 };
-int main(int argc,char **argv) {QQuickStyle::setStyle("Basic");QApplication app(argc,argv);registerColorManagerTypes();MaskPanelTests tests;return QTest::qExec(&tests,argc,argv);}
+int main(int argc,char **argv) {QQuickStyle::setStyle("Basic");QApplication app(argc,argv);registerStorageViewTypes();MaskPanelTests tests;return QTest::qExec(&tests,argc,argv);}
 #include "tst_maskpanel.moc"

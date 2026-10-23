@@ -1,7 +1,7 @@
 #include "EditorMedia.h"
 #include "EditorToolUtils.h"
-#include <QAudioSink>
-#include <QAudioDevice>
+#include "EditorAudioPlayback.h"
+#include "TimelineAudioMix.h"
 #include <QCamera>
 #include <QtCore/qpermissions.h>
 #include <QCoreApplication>
@@ -11,25 +11,37 @@
 #include <QMediaCaptureSession>
 #include <QMediaDevices>
 #include <QTimer>
-#include <QtEndian>
 using namespace editorTools;
-EditorMedia::EditorMedia(QObject *parent) : QObject(parent) {}
-EditorMedia::~EditorMedia() { stop(); }
+EditorMedia::EditorMedia(QObject *parent) : QObject(parent),m_audioPlayback(std::make_unique<EditorAudioPlayback>(this)) {
+    connect(this,&EditorMedia::cameraChanged,this,&EditorMedia::changed);
+    connect(this,&EditorMedia::audioChanged,this,&EditorMedia::changed);
+    connect(m_audioPlayback.get(),&EditorAudioPlayback::changed,this,&EditorMedia::audioChanged);
+}
+EditorMedia::~EditorMedia() {disconnect(m_audioPlayback.get(),nullptr,this,nullptr);m_audioPlayback.reset();}
 bool EditorMedia::cameraAvailable() const { return !QMediaDevices::videoInputs().isEmpty(); }
-bool EditorMedia::playing() const { return m_sink && m_sink->state() == QAudio::ActiveState; }
+bool EditorMedia::playing() const {return m_audioPlayback&&m_audioPlayback->playing();}
+bool EditorMedia::preparing() const {return m_audioPlayback&&m_audioPlayback->preparing();}
+QString EditorMedia::error() const {return !m_error.isEmpty()||!m_audioPlayback?m_error:m_audioPlayback->error();}
+QObject *EditorMedia::audioPlaybackObject() const {return m_audioPlayback.get();}
+qulonglong EditorMedia::playTimeline(std::shared_ptr<const iiSharedCanvas::Document> document,iiSharedCanvas::FrameIndex frame) {
+    return m_audioPlayback->play({std::move(document),frame,{}});
+}
+qulonglong EditorMedia::playAsset(std::shared_ptr<const iiSharedCanvas::Document> document,const std::string &id) {
+    return m_audioPlayback->play({std::move(document),0,id});
+}
 bool EditorMedia::capture(const QVariantMap &v) {
-    if (!cameraAvailable()) { m_error = tr("No camera is connected."); emit changed(); return false; }
+    if (!cameraAvailable()) { m_error = tr("No camera is connected."); emit cameraChanged(); return false; }
     if (m_pending) return false;
-    m_error.clear(); m_pending = true; emit changed();
+    m_error.clear(); m_pending = true; emit cameraChanged();
     QCameraPermission permission;
     const auto status = qApp->checkPermission(permission);
     if (status == Qt::PermissionStatus::Undetermined) {
         qApp->requestPermission(permission, this, [this, v](const QPermission &p) {
             if (p.status() == Qt::PermissionStatus::Granted) startCapture(v);
-            else { m_pending = false; m_error = tr("Camera access was denied by the operating system."); emit changed(); }
+            else { m_pending = false; m_error = tr("Camera access was denied by the operating system."); emit cameraChanged(); }
         });
     } else if (status == Qt::PermissionStatus::Granted) startCapture(v);
-    else { m_pending = false; m_error = tr("Enable camera access for Dreamscapes in System Settings."); emit changed(); return false; }
+    else { m_pending = false; m_error = tr("Enable camera access for Dreamscapes in System Settings."); emit cameraChanged(); return false; }
     return true;
 }
 void EditorMedia::startCapture(const QVariantMap &v) {
@@ -41,60 +53,23 @@ void EditorMedia::startCapture(const QVariantMap &v) {
         connect(m_capture.get(), &QImageCapture::imageAvailable, this, [this](int, const QVideoFrame &frame) {
             if (!m_pending) return; const auto pixels = frame.toImage();
             m_pending = false; if (!pixels.isNull()) emit captured(pixels); else m_error = tr("The camera did not return a decodable full resolution frame.");
-            m_camera->stop(); emit changed();
+            m_camera->stop(); emit cameraChanged();
         });
-        connect(m_capture.get(), &QImageCapture::errorOccurred, this, [this](int, QImageCapture::Error, const QString &error) { m_error = error; m_pending = false; m_camera->stop(); emit changed(); });
-        connect(m_camera.get(), &QCamera::errorOccurred, this, [this](QCamera::Error, const QString &error) { m_error = error; m_pending = false; emit changed(); });
+        connect(m_capture.get(), &QImageCapture::errorOccurred, this, [this](int, QImageCapture::Error, const QString &error) { m_error = error; m_pending = false; m_camera->stop(); emit cameraChanged(); });
+        connect(m_camera.get(), &QCamera::errorOccurred, this, [this](QCamera::Error, const QString &error) { m_error = error; m_pending = false; emit cameraChanged(); });
     }
     m_camera->setCameraDevice(QMediaDevices::defaultVideoInput());
     m_camera->setExposureCompensation(float(number(v, 1)));
     m_camera->setZoomFactor(std::clamp(float(text(v, 0, "1x").remove(QRegularExpression("[x×]" )).toDouble()), m_camera->minimumZoomFactor(), m_camera->maximumZoomFactor()));
     m_capture->setQuality(QImageCapture::VeryHighQuality);
     m_camera->start();
-    QTimer::singleShot(15000, this, [this] { if (m_pending) { m_pending = false; m_camera->stop(); m_error = tr("Camera capture timed out."); emit changed(); } });
-}
-bool EditorMedia::play(const iiSharedCanvas::AudioAsset &audio) {
-    stop(); QAudioFormat format; format.setSampleRate(int(audio.sampleRate)); format.setChannelCount(audio.channelCount); format.setSampleFormat(QAudioFormat::Int16);
-    const auto device = QMediaDevices::defaultAudioOutput();
-    if (device.isNull() || !device.isFormatSupported(format)) { m_error = tr("The current audio output does not support this track's sample rate and channels."); emit changed(); return false; }
-    QByteArray bytes(qsizetype(audio.samples.size() * 2), Qt::Uninitialized);
-    for (std::size_t i = 0; i < audio.samples.size(); ++i) qToLittleEndian(audio.samples[i], reinterpret_cast<uchar *>(bytes.data() + i * 2));
-    m_pcm.setData(bytes); m_pcm.open(QIODevice::ReadOnly); m_sink = std::make_unique<QAudioSink>(device, format);
-    connect(m_sink.get(), &QAudioSink::stateChanged, this, [this](QAudio::State) { emit changed(); });
-    m_sink->start(&m_pcm); emit changed(); return true;
+    QTimer::singleShot(15000, this, [this] { if (m_pending) { m_pending = false; m_camera->stop(); m_error = tr("Camera capture timed out."); emit cameraChanged(); } });
 }
 iiSharedCanvas::AudioImportResult EditorMedia::mixTimelineAudio(const iiSharedCanvas::Document &document, iiSharedCanvas::FrameIndex firstFrame) {
-    using namespace iiSharedCanvas;
-    if (firstFrame >= document.timeline.frameCount) return {{}, {MediaIoCode::InvalidArgument, "Choose a frame inside the audio timeline."}};
-    constexpr std::uint32_t rate = 48000;
-    const auto count = audioSampleFrameCount(document.timeline.frameCount - firstFrame, document.timeline.frameRate, rate);
-    if (!count || *count > 16777216) return {{}, {MediaIoCode::LimitExceeded, "The playback mix exceeds its PCM allocation limit."}};
-    const double fps = double(document.timeline.frameRate.numerator) / document.timeline.frameRate.denominator;
-    AudioAsset result{"editor.timeline.playback", rate, 2, std::vector<std::int16_t>(*count * 2)};
-    std::vector<double> mixed(*count * 2);
-    for (const auto &track : document.audioTracks) if (!track.muted) for (const auto &clip : track.clips) if (clip.enabled) {
-        const auto *source = findAudioAsset(document, clip.assetId);
-        if (!source || source->sampleRate == 0 || source->channelCount < 1 || source->channelCount > 2 || source->samples.empty()) continue;
-        const double clipStart = clip.startFrame / fps, clipEnd = (clip.startFrame + clip.durationFrames) / fps;
-        const auto start = std::max<std::int64_t>(0, std::int64_t(std::ceil((clipStart - firstFrame / fps) * rate)));
-        const auto end = std::min<std::int64_t>(*count, std::int64_t(std::ceil((clipEnd - firstFrame / fps) * rate)));
-        const double gain = std::pow(10.0, (track.gainDb + clip.gainDb) / 20);
-        const auto sourceCount = source->samples.size() / source->channelCount;
-        for (auto i = start; i < end; ++i) {
-            const double position = ((firstFrame / fps + double(i) / rate) - clipStart) * source->sampleRate + clip.sourceOffsetSamples;
-            if (position < 0 || position >= sourceCount) continue;
-            const auto left = std::size_t(position), right = std::min(left + 1, sourceCount - 1); const double fraction = position - left;
-            for (int channel = 0; channel < 2; ++channel) {
-                const auto c = std::min<int>(channel, source->channelCount - 1);
-                const double sample = source->samples[left * source->channelCount + c] * (1 - fraction) + source->samples[right * source->channelCount + c] * fraction;
-                mixed[i * 2 + channel] += sample * gain;
-            }
-        }
-    }
-    for (std::size_t i = 0; i < mixed.size(); ++i) result.samples[i] = std::int16_t(std::clamp(std::lround(mixed[i]), -32768L, 32767L));
-    return {std::move(result), {}};
+    return dreamscapes::mixTimelineAudio(document,firstFrame);
 }
-void EditorMedia::stop() { if (m_sink) { m_sink->stop(); m_sink.reset(); } m_pcm.close(); emit changed(); }
+
+void EditorMedia::stop() {m_audioPlayback->stop();}
 QVariantList EditorMedia::library(const QString &directory, const QVariantMap &v) const {
     QVariantList result; if (!QFileInfo(directory).isDir()) return result;
     const auto query = text(v, 0).trimmed(); const auto type = text(v, 1, "All");

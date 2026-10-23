@@ -22,7 +22,43 @@ inline RasterLayer raster(const QImage &input) {
     for (int y = 0; y < converted.height(); ++y) std::copy_n(reinterpret_cast<const std::uint32_t *>(converted.constScanLine(y)), converted.width(), result.pixels.begin() + y * result.width);
     return result;
 }
-inline QUrl dataImage(const QImage &input) { QByteArray bytes; QBuffer buffer(&bytes); buffer.open(QIODevice::WriteOnly); input.save(&buffer, "PNG"); return QUrl("data:image/png;base64," + QString::fromLatin1(bytes.toBase64())); }
+inline QUrl dataImage(const QImage &input) {
+    if (input.isNull()) return {};
+    QByteArray bytes; QBuffer buffer(&bytes);
+    if (!buffer.open(QIODevice::WriteOnly) || !input.save(&buffer, "PNG") || bytes.isEmpty()) return {};
+    return QUrl("data:image/png;base64," + QString::fromLatin1(bytes.toBase64()));
+}
+inline QPainterPath vectorPainterPath(const iiSharedCanvas::VectorPath &source) {
+    using namespace iiSharedCanvas;
+    QPainterPath path;
+    for (const auto &command : source.commands) std::visit([&](const auto &c) {
+        using T = std::decay_t<decltype(c)>;
+        if constexpr (std::is_same_v<T, MoveTo>) path.moveTo(c.point.x, c.point.y);
+        else if constexpr (std::is_same_v<T, LineTo>) path.lineTo(c.point.x, c.point.y);
+        else if constexpr (std::is_same_v<T, QuadraticTo>) path.quadTo(c.control.x, c.control.y, c.end.x, c.end.y);
+        else if constexpr (std::is_same_v<T, CubicTo>) path.cubicTo(c.control1.x, c.control1.y, c.control2.x, c.control2.y, c.end.x, c.end.y);
+        else path.closeSubpath();
+    }, command);
+    return path;
+}
+inline QRectF assetBounds(const iiSharedCanvas::Asset &asset, int chunkSize) {
+    return std::visit([&](const auto &value) -> QRectF {
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (std::is_same_v<T, iiSharedCanvas::ChunkedRasterAsset>) {
+            QRectF bounds;
+            for (const auto &chunk : value.chunks)
+                bounds |= QRectF(qreal(chunk.column) * chunkSize, qreal(chunk.row) * chunkSize,
+                                  chunk.pixels.width, chunk.pixels.height);
+            return bounds;
+        } else if constexpr (std::is_same_v<T, iiSharedCanvas::RasterAsset>)
+            return {0, 0, qreal(value.pixels.width), qreal(value.pixels.height)};
+        else if constexpr (std::is_same_v<T, iiSharedCanvas::VideoAsset>)
+            return value.frames.empty() ? QRectF{} : QRectF(0, 0, value.frames.front().width, value.frames.front().height);
+        else if constexpr (requires { value.viewport; })
+            return {0, 0, qreal(value.viewport.width), qreal(value.viewport.height)};
+        else return {};
+    }, asset);
+}
 inline iiSharedCanvas::VectorPath nativePath(const QPainterPath &p, std::uint32_t color) {
     using namespace iiSharedCanvas; VectorPath path; path.fill = SolidPaint{color};
     for (int i = 0; i < p.elementCount(); ++i) { const auto e = p.elementAt(i);

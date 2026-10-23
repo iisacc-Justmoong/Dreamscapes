@@ -10,10 +10,12 @@ import Dreamscapes.Storage 1.0
 Item {
     id: root
     objectName:"videoGenerationWorkspace"
+    CanvasPreview { id: displayPreviews }
     required property var generation
     property var jobIds:[]
     property bool submitting:false
     property string requestError:""
+    property string saveFeedback:""
     property string selectedResultId:""
     readonly property alias parameterPanel:parameters
     readonly property alias timelineState:timelineState
@@ -28,6 +30,7 @@ Item {
     readonly property string statusText:failure || (pending ? qsTr("%1 · %2 / %3").arg(generation.inferenceStatus.state || qsTr("Queued")).arg(generation.previewStep).arg(generation.previewTotalSteps) : results.length ? qsTr("%1 videos ready").arg(results.length) : referenceSource ? qsTr("Reference preview · F%1 · %2 s").arg(String(timelineState.playhead).padStart(3,"0")).arg((timelineState.playhead/parameters.values.fps).toFixed(3)) : qsTr("Ready to generate"))
     function submit() {
         requestError=""
+        saveFeedback=""
         if(parameters.hasInvalidInputs) { requestError=qsTr("Correct invalid video parameter values."); return }
         submitting=true; const id=generation.enqueueVideoRecipe(parameters.parameters()); submitting=false
         if(!id) requestError=generation.errorString
@@ -36,75 +39,105 @@ Item {
     function cancelBatch() { jobs.forEach(job=>{ if(["queued","running","connecting-host","downloading"].indexOf(job.state)>=0) generation.cancel(job.id) }) }
     Connections { target:root.generation; function onSubmissionQueued(ids) { if(root.submitting) root.jobIds=ids.slice() } }
     VideoTimelineState { id:timelineState }
-    ImageFileExporter { id:exporter; onFailed:function(message){ root.requestError=message } }
-    FileDialog { id:saveDialog; title:qsTr("Save video"); fileMode:FileDialog.SaveFile; defaultSuffix:"mp4"; nameFilters:[qsTr("MP4 video (*.mp4)")]; onAccepted:exporter.saveVideo(root.selectedResult.mediaSource,selectedFile) }
+    function saveVideoToFile() {
+        if (!root.selectedResult.mediaSource || exporter.busy || saveDialog.visible) return
+        root.saveFeedback=""
+        saveDialog.sourceVideo=root.selectedResult.mediaSource
+        saveDialog.open()
+    }
+    ImageFileExporter {
+        id:exporter; objectName:"videoWorkspaceExporter"
+        onSaved:root.saveFeedback=qsTr("File saved")
+        onFailed:function(message){ root.saveFeedback=message; root.generation.explainOperationFailure("Save video", message, {source:root.selectedResult.mediaSource, destination:saveDialog.selectedFile}) }
+        onRejected:function(message){ root.saveFeedback=message }
+    }
+    FileDialog {
+        id:saveDialog; objectName:"videoWorkspaceSaveDialog"
+        property url sourceVideo:""
+        title:qsTr("Save video"); fileMode:FileDialog.SaveFile; defaultSuffix:"mp4"; nameFilters:[qsTr("MP4 video (*.mp4)")]
+        onAccepted:{ root.saveFeedback=qsTr("Saving file…"); exporter.saveVideo(sourceVideo,selectedFile) }
+    }
     MediaPlayer { id:player; objectName:"videoWorkspacePlayer"; source:root.selectedResult.mediaSource || ""; videoOutput:videoOutput; audioOutput:AudioOutput {} }
+    property real previewZoom: 0
     Flickable {
         id:workspaceViewport
         objectName:"videoWorkspaceViewport"
-        anchors.fill:parent; contentWidth:Math.max(width,720); contentHeight:Math.max(height,660,timeline.implicitHeight+254)
+        anchors.fill:parent
+        contentWidth:Math.max(width,720); contentHeight:Math.max(height,600)
         boundsBehavior:Flickable.StopAtBounds; clip:true
         Controls.ScrollBar.horizontal:Controls.ScrollBar { policy:Controls.ScrollBar.AsNeeded }
         Controls.ScrollBar.vertical:Controls.ScrollBar { policy:Controls.ScrollBar.AsNeeded }
         Item {
             id:workspace
             width:workspaceViewport.contentWidth; height:workspaceViewport.contentHeight
-            readonly property real inset:16
-            readonly property real panelGap:width>=1536 ? 116 : 24
             Item {
-                id:top
-                objectName:"videoUpperWorkspace"
-                x:workspace.inset; y:16; width:workspace.width-32; height:workspace.height-timeline.height-44
+                id:leftWorkspace
+                objectName:"videoPreviewAndTimeline"
+                width:workspace.width-parameters.width; height:workspace.height
                 Item {
-                    id:preview
-                    objectName:"videoPreviewPanel"
-                    width:top.width-parameters.width-workspace.panelGap; height:top.height
-                    LV.HStack {
-                        id:actions
-                        objectName:"videoApplicationActions"
-                        width:parent.width; height:44; spacing:8
-                        LV.VStack {
-                            Layout.fillWidth:true; Layout.leftMargin:12; spacing:4
-                            LV.Label { Layout.fillWidth:true; text:qsTr("Dreamscapes · Video"); style:body; elide:Text.ElideRight }
-                            LV.Label { Layout.fillWidth:true; text:qsTr("%1 s · %2 FPS · %3 × %4").arg((timelineState.outputFrames/parameters.values.fps).toFixed(2)).arg(parameters.values.fps).arg(parameters.values.width).arg(parameters.values.height); style:caption; elide:Text.ElideRight }
+                    id:top
+                    objectName:"videoUpperWorkspace"
+                    width:parent.width; height:parent.height-timeline.height
+                    Item {
+                        id:preview
+                        objectName:"videoPreviewPanel"; anchors.fill:parent
+                        RowLayout {
+                            id:actions; objectName:"videoApplicationActions"
+                            width:parent.width; height:46; spacing:8
+                            LV.Label { text:qsTr("Video"); style:body; Layout.leftMargin:12 }
+                            Item { Layout.fillWidth:true }
+                            LV.LabelButton { objectName:"videoPreviewZoomOut"; text:"−"; Layout.preferredWidth:30; tone:LV.AbstractButton.Default; Accessible.name:qsTr("Zoom out"); onClicked:root.previewZoom=Math.max(.1,previewSurface.effectiveScale/1.25) }
+                            LV.LabelButton { objectName:"videoPreviewFit"; text:qsTr("Fit"); Layout.preferredWidth:44; tone:LV.AbstractButton.Default; onClicked:root.previewZoom=0 }
+                            LV.LabelButton { objectName:"videoPreviewActualSize"; text:"100%"; Layout.preferredWidth:54; tone:LV.AbstractButton.Default; onClicked:root.previewZoom=1 }
+                            LV.LabelButton { objectName:"videoPreviewZoomIn"; text:"+"; Layout.preferredWidth:30; Layout.rightMargin:12; tone:LV.AbstractButton.Default; Accessible.name:qsTr("Zoom in"); onClicked:root.previewZoom=Math.min(4,previewSurface.effectiveScale*1.25) }
                         }
-                        LV.LabelButton { objectName:"videoResetDefaults"; Layout.preferredWidth:112; Layout.preferredHeight:32; text:qsTr("Reset defaults"); tone:LV.AbstractButton.Default; onClicked:parameters.resetDraft() }
-                        LV.LabelButton { objectName:"videoGenerateComposition"; Layout.preferredWidth:160; Layout.preferredHeight:32; text:qsTr("Generate · %1 videos").arg(parameters.values.outputCount); tone:LV.AbstractButton.Primary; enabled:root.canGenerate; onClicked:root.submit() }
-                    }
-                    Rectangle {
-                        id:previewSurface
-                        objectName:"videoPreviewSurface"
-                        anchors.top:actions.bottom; anchors.topMargin:8; anchors.bottom:previewActions.top; anchors.bottomMargin:8
-                        width:parent.width; color:LV.Theme.panelBackground01; clip:true
-                        readonly property real fitScale:Math.min(width/parameters.values.width,height/parameters.values.height)
                         Item {
-                            objectName:"videoPreviewAspectFrame"
-                            x:(previewSurface.width-width)/2; y:(previewSurface.height-height)/2
-                            width:parameters.values.width*previewSurface.fitScale; height:parameters.values.height*previewSurface.fitScale
-                            Image { objectName:"videoReferencePreview"; anchors.fill:parent; source:root.selectedResult.imageSource || (root.referenceSource ? root.generation.imagePreview(root.referenceSource) : ""); fillMode:root.selectedResult.imageSource ? Image.PreserveAspectFit : Image.PreserveAspectCrop; visible:source.toString().length>0 && player.playbackState!==MediaPlayer.PlayingState }
-                            VideoOutput { id:videoOutput; objectName:"videoWorkspaceOutput"; anchors.fill:parent; fillMode:VideoOutput.PreserveAspectFit; visible:!!root.selectedResult.mediaSource }
+                            id:previewSurface; objectName:"videoPreviewSurface"
+                            anchors.top:actions.bottom; anchors.bottom:previewActions.top
+                            width:parent.width; clip:true
+                            readonly property real fitScale:Math.min(Math.max(1,width-24)/parameters.values.width,Math.max(1,height-24)/parameters.values.height,600/parameters.values.width)
+                            readonly property real effectiveScale:root.previewZoom>0 ? root.previewZoom : fitScale
+                            Item {
+                                objectName:"videoPreviewAspectFrame"
+                                x:(previewSurface.width-width)/2; y:(previewSurface.height-height)/2
+                                width:parameters.values.width*previewSurface.effectiveScale; height:parameters.values.height*previewSurface.effectiveScale
+                                Image { objectName:"videoReferencePreview"; anchors.fill:parent; source:root.selectedResult.imageSource || displayPreviews.sourceForUrl(root.referenceSource); asynchronous:true; sourceSize:Qt.size(Math.ceil(width*Screen.devicePixelRatio),Math.ceil(height*Screen.devicePixelRatio)); fillMode:root.selectedResult.imageSource ? Image.PreserveAspectFit : Image.PreserveAspectCrop; visible:source.toString().length>0 && player.playbackState!==MediaPlayer.PlayingState }
+                                VideoOutput { id:videoOutput; objectName:"videoWorkspaceOutput"; anchors.fill:parent; fillMode:VideoOutput.PreserveAspectFit; visible:!!root.selectedResult.mediaSource }
+                            }
+                            LV.Label { objectName:"videoPreviewEmptyState"; anchors.centerIn:parent; width:parent.width-32; horizontalAlignment:Text.AlignHCenter; visible:!root.pending && !root.referenceSource && !root.selectedResult.imageSource && !root.selectedResult.mediaSource; text:qsTr("Enter a prompt to generate a video."); style:caption; color:LV.Theme.textSecondary; wrapMode:Text.Wrap }
+                            LV.Label { anchors.centerIn:parent; width:parent.width-24; horizontalAlignment:Text.AlignHCenter; wrapMode:Text.Wrap; visible:root.pending; text:root.statusText; style:body }
                         }
-                        LV.Label { objectName:"videoPreviewEmptyState"; anchors.centerIn:parent; width:parent.width-32; horizontalAlignment:Text.AlignHCenter; visible:!root.pending && !root.referenceSource && !root.selectedResult.imageSource && !root.selectedResult.mediaSource; text:qsTr("Enter a prompt to generate a video."); style:body; color:LV.Theme.textSecondary; wrapMode:Text.Wrap }
-                        LV.Label { anchors.centerIn:parent; visible:root.pending; text:root.statusText; style:body; Rectangle { anchors.fill:parent; z:-1; radius:8; color:LV.Theme.panelBackground08; opacity:.9 } }
-                    }
-                    LV.HStack {
-                        id:previewActions
-                        objectName:"videoPreviewActions"
-                        anchors.bottom:parent.bottom; width:parent.width; height:32; spacing:8
-                        LV.LabelButton { objectName:"videoWorkspacePlay"; Layout.preferredWidth:80; Layout.preferredHeight:32; text:player.playbackState===MediaPlayer.PlayingState ? qsTr("Pause") : qsTr("Preview"); tone:LV.AbstractButton.Default; enabled:!!root.selectedResult.mediaSource || !!root.referenceSource; onClicked:{ if(root.selectedResult.mediaSource) { if(player.playbackState===MediaPlayer.PlayingState) player.pause(); else player.play() } else timeline.playing=!timeline.playing } }
-                        LV.Label { Layout.fillWidth:true; text:root.statusText; style:body; elide:Text.ElideRight; color:root.failure ? LV.Theme.accentRed : LV.Theme.textPrimary }
-                        LV.LabelButton { visible:root.pending; text:qsTr("Cancel"); tone:LV.AbstractButton.Default; onClicked:root.cancelBatch() }
-                        LV.LabelButton { objectName:"videoWorkspaceSave"; visible:!!root.selectedResult.mediaSource; text:qsTr("Save video"); tone:LV.AbstractButton.Default; onClicked:saveDialog.open() }
-                        LV.LabelButton { Layout.preferredWidth:56; Layout.preferredHeight:32; text:qsTr("Fit"); tone:LV.AbstractButton.Default; onClicked:{ timeline.timelineScale=1; workspaceViewport.contentX=0 } }
+                        RowLayout {
+                            id:previewActions; objectName:"videoPreviewActions"
+                            anchors.bottom:statusStrip.top; width:parent.width; height:46; spacing:8
+                            LV.LabelButton { objectName:"videoWorkspacePlay"; Layout.preferredWidth:52; Layout.leftMargin:12; text:player.playbackState===MediaPlayer.PlayingState ? qsTr("Pause") : qsTr("Play"); tone:LV.AbstractButton.Default; enabled:!!root.selectedResult.mediaSource || !!root.referenceSource; onClicked:{ if(root.selectedResult.mediaSource) { if(player.playbackState===MediaPlayer.PlayingState) player.pause(); else player.play() } else timeline.playing=!timeline.playing } }
+                            LV.Label { Layout.fillWidth:true; Layout.minimumWidth:0; text:root.saveFeedback || root.statusText; style:caption; elide:Text.ElideRight; color:root.failure ? LV.Theme.accentRed : LV.Theme.textSecondary }
+                            LV.LabelButton { visible:root.pending; text:qsTr("Cancel"); tone:LV.AbstractButton.Default; onClicked:root.cancelBatch() }
+                            LV.LabelButton { objectName:"videoResultSelector"; visible:root.results.length>1; text:qsTr("Results · %1").arg(root.results.length); tone:LV.AbstractButton.Default; onClicked:resultsMenu.openFor(this,0,height) }
+                            LV.LabelButton { objectName:"videoWorkspaceSave"; Layout.rightMargin:12; visible:!!root.selectedResult.mediaSource; enabled:!exporter.busy; text:qsTr("Save video"); tone:LV.AbstractButton.Default; onClicked:root.saveVideoToFile() }
+                        }
+                        RowLayout {
+                            id:statusStrip; objectName:"videoStatusStrip"
+                            anchors.bottom:parent.bottom; width:parent.width; height:28; spacing:8
+                            LV.Label { objectName:"videoStatusModel"; Layout.leftMargin:12; Layout.maximumWidth:statusStrip.width*.38; text:qsTr("Model · %1").arg((root.generation.videoModels.find(model=>model.id===root.generation.selectedVideoModel) || {}).name || qsTr("None")); style:caption; elide:Text.ElideRight }
+                            LV.Label { objectName:"videoStatusDevice"; text:qsTr("Device · %1").arg(parameters.values.device==="auto" ? qsTr("Auto") : parameters.values.device); style:caption }
+                            Item { Layout.fillWidth:true; Layout.minimumWidth:0 }
+                            LV.Label { objectName:"videoStatusProcessing"; text:root.pending ? root.statusText : root.generation.connected ? qsTr("Ready · %1 queued").arg(root.jobs.filter(job=>job.state==="queued").length) : qsTr("Storage disconnected"); style:caption; elide:Text.ElideRight; Layout.maximumWidth:statusStrip.width*.3 }
+                            LV.Label { objectName:"videoStatusOutput"; Layout.rightMargin:12; text:root.saveFeedback || (root.results.length ? qsTr("Output · %1 ready").arg(root.results.length) : qsTr("Save · No output yet")); style:caption; Layout.maximumWidth:statusStrip.width*.25; elide:Text.ElideRight }
+                        }
                     }
                 }
-                VideoParameterPanel { id:parameters; anchors.right:parent.right; width:300; height:parent.height; generation:root.generation; timeline:timelineState }
+                VideoTimeline {
+                    id:timeline; generation:root.generation
+                    width:parent.width; height:264; anchors.bottom:parent.bottom
+                    stateModel:timelineState; onChooseKeyframe:function(frame,trackId){ parameters.chooseImage(frame,trackId) }
+                }
             }
-            VideoTimeline {
-                generation:root.generation
-                id:timeline
-                x:16; width:workspace.width-32; height:implicitHeight; anchors.bottom:parent.bottom; anchors.bottomMargin:16
-                stateModel:timelineState; onChooseKeyframe:function(frame,trackId){ parameters.chooseImage(frame,trackId) }
+            VideoParameterPanel {
+                id:parameters; anchors.right:parent.right
+                width:Math.min(implicitWidth,Math.max(300,workspace.width*.4)); height:parent.height
+                generation:root.generation; timeline:timelineState; canGenerate:root.canGenerate; pending:root.pending
+                onGenerateRequested:root.submit()
             }
         }
     }
@@ -114,5 +147,4 @@ Item {
         showIconSlot:false
         onItemTriggered:function(index){ root.selectedResultId=root.results[index].id }
     }
-    LV.LabelButton { objectName:"videoResultSelector"; visible:root.results.length>1; anchors.right:parent.right; anchors.top:parent.top; anchors.rightMargin:332; anchors.topMargin:62; text:qsTr("Results · %1").arg(root.results.length); tone:LV.AbstractButton.Default; onClicked:resultsMenu.openFor(this,0,height) }
 }

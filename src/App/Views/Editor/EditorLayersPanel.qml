@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
+import Dreamscapes.Storage 1.0
 import ".." as Views
 import "EditorToolDefinitions.js" as Definitions
 
@@ -16,7 +17,7 @@ Item {
     property bool composite: true
     property bool shadowClipping: false
     property bool highlightClipping: false
-    property var histogram: ({red: [], green: [], blue: [], pixelCount: 0, mean: 0, standardDeviation: 0})
+    readonly property var histogram: histogramAnalysis.histogram
     property var collapsedGroups: ({})
     readonly property var selected: engine ? engine.selectedLayer : ({})
     readonly property var info: engine ? engine.layerPanelInfo : ({})
@@ -45,7 +46,7 @@ Item {
     implicitHeight: Math.max([407, 487, 512, 472][panelIndex], layout.implicitHeight)
     function asset(name) { return Qt.resolvedUrl("Assets/Layers/" + name + ".svg") }
     function report(success) { toolState.notice = success ? "" : engine.error }
-    function refreshHistogram() { if (engine && panelIndex === 2) histogram = engine.layerHistogram(composite, channel) }
+    function refreshHistogram() { histogramAnalysis.refresh() }
     function toggleVisibility(row) { report(row.group ? engine.setLayerGroupVisible(row.layerId, !row.visible) : engine.setLayerVisible(row.layerId, !row.visible)) }
     function editAdjustment(fieldId, value) {
         if (!engine.applyToolField("color", fieldId, value)) { report(false); return }
@@ -73,19 +74,17 @@ Item {
         else openAdjustment(adjustments.find(function(entry) { return entry.key === key }))
     }
     onPanelIndexChanged: {
-        histogramRefresh.restart()
         if (panelIndex !== 2 && engine) { shadowClipping = false; highlightClipping = false; engine.setLayerHistogramClipping(false, false) }
-        if (panelIndex !== 3 && engine && sample.picking) engine.cancelLayerColorSample()
+        if (panelIndex !== 3 && engine && (sample.picking || sample.pending)) engine.cancelLayerColorSample()
     }
-    onChannelChanged: histogramRefresh.restart()
-    onCompositeChanged: histogramRefresh.restart()
-    Connections {
-        target: root.engine
-        function onRevisionChanged() { histogramRefresh.restart() }
-        function onFrameChanged() { histogramRefresh.restart() }
-        function onSelectionChanged() { histogramRefresh.restart() }
+    EditorLayerHistogram {
+        id: histogramAnalysis
+        objectName: "editorLayerHistogram"
+        canvas: root.engine
+        active: root.visible && root.panelIndex === 2
+        composite: root.composite
+        channel: root.channel
     }
-    Timer { id: histogramRefresh; interval: 60; onTriggered: root.refreshHistogram() }
 
     component Heading: Views.PanelRow {
         type: LV.ListItem.Mini
@@ -115,8 +114,13 @@ Item {
         implicitHeight: 60
         height: 60
         HoverHandler { id: tileHover }
-        Controls.ToolTip.visible: tileHover.hovered && Boolean(entry.reason)
-        Controls.ToolTip.text: entry.reason || ""
+        LV.Tooltip {
+            target: tile
+            automatic: false
+            visible: (tileHover.hovered && Boolean(tile.entry.reason))
+                || selectionButton1.hovered || selectionButton1.visualFocus
+            text: tile.entry.reason || tile.entry.label
+        }
         LV.IconButton {
             id: selectionButton1
             objectName: "layerAction-" + tile.entry.key
@@ -126,8 +130,6 @@ Item {
             tone: LV.AbstractButton.Default
             enabled: tile.entry.enabled === undefined ? Boolean(root.info.canAdjust) && !tile.entry.reason : tile.entry.enabled
             Accessible.name: tile.entry.label
-            Controls.ToolTip.visible: hovered
-            Controls.ToolTip.text: tile.entry.reason || tile.entry.label
             onClicked: root.action(tile.entry.key)
 
             Accessible.checkable: selectionButton1.checkable
@@ -382,7 +384,7 @@ Item {
                     }
                 }
             }
-            Heading { label: root.histogram.available ? qsTr("Mean %1 · Std dev %2 · %3 pixels").arg(Number(root.histogram.mean || 0).toFixed(1)).arg(Number(root.histogram.standardDeviation || 0).toFixed(1)).arg(Number(root.histogram.pixelCount || 0).toLocaleString()) : qsTr("Histogram requires a finite canvas") }
+            Heading { label: root.histogram.pending ? qsTr("Calculating histogram…") : root.histogram.error ? qsTr("Histogram unavailable") : root.histogram.available ? qsTr("Mean %1 · Std dev %2 · %3 pixels").arg(Number(root.histogram.mean || 0).toFixed(1)).arg(Number(root.histogram.standardDeviation || 0).toFixed(1)).arg(Number(root.histogram.pixelCount || 0).toLocaleString()) : qsTr("Histogram requires a finite canvas") }
             Item { Layout.fillHeight: true }
             ActionGrid { Layout.fillWidth: true; entries: [{key: "shadow", label: qsTr("Shadow clipping"), icon: "Shadows", active: root.shadowClipping, enabled: Boolean(root.histogram.available)}, {key: "highlight", label: qsTr("Highlight clipping"), icon: "Highlights", active: root.highlightClipping, enabled: Boolean(root.histogram.available)}, {key: "refresh", label: qsTr("Refresh"), icon: "Generalrefresh", enabled: Boolean(root.histogram.available)}] }
         }
@@ -417,7 +419,7 @@ Item {
                     RowLayout {
                         anchors.fill: parent; anchors.margins: 8; spacing: 8
                         Rectangle { Layout.preferredWidth: 40; Layout.preferredHeight: 40; color: root.sample.color; radius: LV.Theme.radiusMd; border.color: LV.Theme.panelBackground12; border.width: root.sample.valid ? 0 : 1 }
-                        ColumnLayout { id: sampleValues; Layout.fillWidth: true; spacing: 4; LV.Label { Layout.fillWidth: true; text: root.sample.hex; style: body } LV.Label { Layout.fillWidth: true; text: root.sample.rgb; style: caption; wrapMode: Text.Wrap; sizeToContentHeight: true } }
+                        ColumnLayout { id: sampleValues; Layout.fillWidth: true; spacing: 4; LV.Label { Layout.fillWidth: true; text: root.sample.pending ? qsTr("Sampling…") : root.sample.hex; style: body } LV.Label { Layout.fillWidth: true; text: root.sample.error || root.sample.rgb; style: caption; wrapMode: Text.Wrap; sizeToContentHeight: true } }
                     }
                 }
             }

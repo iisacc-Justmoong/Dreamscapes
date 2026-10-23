@@ -11,6 +11,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <string_view>
 #include <type_traits>
 
 namespace EditorGraphicAdjust {
@@ -40,6 +41,7 @@ struct Reader {
     std::size_t width = 0, height = 0;
     std::deque<Image> images;
     std::vector<std::unique_ptr<Borrowed>> borrowed;
+    const MaskInputs *masks = nullptr;
     bool fail(const QString &message) { if (error.isEmpty()) error = message; return false; }
     bool keys(const QVariantMap &map, const QStringList &allowed) {
         for (auto it = map.cbegin(); it != map.cend(); ++it)
@@ -63,6 +65,28 @@ template<class T> bool member(Reader &reader, const QVariantMap &map, const char
     return false;
 }
 template<class T> bool enumValue(Reader &, const QVariant &, T &);
+bool maskMember(Reader &reader, const QVariantMap &map, const char *name, MaskView &out) {
+    if (reader.masks) {
+        const auto &inputs = *reader.masks;
+        const auto *slot = std::string_view(name) == "mask" ? &inputs.mask
+            : std::string_view(name) == "base" ? &inputs.base : &inputs.operand;
+        if (*slot) {
+            const auto view = **slot;
+            if (!view.width || !view.height || view.width > 65536 || view.height > 65536
+                || view.height > std::numeric_limits<std::size_t>::max() / view.width
+                || view.width * view.height != view.coverage.size()) return reader.fail("Mask dimensions must match its coverage");
+            for (float value : view.coverage)
+                if (!std::isfinite(value) || value < 0 || value > 1) return reader.fail("Mask coverage must be finite in [0,1]");
+            out = view; return true;
+        }
+    }
+    return member(reader, map, name, out);
+}
+void nativeMaskKeys(QVariantMap &parameters, const MaskInputs &inputs) {
+    if (inputs.mask) parameters["mask"] = QVariant{};
+    if (inputs.base) parameters["base"] = QVariant{};
+    if (inputs.operand) parameters["operand"] = QVariant{};
+}
 bool numericVariant(const QVariant &v) {
     switch(v.metaType().id()) {
     case QMetaType::Double: case QMetaType::Float: case QMetaType::Int: case QMetaType::UInt: case QMetaType::LongLong: case QMetaType::ULongLong: case QMetaType::Short: case QMetaType::UShort: case QMetaType::Long: case QMetaType::ULong: case QMetaType::Char: case QMetaType::SChar: case QMetaType::UChar: return true;
@@ -2607,7 +2631,7 @@ GA::Result<Image> dispatch(Reader &r,ImageView source,const QString &op,const QV
     }
     if(op=="applyLocalAdjustments" && !p.contains("adjustments")) {
         LocalAdjustment a; auto options=p; options.remove("mask");
-        if(!p.contains("mask") || !member(r,p,"mask",a.mask) || !read(r,QVariant(options),a.options)) { r.fail("Supply a local adjustment mask"); return failure(); }
+        if(!p.contains("mask") || !maskMember(r,p,"mask",a.mask) || !read(r,QVariant(options),a.options)) { r.fail("Supply a local adjustment mask"); return failure(); }
         const std::array<LocalAdjustment,1> items{a}; return GA::applyLocalAdjustments(source,items);
     }
     if(op=="applyLocalAdjustments") {
@@ -3541,7 +3565,7 @@ GA::Result<Image> dispatch(Reader &r,ImageView source,const QString &op,const QV
     }
     if(op=="maskColorOverlay") {
         MaskView a0={};
-        if (!member(r,p,"mask",a0)) return failure();
+        if (!maskMember(r,p,"mask",a0)) return failure();
         MaskOverlayOptions o1{};
         auto options=p; options.remove("mask");
         if (!read(r,QVariant(options),o1)) return failure();
@@ -3549,7 +3573,7 @@ GA::Result<Image> dispatch(Reader &r,ImageView source,const QString &op,const QV
     }
     if(op=="maskColorOnBwOverlay") {
         MaskView a0={};
-        if (!member(r,p,"mask",a0)) return failure();
+        if (!maskMember(r,p,"mask",a0)) return failure();
         MaskOverlayOptions o1{};
         auto options=p; options.remove("mask");
         if (!read(r,QVariant(options),o1)) return failure();
@@ -3557,19 +3581,19 @@ GA::Result<Image> dispatch(Reader &r,ImageView source,const QString &op,const QV
     }
     if(op=="maskImageOnBlack") {
         MaskView a0={};
-        if (!member(r,p,"mask",a0)) return failure();
+        if (!maskMember(r,p,"mask",a0)) return failure();
         if (!r.keys(p,{"mask"})) return failure();
         return GA::maskImageOnBlack(source,a0);
     }
     if(op=="maskImageOnWhite") {
         MaskView a0={};
-        if (!member(r,p,"mask",a0)) return failure();
+        if (!maskMember(r,p,"mask",a0)) return failure();
         if (!r.keys(p,{"mask"})) return failure();
         return GA::maskImageOnWhite(source,a0);
     }
     if(op=="maskWhiteOnBlack") {
         MaskView a0={};
-        if (!member(r,p,"mask",a0)) return failure();
+        if (!maskMember(r,p,"mask",a0)) return failure();
         if (!r.keys(p,{"mask"})) return failure();
         return GA::maskWhiteOnBlack(source,a0);
     }
@@ -4407,13 +4431,68 @@ QString canonicalOperation(const QString &operation) {
 QStringList operations() { auto result=parameterCatalog().keys(); for(auto it=aliases().cbegin();it!=aliases().cend();++it) if(parameterCatalog().contains(it.value())) result.append(it.key()); result.sort(); result.removeDuplicates(); return result; }
 QStringList parameterNames(const QString &operation) { return parameterCatalog().value(canonicalOperation(operation)); }
 bool supports(const QString &operation) { return parameterCatalog().contains(canonicalOperation(operation)); }
+QStringList helpers() {
+    return {"autoBlackAndWhiteMix", "autoDevelopLight", "autoLensScale", "autoWhiteBalance", "estimateChromaticAberration", "samplePointColor", "sampledWhiteBalance", "whiteBalancePreset"};
+}
+bool isHelper(const QString &operation) { return helpers().contains(canonicalOperation(operation)); }
+bool helperNeedsImage(const QString &operation) {
+    const auto op = canonicalOperation(operation);
+    return isHelper(op) && op != "samplePointColor" && op != "sampledWhiteBalance" && op != "whiteBalancePreset";
+}
+PreparedHelper prepareHelper(const QString &operation, const QVariantMap &parameters) {
+    const auto op = canonicalOperation(operation); auto p = normalizedParameters(op, parameters); Reader r;
+    const auto bad = [&]() -> PreparedHelper { return {{}, r.error.isEmpty() ? QStringLiteral("Supply valid parameters for this settings calculation.") : r.error}; };
+    if (op == "autoDevelopLight" || op == "autoBlackAndWhiteMix" || op == "estimateChromaticAberration") {
+        if (!r.keys(p, {})) return bad();
+        if (op == "autoDevelopLight") return {graphicHelper::AutoLight{}, {}};
+        if (op == "autoBlackAndWhiteMix") return {graphicHelper::AutoMix{}, {}};
+        return {graphicHelper::ChromaticAlignment{}, {}};
+    }
+    if (op == "autoWhiteBalance" || op == "sampledWhiteBalance") {
+        auto options = p; options.remove("sample"); WhiteBalanceOptions source;
+        if (op == "autoWhiteBalance") { if (!read(r, QVariant(p), source)) return bad(); return {graphicHelper::AutoWhite{source}, {}}; }
+        Rgba sample;
+        if (!read(r, QVariant(options), source) || !p.contains("sample") || !member(r, p, "sample", sample)) return bad();
+        return {graphicHelper::SampleWhite{sample, source}, {}};
+    }
+    if (op == "whiteBalancePreset") {
+        WhiteBalancePreset preset = WhiteBalancePreset::Daylight;
+        if (!r.keys(p, {"preset"}) || !p.contains("preset") || !member(r, p, "preset", preset)) return bad();
+        return {graphicHelper::WhitePreset{preset}, {}};
+    }
+    if (op == "samplePointColor") {
+        Rgba sample;
+        if (!r.keys(p, {"sample"}) || !p.contains("sample") || !member(r, p, "sample", sample)) return bad();
+        return {graphicHelper::PointColor{sample}, {}};
+    }
+    if (op == "autoLensScale") {
+        LensCorrectionOptions options; if (!read(r, QVariant(p), options)) return bad();
+        return {graphicHelper::LensScale{options}, {}};
+    }
+    return {{}, "Unsupported settings calculation: " + operation};
+}
+QVariantMap helperParameters(const graphicHelper::Result &result) {
+    QVariantMap parameters;
+    for (const auto &[name, value] : result.parameters) parameters[QString::fromStdString(name)] = std::visit([](const auto &input) -> QVariant {
+        using T = std::decay_t<decltype(input)>;
+        if constexpr (std::is_same_v<T, std::array<double, 8>>) { QVariantList values; for (double value : input) values.append(value); return values; }
+        else return QVariant::fromValue(input);
+    }, value);
+    return parameters;
+}
+bool usesAdjustmentCollection(const QVariantMap &parameters) {
+    return normalizedParameters("applyLocalAdjustments", parameters).contains("adjustments");
+}
 Result process(const QImage &source,const QString &operation,const QVariantMap &parameters) {
+    return process(source, operation, parameters, {});
+}
+Result process(const QImage &source,const QString &operation,const QVariantMap &parameters,const MaskInputs &masks) {
     const auto op=canonicalOperation(operation);
     if(!supports(op)) return {{},"Unsupported image operation: "+operation};
     try {
         auto image=importImage(source); if(!image) return {{},sdkError(image.error())};
-        Reader reader; reader.width=image->width; reader.height=image->height;
-        auto p=normalizedParameters(op,parameters); QVariantMap returned;
+        Reader reader; reader.width=image->width; reader.height=image->height; reader.masks=&masks;
+        auto p=normalizedParameters(op,parameters); nativeMaskKeys(p,masks); QVariantMap returned;
         GA::Result<Image> result=std::unexpected(Error{ErrorCode::InvalidParameter,"Unsupported image operation"});
         auto wbSettings=[](const WhiteBalanceOptions &o) { return QVariantMap{{"temperature",o.temperature},{"tint",o.tint},{"asShotTemperature",o.asShotTemperature},{"asShotTint",o.asShotTint}}; };
         if(op=="autoDevelopLight") {
@@ -4463,14 +4542,25 @@ Result process(const QImage &source,const QString &operation,const QVariantMap &
         return {std::move(output),{},returned};
     } catch(const std::bad_alloc &) { return {{},"Image processing allocation failed"}; }
 }
-MaskResult makeMask(const QImage &source,const QString &operation,const QVariantMap &parameters) {
+bool maskNeedsPixels(const QString &operation) {
+    return QStringList{"brushMask", "luminanceRangeMask", "colorRangeMask", "refineMask"}.contains(canonicalOperation(operation));
+}
+namespace {
+MaskResult calculateMask(QSize extent, const QImage *source, const QString &operation, const QVariantMap &parameters, const MaskInputs &masks) {
     try {
-        auto image=importImage(source); if(!image) return {0,0,{},sdkError(image.error())};
-        Reader r; r.width=image->width; r.height=image->height;
-        const auto op=canonicalOperation(operation); auto p=normalizedParameters(op,parameters);
+        if (extent.isEmpty()) return {0,0,{},"Supply a nonempty source image"};
+        const auto op=canonicalOperation(operation);
+        std::optional<Image> image;
+        if (maskNeedsPixels(op)) {
+            if (!source) return {0,0,{},"This mask operation requires source image pixels"};
+            auto imported=importImage(*source); if(!imported) return {0,0,{},sdkError(imported.error())};
+            image=std::move(*imported);
+        }
+        Reader r; r.width=std::size_t(extent.width()); r.height=std::size_t(extent.height()); r.masks=&masks;
+        auto p=normalizedParameters(op,parameters); nativeMaskKeys(p,masks);
         GA::Result<Mask> mask=std::unexpected(Error{ErrorCode::InvalidParameter,"Unsupported mask operation"});
-        if(op=="linearMask") { LinearMaskOptions o; if(!read(r,QVariant(p),o)) return {0,0,{},r.error}; mask=linearMask(image->width,image->height,o); }
-        else if(op=="radialMask") { RadialMaskOptions o; if(!read(r,QVariant(p),o)) return {0,0,{},r.error}; mask=radialMask(image->width,image->height,o); }
+        if(op=="linearMask") { LinearMaskOptions o; if(!read(r,QVariant(p),o)) return {0,0,{},r.error}; mask=linearMask(r.width,r.height,o); }
+        else if(op=="radialMask") { RadialMaskOptions o; if(!read(r,QVariant(p),o)) return {0,0,{},r.error}; mask=radialMask(r.width,r.height,o); }
         else if(op=="luminanceRangeMask") { LuminanceRangeOptions o; if(!read(r,QVariant(p),o)) return {0,0,{},r.error}; mask=luminanceRangeMask(image->view(),o); }
         else if(op=="colorRangeMask") { ColorRangeOptions o; if(!read(r,QVariant(p),o)) return {0,0,{},r.error}; mask=colorRangeMask(image->view(),o); }
         else if(op=="brushMask") { std::vector<BrushStroke> strokes;
@@ -4479,15 +4569,25 @@ MaskResult makeMask(const QImage &source,const QString &operation,const QVariant
             mask=brushMask(image->view(),strokes); }
         else if(op=="invertMask" || op=="refineMask") {
             MaskView view; double amount=0;
-            if(!r.keys(p,op=="refineMask" ? QStringList{"mask","amount"} : QStringList{"mask"}) || !member(r,p,"mask",view) || !p.contains("mask") || !member(r,p,"amount",amount)) return {0,0,{},r.error.isEmpty() ? "Supply a mask" : r.error};
+            if(!r.keys(p,op=="refineMask" ? QStringList{"mask","amount"} : QStringList{"mask"}) || !maskMember(r,p,"mask",view) || !p.contains("mask") || !member(r,p,"amount",amount)) return {0,0,{},r.error.isEmpty() ? "Supply a mask" : r.error};
             mask=op=="invertMask" ? invertMask(view) : refineMask(image->view(),view,amount);
         } else if(op=="combineMasks") {
             MaskView base,operand; MaskCombine mode=MaskCombine::Add;
-            if(!r.keys(p,{"base","operand","operation"}) || !member(r,p,"base",base) || !member(r,p,"operand",operand) || !member(r,p,"operation",mode) || !p.contains("base") || !p.contains("operand")) return {0,0,{},r.error.isEmpty() ? "Supply both masks" : r.error};
+            if(!r.keys(p,{"base","operand","operation"}) || !maskMember(r,p,"base",base) || !maskMember(r,p,"operand",operand) || !member(r,p,"operation",mode) || !p.contains("base") || !p.contains("operand")) return {0,0,{},r.error.isEmpty() ? "Supply both masks" : r.error};
             mask=combineMasks(base,operand,mode);
         }
         if(!mask) return {0,0,{},sdkError(mask.error())};
         return {int(mask->width),int(mask->height),std::move(mask->coverage),{}};
     } catch(const std::bad_alloc &) { return {0,0,{},"Mask processing allocation failed"}; }
+}
+} // namespace
+MaskResult makeMask(const QImage &source,const QString &operation,const QVariantMap &parameters) {
+    return makeMask(source, operation, parameters, {});
+}
+MaskResult makeMask(const QImage &source,const QString &operation,const QVariantMap &parameters,const MaskInputs &masks) {
+    return calculateMask(source.size(), source.isNull() ? nullptr : &source, operation, parameters, masks);
+}
+MaskResult makeMask(QSize extent,const QString &operation,const QVariantMap &parameters,const MaskInputs &masks) {
+    return calculateMask(extent, nullptr, operation, parameters, masks);
 }
 } // namespace EditorGraphicAdjust

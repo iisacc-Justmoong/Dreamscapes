@@ -1,5 +1,6 @@
 #include "EditorCanvas.h"
 #include "EditorToolUtils.h"
+#include "EditorColorSampler.h"
 #include <QClipboard>
 #include <QDesktopServices>
 #include <QFileInfo>
@@ -7,6 +8,7 @@
 #include <array>
 #include <cmath>
 #include <map>
+#include <limits>
 #include <type_traits>
 
 using namespace iiSharedCanvas;
@@ -73,7 +75,7 @@ QVariantMap EditorCanvas::layerPanelInfo() const {
     const bool unlocked = !m_pixelLocks.contains(selectedLayerId()) && !m_positionLocks.contains(selectedLayerId());
     info["canGroup"] = unlocked && !infiniteCanvas() && !properties.artboardId;
     info["canAdjust"] = unlocked && !dynamicLayer(*layer) && asset && (contentKind(*asset) == ContentKind::Raster);
-    info["canReveal"] = !filePath().isEmpty() && QFileInfo::exists(filePath());
+    info["canReveal"] = !filePath().isEmpty() && fileAlias().value("available").toBool();
     const auto index = std::size_t(layer - document()->layers.data());
     if (index > 0) {
         const auto &below = document()->layers[index - 1];
@@ -88,32 +90,6 @@ QVariantMap EditorCanvas::layerPanelInfo() const {
             && !m_pixelLocks.contains(QString::fromStdString(p.id)) && !m_positionLocks.contains(QString::fromStdString(p.id));
     }
     return info;
-}
-
-QVariantMap EditorCanvas::layerHistogram(bool composite, const QString &channel) const {
-    QVariantMap result{{"pixelCount", 0}, {"mean", 0.0}, {"standardDeviation", 0.0}};
-    std::array<std::array<int, 256>, 3> bins{};
-    qlonglong count = 0; double sum = 0, squares = 0;
-    if (documentReady() && !infiniteCanvas() && (composite || !selectedLayerId().isEmpty())) {
-        auto sampled = *document();
-        if (!composite) {
-            for (auto &layer : sampled.layers) layerProperties(layer).visible = layerProperties(layer).id == selectedLayerId().toStdString();
-            for (auto &board : sampled.artboards) { board.backgroundArgb = 0; board.visible = true; }
-        }
-        const auto rendered = renderEditingFrame(sampled);
-        if (rendered.ok()) for (const auto pixel : rendered.pixels.pixels) {
-            if (!qAlpha(pixel)) continue;
-            ++bins[0][qRed(pixel)]; ++bins[1][qGreen(pixel)]; ++bins[2][qBlue(pixel)]; ++count;
-            const double value = channel == "Red" ? qRed(pixel) : channel == "Green" ? qGreen(pixel) : channel == "Blue" ? qBlue(pixel) : qGray(pixel);
-            sum += value; squares += value * value;
-        }
-    }
-    for (int index = 0; index < 3; ++index) { QVariantList values; values.reserve(256); for (const auto value : bins[index]) values.append(value); result[QStringList{"red", "green", "blue"}[index]] = values; }
-    result["pixelCount"] = count;
-    result["mean"] = count ? sum / count : 0;
-    result["standardDeviation"] = count ? std::sqrt(std::max(0.0, squares / count - std::pow(sum / count, 2))) : 0;
-    result["available"] = documentReady() && !infiniteCanvas() && (composite || !selectedLayerId().isEmpty());
-    return result;
 }
 
 bool EditorCanvas::duplicateSelectedLayer() {
@@ -149,7 +125,13 @@ bool EditorCanvas::groupSelectedLayer() {
     });
 }
 bool EditorCanvas::setLayerGroupVisible(const QString &id, bool visible) {
-    return commit([&](Document &d) { DocumentEditor editor(d); return editor.setArtboardVisible(id.toStdString(), visible).ok(); });
+    if (!documentReady()) return fail(tr("Open or create a canvas first."));
+    const auto key = id.toStdString();
+    if (const auto *group = findArtboard(*document(), key); group && group->visible == visible) return true;
+    if (liveStrokeActive()) return fail(tr("Finish the current stroke before editing the document."));
+    const auto result = editDocument([&](DocumentEditor &editor) { return editor.setArtboardVisible(key, visible); });
+    if (result.ok()) clearError();
+    return result.ok();
 }
 bool EditorCanvas::mergeSelectedDown() {
     if (!layerPanelInfo()["canMerge"].toBool()) return fail(tr("Choose two visible, unlocked static layers in the same group."));
@@ -169,18 +151,75 @@ bool EditorCanvas::mergeSelectedDown() {
 }
 
 bool EditorCanvas::beginLayerColorSample() {
-    if (!documentReady() || infiniteCanvas()) return fail(tr("Open a finite canvas to sample a color."));
-    m_layerColorPicking = true; emit toolStateChanged(); return true;
+    if (!documentReady() || infiniteCanvas() || liveStrokeActive()) return fail(tr("Open a finite canvas and finish the current stroke to sample a color."));
+    retireColorRead(); m_colorReadError.clear(); m_layerColorPicking = true; emit toolStateChanged(); return true;
 }
-void EditorCanvas::cancelLayerColorSample() { if (!m_layerColorPicking) return; m_layerColorPicking = false; emit toolStateChanged(); }
+void EditorCanvas::cancelLayerColorSample() {
+    if (!m_layerColorPicking && m_colorRead != ColorRead::Layer) return;
+    retireColorRead(); emit toolStateChanged();
+}
+bool EditorCanvas::retireColorRead() {
+    const bool changed = m_colorRead != ColorRead::None || m_layerColorPicking || m_pickNeutral;
+    m_colorSampler->cancel(); m_colorReadToken = 0; m_colorRead = ColorRead::None;
+    m_layerColorPicking = m_pickNeutral = false; m_neutralReadSettings.clear();
+    return changed;
+}
 bool EditorCanvas::sampleLayerColor(const QPointF &position) {
-    if (!documentReady() || infiniteCanvas() || position.x() < 0 || position.y() < 0 || position.x() >= editingWidth() || position.y() >= editingHeight()) return fail(tr("Choose a point inside the canvas."));
-    const auto rendered = renderEditingFrame(*document()); if (!rendered.ok()) return fail(QString::fromStdString(rendered.message));
-    m_layerSampleColor = QColor::fromRgba(rendered.pixels.pixels[int(position.y()) * editingWidth() + int(position.x())]);
-    m_layerColorValid = true; m_layerColorPicking = false; ++m_layerSampleSequence; clearError(); emit toolStateChanged(); return true;
+    return requestColorRead(position, ColorRead::Layer);
+}
+bool EditorCanvas::requestColorRead(const QPointF &position, ColorRead purpose) {
+    const auto reject = [this](const QString &message) { m_colorReadError = message; emit toolStateChanged(); return false; };
+    if (!documentReady() || infiniteCanvas() || liveStrokeActive() || !std::isfinite(position.x()) || !std::isfinite(position.y())
+        || position.x() < 0 || position.y() < 0 || position.x() >= editingWidth() || position.y() >= editingHeight())
+        return reject(tr("Choose a point inside a finite canvas after finishing the current stroke."));
+    const auto world = QPointF(std::floor(position.x()), std::floor(position.y())) + editingOrigin();
+    const auto fits = [](qreal value) { return std::isfinite(value) && value >= std::numeric_limits<std::int32_t>::min() && value <= std::numeric_limits<std::int32_t>::max(); };
+    if (!fits(world.x()) || !fits(world.y())) return reject(tr("The color sample is outside the canvas coordinate range."));
+    try {
+        EditorColorSampler::Request input;
+        input.snapshot = editingFrameSnapshot(); input.worldPosition = {std::int32_t(world.x()), std::int32_t(world.y())};
+        input.visibility.artboards.reserve(document()->artboards.size()); input.visibility.layers.reserve(document()->layers.size());
+        for (const auto &board : document()->artboards) input.visibility.artboards.push_back(board.visible);
+        for (const auto &layer : document()->layers) input.visibility.layers.push_back(layerProperties(layer).visible);
+        m_colorReadFrame = input.snapshot.frame; m_colorReadArtboard = input.snapshot.artboardId;
+        m_colorReadToken = m_colorSampler->submit(std::move(input));
+    } catch (const std::exception &error) {
+        retireColorRead(); return reject(QString::fromUtf8(error.what()));
+    }
+    m_colorRead = purpose; m_colorReadRevision = revision(); m_colorReadLayer = selectedLayerId();
+    m_colorReadPosition = position; m_colorReadError.clear(); m_layerColorPicking = m_pickNeutral = false;
+    m_neutralReadSettings = purpose == ColorRead::Neutral ? settingsFor("color") : QVariantMap{};
+    emit toolStateChanged(); return true;
+}
+void EditorCanvas::finishColorRead(qulonglong token, quint32 argb, const QString &error, bool cancelled) {
+    if (!token || token != m_colorReadToken) return;
+    const auto purpose = m_colorRead;
+    const bool eligible = documentReady() && revision() == m_colorReadRevision && !liveStrokeActive()
+        && (purpose != ColorRead::Neutral || (frame() == m_colorReadFrame && editingArtboardId() == m_colorReadArtboard && selectedLayerId() == m_colorReadLayer));
+    m_colorRead = ColorRead::None; m_colorReadToken = 0;
+    m_colorReadError = error;
+    if (!eligible || cancelled || !error.isEmpty()) { m_neutralReadSettings.clear(); emit toolStateChanged(); return; }
+    if (purpose == ColorRead::Layer) {
+        m_layerSampleColor = QColor::fromRgba(argb); m_layerColorValid = true; ++m_layerSampleSequence;
+        m_layerSampleFrame = m_colorReadFrame; m_layerSampleArtboard = m_colorReadArtboard; m_layerSamplePosition = m_colorReadPosition;
+        emit toolStateChanged(); return;
+    }
+    if (purpose == ColorRead::Neutral) {
+        m_settings["color"] = std::move(m_neutralReadSettings);
+        const QVariantMap updates{{"field-24", "Relative"}, {"field-25", (qBlue(argb) - qRed(argb)) / 255.0 * 6000},
+            {"field-28", (qGreen(argb) - (qRed(argb) + qBlue(argb)) / 2.0) / 255 * 100}};
+        if (m_tool == "color") { m_toolValues = m_settings["color"]; for (auto it = updates.cbegin(); it != updates.cend(); ++it) m_toolValues[it.key()] = it.value(); }
+        // Temperature and tint describe one accepted white-balance command.
+        // One processing pass and durable edit replace two sequential writes.
+        const QPointer<EditorCanvas> guard(this);
+        const bool applied = applyPixelFields("color", updates, "field-25");
+        if (guard && !applied) emit toolStateChanged();
+    }
 }
 QVariantMap EditorCanvas::layerColorSample() const {
-    return {{"valid", m_layerColorValid}, {"picking", m_layerColorPicking}, {"sequence", m_layerSampleSequence}, {"hex", m_layerColorValid ? m_layerSampleColor.name().toUpper() : QStringLiteral("No sample")},
+    return {{"valid", m_layerColorValid}, {"picking", m_layerColorPicking}, {"pending", m_colorRead == ColorRead::Layer}, {"error", m_colorReadError},
+        {"sequence", m_layerSampleSequence}, {"frame", m_layerSampleFrame}, {"artboard", QString::fromStdString(m_layerSampleArtboard)}, {"position", m_layerSamplePosition},
+        {"hex", m_layerColorValid ? m_layerSampleColor.name().toUpper() : QStringLiteral("No sample")},
         {"color", m_layerColorValid ? m_layerSampleColor : QColor(Qt::transparent)},
         {"rgb", m_layerColorValid ? QStringLiteral("RGB %1 · %2 · %3").arg(m_layerSampleColor.red()).arg(m_layerSampleColor.green()).arg(m_layerSampleColor.blue()) : tr("Choose Sample color, then click the canvas.")}};
 }
@@ -199,5 +238,5 @@ bool EditorCanvas::revealLayerSource() {
 }
 void EditorCanvas::setLayerHistogramClipping(bool shadows, bool highlights) {
     if (m_histogramShadows == shadows && m_histogramHighlights == highlights) return;
-    m_histogramShadows = shadows; m_histogramHighlights = highlights; m_clippingKey.clear(); m_clippingImage = QUrl{}; emit toolStateChanged();
+    m_histogramShadows = shadows; m_histogramHighlights = highlights; emit toolStateChanged();
 }

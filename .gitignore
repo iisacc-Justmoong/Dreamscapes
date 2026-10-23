@@ -1,4 +1,5 @@
 /build/
+/tests/native-generation/build/
 /cmake-build-debug/
 /.idea/
 .DS_Store

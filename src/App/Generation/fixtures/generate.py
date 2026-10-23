@@ -55,13 +55,34 @@ parser.add_argument('--default-modifiers', action=argparse.BooleanOptionalAction
 def generate(arguments, request_count=1):
     args = parser.parse_args(arguments)
     if args.backend == 'video':
+        if args.prompt in ('video-preparing-progress', 'video-preparing-stall', 'video-computing-progress'):
+            args.cache_dir.mkdir(parents=True, exist_ok=True)
+            cached = args.cache_dir / 'verified-encoder-fixture'
+            if not cached.exists(): cached.write_bytes(b'verified model asset')
+            stage = 'computing' if 'computing' in args.prompt else 'preparing-model'
+            def progress(step):
+                print('IILD_VIDEO_PROGRESS ' + json.dumps({'schema': 'iild-video-progress-v1',
+                    'stage': stage, 'step': step, 'total': 0 if stage == 'computing' else 12}), flush=True)
+            barrier = pathlib.Path(os.environ['DREAMSCAPES_TEST_WATCHDOG_BARRIER'])
+            def wait(suffix):
+                deadline = time.monotonic() + 30
+                while not pathlib.Path(str(barrier) + suffix).exists():
+                    if time.monotonic() > deadline: raise RuntimeError('Video progress barrier timed out')
+                    time.sleep(0.01)
+            progress(1)
+            pathlib.Path(str(barrier) + '.started').write_text('ready')
+            wait('.release')
+            progress(1 if args.prompt.endswith('stall') else 2)
+            pathlib.Path(str(barrier) + '.buffered').write_text('ready')
+            wait('.finish')
         if args.prompt == 'video-hold': time.sleep(20)
         shots = json.loads(args.storyboard.read_text())["shots"] if args.storyboard else []
         frames = sum(shot["frames"] for shot in shots) if shots else args.duration * args.fps
         args.duration = frames / args.fps
         subprocess.run([args.ffmpeg,'-hide_banner','-loglevel','error','-f','lavfi','-i',
             f'color=c=blue:s={args.width}x{args.height}:r={args.fps}', '-frames:v', str(frames),
-            '-c:v','libx264','-pix_fmt','yuv420p',str(args.output)],check=True)
+            '-c:v','libx264','-pix_fmt','yuv420p',
+            '-metadata',f'comment=Dreamscapes fixture: {args.output}',str(args.output)],check=True)
         poster = args.output.with_name(args.output.stem+'-frames')
         poster.mkdir()
         subprocess.run([args.ffmpeg,'-hide_banner','-loglevel','error','-i',str(args.output),
@@ -87,22 +108,54 @@ def generate(arguments, request_count=1):
         time.sleep(0.3)
     if args.prompt == 'fail':
         sys.exit('inference fixture rejected this model')
-    if args.prompt in ('telemetry-stall', 'telemetry-progress', 'telemetry-computing'):
+    if args.prompt in ('buffered-progress', 'buffered-heartbeats'):
+        barrier = pathlib.Path(os.environ['DREAMSCAPES_TEST_WATCHDOG_BARRIER'])
         trace = pathlib.Path(os.environ['IILD_NATIVE_TELEMETRY_DIR']) / 'fixture.jsonl'
         trace.parent.mkdir(parents=True, exist_ok=True)
-        for index in range(30):
-            step = index if args.prompt == 'telemetry-progress' else 0
+        def progress(step):
             event = {'schema': 'iild-native-telemetry-v1', 'event': 'heartbeat',
                      'phase': 'denoise', 'step': step, 'total': args.steps,
-                     'backend': 'Metal', 'trace_path': str(trace), 'elapsed_ms': index * 100}
+                     'backend': 'Metal', 'trace_path': str(trace)}
             with trace.open('a') as output:
                 output.write(json.dumps(event) + '\n')
             print('IILD_NATIVE_TELEMETRY ' + json.dumps(event), flush=True)
-            print('IILD_NATIVE_PROGRESS ' + json.dumps({'schema': 'iild-native-progress-v1',
-                  'stage': 'computing' if args.prompt == 'telemetry-computing' else 'denoising',
-                  'step': index + 1 if args.prompt == 'telemetry-computing' else step,
-                  'total': 0 if args.prompt == 'telemetry-computing' else args.steps}), flush=True)
-            time.sleep(0.1)
+            if args.prompt == 'buffered-progress':
+                print('IILD_NATIVE_PROGRESS ' + json.dumps({'schema': 'iild-native-progress-v1',
+                      'stage': 'denoising', 'step': step, 'total': args.steps}), flush=True)
+        progress(1 if args.prompt == 'buffered-progress' else 0)
+        barrier.with_suffix('.started').touch()
+        while not barrier.with_suffix('.release').exists():
+            time.sleep(.01)
+        progress(2 if args.prompt == 'buffered-progress' else 0)
+        barrier.with_suffix('.buffered').touch()  # Both stdout writes have been flushed.
+        while not barrier.with_suffix('.finish').exists():
+            time.sleep(.01)
+    if args.prompt in ('telemetry-stall', 'telemetry-progress', 'telemetry-computing'):
+        trace = pathlib.Path(os.environ['IILD_NATIVE_TELEMETRY_DIR']) / 'fixture.jsonl'
+        trace.parent.mkdir(parents=True, exist_ok=True)
+        barrier = pathlib.Path(os.environ['DREAMSCAPES_TEST_WATCHDOG_BARRIER'])
+        # Inject expiry only after stdout is buffered. Filesystem and result
+        # publication latency must not decide whether a heartbeat is progress.
+        with trace.open('a') as output:
+            for index in range(2):
+                step = index + 1 if args.prompt == 'telemetry-progress' else 0
+                event = {'schema': 'iild-native-telemetry-v1', 'event': 'heartbeat',
+                         'phase': 'denoise', 'step': step, 'total': args.steps,
+                         'backend': 'Metal', 'trace_path': str(trace), 'elapsed_ms': index * 100}
+                output.write(json.dumps(event) + '\n')
+                output.flush()
+                print('IILD_NATIVE_TELEMETRY ' + json.dumps(event), flush=True)
+                print('IILD_NATIVE_PROGRESS ' + json.dumps({'schema': 'iild-native-progress-v1',
+                      'stage': 'computing' if args.prompt == 'telemetry-computing' else 'denoising',
+                      'step': index + 1 if args.prompt == 'telemetry-computing' else step,
+                      'total': 0 if args.prompt == 'telemetry-computing' else args.steps}), flush=True)
+                if index == 0:
+                    barrier.with_suffix('.started').touch()
+                    while not barrier.with_suffix('.release').exists():
+                        time.sleep(.01)
+            barrier.with_suffix('.buffered').touch()
+            while not barrier.with_suffix('.finish').exists():
+                time.sleep(.01)
     if args.prompt == 'native-progress':
         for stage, step, total in [('loading', 200, 685), ('encoding', 0, 0),
                                    ('denoising', 1, args.steps), ('denoising', args.steps, args.steps),

@@ -116,10 +116,15 @@ private slots:
         QCOMPARE(canvas.revision(), revision);
         const auto revisionInfo = value(info, "Authorship.revision");
         QSignalSpy updates(&canvas, &EditorCanvas::fileInformationChanged);
+        QSignalSpy viewUpdates(&canvas, &EditorCanvas::fileViewInformationChanged);
         canvas.setFrame(1); canvas.setPagePresentation(true);
-        QVERIFY(updates.size() >= 2);
+        QCOMPARE(updates.size(), 0);
+        QVERIFY(viewUpdates.size() >= 2);
         QCOMPARE(value(canvas.fileInformation(), "EditorCanvas.frame"), "1");
+        QCOMPARE(value(canvas.fileViewInformation(), "EditorCanvas.frame"), "1");
         QCOMPARE(value(canvas.fileInformation(), "Authorship.revision"), revisionInfo);
+        QCOMPARE(encodeIisc(*canvas.document()).bytes, bytes);
+        QCOMPARE(canvas.revision(), revision);
     }
     void sparseAndVideoContentUsesDocumentValues() {
         EditorCanvas canvas;

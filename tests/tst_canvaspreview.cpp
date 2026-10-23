@@ -1,5 +1,6 @@
 #include "App/Views/Home/CanvasPreview.h"
 #include <iiSharedCanvas.h>
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QImage>
@@ -9,6 +10,8 @@
 #include <QQuickImageProvider>
 #include <QTemporaryDir>
 #include <QtTest>
+#include <iiFileProviderPresentation.h>
+#include <filesystem>
 #include <memory>
 
 class CanvasPreviewTests : public QObject {
@@ -32,6 +35,60 @@ private slots:
         QCOMPARE(dreamscapes::canvasPreviewSource({{"path", "/file.iisc"}, {"available", false}, {"previewSource", png}}), png);
         QCOMPARE(dreamscapes::canvasPreviewSource({{"source", QUrl("https://example.invalid/file.iisc")}, {"previewSource", png}}), png);
         QVERIFY(dreamscapes::canvasPreviewSource({}).isEmpty());
+    }
+    void localReferenceUrlsDoNotMaterializeFiles() {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/.display-url-XXXXXX"); QVERIFY(root.isValid());
+        const auto nativePath = root.filePath("reference.iisc");
+        const auto bytes = iiSharedCanvas::encodeIisc(artwork()); QVERIFY(bytes.ok());
+        QFile file(nativePath); QVERIFY(file.open(QIODevice::WriteOnly));
+        QCOMPARE(file.write(reinterpret_cast<const char *>(bytes.bytes.data()), qint64(bytes.bytes.size())), qint64(bytes.bytes.size())); file.close();
+        const auto pngPath = root.filePath("ordinary.png");
+        QImage png(8, 4, QImage::Format_ARGB32); png.fill(Qt::red); QVERIFY(png.save(pngPath));
+        const auto entries = QDir(root.path()).entryList(QDir::AllEntries | QDir::Hidden | QDir::NoDotAndDotDot);
+        CanvasPreview previews;
+        QVERIFY(previews.sourceForUrl(QUrl("https://example.invalid/image.png")).isEmpty());
+        QVERIFY(previews.sourceForUrl({}).isEmpty());
+        const auto source = QUrl::fromLocalFile(nativePath);
+        const auto native = previews.sourceForUrl(source);
+        QCOMPARE(native.host(), QStringLiteral("iisc-preview"));
+        const auto normal = previews.sourceForUrl(QUrl::fromLocalFile(pngPath));
+        QCOMPARE(normal.toLocalFile(), pngPath);
+        QVERIFY(!normal.query().isEmpty());
+        QQmlEngine engine;
+        engine.rootContext()->setContextProperty("displaySource", normal);
+        QQmlComponent component(&engine);
+        component.setData("import QtQuick; Image { source: displaySource; asynchronous: true; sourceSize: Qt.size(8, 4) }", QUrl{});
+        std::unique_ptr<QObject> image(component.create());
+        QVERIFY2(image, qPrintable(component.errorString()));
+        QTRY_COMPARE(image->property("status").toInt(), 1);
+        QCOMPARE(image->property("implicitWidth").toDouble(), 8.0);
+        QElapsedTimer elapsed; elapsed.start();
+        for (int i = 0; i < 200; ++i) QCOMPARE(previews.sourceForUrl(source), native);
+        qInfo() << "PERF reference_display_urls reads=200 elapsed_us=" << elapsed.nsecsElapsed() / 1000;
+        QCOMPARE(QDir(root.path()).entryList(QDir::AllEntries | QDir::Hidden | QDir::NoDotAndDotDot), entries);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QCOMPARE(file.readAll(), QByteArray(reinterpret_cast<const char *>(bytes.bytes.data()), qsizetype(bytes.bytes.size())));
+    }
+    void restoredTimestampsStillInvalidateSource() {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/.preview-version-XXXXXX"); QVERIFY(root.isValid());
+        const auto path = root.filePath("unchanged-name.iisc");
+        auto document = artwork();
+        auto bytes = iiSharedCanvas::encodeIisc(document); QVERIFY(bytes.ok());
+        QFile file(path); QVERIFY(file.open(QIODevice::WriteOnly));
+        QCOMPARE(file.write(reinterpret_cast<const char *>(bytes.bytes.data()), qint64(bytes.bytes.size())), qint64(bytes.bytes.size())); file.close();
+        const auto native = std::filesystem::path(path.toStdU16String());
+        const auto savedTime = std::filesystem::last_write_time(native);
+        const auto initial = dreamscapes::canvasPreviewSource(entry(path));
+        (void)iiFileProvider::native::Presentation::prepare(native);
+        QCOMPARE(dreamscapes::canvasPreviewSource(entry(path)), initial);
+        std::get<iiSharedCanvas::RasterAsset>(document.assets.front()).pixels.pixels.assign(3200, 0xff0000ffU);
+        const auto updated = iiSharedCanvas::encodeIisc(document); QVERIFY(updated.ok());
+        QCOMPARE(updated.bytes.size(), bytes.bytes.size());
+        QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        QCOMPARE(file.write(reinterpret_cast<const char *>(updated.bytes.data()), qint64(updated.bytes.size())), qint64(updated.bytes.size())); file.close();
+        std::filesystem::last_write_time(native, savedTime);
+        QVERIFY2(dreamscapes::canvasPreviewSource(entry(path)) != initial,
+            "a same-size edit with a restored timestamp must not retain stale display pixels");
     }
     void modulePixelsAreBoundedAndRevisioned() {
         QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/canvas-preview-XXXXXX");

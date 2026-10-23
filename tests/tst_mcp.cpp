@@ -1,6 +1,6 @@
-#include <mcp/LocalApplications.h>
-#include <mcp/HttpClient.h>
-#include <agent/McpTools.h>
+#include <iiMultimodalAgent/mcp/LocalApplications.h>
+#include <iiMultimodalAgent/mcp/HttpClient.h>
+#include <iiMultimodalAgent/agent/McpTools.h>
 #include <atomic>
 #include <future>
 #include <SocietyDrive.h>
@@ -13,7 +13,7 @@
 #include <QJsonDocument>
 #include <QSet>
 
-namespace m = iiLocalLLM::mcp;
+namespace m = iiMultimodalAgent::mcp;
 namespace {
 struct AppProcess : QProcess {
     QByteArray output;
@@ -33,11 +33,12 @@ struct AppProcess : QProcess {
         env.insert("IILOCALLLM_DISABLE_APP_MCP", enabled ? "0" : "1");
         env.insert("IILD_GENERATOR_EXECUTABLE", MCP_GENERATOR_FIXTURE);
         env.insert("DREAMSCAPES_TEMP_DIRECTORY", base + "/tmp");
+        env.insert("DREAMSCAPES_FAILURE_REPORTS_DIR", base + "/failure-reports");
         env.insert("QT_QPA_PLATFORM", "offscreen"); env.insert("QT_QUICK_BACKEND", "software");
         env.insert("QML_DISABLE_DISK_CACHE", "1");
         setProcessEnvironment(env); setProcessChannelMode(MergedChannels); setWorkingDirectory(base);
         logPath = base + "/app.log";
-        start(MCP_APP_EXECUTABLE, {"--society-container", base + "/container.societycontainer"});
+        start(qEnvironmentVariable("DREAMSCAPES_TEST_APP_PATH", MCP_APP_EXECUTABLE), {"--society-container", base + "/container.societycontainer"});
     }
     bool waitForRoot() {
         // Cold signed bundles on external storage can exceed the normal CI
@@ -89,7 +90,7 @@ private slots:
         auto client=std::make_shared<m::HttpClient>(clientOptions(discovered.applications.first()));
         QCOMPARE(client->serverCapabilities()["experimental"].toObject()["iisacc/userQuestions"].toObject()["responseChannel"],"local-ui");
         bool marked=false;
-        for(const auto& tool:iiLocalLLM::agent::mcpTools(client,{"app",{}}))
+        for(const auto& tool:iiMultimodalAgent::agent::mcpTools(client,{"app",{}}))
             if(tool.definition.name=="mcp__app__AskUserQuestion")marked=tool.definition.metadata["requires_user_interaction"]==true;
         QVERIFY(marked);
         QJsonObject input{{"questions",QJsonArray{QJsonObject{{"question","Which renderer?"},{"header","Renderer"},
@@ -135,7 +136,7 @@ private slots:
             if (tool["name"] == "iiLocalLLM.agent.permissions.get")
                 QVERIFY(tool["annotations"].toObject()["readOnlyHint"].toBool());
         }
-        QCOMPARE(toolNames, QSet<QString>({"status", "models", "vaes", "select_vae", "jobs", "select_model",
+        QCOMPARE(toolNames, QSet<QString>({"status", "models", "vaes", "select_vae", "jobs", "failure_analysis", "select_model",
             "refresh_models", "generate", "cancel", "iiLocalLLM.agent.permissions.get", "AskUserQuestion"}));
         QCOMPARE(data(client, "vaes")["total"].toInt(), 1);
         QCOMPARE(data(client, "select_vae", {{"id", "VAE/sdxl.safetensors"}})["selected_vae"].toString(), QString("VAE/sdxl.safetensors"));
@@ -191,6 +192,23 @@ private slots:
         QCOMPARE(findJob(client, firstId)["state"].toString(), QString("completed"));
         const auto page = data(client, "jobs", {{"offset", 1}, {"limit", 1}});
         QCOMPARE(page["items"].toArray().size(), 1); QCOMPARE(page["total"].toInt(), 3); QVERIFY(page["has_more"].toBool());
+        const auto failedId = data(client, "generate", {{"prompt", "crash"}})["first_job_id"].toString();
+        QVERIFY(!failedId.isEmpty());
+        QTRY_COMPARE_WITH_TIMEOUT(findJob(client, failedId)["state"].toString(), QString("failed"), 20000);
+        QTRY_VERIFY_WITH_TIMEOUT(data(client, "failure_analysis", {{"id", failedId}})["state"] != "pending", 90000);
+        const auto diagnosis = data(client, "failure_analysis", {{"id", failedId}});
+        QVERIFY2(diagnosis["agentError"].toString().isEmpty(), qPrintable(diagnosis["agentError"].toString()));
+        QVERIFY(!diagnosis["agentRunId"].toString().isEmpty());
+        QVERIFY(diagnosis["details"].toString().contains("ORIGINAL ERROR"));
+        QCOMPARE(diagnosis["rawError"], findJob(client, failedId)["error"]);
+        QCOMPARE(diagnosis["evidence"].toObject()["exitCode"].toInt(), 9);
+        QCOMPARE(diagnosis["evidence"].toObject()["job"].toObject()["workerExitStatus"].toString(), QString("normal"));
+        QTRY_VERIFY_WITH_TIMEOUT(!data(client, "status")["busy"].toBool(), 10000);
+        const auto capture = qEnvironmentVariable("DREAMSCAPES_CAPTURE_DIR");
+        if (!capture.isEmpty()) {
+            QFile file(capture + "/packaged-failure-report.json"); QVERIFY(file.open(QIODevice::WriteOnly));
+            QVERIFY(file.write(QJsonDocument(diagnosis).toJson()) > 0);
+        }
         QVERIFY(call(client, "cancel", {{"id", firstId}})["isError"].toBool());
         auto wrong = clientOptions(endpoint); wrong.bearerToken = [] { return QByteArray(43, 'x'); };
         QVERIFY_THROWS_EXCEPTION(iiLocalLLM::Error, m::HttpClient denied(wrong));

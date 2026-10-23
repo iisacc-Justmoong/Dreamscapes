@@ -7,6 +7,7 @@ import Dreamscapes.Storage 1.0
 
 LV.VStack {
     id: root
+    Layout.minimumWidth: 0
     CanvasPreview { id: canvasPreviews }
     property string title: ""
     property string subtitle: ""
@@ -23,7 +24,10 @@ LV.VStack {
     property bool imageSelectionEnabled: false
     readonly property var visibleFiles: Array.prototype.slice.call(files || [], 0, maximumItems)
     readonly property alias count: cards.count
-    readonly property real cardWidth: width >= 900 ? (width - 4 * 16) / 5 : 180
+    readonly property real cardWidth: metrics.implicitWidth
+    readonly property real cardHeight: metrics.implicitHeight
+    readonly property int visibleColumns: Math.max(1, Math.floor((width + LV.Theme.gap16) / (cardWidth + LV.Theme.gap16)))
+    LV.Card { id: metrics; type: LV.Card.File; size: LV.Card.Medium; visible: false }
     signal viewAllRequested()
     signal fileRequested(var file)
     signal openFileRequested()
@@ -39,40 +43,33 @@ LV.VStack {
         const card = cards.itemAtIndex(0)
         if (card) card.forceActiveFocus()
     }
-    spacing: 16
+    spacing: LV.Theme.gap12
     LV.HStack {
         Layout.fillWidth: true
-        spacing: 8
-        LV.VStack {
+        Layout.minimumWidth: 0
+        spacing: LV.Theme.gap8
+        LV.Label {
+            text: root.title
+            style: header
+            elide: Text.ElideRight
+            Layout.minimumWidth: 0
+        }
+        LV.Label {
+            objectName: root.objectName + "Count"
+            visible: root.width >= 500
+            text: root.imageSelectionEnabled ? qsTr("%1 results").arg(root.visibleFiles.length) : qsTr("%1 files").arg(root.visibleFiles.length)
+            style: caption
+            color: LV.Theme.descriptionColor
+        }
+        Item {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            spacing: 8
-            LV.Label {
-                text: root.title
-                style: header
-                font.pixelSize: 18
-                font.weight: Font.DemiBold
-                font.styleName: "SemiBold"
-                Layout.fillWidth: true
-                Layout.preferredHeight: 26
-                elide: Text.ElideRight
-            }
-            LV.Label {
-                text: root.subtitle
-                style: description
-                font.pixelSize: 13
-                font.weight: Font.Medium
-                font.styleName: "Medium"
-                color: LV.Theme.descriptionColor
-                Layout.fillWidth: true
-                wrapMode: Text.Wrap
-                sizeToContentHeight: true
-            }
         }
         ImageSelectionBar {
             id: selectionBar
             objectName: root.objectName + "Selection"
             entries: root.imageSelectionEnabled ? root.visibleFiles : []
+            visible: (root.width >= 550 && selectionBar.images.length > 1) || selectionBar.selectionMode
             onOpenRequested: function(images) { root.imagesRequested(images) }
         }
         LV.LabelButton {
@@ -93,12 +90,15 @@ LV.VStack {
         id: cards
         objectName: root.cardsObjectName
         Layout.fillWidth: true
-        Layout.preferredHeight: 224
+        Layout.minimumWidth: 0
+        Layout.preferredHeight: root.cardHeight
         visible: count > 0
         model: root.visibleFiles
         orientation: ListView.Horizontal
         flickableDirection: Flickable.HorizontalFlick
-        spacing: 16
+        spacing: root.visibleColumns > 1 && count >= root.visibleColumns
+            ? Math.max(LV.Theme.gap16, (width - root.visibleColumns * root.cardWidth) / (root.visibleColumns - 1))
+            : LV.Theme.gap16
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         activeFocusOnTab: true
@@ -142,8 +142,6 @@ LV.VStack {
             type: LV.Card.File
             size: LV.Card.Medium
             detail: LV.Card.Brief
-            width: root.cardWidth
-            height: 224
             filename: modelData.name || ""
             description: modelData.description || ""
             metadata: modelData.dateText || modelData.description || ""
@@ -151,7 +149,6 @@ LV.VStack {
             selectable: false
             selected: selectionBar.isSelected(modelData)
             showMenu: false
-            opacity: hovered || activeFocus ? 1 : 0.8
             onClicked: root.activateFile(modelData)
             onActiveFocusChanged: if (activeFocus) {
                 cards.currentIndex = index

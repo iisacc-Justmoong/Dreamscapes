@@ -143,6 +143,9 @@ bool EditorCanvas::updateText() {
         if (usage == "Footer") origin.setY(editingHeight() - boxHeight - number(v, 14, 32));
     }
     glyphs.translate(origin);
+    m_textBaselines[id].clear();
+    const auto verticalOffset = vertical == "Bottom" ? boxHeight-textHeight : vertical == "Middle" ? (boxHeight-textHeight)/2 : 0;
+    for(int i=0;i<textLayout.lineCount();++i){const auto line=textLayout.lineAt(i);const auto y=origin.y()+verticalOffset+line.y()+line.ascent();m_textBaselines[id].append(QLineF(origin.x(),y,origin.x()+line.naturalTextWidth(),y));}
     // The box clips fixed-height text, preserving the user's editable string.
     if (heightMode == "Fixed") { QPainterPath clip; clip.addRect(QRectF(origin, QSizeF(boxWidth, boxHeight))); glyphs = glyphs.intersected(clip); }
     std::vector<VectorPath> paths;

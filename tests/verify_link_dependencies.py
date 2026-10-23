@@ -1,0 +1,26 @@
+"""Check actual generated target properties and the linked leaf executable."""
+from pathlib import Path
+import subprocess
+import sys
+
+
+def verify(manifest: Path, lifetime_executable: Path) -> None:
+    targets = dict(line.split("=", 1) for line in manifest.read_text().splitlines())
+    assert not targets["directory"], "Directory-wide libraries leak into unrelated executables"
+    generation = set(targets["generation"].split("|"))
+    assert "iiSharedCanvas::Quick" in generation, generation
+    assert "iiSharedCanvas::iiSharedCanvas" not in generation, generation
+    assert {"iiFileProvider::iiFileProvider", "iiFileProvider::Native"} <= generation, generation
+    assert "iiSDKCore::Runtime" in generation, generation
+    assert "iiFileProvider" not in targets["lifetime"], targets["lifetime"]
+    assert "iiSDKCore" not in targets["lifetime"], targets["lifetime"]
+    assert lifetime_executable.is_file(), lifetime_executable
+    if sys.platform == "darwin":
+        libraries = subprocess.check_output(["/usr/bin/otool", "-L", str(lifetime_executable)], text=True)
+        assert "libiiFileProvider" not in libraries, libraries
+        assert "libiiSDKCore" not in libraries, libraries
+    print("Product-owned dependencies and the independent lifetime executable passed")
+
+
+if __name__ == "__main__":
+    verify(Path(sys.argv[1]), Path(sys.argv[2]))

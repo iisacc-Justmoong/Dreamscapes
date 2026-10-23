@@ -14,7 +14,9 @@ class EditorButtonStateContract(unittest.TestCase):
         # The first generic action has a stable primary role. Its index never
         # represents hover, press, focus or selection.
         role = "actionSlot.index === 0 ? LV.AbstractButton.Primary : LV.AbstractButton.Default"
-        literal = re.compile(r"LV\.AbstractButton\.(Primary|Default|Borderless|Destructive|Disabled)$")
+        # ComboBox has its own Primary/Borderless enum. These are also fixed
+        # roles; AbstractButton.Borderless has a different numeric value.
+        literal = re.compile(r"LV\.(?:AbstractButton\.(?:Primary|Default|Borderless|Destructive|Disabled)|ComboBox\.(?:Primary|Borderless))$")
         failures = []
         for path in sorted(EDITOR.glob("*.qml")):
             for number, line in enumerate(path.read_text().splitlines(), 1):

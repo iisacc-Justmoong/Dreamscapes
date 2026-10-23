@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
 import "EditorCompactDefinitions.js" as Compact
 
@@ -82,8 +81,10 @@ Column {
                                 Accessible.name: modelData.title
                                 Accessible.checkable: true
                                 Accessible.checked: root.currentViewId === modelData.id
-                                Controls.ToolTip.visible: hovered
-                                Controls.ToolTip.text: modelData.title
+                                LV.Tooltip {
+                                    target: tab
+                                    text: tab.modelData.title
+                                }
                                 onClicked: root.selectView(modelData.id)
                                 EditorButtonState { button: tab; selected: root.currentViewId === tab.modelData.id }
                                 Accessible.onToggleAction: tab.click()
@@ -95,6 +96,7 @@ Column {
         }
         Item { width: 8; height: 1 }
         LV.IconButton {
+            id: resetButton
             objectName: "editorToolReset"
             y: 4
             width: 22; height: 22; iconSize: 18
@@ -102,8 +104,10 @@ Column {
             iconSource: LV.Theme.iconPath("reset")
             tone: LV.AbstractButton.Borderless
             Accessible.name: qsTr("Reset")
-            Controls.ToolTip.visible: hovered
-            Controls.ToolTip.text: qsTr("Reset")
+            LV.Tooltip {
+                target: resetButton
+                text: resetButton.Accessible.name
+            }
             onClicked: root.resetCurrentView()
         }
     }

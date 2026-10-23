@@ -11,8 +11,8 @@ Item {
     readonly property var boards: project.artboards
     implicitHeight: canvas.pagePresentation ? 76 : 0
     visible: canvas.pagePresentation
+    onVisibleChanged: if (!visible && root.project) root.project.cancelPagePreviews()
 
-    Rectangle { anchors.fill: parent; color: LV.Theme.panelBackground05 }
     Rectangle { width: parent.width; height: 1; color: LV.Theme.panelBackground10 }
     ListView {
         id: pages
@@ -51,6 +51,13 @@ Item {
             required property int index
             readonly property var board: root.boards[index] || ({})
             readonly property bool selected: index === root.project.currentIndex
+            property int previewCompletion: 0
+            Connections {
+                target: root.project
+                function onPagePreviewReady(page) {
+                    if (page === preview.index) ++preview.previewCompletion
+                }
+            }
             objectName: "editorPagePreview" + index
             width: 88
             height: 68
@@ -76,6 +83,7 @@ Item {
                     x: 8; y: 4; width: 72; height: 48
                     source: {
                         const revision = root.project.pagePreviewRevision
+                        const completion = preview.previewCompletion
                         return root.visible && preview.visible ? root.project.pagePreviewSource(preview.index, 144, 96) : ""
                     }
                     fillMode: Image.PreserveAspectFit

@@ -5,7 +5,25 @@
 using namespace iiSharedCanvas;
 using namespace editorTools;
 
-void EditorCanvas::invalidateToolPreview() { m_previewTool.clear(); m_previewLayer.clear(); m_touchedFields.clear(); m_previewPixels = {}; }
+void EditorCanvas::invalidateToolPreview() {
+    m_previewTool.clear(); m_previewLayer.clear(); m_previewAsset.clear(); m_previewGraphicOperation.clear();
+    m_touchedFields.clear(); m_previewPixels = {};
+}
+std::string_view EditorCanvas::selectedRasterAssetId() const {
+    if (!documentReady() || !rasterLayerSelected()) return {};
+    const auto *layer = findLayer(*document(), selectedLayerId().toStdString());
+    const auto *asset = layer ? resolveAssetAt(*document(), *layer, frame()) : nullptr;
+    return asset ? std::string_view(assetId(*asset)) : std::string_view{};
+}
+bool EditorCanvas::toolPreviewMatches(const QString &tool) const {
+    return m_previewTool == tool && m_previewLayer == selectedLayerId() && m_previewRevision == revision()
+        && m_previewDocumentSequence == m_graphicDocumentSequence && !m_previewAsset.empty()
+        && m_previewAsset == selectedRasterAssetId() && m_previewPixels;
+}
+bool EditorCanvas::restoreSourceMatches() const {
+    return m_restoreLayer == selectedLayerId() && m_restoreDocumentSequence == m_graphicDocumentSequence
+        && !m_restoreAsset.empty() && m_restoreAsset == selectedRasterAssetId() && !m_restorePixels.pixels.empty();
+}
 QVariantMap EditorCanvas::settingsFor(const QString &tool) const { return m_settings.value(tool); }
 bool EditorCanvas::rasterizeSelected() {
     if (m_pixelLocks.contains(selectedLayerId())) return fail(tr("Unlock the selected layer's pixels first."));
@@ -23,15 +41,21 @@ bool EditorCanvas::rasterizeSelected() {
     return selectLayer(id);
 }
 bool EditorCanvas::applyPixelTool(const QString &tool, const QString &field, const QVariant &value) {
+    return applyPixelFields(tool, {{field, value}}, field);
+}
+bool EditorCanvas::applyPixelFields(const QString &tool, const QVariantMap &updates, const QString &field) {
     if (m_pixelLocks.contains(selectedLayerId())) return fail(tr("The selected layer's pixels are locked."));
     if (!rasterizeSelected()) return false;
-    if (m_previewTool != tool || m_previewLayer != selectedLayerId() || m_previewRevision != revision()) {
-        m_previewPixels = *selectedRasterPixels(); m_previewTool = tool; m_previewLayer = selectedLayerId(); m_touchedFields.clear();
+    if (!toolPreviewMatches(tool) || !m_previewGraphicOperation.isEmpty()) {
+        m_previewPixels = std::make_shared<const RasterLayer>(*selectedRasterPixels()); m_previewTool = tool; m_previewLayer = selectedLayerId(); m_touchedFields.clear();
+        m_previewAsset = selectedRasterAssetId(); m_previewDocumentSequence = m_graphicDocumentSequence; m_previewGraphicOperation.clear();
     }
-    m_touchedFields.insert(field); auto v = m_settings.value(tool); v[field] = value; m_settings[tool] = v;
+    auto v = m_settings.value(tool);
+    for (auto it = updates.cbegin(); it != updates.cend(); ++it) { m_touchedFields.insert(it.key()); v[it.key()] = it.value(); }
+    m_settings[tool] = v;
     const auto changed = [&](int n) { return m_touchedFields.contains(key(n)); };
     const auto n = [&](int id, double neutral = 0.0) { return changed(id) ? number(v, id) : neutral; };
-    RasterProcessResult result{m_previewPixels, {}};
+    RasterProcessResult result{*m_previewPixels, {}};
     if (tool == "color") {
         ColorAdjustment a;
         a.exposure = n(1); a.offset = n(2); a.protectHighlights = toggle(v, 3);
@@ -51,7 +75,7 @@ bool EditorCanvas::applyPixelTool(const QString &tool, const QString &field, con
         a.gradeBalance = n(43) / 100; a.gradeRange = text(v, 41) == "Shadows" ? 0 : text(v, 41) == "Highlights" ? 2 : 1;
         a.curveChannel = text(v, 45) == "Red" ? 0 : text(v, 45) == "Green" ? 1 : text(v, 45) == "Blue" ? 2 : -1;
         a.curve = v.value("curveAmount", 0).toDouble() / 100; a.smoothCurve = text(v, 46, "Smooth") == "Smooth";
-        result = adjustRaster(m_previewPixels, a);
+        result = adjustRaster(*m_previewPixels, a);
     } else if (tool == "effects") {
         auto apply = [&](RasterEffect e) { if (!result.ok()) return; result = effectRaster(result.pixels, e); };
         if (changed(1) || changed(2) || changed(3)) {
@@ -77,18 +101,18 @@ bool EditorCanvas::applyPixelTool(const QString &tool, const QString &field, con
     } else if (tool == "auto-enhance") {
         const double strength = number(v, field == "field-3" ? 1 : 5, 70) / 100;
         if (field == "field-3") {
-            double mean = 0; for (auto p : m_previewPixels.pixels) mean += (0.2126 * qRed(p) + 0.7152 * qGreen(p) + 0.0722 * qBlue(p)) / 255;
-            mean /= std::max<std::size_t>(1, m_previewPixels.pixels.size()); ColorAdjustment a;
+            double mean = 0; for (auto p : m_previewPixels->pixels) mean += (0.2126 * qRed(p) + 0.7152 * qGreen(p) + 0.0722 * qBlue(p)) / 255;
+            mean /= std::max<std::size_t>(1, m_previewPixels->pixels.size()); ColorAdjustment a;
             a.exposure = std::clamp(std::log2(0.5 / std::max(0.01, mean)), -2.0, 2.0) * strength; a.protectHighlights = toggle(v, 2);
             result = adjustRaster(result.pixels, a);
         } else if (field == "field-7") {
-            double r = 0, g = 0, b = 0; for (auto p : m_previewPixels.pixels) { r += qRed(p); g += qGreen(p); b += qBlue(p); }
+            double r = 0, g = 0, b = 0; for (auto p : m_previewPixels->pixels) { r += qRed(p); g += qGreen(p); b += qBlue(p); }
             const auto sum = std::max(1.0, r + g + b); ColorAdjustment a; a.temperature = (b - r) / sum * strength * 4; a.tint = (g - (r + b) / 2) / sum * strength * 4; a.skinProtection = toggle(v, 6) ? 0.8 : 0;
             result = adjustRaster(result.pixels, a);
         } else if (field == "field-11") { RasterEffect e; e.kind = RasterEffectKind::LuminanceDenoise; e.amount = number(v, 9, 44) / 100; e.radius = 2; result = effectRaster(result.pixels, e); e.kind = RasterEffectKind::Sharpen; e.amount = number(v, 8, 62) / 100; e.natural = toggle(v, 10); result = effectRaster(result.pixels, e); }
     }
     if (!result.ok()) return fail(QString::fromStdString(result.error));
-    const auto mask = layerMask(); if (!mask.alpha.empty()) { result = blendRaster(m_previewPixels, result.pixels, mask); if (!result.ok()) return fail(QString::fromStdString(result.error)); }
+    const auto mask = layerMask(); if (!mask.alpha.empty()) { result = blendRaster(*m_previewPixels, result.pixels, mask); if (!result.ok()) return fail(QString::fromStdString(result.error)); }
     if (!replaceSelectedPixels(result.pixels)) return fail(lastError()); m_previewRevision = revision(); clearError(); emit toolStateChanged(); return true;
 }
 bool EditorCanvas::updateBackground() {

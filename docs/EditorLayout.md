@@ -1,8 +1,76 @@
 # Desktop editor layout
 
+Canvas object ownership, active artboard navigation, and saved document changes
+are independent. Selecting a page keeps the existing canvas mounted and its tool
+drafts intact. Selection, zoom, pan, display options, panel visibility and seeks
+only update the corresponding view state. File rows display live frame/artboard
+context through `fileViewInformation` without treating it as file metadata.
+See [Performance](Performance.md#ui-lifecycle-and-invalidation) for the notification
+and regression contracts.
+
 References: [Dreamscapes Editor, Figma 353:22614](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=353-22614&m=dev)
 with [Vertical Toolbar, Figma 1105:91844](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1105-91844&m=dev)
 and [Elements panel, Figma 353:22022](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=353-22022&m=dev).
+
+## Shared application toolbar
+
+### Publish action
+
+The desktop editor's top bar includes the `Publish` action from
+[Figma 1157:72246](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1157-72246&m=dev).
+This scoped update adds its 66-by-22-pixel LVRS label button at the right edge,
+with an 8-pixel inset and gap. Its fixed `Primary` tone is LVRS's Accent role;
+hover, press, release and keyboard focus use stock LVRS interaction states.
+The existing view-option controls and shared application toolbar retain their
+layout and behavior.
+
+Mouse release, Space and Return emit `CanvasEditor.publishRequested()` once.
+`Main.openPublish()` now opens the internal [publishing workspace](PublishingWorkspace.md)
+for the current document. Back restores the retained editor and its view state.
+Merely activating the button does not save or modify the current document.
+External upload remains separate from this authoring route; its existing backend
+is described in [SocialPublishing](SocialPublishing.md).
+
+`Dreamscapes.EditorPublish` checks geometry at desktop widths from 640 to 2319,
+the fixed action tone across pointer/keyboard interaction, one event per
+activation, the mobile visibility boundary and document-state preservation.
+Set `DREAMSCAPES_CAPTURE_DIR` to save `editor-publish-bar.png` from the actual
+QML component.
+
+### Search and account controls
+
+The desktop editor displays the same search, notifications and account controls
+as Home, using the existing `DesktopHomeToolbar` instance in `Main.qml`. The
+controls stay in the shared 32-pixel title bar, above the editor view-options bar, with
+the same native traffic-light clearance and 12-pixel right inset. Narrow windows
+reduce the search field width without hiding either icon. Opening an editor
+over a generation result also keeps this toolbar visible.
+
+In the editor, Cmd/Ctrl+F focuses global search. Matching files, publications and
+generation history appear in a nonmodal LVRS menu under the field. Typing,
+clearing the query and dismissing the list keep the current canvas, selection,
+undo history and panel state. Up/Down select a result; Enter or a result click
+opens it through the existing file/download route. A search does not navigate
+away from the editor until the user chooses a file. Home retains its existing
+inline section filtering.
+
+Account and notification menus reuse the existing account actions and live
+generation jobs. While either modal menu is open, canvas input is suspended.
+Escape dismisses the application menu or search, without also collapsing the
+editor inspector. All toolbar buttons retain the LVRS Default type.
+
+The shared toolbar, inspector, timeline, and photo/layer tiles use stock LVRS
+hover help. [Tooltips](Tooltips.md) documents the component integration and the
+guard against Qt default tooltip call sites.
+
+`Dreamscapes.EditorApplicationToolbar` verifies the shared placement at widths
+from 320 to 1374 pixels, menu input isolation, keyboard search, result routing,
+and document/draft preservation. Set `DREAMSCAPES_CAPTURE_DIR` to capture the
+native editor and search interface without using production storage.
+
+## Tool rail
+
+툴 탭은 LVRS의 필수 `iconName` 계약에 따라 도구 키를 아이콘 식별자로 전달한다. `iconSource`와 실제 이미지가 같은 기존 SVG를 참조하므로 데스크톱·모바일의 원본 도형과 배치는 유지된다.
 
 The desktop editor places a 52-pixel vertical toolbar between the canvas work
 area and the right tool panel. Its 18 LVRS tabs are 36 by 36 pixels, with a
@@ -10,7 +78,7 @@ area and the right tool panel. Its 18 LVRS tabs are 36 by 36 pixels, with a
 18-pixel corner radius and hugs its 732-pixel content height. When the window
 is shorter, the rail clamps to that height and scrolls vertically. Selected
 tabs use the LVRS selected fill and a 1-pixel border. The 2319-by-1316 reference
-leaves 1744 pixels for the workspace, then 52 for the toolbar and 342 for the
+leaves 1782 pixels for the workspace, then 52 for the toolbar and 304 for the
 panel, after the 181-pixel sidebar. Mobile keeps its 84-pixel horizontal bottom
 toolbar with captions and its existing selected-tab styling.
 Their original SVGs occupy 22-pixel slots at (7, 8). Desktop tabs display
@@ -72,10 +140,19 @@ The left sidebar uses the same layout as Home, Image and Video: 181 pixels wide,
 or 48 below 700 logical pixels, with 8 pixels of padding on every side. Its
 24-pixel menu rows, dividers, icon slots and label positions do not change when
 entering or leaving Editor. The shared sidebar has no Editor-specific geometry
-or Files icon override. Editor's opaque background starts at the sidebar's
-right edge, leaving the shared window material visible behind navigation.
+or Files icon override. The opaque editor backdrop is a child of the canvas
+surface and exactly fills that viewport. The viewport clips document rendering,
+checkerboards and overlays, including when zoomed or panned. The sidebar, view
+bar, tool rail, inspector, page strip and timeline expose the shared
+ApplicationWindow material. The inspector has a 12-pixel content
+inset and a zero-width outer border. The mobile tool strip and
+primary tool sheet also have transparent surfaces. Buttons, input fields,
+selection/hover/pressed states, dividers, document previews and transient menus
+retain their existing paints.
 The main window keeps the same content top inset between these views, including
 fullscreen. Editor remains lazy-loaded and navigation preserves Home drafts.
+Hiding the editor also retains the desktop view-bar height, so navigation does
+not resize the hidden canvas or refit its retained zoom and pan.
 When the shared sidebar, 52-pixel toolbar and 280-pixel minimum panel leave
 less than 320 pixels for the canvas, the canvas uses the remaining width;
 entering Editor does not collapse navigation ahead of the shared breakpoint.
@@ -84,17 +161,20 @@ entering Editor does not collapse navigation ahead of the shared breakpoint.
 all ten menu rows, both dividers, icons and labels across Home -> Editor -> Image
 -> Video -> Home at 1374, 900, 899, 800, 700, 699 and 640 pixels. It also checks
 the compact boundary in both directions, a 480-pixel window height, transparent
-sidebar padding and the fullscreen content inset. Native Cocoa verification
+sidebar padding and the fullscreen content inset. At 1374 pixels it compares
+empty view-bar, rail, inspector and timeline margins with an actual capture of
+the ApplicationWindow background, while checking that the opaque backdrop
+matches only the clipped canvas viewport. Native Cocoa verification
 uses ordinary windows so the test does not change the user's macOS Spaces.
 
 The right
-tool panel starts at 342 pixels with a 17-pixel content inset, producing
-308 pixels of content. Titles stay upper-left and parameter groups align
+tool panel starts at 304 pixels with a 12-pixel content inset, producing
+280 pixels of content. Titles stay upper-left and parameter groups align
 right. Existing drag resizing, responsive wrapping, tool drafts and native
 tool actions follow [EditorPanelResizing.md](EditorPanelResizing.md).
 
 The native iiSharedCanvas surface fills the remaining work area to the left of
-the toolbar and above the bottom timeline, starting at the editor's top edge.
+the toolbar and above the bottom timeline, below the desktop view-options bar.
 The timeline uses the same horizontal extent as the canvas. Closing the panel
 moves the rail to the right window edge; reopening or resizing the panel moves
 the rail with its left edge. The panel's maximum width reserves the 52-pixel
@@ -177,8 +257,9 @@ panning and the mobile layout switch. Existing native editor tests use
 tool names instead of fixed toolbar indices, standard shortcuts and real
 context-menu commands to verify painting,
 erasing, history, color picking, layers and document persistence. Historical
-432-pixel tool fixtures explicitly request that width; the current window
-layout checks the new 342-pixel default.
+422-pixel tool fixtures retain the original 398-pixel control area with the
+new 12-pixel inset; the current window
+layout checks the 304-pixel default.
 
 ```sh
 cmake --build build --target Dreamscapes DreamscapesGuiTests Dreamscapes_qmllint --parallel 4

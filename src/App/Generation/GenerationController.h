@@ -6,11 +6,12 @@
 #include <iiSocietyHelper/Client.h>
 #include <iiSocietyHelper/FileDownload.h>
 #include <iiSocietyHelper/AccountSession.h>
-#include <iiSocietyGeneration/Remote.h>
+#include <iiSocietyHelper/Generation/Remote.h>
 #include <Generation/NativeDiffusion.hpp>
 #include <QFutureWatcher>
 #include <QObject>
 #include <QJsonObject>
+#include <QMap>
 #include <QStringList>
 #include <QSize>
 #include <QTimer>
@@ -18,11 +19,14 @@
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
-#include <QProcess>
+#include "GenerationProcess.h"
 #endif
 #include <memory>
 #include "GenerationBackgroundActivity.h"
 #include "ModelPreferences.h"
+#include "GenerationPublication.h"
+#include "NativeGenerationWork.h"
+class FailureAgent;
 
 struct GenerationRuntime {
     QString executable;
@@ -34,19 +38,23 @@ struct GenerationRuntime {
     int nativeTimeoutMilliseconds = 900000; // Maximum active time without measurable progress.
     QString legacyQ8CacheDirectory; // Read/move-only upgrade source; never used by inference.
     QString modelPreferencesFile; // Empty for injected runtimes; production uses app configuration.
-    std::function<iiLocalDiffusion::NativeGenerationResult(const iiLocalDiffusion::NativeGenerationRequest &,
-        const iiLocalDiffusion::NativeGenerationOptions &, const std::atomic_bool &,
-        const iiLocalDiffusion::NativeProgressCallback &, const iiLocalDiffusion::NativePreviewCallback &)> nativeGenerate;
+    dreamscapes::NativeGenerationOperation nativeGenerate;
     std::function<void(bool)> screenActivity;
     std::shared_ptr<GenerationBackgroundActivity> backgroundActivity;
     std::shared_ptr<iiLocalDiffusion::NativeExecutionControl> nativeExecutionControl;
     // Optional transport injection for integration tests; production uses the
     // authenticated Society client and never accepts a model URL.
-    std::shared_ptr<iiSocietyGeneration::Remote> remoteGeneration;
+    std::shared_ptr<iiSocietyHelper::Generation::Remote> remoteGeneration;
     std::function<iiLocalDiffusion::NativeGenerationResult(const iiLocalDiffusion::NativeGenerationRequest &,
         const iiLocalDiffusion::NativeGenerationOptions &, const iiLocalDiffusion::NativeModelComponents &,
         const iiLocalDiffusion::NativeAdvancedControls &, const std::atomic_bool &,
         const iiLocalDiffusion::NativeProgressCallback &, const iiLocalDiffusion::NativePreviewCallback &)> nativeGenerateAdvanced;
+    dreamscapes::GenerationPublicationOperation publishResult;
+    std::function<bool(const QString &, const QString &, const std::atomic_bool &, QString *)> migrateLegacyCache;
+    std::function<void()> releaseNativeCache;
+    QString failureAgentExecutable;
+    QString failureReportsDirectory;
+    int failureAgentTimeoutMilliseconds = 90000;
 };
 
 class GenerationController : public QObject
@@ -70,13 +78,16 @@ class GenerationController : public QObject
     Q_PROPERTY(QString defaultVideoModel READ defaultVideoModel NOTIFY modelPreferencesChanged)
     Q_PROPERTY(QVariantMap defaultGenerationPrompts READ defaultGenerationPrompts NOTIFY modelPreferencesChanged)
     Q_PROPERTY(QString modelPreferencesError READ modelPreferencesError NOTIFY modelPreferencesChanged)
+    Q_PROPERTY(QStringList videoPresetNames READ videoPresetNames NOTIFY videoPresetsChanged)
+    Q_PROPERTY(QString videoPresetError READ videoPresetError NOTIFY videoPresetsChanged)
     Q_PROPERTY(QVariantList jobs READ jobs NOTIFY jobsChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY jobsChanged)
     Q_PROPERTY(bool runtimeAvailable READ runtimeAvailable NOTIFY storageChanged)
     Q_PROPERTY(QString errorString READ errorString NOTIFY errorChanged)
-    Q_PROPERTY(QUrl latestImage READ latestImage NOTIFY jobsChanged)
-    Q_PROPERTY(QVariantMap latestResult READ latestResult NOTIFY jobsChanged)
-    Q_PROPERTY(QVariantList completedResults READ completedResults NOTIFY jobsChanged)
+    Q_PROPERTY(QVariantMap latestFailure READ latestFailure NOTIFY failureAnalysisChanged)
+    Q_PROPERTY(QUrl latestImage READ latestImage NOTIFY resultsChanged)
+    Q_PROPERTY(QVariantMap latestResult READ latestResult NOTIFY resultsChanged)
+    Q_PROPERTY(QVariantList completedResults READ completedResults NOTIFY resultsChanged)
     Q_PROPERTY(QUrl previewImage READ previewImage NOTIFY previewChanged)
     Q_PROPERTY(QString previewJobId READ previewJobId NOTIFY previewChanged)
     Q_PROPERTY(int previewStep READ previewStep NOTIFY previewChanged)
@@ -97,6 +108,8 @@ public:
     iiSocietyHelper::FileDownload *fileDownload() { return &m_fileDownload; }
     QVariantList models() const;
     QVariantList videoModels() const;
+    Q_INVOKABLE QStringList modelModalities(const QString &id) const;
+    Q_INVOKABLE bool setModelModalities(const QString &id, const QStringList &modalities);
     QString selectedVideoModel() const;
     void setSelectedVideoModel(const QString &id);
     bool videoRuntimeAvailable() const;
@@ -110,15 +123,27 @@ public:
     QVariantMap defaultGenerationPrompts() const;
     Q_INVOKABLE bool setDefaultGenerationPrompt(const QString &category, const QString &text, bool negative);
     QString modelPreferencesError() const;
+    QStringList videoPresetNames() const;
+    QString videoPresetError() const { return m_videoPresetError; }
+    Q_INVOKABLE QVariantMap videoPreset(const QString &name);
+    Q_INVOKABLE bool saveVideoPreset(const QString &name, const QVariantMap &parameters);
     Q_INVOKABLE bool setDefaultImageModel(const QString &id);
     Q_INVOKABLE bool setDefaultVideoModel(const QString &id);
     QVariantList jobs() const;
     bool busy() const;
     bool runtimeAvailable() const;
     QString errorString() const;
+    QVariantMap latestFailure() const;
+    Q_INVOKABLE QVariantMap failureAnalysis(const QString& jobId) const;
+    Q_INVOKABLE QString explainOperationFailure(const QString& operation, const QString& error, const QVariantMap& parameters = {});
+signals:
+    void failureAnalysisChanged();
+    void failureExplained(const QString& jobId, const QVariantMap& report);
+public:
     QUrl latestImage() const;
     QVariantMap latestResult() const;
     Q_INVOKABLE QVariantMap storedImage(const QVariantMap &file) const;
+    // Materializes a local PNG when required by file/input consumers. Views use CanvasPreview.
     Q_INVOKABLE QUrl imagePreview(const QUrl &source) const;
     Q_INVOKABLE QUrl imageDocument(const QUrl &source);
     QVariantList completedResults() const;
@@ -140,14 +165,16 @@ public:
         int count = 1, const QUrl &firstFrame = {}, int duration = 5, int fps = 24, qint64 seed = -1);
     Q_INVOKABLE QString enqueueVideoRecipe(const QVariantMap &parameters);
     Q_INVOKABLE QString enqueueAdvanced(const QVariantMap &parameters);
-    Q_INVOKABLE QString enqueueHomeCanvas(const QVariantMap &parameters, const QString &aspectRatio);
+    Q_INVOKABLE QString enqueueHomeCanvas(const QVariantMap &parameters, const QString &aspectRatio, bool explicitControls = false);
     Q_INVOKABLE bool cancel(const QString &id);
 
 signals:
+    void videoPresetsChanged();
     void storageChanged();
     void modelsChanged();
     void modelPreferencesChanged();
     void jobsChanged();
+    void resultsChanged();
     void submissionQueued(const QStringList &jobIds);
     void errorChanged();
     void previewChanged();
@@ -160,25 +187,32 @@ private:
         QString selection, root, id, error;
         QList<iiSocietyContainer::StoredModel> models;
         QStringList videoModels;
+        QMap<QString, QStringList> modalities;
         quint64 epoch = 0;
     };
     void applyModelInventory(QList<iiSocietyContainer::StoredModel> models,
-        QStringList videoModels, const QString &error, bool storageChanged);
+        QStringList videoModels, QMap<QString, QStringList> modalities, const QString &error, bool storageChanged);
     QString enqueueAdvancedRequest(const QVariantMap &parameters, const QString &aspectRatio = {});
     bool saveModelPreferences(const dreamscapes::ModelPreferences &value);
     QString enqueueRequest(const QString &prompt, const QSize &size, const QString &aspectRatio,
         int count, qint64 seed, int steps, QJsonObject advanced = {}, QJsonObject video = {});
     QVariantMap resultForImage(const QJsonObject &job, const QString &relative) const;
+    void notifyResultsChanged();
+    QVariantMap projectLatestResult() const;
+    QVariantList projectCompletedResults() const;
     bool fail(const QString &message);
     void pollStorage();
     void startNative(const QString &model);
     void finishNative();
+    void beginPublication(dreamscapes::PublicationOrigin origin,
+        std::optional<iiLocalDiffusion::NativeGenerationResult> native = {}, QByteArray png = {});
+    void completePublication();
+    QFuture<QString> releaseNativeCache();
+    void completeCacheRelease();
     bool discardLegacyStorage();
     bool createWorkingFiles(QString *error);
     QStringList resourceArguments(QString *error);
-    void clearWorkingFiles();
-    bool publishVideo(QString *error);
-    bool publishImages(const QStringList &sources, QJsonObject &job, QString *error);
+    QFuture<void> clearWorkingFiles();
     QString preserveImageInput(const QString &source, const QString &destination, QString *error);
     QString imageInputPath(const QString &source, QString *error);
     void updateJob(QJsonObject job);
@@ -187,14 +221,17 @@ private:
     void downloadModelInBackground();
     void beginSocietyBackgroundActivity();
     void finish(const QString &state, const QString &error = {});
-    bool collectResult(QString *error);
+    void completeFinish();
+    void ensureFailureAgent();
     void stopProcess(bool force);
-    void readProcessOutput();
+    void readProcessOutput(const QByteArray &data);
+    void checkWorkerDeadline(quint64 token);
     void sendWorkerRequest();
     void acceptWorkerResult(const QByteArray &line);
     void acceptNativeWorkerProgress(const QByteArray &line);
     void acceptPreview(const QByteArray &line);
-    void acceptNativePreview(const iiLocalDiffusion::NativeGenerationPreview &preview);
+    void acceptNativeProgress(const QString &id, const iiLocalDiffusion::NativeGenerationProgress &event);
+    void acceptNativePreview(const QString &id, const dreamscapes::NativePreviewArtifact &preview);
     void clearPreview();
     bool startWorker(QString *error);
     void prepareForeground();
@@ -214,7 +251,7 @@ private:
     // It never waits for a Society app's replica-session lease or cancels jobs.
     iiSocietyHelper::Client m_fileClient;
     iiSocietyHelper::FileDownload m_fileDownload;
-    std::shared_ptr<iiSocietyGeneration::Remote> m_remoteGeneration;
+    std::shared_ptr<iiSocietyHelper::Generation::Remote> m_remoteGeneration;
     QMap<QString, QString> m_modelDownloads;
     QStringList m_requiredModelFiles;
     bool m_remoteActive = false;
@@ -224,10 +261,22 @@ private:
     QFutureWatcher<ModelInventory> m_inventoryWatcher;
     quint64 m_inventoryEpoch = 0;
     QFutureWatcher<iiLocalDiffusion::NativeGenerationResult> m_nativeWatcher;
+    QFutureWatcher<dreamscapes::GenerationPublicationResult> m_publicationWatcher;
+    QFutureWatcher<void> m_cleanupWatcher;
+    QString m_finishState, m_finishError;
+    std::shared_ptr<dreamscapes::PublicationControl> m_publicationControl;
+    QString m_publicationJob, m_publicationRoot, m_publicationContainer;
+    QJsonObject m_publicationResumeStatus;
+    bool m_publicationPending = false, m_finishing = false, m_closing = false;
+    bool m_nativeDispatched = false;
     QFutureWatcher<QString> m_cacheMigrationWatcher;
-    std::atomic_bool m_cacheMigrationCancelled{false};
+    QFutureWatcher<QString> m_cacheReleaseWatcher;
+    bool m_cacheReleasePending = false;
+    QString m_cacheReleaseJob;
+    std::shared_ptr<std::atomic_bool> m_cacheMigrationCancelled = std::make_shared<std::atomic_bool>(false);
     bool m_cacheMigrationActive = false;
-    std::atomic_bool m_nativeCancelled{false};
+    std::shared_ptr<dreamscapes::NativeGenerationState> m_nativeState = std::make_shared<dreamscapes::NativeGenerationState>();
+    std::shared_ptr<QObject> m_nativeCallbacks;
     QTimer m_nativeDeadline;
     QTimer m_workerDeadline;
     QString m_workerProgressKey;
@@ -245,18 +294,27 @@ private:
     QString m_selectedVideo;
     dreamscapes::ModelPreferences m_modelPreferences;
     QString m_modelPreferencesError;
+    QVariantMap m_memoryVideoPresets;
+    QString m_videoPresetError;
     bool m_imageModelOverridden = false;
     bool m_videoModelOverridden = false;
     QStringList m_videoModelIds;
+    QMap<QString, QStringList> m_modelModalities;
     QList<QJsonObject> m_jobs;
+    QVariantList m_notifiedResults;
+    QVariantMap m_notifiedLatestResult;
     QJsonObject m_active;
     QString m_output;
     QString m_error;
+    FailureAgent* m_failureAgent = nullptr;
+    QJsonObject m_latestFailure;
+    QJsonObject m_failureProgress;
+    QList<QJsonObject> m_operationFailureReports;
     QByteArray m_log;
     QByteArray m_pendingOutput;
-    std::unique_ptr<iiFileProvider::TemporaryDirectory> m_workDirectory;
-    std::unique_ptr<iiFileProvider::TemporaryDirectory> m_workerDirectory;
-    std::unique_ptr<iiFileProvider::TemporaryDirectory> m_previewDirectory;
+    std::shared_ptr<iiFileProvider::TemporaryDirectory> m_workDirectory;
+    std::shared_ptr<iiFileProvider::TemporaryDirectory> m_workerDirectory;
+    std::shared_ptr<iiFileProvider::TemporaryDirectory> m_previewDirectory;
     QUrl m_previewImage;
     QString m_previewJobId;
     int m_previewStep = 0;
@@ -272,6 +330,8 @@ private:
     QJsonObject m_inferenceStatus{{"state", "idle"}, {"ready", false}};
     QByteArray m_workerRequest;
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
-    QProcess m_process;
+    GenerationProcess m_process;
+    quint64 m_workerProbe = 0;
+    QJsonValue m_workerProbeJob;
 #endif
 };

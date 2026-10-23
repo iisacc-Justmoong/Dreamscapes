@@ -1,19 +1,21 @@
 # 로컬 MCP 생성 제어
 
-데스크톱 POSIX 빌드는 iiLocalLLM 0.52 계열을 통해 현재 Dreamscapes의 GenerationController를 MCP로 제어한다. SDK의 CMake 호환성 정책은 같은 minor 버전만 허용하므로 0.52.0 이상 패치 버전을 사용한다. `Dreamscapes.Mcp` 통합 검사로 설치된 SDK와 실제 앱의 연결을 검증한다. `127.0.0.1`의 인증된 HTTP 서버이며 같은 기기의 로컬 모델과 저장소를 사용한다. Society가 동기화를 담당한다.
+데스크톱 POSIX 빌드는 iiMultimodalAgent 0.1 계열을 통해 현재 Dreamscapes의 GenerationController를 MCP로 제어한다. 추론 런타임은 iiLocalLLM 0.56 계열이다. `Dreamscapes.Mcp` 통합 검사로 설치된 SDK와 실제 앱의 연결을 검증한다. `127.0.0.1`의 인증된 HTTP 서버이며 같은 기기의 로컬 모델과 저장소를 사용한다. Society가 동기화를 담당한다.
 
 | 도구 | 동작 |
 |---|---|
 | `status` | 저장소·선택 모델·큐·추론 상태·최신 결과 주소 |
 | `models(offset=0, limit=20)` | 로컬 모델 ID·이름·형식, 최대 100개씩 조회 |
+| `vaes(offset=0, limit=20)` / `select_vae(id)` | Society의 명시적 VAE 목록 조회 및 선택 |
 | `jobs(offset=0, limit=20)` | 실제 작업 ID·상태·오류·결과를 최신 작업부터 조회 |
+| `failure_analysis(id)` | 원문 오류, 상세 설명, 근거, 에이전트 상태 및 보고서 경로 조회 |
 | `select_model(id)` | 현재 목록에 존재하는 모델을 선택한다 |
 | `refresh_models` | 로컬 모델 목록을 갱신한다. 생성 중에는 기존 컨트롤러 규칙에 따라 변경하지 않는다 |
 | `generate(prompt, aspect_ratio="1:1", count=1)` | 현재 선택 모델로 생성 큐에 넣고 `first_job_id`, `job_ids`, `accepted`를 반환한다 |
 | `cancel(id)` | 해당 인스턴스가 소유한 대기/실행 작업의 취소를 요청한다 |
 | `iiLocalLLM.agent.permissions.get` | SDK가 제공하는 읽기 전용 도구로 현재 호스트 권한 정책을 조회한다 |
 
-통합 검사는 앱 제어 도구 7개, AskUserQuestion과 SDK 권한 조회 도구의 이름, 읽기 전용 표시, 실제 정책 조회 응답을 확인한다.
+통합 검사는 앱 제어 도구, AskUserQuestion과 SDK 권한 조회 도구의 이름, 읽기 전용 표시, 실제 정책 조회 응답을 확인한다.
 
 generate의 count는 1~1000이고 비율은 1:1, 4:3, 3:4, 16:9, 9:16이다. 반환 job_ids는 해당 제출의 생성 순서이며 jobs의 최신순과 다르다. accepted는 생성 완료가 아니다. jobs를 조회해 completed/failed/cancelled를 확인한다. 결과는 로컬 Society의 Generation History에 저장한다. 앱 재시작 시 기존 컨트롤러와 동일하게 큐를 복원하지 않는다.
 
@@ -25,11 +27,11 @@ generate의 count는 1~1000이고 비율은 1:1, 4:3, 3:4, 16:9, 9:16이다. 반
 
 ## 로컬 질문 화면
 
-`AskUserQuestion`은 iiLocalLLM 0.52의 C++ QuestionInbox와 LVRS 화면으로 사용자에게 질문한다. 단일·다중 선택, 여러 줄 자유 입력·메모, 부분 답변, 건너뛰기, 거절을 제공한다. 다음 질문이 도착해도 현재 입력을 유지한다. 미리보기와 외부 텍스트는 PlainText로 표시하며 이미지 첨부·HTML/Markdown 렌더링·전체 에이전트 채팅 UI는 포함하지 않는다.
+`AskUserQuestion`은 iiMultimodalAgent의 C++ QuestionInbox와 LVRS 화면으로 사용자에게 질문한다. 단일·다중 선택, 여러 줄 자유 입력·메모, 부분 답변, 건너뛰기, 거절을 제공한다. 다음 질문이 도착해도 현재 입력을 유지한다. 미리보기와 외부 텍스트는 PlainText로 표시하며 이미지 첨부·HTML/Markdown 렌더링·전체 에이전트 채팅 UI는 포함하지 않는다.
 
 인증된 로컬 호출자가 질문을 제출하면 앱 주 스레드의 UI가 답변을 받는다. 도구 호출 스레드가 기다리는 동안 일반 앱 호출은 계속 처리한다. 외부 호출자의 `answers`·`annotations` 주입은 거절하며 UI 답변만 원래 질문과 함께 검증한다. 클라이언트 취소·단절, 서버의 60초 요청 기한, 앱 종료는 대기를 해제한다. 호스트 정책이 질문을 거절하면 화면도 열리지 않는다.
 
-도구의 `_meta["iisacc/userInteraction"]`은 true이며 `experimental.iisacc/userQuestions`의 `responseChannel`은 `local-ui`이다. 답변 제출이나 전체 질문 목록은 MCP 도구로 공개하지 않는다. QML은 SDK의 `IILOCALLLM_QML_DIR`에서 빌드 시 앱 리소스로 포함한다. 모바일/Windows에는 이 로컬 MCP 경로가 없으며 일반 화면은 질문 수신부 없이 동작한다.
+도구의 `_meta["iisacc/userInteraction"]`은 true이며 `experimental.iisacc/userQuestions`의 `responseChannel`은 `local-ui`이다. 답변 제출이나 전체 질문 목록은 MCP 도구로 공개하지 않는다. QML은 SDK의 `IIMULTIMODALAGENT_QML_DIR`에서 빌드 시 앱 리소스로 포함한다. 모바일/Windows에는 이 로컬 MCP 경로가 없으며 일반 화면은 질문 수신부 없이 동작한다.
 
 앱 MCP 통합 검사는 공개 메타데이터·가져오기 표시, 외부 답변 위조 거절, 질문 대기 중 일반 변경 도구 실행, 취소 후 정상 호출을 검사한다. 질문 선택·한글 입력·메모·대기열 포커스와 Escape는 SDK의 LVRS UI 검사 대상이다. 실제 모델 및 설치 앱 검증 기록은 별도로 남긴다.
 
@@ -37,7 +39,7 @@ generate의 count는 1~1000이고 비율은 1:1, 4:3, 3:4, 16:9, 9:16이다. 반
 
 ## 2026-09-24 SDK 재설치 기준
 
-현재 빌드는 iiLocalLLM 0.52 계열 설치본을 사용한다. MCP 통합 테스트는
+당시 빌드는 iiLocalLLM 0.52 계열 설치본을 사용했다. MCP 통합 테스트는
 설치본과 실제 제품 프로세스를 연결하여 도구 호출, 인증, 경로 제한과 함께
 호스트의 rules 기반 기본 권한 모드가 유지되는지 검증한다. 위의 2026-09-15
 검증 기록은 당시 0.36 계열에 대한 이력이며 현재 검증 결과와 구분한다.

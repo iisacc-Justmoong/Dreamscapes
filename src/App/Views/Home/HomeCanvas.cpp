@@ -63,7 +63,7 @@ bool HomeCanvas::hasContent() const {
 }
 bool HomeCanvas::addAttachment(const QUrl &source) {
     if (!source.isLocalFile()) return fail(tr("Choose a local image file."));
-    iiSocietyHelper::FileSystem files;
+    iiSocietyHelper::FileSystem files(iiSocietyHelper::FileSystem::Initialization::Deferred);
     if (!files.openForSource(source.toLocalFile())) return fail(files.errorString());
     const auto original = files.aliasForPath(source.toLocalFile());
     if (!original.value("available").toBool()) return fail(tr("Choose a readable local image."));

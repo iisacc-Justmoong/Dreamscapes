@@ -3,6 +3,8 @@
 #include <FileOperations.h>
 #include <iiSocietyHelper.h>
 #include <File.h>
+#include <iiFileProviderDevice.h>
+#include <iiSharedCanvas/Bitmap/BitmapCodec.h>
 #include <QCoreApplication>
 #include <QCryptographicHash>
 #include <QDir>
@@ -93,7 +95,18 @@ int main(int argc, char **argv)
                         throw std::runtime_error("The document has been edited; its original pixels were preserved.");
             if (iiFileProvider::File::read(entry.absoluteFilePath(), original.size()) != original)
                 throw std::runtime_error("The source changed during repair.");
-            if (files.publishGeneratedImage(preview, name) != destination) throw std::runtime_error(files.errorString().toStdString());
+            iiSharedCanvas::BitmapExportOptions options;
+            options.format = "png"; options.extendedCodecs = false;
+            if (native.stableDiffusionMetadata)
+                for (const auto &entry : native.stableDiffusionMetadata->extraParameters)
+                    options.text.push_back({entry.key, entry.value});
+            const auto encoded = iiSharedCanvas::encodeBitmap(pixels, options);
+            if (!encoded.ok()) throw std::runtime_error(encoded.result.message);
+            iiFileProvider::TemporaryDirectory restoredDirectory(QDir(runtime).filePath("png-XXXXXX"));
+            if (!restoredDirectory.isValid()) throw std::runtime_error("Cannot create a private PNG repair directory.");
+            const auto restoredPng = restoredDirectory.filePath("original.png");
+            iiFileProvider::File::create(restoredPng, QByteArray(reinterpret_cast<const char *>(encoded.bytes.data()), qsizetype(encoded.bytes.size())));
+            if (files.publishGeneratedImage(restoredPng, name) != destination) throw std::runtime_error(files.errorString().toStdString());
             // Keep chronological History order rather than assigning repair time.
             std::filesystem::last_write_time(std::filesystem::path(destination.toStdU16String()),
                 std::filesystem::last_write_time(std::filesystem::path(entry.absoluteFilePath().toStdU16String())));

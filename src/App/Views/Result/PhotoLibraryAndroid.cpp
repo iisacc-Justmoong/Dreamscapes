@@ -3,7 +3,6 @@
 #include <QHash>
 #include <QJniEnvironment>
 #include <QJniObject>
-#include <QMimeDatabase>
 
 namespace {
 constexpr char activityClass[] = "com/iisacc/dreamscapes/DreamscapesActivity";
@@ -22,7 +21,7 @@ void photoSaveFinished(JNIEnv *, jclass, jlong request, jstring asset, jstring e
 
 PhotoLibraryExporter::SaveOperation nativePhotoLibrarySaveOperation()
 {
-    return [](const QString &path, PhotoLibraryExporter::Completion completion) {
+    return [](const PhotoLibraryExporter::Image &image, PhotoLibraryExporter::Completion completion) {
         QJniEnvironment environment;
         static const bool registered = environment.registerNativeMethods(activityClass, {
             {"photoSaveFinished", "(JLjava/lang/String;Ljava/lang/String;)V",
@@ -42,8 +41,8 @@ PhotoLibraryExporter::SaveOperation nativePhotoLibrarySaveOperation()
             return;
         }
         pending.insert(request, std::move(completion));
-        const auto source = QJniObject::fromString(path);
-        const auto mime = QJniObject::fromString(QMimeDatabase().mimeTypeForFile(path).name());
+        const auto source = QJniObject::fromString(image.path);
+        const auto mime = QJniObject::fromString(image.mimeType);
         environment->CallVoidMethod(activity.object(), method,
                                     source.object<jstring>(), mime.object<jstring>(), request);
         if (environment.checkAndClearExceptions())

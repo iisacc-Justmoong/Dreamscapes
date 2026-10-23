@@ -28,7 +28,7 @@ Home 모델의 로컬 경로는 `QUrl::fromLocalFile()`로 변환해 전달한�
 
 ## 선택과 돌아가기
 
-선택 상태는 작업 ID가 아니라 원본 이미지 경로를 기준으로 유지한다. 같은 생성 작업이 여러 출력 이미지를 반환해도 각각 선택할 수 있다. 새 결과가 추가되면 기존 선택을 유지하고, 목록에서 사라진 항목만 선택에서 제거한다. Select 모드에서는 카드를 누르면 선택을 토글한다. 결과 갤러리는 Cmd/Ctrl·Shift 클릭과 키보드 복수 선택도 지원한다. 선택 모드의 Cancel은 선택 모드와 선택을 초기화한다. 기본 모드의 생성 이력 카드 클릭은 한 장을 바로 연다. 결과 갤러리는 클릭으로 이미지를 선택하고 더블 클릭으로 상세 보기를 연다.
+네이티브 저장소 항목의 선택 상태는 드라이브 ID와 논리 파일 키를 기준으로 유지하며, 그 밖의 생성 결과는 원본 문서·이미지 식별자를 사용한다. 같은 생성 작업이 여러 출력 이미지를 반환해도 각각 선택할 수 있다. 새 결과가 추가되면 기존 선택을 유지하고, 목록에서 사라진 항목만 선택에서 제거한다. Select 모드에서는 카드를 누르면 선택을 토글한다. 결과 갤러리는 Cmd/Ctrl·Shift 클릭과 키보드 복수 선택도 지원한다. 선택 모드의 Cancel은 선택 모드와 선택을 초기화한다. 기본 모드의 생성 이력 카드 클릭은 한 장을 바로 연다. 결과 갤러리는 클릭으로 이미지를 선택하고 더블 클릭으로 상세 보기를 연다.
 
 결과 화면에서 상세 이미지 보기 중 Select를 누르면 갤러리로 돌아가 여러 항목을 선택할 수 있다. 선택 중에 결과가 한 장으로 줄어도 선택 갤러리를 유지한다.
 
@@ -60,3 +60,81 @@ GUI 자동 입력은 macOS 빌드의 데스크톱·모바일 레이아웃에서 
 2026-10-03 초기 단일 문서 연결 검증에서는 관련 CTest 9개를 통과했다. 여러 캔버스 프로젝트로 변경한 이후의 최종 검사·설치 결과는 `build/multi-canvas/`에 기록한다. 최종 다중 선택 보완 후 HomeEditorRoutes를 다시 실행해 데스크톱·모바일 문서 저장과 재개방을 확인하고, 렌더링된 캔버스 중앙 픽셀이 SDK의 문서 렌더링 결과와 일치한 뒤 화면을 캡처했다. 고급 생성 배치 선택 검사와 Cocoa 플랫폼의 실제 번들 기동 검사도 별도로 통과했다.
 
 offscreen 검사 로그에는 Qt Labs Platform의 네이티브 메뉴 지원 진단과 LVRS CardImageContent의 `drawImage(), index size error` 경고가 발생했다. 이 진단이 남아 있음을 기록하며, 네이티브 캔버스의 저장·표시 결과는 실제 픽셀 비교로 확인한다. 새 모델을 이용한 AI 추론이나 모바일 실기 실행을 이 경로 검증으로 주장하지 않는다.
+
+Application-level open commands return whether the operation was accepted. Stored
+video opens return true after selecting their result view. Unavailable file opens
+require the native drive/key identity; missing identity or a rejected download
+start reports an error, and a rejected start retires its pending open intent.
+Manual file results have no submission job owner, so unrelated generation result
+updates cannot clear or replace that view. Desktop/mobile unsupported Home actions
+share one explicit response and preserve the existing prompt. These contracts are
+covered by `Dreamscapes.InteractionRoutes` in addition to native file round trips.
+
+The desktop Recent files row explicitly enables its Open file action. The row
+component otherwise defaults that optional control to hidden, which previously
+left the Home open-file signal connected to an invisible button. The existing
+Home-to-native-document round-trip regression exercises an actual button click
+before selecting and opening the file.
+
+## Original preparation for selected images (2026-10-21)
+
+`ImageSelection.key` uses container ID plus logical file key for native Aliases;
+unbound generated images continue to use their original document/image identity.
+Availability and preview URLs do not define selection. Files and History retain
+unavailable image records in Select, and an Alias becoming resident keeps its
+selection. `previewSource` and `thumbnailSource` are never editor command sources.
+
+`Main.openImages` accepts an open intent through the C++ `ImageOpenRequest` GUI
+adapter. The adapter reads the owner's in-memory Alias snapshot, resolves each
+original in order, and starts the existing native `FileDownload` only when an
+original is absent. Transfer/filesystem work stays in that SDK's existing worker.
+Each completed transfer is resolved again from the owner; all original URLs must
+be ready before the editor receives one open command. The original local result
+metadata is retained separately from those command URLs. `EditorImageImportRequest`
+then prepares the native document on a worker. Successful adoption publishes
+records mapped to the actual artboards before Main reveals the editor. Existing
+native validation and atomic project replacement still apply. See
+[EditorImageImport](EditorImageImport.md) for worker, cancellation and storage scope.
+
+An accepted intent owns the captured ordered selection, container ID and root.
+Leaving the collection, choosing a different open command, changing the drive or
+destroying the view retires it. A shared downloader replacement cannot cancel the
+new owner's transfer. Late/mismatched ready events are ignored. A failed transfer
+reports its outcome without opening a partial project; Retry in the same download
+surface retries the accepted image selection rather than opening only its last
+file. Direct navigation/cancellation discards that retry intent. No generation
+queue, inference or Society application launch is part of preparation.
+
+`Dreamscapes.ImageOpen` tests source priority, deferred delivery, native download
+handoff from stale snapshots, rejection, cancellation, drive replacement,
+shared-transfer ownership, reentrancy and destruction. `Dreamscapes.ImageOpenGui`
+uses a real replica StorageMap record and a cached 12x8 JPEG in Files/History for
+desktop/mobile layouts. It selects the absent original and models full PNG bytes
+arriving after acceptance, then checks the editor's 503x299 artboard and stable
+selection. This is an original-arrival/native-SDK handoff fixture; authenticated
+network transfer remains covered by the SDK Client suite, separately from these
+application tests. Evidence is in `build/verification/image-open-20261021/`.
+
+Result-gallery navigation retains its viewport position across detail and editor
+round trips. Wheel deltas are bounded to the visible grid and do not enter the
+generation backend. Existing LiveGeneration gallery cases include wheel/touch,
+1000-image virtualization, result append, editor return and queue preservation.
+
+Production and source fixtures share registerStorageViewTypes. The focused
+PackagedApplication test loads the canonical application's embedded Main and
+checks actual helper discovery; source-only GUI registration cannot satisfy that
+gate. The first missing ImageOpenRequest registration was caught by the installed
+startup check and rolled back before the shared registry repair.
+# Working-file completion boundary
+
+`openCanvas` accepts a file-open intent and retains its selected generation
+metadata while native preparation is running. `CanvasEditor.documentOpened`
+completes the transition after Project adoption. Failure or cancellation keeps
+the old visible document and its metadata. Opening a blank canvas remains an
+immediate native creation command. A cancellable status is available while
+working-file preparation is pending in Home, Files or the editor.
+
+Home hydration captures file key, container ID and section. View cancellation
+only cancels its matching active transfer, and a stale completion from a changed
+drive cannot open another drive's file with the same key.
+

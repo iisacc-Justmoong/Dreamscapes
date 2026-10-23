@@ -1,10 +1,15 @@
 #include "App/Views/Editor/EditorCanvas.h"
 #include "App/Views/Editor/EditorMedia.h"
+#include "App/Views/Editor/EditorClippingOverlay.h"
+#include "App/Views/Editor/EditorLayerHistogram.h"
 #include <iiSharedCanvas.h>
+#include <iiFileProviderNative.h>
 #include <SocietyDrive.h>
 #include <QImage>
 #include <QTemporaryDir>
 #include <QMouseEvent>
+#include <QElapsedTimer>
+#include <QSignalSpy>
 #include <QtTest>
 #include <algorithm>
 #include <cmath>
@@ -21,6 +26,15 @@ private:
         const auto source = preview.value("imageSource").toUrl().toString();
         return QImage::fromData(QByteArray::fromBase64(source.mid(source.indexOf(',') + 1).toLatin1()));
     }
+    QImage clippingPixels(EditorCanvas &canvas) {
+        const auto settings = canvas.clippingState();
+        if (!settings.value("enabled").toBool()) return {};
+        const auto result = EditorClippingOverlay::render({canvas.editingFrameSnapshot(),
+            settings.value("white").toInt(), settings.value("black").toInt(),
+            settings.value("highlights").toBool(), settings.value("shadows").toBool()});
+        if (!result.error.isEmpty()) QTest::qFail(qPrintable(result.error), __FILE__, __LINE__);
+        return result.image;
+    }
     int exposedChannel(int input, double stops) {
         const double encoded = input / 255.0;
         const double linear = encoded <= 0.04045 ? encoded / 12.92 : std::pow((encoded + 0.055) / 1.055, 2.4);
@@ -28,6 +42,120 @@ private:
         return qRound(255 * (exposed <= 0.0031308 ? exposed * 12.92 : 1.055 * std::pow(exposed, 1 / 2.4) - 0.055));
     }
 private slots:
+    void colorSampleDispatchDoesNotRenderTheWholeFrame() {
+        Document document;document.extent={2048,2048};
+        document.assets.emplace_back(RasterAsset{"pixels",makeRasterLayer(2048,2048,0xff336699U)});
+        for(int i=0;i<32;++i) {
+            LayerProperties properties{"sample."+std::to_string(i),"Color sample fixture"};properties.opacity=.5;
+            document.layers.emplace_back(StaticBitmapLayer{properties,StaticSource{"pixels"}});
+        }
+        EditorCanvas canvas;QVERIFY(canvas.loadProjectPage(std::move(document),"Color sample dispatch"));
+        const auto bytes=encodeIisc(*canvas.document()).bytes;const auto revision=canvas.revision();
+        const auto sequence=canvas.layerColorSample()["sequence"].toInt();
+        QSignalSpy files(&canvas,&EditorCanvas::fileStateChanged),info(&canvas,&EditorCanvas::documentInfoChanged);
+        QVERIFY(canvas.beginLayerColorSample());bool heartbeat=false;QTimer::singleShot(0,&canvas,[&]{heartbeat=true;});
+        QElapsedTimer elapsed;elapsed.start();const bool accepted=canvas.sampleLayerColor({1024,1024});
+        const auto microseconds=elapsed.nsecsElapsed()/1000;
+        qInfo()<<"color_sample_dispatch_us"<<microseconds<<"heartbeat_before_return"<<heartbeat
+               <<"sequence_before"<<sequence<<"sequence_after"<<canvas.layerColorSample()["sequence"];
+        QVERIFY(accepted);QVERIFY2(microseconds<250000,"A color sample must schedule the native read without rendering a complete image on the GUI thread");
+        QCOMPARE(canvas.layerColorSample()["sequence"].toInt(),sequence);QVERIFY(canvas.layerColorSample()["pending"].toBool());
+        QTRY_VERIFY(heartbeat);QTRY_COMPARE(canvas.layerColorSample()["sequence"].toInt(),sequence+1);
+        QVERIFY(!canvas.layerColorSample()["pending"].toBool());QCOMPARE(canvas.layerColorSample()["hex"].toString(),QString("#336699"));
+        QCOMPARE(canvas.revision(),revision);QCOMPARE(files.count(),0);QCOMPARE(info.count(),0);QCOMPARE(encodeIisc(*canvas.document()).bytes,bytes);
+    }
+    void unchangedLayerGroupVisibilityDoesNotReviseOrPersist() {
+        Document document; document.extent = {8, 8};
+        document.artboards = {{"group", "Group", {{0, 0}, {8, 8}}, 0}};
+        document.assets.emplace_back(RasterAsset{"pixels", makeRasterLayer(8, 8, 0xff336699U)});
+        LayerProperties properties{"group.layer", "Layer"}; properties.artboardId = "group";
+        document.layers.emplace_back(StaticBitmapLayer{properties, StaticSource{"pixels"}});
+        EditorCanvas canvas; QVERIFY(canvas.loadProjectPage(std::move(document), "No-op group"));
+        const auto path = m_storage.filePath("Files/noop-group.iisc"); QVERIFY(canvas.saveDocumentAs(QUrl::fromLocalFile(path)));
+        const auto nativePath = std::filesystem::path(path.toStdU16String());
+        const auto bytes = iiFileProvider::native::File::read(nativePath);
+        const auto revision = canvas.revision(); const auto version = canvas.fileAlias()["version"];
+        const auto documentBytes = encodeIisc(*canvas.document()).bytes;
+        QSignalSpy files(&canvas, &EditorCanvas::fileStateChanged), info(&canvas, &EditorCanvas::documentInfoChanged);
+        QVERIFY(canvas.setLayerGroupVisible("group", true));
+        QCOMPARE(canvas.revision(), revision);
+        for (int i = 0; i < 200; ++i) QVERIFY(canvas.setLayerGroupVisible("group", true));
+        QCOMPARE(files.count(), 0); QCOMPARE(info.count(), 0);
+        QCOMPARE(canvas.fileAlias()["version"], version); QCOMPARE(iiFileProvider::native::File::read(nativePath), bytes);
+        QCOMPARE(encodeIisc(*canvas.document()).bytes, documentBytes);
+        canvas.configureTool("brush", {{"field-4", 2}, {"field-5", 100}, {"field-8", 100}, {"field-9", 100}});
+        QVERIFY(canvas.beginStrokeAt({1, 1}));
+        const auto liveRevision = canvas.revision();
+        QVERIFY(canvas.setLayerGroupVisible("group", true)); QCOMPARE(canvas.revision(), liveRevision);
+        QVERIFY(canvas.liveStrokeActive()); QVERIFY(!canvas.setLayerGroupVisible("group", false)); QVERIFY(canvas.liveStrokeActive());
+        QCOMPARE(iiFileProvider::native::File::read(nativePath), bytes);
+        canvas.configureTool("select", {}); QVERIFY(!canvas.liveStrokeActive());
+        QVERIFY(canvas.setLayerGroupVisible("group", false));
+        QCOMPARE(canvas.document()->artboards.front().visible, false); QCOMPARE(files.count(), 1);
+        DocumentFile observer; QVERIFY(observer.open(nativePath).ok()); QCOMPARE(observer.document()->artboards.front().visible, false);
+    }
+    void histogramPresentationDoesNotExposeBlockingWork() {
+        EditorCanvas canvas;
+        const auto method = canvas.metaObject()->indexOfMethod("layerHistogram(bool,QString)");
+        if (method >= 0) {
+            Document document; document.extent = {2048, 2048};
+            document.assets.emplace_back(RasterAsset{"pixels", makeRasterLayer(2048, 2048, 0xff336699U)});
+            for (int i = 0; i < 32; ++i) {
+                LayerProperties properties{"histogram." + std::to_string(i), "Histogram fixture"};
+                properties.opacity = .5;
+                document.layers.emplace_back(StaticBitmapLayer{properties, StaticSource{"pixels"}});
+            }
+            QVERIFY(canvas.loadProjectPage(std::move(document), "Histogram dispatch"));
+            bool heartbeat = false;
+            QTimer::singleShot(0, &canvas, [&] { heartbeat = true; });
+            QElapsedTimer elapsed; elapsed.start();
+            QVariantMap result;
+            QVERIFY(QMetaObject::invokeMethod(&canvas, "layerHistogram", Q_RETURN_ARG(QVariantMap, result),
+                Q_ARG(bool, true), Q_ARG(QString, QStringLiteral("RGB"))));
+            qInfo() << "synchronous histogram microseconds" << elapsed.nsecsElapsed() / 1000
+                    << "heartbeat before return" << heartbeat;
+            QCOMPARE(result["pixelCount"].toLongLong(), 2048LL * 2048);
+        }
+        QCOMPARE(method, -1); // QML must use a view-owned asynchronous analysis.
+    }
+    void selectionStateReadsDoNotPerformDocumentWork() {
+        EditorCanvas canvas;
+        Document document; document.extent = {2048, 2048};
+        QVERIFY(canvas.loadProjectPage(std::move(document), "Selection state"));
+        const QVariantMap rectangle{{"selector", "Rectangle"}, {"field-0", "New"}, {"field-2", 0}, {"field-5", false}};
+        canvas.configureTool("select", rectangle);
+        QVERIFY(canvas.selectArea({QPointF(0, 0), QPointF(2048, 2048)}));
+        constexpr qlonglong selected = 2048LL * 2048;
+        QCOMPARE(canvas.toolState().value("selectedPixels").toLongLong(), selected);
+        const auto before = encodeIisc(*canvas.document()).bytes;
+        const auto revision = canvas.revision();
+        const auto overlay = canvas.selectionOverlay();
+        QSignalSpy state(&canvas, &EditorCanvas::toolStateChanged);
+        QSignalSpy file(&canvas, &EditorCanvas::fileStateChanged);
+        QElapsedTimer elapsed; elapsed.start();
+        for (int i = 0; i < 200; ++i) {
+            const auto snapshot = canvas.toolState();
+            QCOMPARE(snapshot.value("selectedPixels").toLongLong(), selected);
+            QVERIFY(snapshot.value("selectionActive").toBool());
+        }
+        qInfo() << "selection_state: pixels=" << selected << "reads=200 us=" << elapsed.nsecsElapsed() / 1000;
+        QCOMPARE(state.count(), 0); QCOMPARE(file.count(), 0);
+        QCOMPARE(canvas.revision(), revision);
+        QCOMPARE(encodeIisc(*canvas.document()).bytes, before);
+        QCOMPARE(canvas.selectionOverlay(), overlay);
+        canvas.clearAreaSelection();
+        QCOMPARE(canvas.toolState().value("selectedPixels").toLongLong(), 0);
+        QVERIFY(!canvas.toolState().value("selectionActive").toBool());
+        QVERIFY(canvas.selectArea({QPointF(2, 3), QPointF(14, 9)}));
+        QCOMPARE(canvas.toolState().value("selectedPixels").toLongLong(), 72);
+        auto subtract = rectangle; subtract["field-0"] = "Subtract";
+        canvas.configureTool("select", subtract);
+        QVERIFY(canvas.selectArea({QPointF(2, 3), QPointF(8, 9)}));
+        QCOMPARE(canvas.toolState().value("selectedPixels").toLongLong(), 36);
+        Document replacement; replacement.extent = {32, 32};
+        QVERIFY(canvas.loadProjectPage(std::move(replacement), "Replacement"));
+        QCOMPARE(canvas.toolState().value("selectedPixels").toLongLong(), 0);
+    }
     void compactRepairPreviewDoesNotCommitUntilApply() {
         EditorCanvas canvas; create(canvas, 32, 32);
         QImage source(32, 32, QImage::Format_ARGB32); source.fill(Qt::blue);
@@ -231,8 +359,9 @@ private slots:
             d.assets.emplace_back(RasterAsset{asset, pixels});
             LayerProperties properties{board.id + ".layer", board.name};
             properties.artboardId = board.id;
-            properties.transform.translationX = board.region.origin.x;
-            properties.transform.translationY = board.region.origin.y;
+            // Membership makes the base transform local to the artboard.
+            properties.transform.translationX = 0;
+            properties.transform.translationY = 0;
             d.layers.emplace_back(StaticBitmapLayer{properties, StaticSource{asset}});
         }
         const auto path = directory.filePath("artboards.iisc"); DocumentFile file;
@@ -240,6 +369,9 @@ private slots:
         EditorCanvas c; QVERIFY(c.openDocumentSource(QUrl::fromLocalFile(path)));
         QVERIFY(c.selectArtboard(1, false)); QVERIFY(c.selectLayer("second.layer"));
         QCOMPARE(c.editingOrigin(), QPointF(72, 24));
+        const auto visible = renderArtboard(*c.document(), c.frame(), "second"); QVERIFY(visible.ok());
+        const auto center = visible.pixels.pixels[4 * 8 + 4]; QCOMPARE(qAlpha(center), 127);
+        QVERIFY(std::abs(qRed(center) - 80) <= 1); QVERIFY(std::abs(qGreen(center) - 100) <= 1); QVERIFY(std::abs(qBlue(center) - 120) <= 1);
         const QVariantMap gradient{{"start", QVariantMap{{"x", 0.0}, {"y", 0.0}}}, {"end", QVariantMap{{"x", 1.0}, {"y", 0.0}}}};
         QVERIFY(c.applyGraphicOperation("masking", "linearMask", gradient));
         QVERIFY(c.toolState().value("selectionActive").toBool());
@@ -271,7 +403,9 @@ private slots:
         pixels.setPixel(0, 1, qRgb(0, 0, 255));
         QVERIFY(c.insertPixels(pixels, "RGB sample"));
         const auto before = encodeIisc(*c.document()).bytes;
-        const auto histogram = c.layerHistogram(false, "Red");
+        EditorLayerHistogram analysis; analysis.setCanvas(&c); analysis.setComposite(false); analysis.setChannel("Red"); analysis.setActive(true);
+        QTRY_VERIFY(!analysis.histogram()["pending"].toBool());
+        const auto histogram = analysis.histogram();
         QCOMPARE(histogram["pixelCount"].toLongLong(), 3);
         const auto red = histogram["red"].toList(); QCOMPARE(red.size(), 256);
         QCOMPARE(red[0].toInt(), 2); QCOMPARE(red[255].toInt(), 1);
@@ -282,7 +416,7 @@ private slots:
         QCOMPARE(details["bitDepth"].toString(), QString("8 bit / channel"));
         const auto sequence = c.layerColorSample()["sequence"].toInt();
         QVERIFY(c.sampleLayerColor({0, 0}));
-        QCOMPARE(c.layerColorSample()["sequence"].toInt(), sequence + 1);
+        QTRY_COMPARE(c.layerColorSample()["sequence"].toInt(), sequence + 1);
         QCOMPARE(c.layerColorSample()["hex"].toString(), QString("#FF0000"));
         QVERIFY(c.beginLayerColorSample());
         QVERIFY(c.layerColorSample()["picking"].toBool());
@@ -295,10 +429,10 @@ private slots:
         QVERIFY(c.beginLayerColorSample());
         QVERIFY(c.sampleLayerColor({1, 0}));
         QVERIFY(!c.layerColorSample()["picking"].toBool());
-        QCOMPARE(c.layerColorSample()["sequence"].toInt(), sequence + 2);
+        QTRY_COMPARE(c.layerColorSample()["sequence"].toInt(), sequence + 2);
         QCOMPARE(c.layerColorSample()["hex"].toString(), QString("#00FF00"));
         c.setLayerHistogramClipping(true, false);
-        QVERIFY(!c.toolState()["clippingOverlay"].toUrl().isEmpty());
+        QVERIFY(!clippingPixels(c).isNull());
         c.setLayerHistogramClipping(false, false);
         QCOMPARE(encodeIisc(*c.document()).bytes, before);
         QVERIFY(!c.sampleLayerColor({-1, 0}));
@@ -410,6 +544,108 @@ private slots:
         QCOMPARE(EditorMedia::mixTimelineAudio(d, 24).asset.samples[0], std::int16_t(2000));
         QVERIFY(!EditorMedia::mixTimelineAudio(d, 48).ok());
     }
+    void timelineAudioMixPreservesEverySampleAcrossBlocks() {
+        Document d; d.timeline.frameRate = {30000, 1001}; d.timeline.frameCount = 47;
+        AudioAsset mono{"mono", 44100, 1, std::vector<std::int16_t>(90000)};
+        AudioAsset stereo{"stereo", 48000, 2, std::vector<std::int16_t>(180000)};
+        for (std::size_t i = 0; i < mono.samples.size(); ++i) mono.samples[i] = std::int16_t(int(i % 50001) - 25000);
+        for (std::size_t i = 0; i < stereo.samples.size(); ++i) stereo.samples[i] = std::int16_t(int(i % 60001) - 30000);
+        d.audioAssets = {mono, stereo};
+        AudioTrackLayer first{"first", "First"}, second{"second", "Second"};
+        first.clips.push_back({"mono-clip", "Mono", "mono", 3, 41, 137, 3.0});
+        second.gainDb = -1.5;
+        second.clips.push_back({"stereo-clip", "Stereo", "stereo", 5, 42, 41, 1.0});
+        d.audioTracks = {first, second};
+        constexpr FrameIndex firstFrame = 7;
+        const auto actual = EditorMedia::mixTimelineAudio(d, firstFrame); QVERIFY(actual.ok());
+        const double fps = double(d.timeline.frameRate.numerator) / d.timeline.frameRate.denominator;
+        std::vector<double> mixed(actual.asset.samples.size());
+        for (const auto &track : d.audioTracks) for (const auto &clip : track.clips) {
+            const auto *source = findAudioAsset(d, clip.assetId); QVERIFY(source);
+            const auto start = std::max<std::int64_t>(0, std::int64_t(std::ceil((clip.startFrame / fps - firstFrame / fps) * 48000)));
+            const auto end = std::min<std::int64_t>(mixed.size() / 2, std::int64_t(std::ceil(((clip.startFrame + clip.durationFrames) / fps - firstFrame / fps) * 48000)));
+            const auto sourceCount = source->samples.size() / source->channelCount;
+            const double gain = std::pow(10.0, (track.gainDb + clip.gainDb) / 20);
+            for (auto i = start; i < end; ++i) {
+                const double position = ((firstFrame / fps + double(i) / 48000) - clip.startFrame / fps) * source->sampleRate + clip.sourceOffsetSamples;
+                if (position < 0 || position >= sourceCount) continue;
+                const auto left = std::size_t(position), right = std::min(left + 1, sourceCount - 1);
+                const double fraction = position - left;
+                for (int channel = 0; channel < 2; ++channel) {
+                    const auto c = std::min<int>(channel, source->channelCount - 1);
+                    mixed[i * 2 + channel] += (source->samples[left * source->channelCount + c] * (1 - fraction)
+                        + source->samples[right * source->channelCount + c] * fraction) * gain;
+                }
+            }
+        }
+        for (std::size_t i = 0; i < mixed.size(); ++i)
+            QCOMPARE(actual.asset.samples[i], std::int16_t(std::clamp(std::lround(mixed[i]), -32768L, 32767L)));
+    }
+    void timelineAudioMixLargeTimeline() {
+        Document d; d.timeline.frameRate = {24, 1}; d.timeline.frameCount = 8000;
+        d.audioAssets.push_back({"mono", 48000, 1, {1000}});
+        AudioTrackLayer track{"track", "Track"};
+        track.clips.push_back({"clip", "Clip", "mono", 0, 8000}); d.audioTracks.push_back(track);
+        const auto mixed = EditorMedia::mixTimelineAudio(d, 0); QVERIFY(mixed.ok());
+        QCOMPARE(mixed.asset.samples.size(), std::size_t(32000000));
+        QCOMPARE(mixed.asset.samples[0], std::int16_t(1000));
+        QCOMPARE(mixed.asset.samples[1], std::int16_t(1000));
+        QCOMPARE(mixed.asset.samples[2], std::int16_t(0));
+        QCOMPARE(mixed.asset.samples.back(), std::int16_t(0));
+    }
+    void undoHistoryIncludesAudioInItsMemoryBudget() {
+        EditorCanvas c; create(c, 16, 16); QVERIFY(c.addPaintLayer());
+        auto document = *c.document();
+        document.audioAssets.push_back({"large-audio", 48000, 1, std::vector<std::int16_t>(10 * 1024 * 1024)});
+        QVERIFY(c.loadProjectPage(std::move(document), "Audio history"));
+        const auto id = c.selectedLayerId();
+        for (int i = 0; i < 6; ++i) QVERIFY(c.setLayerName(id, QString::number(i)));
+        int undos = 0;
+        while (c.canUndo() && undos < 10) { QVERIFY(c.undo()); ++undos; }
+        QCOMPARE(undos, 5); // Six 20-MiB states fit the existing 128-MiB budget.
+        for (int i = 0; i < undos; ++i) QVERIFY(c.redo());
+        QCOMPARE(c.selectedLayer().value("name").toString(), QString("5"));
+        QVERIFY(c.undo()); QVERIFY(c.setLayerName(id, "Branch")); QVERIFY(!c.canRedo());
+    }
+    void selectedLayerMatchesThePublicLayerRow() {
+        EditorCanvas c; create(c, 16, 16);
+        auto document = *c.document();
+        document.assets.emplace_back(RasterAsset{"pixel", {1, 1, {0xff123456}}});
+        for (int i = 0; i < 256; ++i) document.layers.emplace_back(StaticBitmapLayer{
+            {"layer-" + std::to_string(i), "Layer " + std::to_string(i)}, StaticSource{"pixel"}});
+        QVERIFY(c.loadProjectPage(std::move(document), "Selection"));
+        for (const auto &id : {QString("layer-0"), QString("layer-127"), QString("layer-255")}) {
+            QVERIFY(c.selectLayer(id));
+            QVariantMap expected;
+            for (const auto &row : c.layers()) if (row.toMap().value("selected").toBool()) expected = row.toMap();
+            expected["lock"] = "None"; expected["preserveAlpha"] = false;
+            QCOMPARE(c.selectedLayer(), expected);
+        }
+        const auto revision = c.revision(); QElapsedTimer timer; timer.start();
+        for (int i = 0; i < 1000; ++i) QCOMPARE(c.selectedLayer().value("id").toString(), QString("layer-255"));
+        qInfo() << "1000 selected-layer queries, 256 layers:" << timer.nsecsElapsed() / 1000000.0 << "ms";
+        QCOMPARE(c.revision(), revision);
+        c.clearSelection(); QVERIFY(c.selectedLayer().isEmpty());
+    }
+    void toolStateDoesNotMaterializeClippingPixels() {
+        EditorCanvas c; create(c, 1024, 1024);
+        QVERIFY(c.applyToolField("background", "field-1", "#FFFFFF"));
+        c.setLayerHistogramClipping(false, true);
+        const auto before = encodeIisc(*c.document()).bytes;
+        const auto revision = c.revision();
+        QElapsedTimer clock; clock.start();
+        const auto state = c.toolState();
+        qInfo() << "clipping tool-state first read (us):" << clock.nsecsElapsed() / 1000;
+        QVERIFY2(!state.contains("clippingOverlay"), "A metadata getter must not render or encode a clipping image.");
+        const auto clipping = state.value("clipping").toMap();
+        QVERIFY(clipping.value("enabled").toBool());
+        QVERIFY(clipping.value("highlights").toBool());
+        QVERIFY(!clipping.value("shadows").toBool());
+        QCOMPARE(clipping.value("white").toInt(), 255);
+        for (int i = 0; i < 100; ++i) QCOMPARE(c.toolState().value("clipping").toMap(), clipping);
+        QCOMPARE(c.revision(), revision);
+        QCOMPARE(encodeIisc(*c.document()).bytes, before);
+    }
     void canvasGuidesAndClippingUseActualDocument() {
         EditorCanvas c; create(c, 64, 48);
         QVERIFY(c.applyToolField("canvas", "field-1", "254 ppi"));
@@ -421,18 +657,19 @@ private slots:
         QCOMPARE(guide.value("safeX").toDouble(), 6.4);
         QTemporaryDir exportDir(DREAMSCAPES_TEST_DIRECTORY "/editor-density-XXXXXX"); QVERIFY(exportDir.isValid());
         const auto exported = exportDir.filePath("density.png"); QVERIFY(c.exportImage(QUrl::fromLocalFile(exported), "PNG"));
+        QTRY_VERIFY(!c.frameExporter()->property("busy").toBool());QVERIFY(c.frameExporter()->property("error").toString().isEmpty());
         QCOMPARE(QImage(exported).dotsPerMeterX(), 10000);
         const auto before = encodeIisc(*c.document()).bytes;
         QVERIFY(!c.applyToolField("canvas", "field-17", "bad mm"));
         QCOMPARE(c.toolValues("canvas").value("field-17").toString(), QString("3 mm"));
         QVERIFY(c.applyToolField("color", "field-18", true));
-        QVERIFY(c.toolState().value("clippingOverlay").toUrl().isEmpty()); // Transparent pixels do not clip.
+        QVERIFY(clippingPixels(c).isNull()); // Transparent pixels do not clip.
         QVERIFY(c.applyToolField("background", "field-1", "#FFFFFF"));
-        QVERIFY(!c.toolState().value("clippingOverlay").toUrl().isEmpty());
+        QVERIFY(!clippingPixels(c).isNull());
         const auto white = encodeIisc(*c.document()).bytes;
         QVERIFY(c.applyToolField("color", "field-18", false));
         QCOMPARE(encodeIisc(*c.document()).bytes, white);
-        QVERIFY(c.toolState().value("clippingOverlay").toUrl().isEmpty());
+        QVERIFY(clippingPixels(c).isNull());
         QVERIFY(before != white);
     }
     void manualVignetteIsNonaccumulating() {
@@ -524,6 +761,7 @@ private slots:
         EditorCanvas c; create(c); QVERIFY(c.applyToolField("background", "field-1", "#FF0000"));
         const auto before = *c.document();
         const auto path = dir.filePath("flattened.iisc"); QVERIFY(c.exportImage(QUrl::fromLocalFile(path), "IISC"));
+        QTRY_VERIFY(!c.frameExporter()->property("busy").toBool());QVERIFY(c.frameExporter()->property("error").toString().isEmpty());
         QVERIFY(c.filePath().isEmpty()); QCOMPARE(c.document()->layers.size(), before.layers.size());
         EditorCanvas opened; QVERIFY(opened.openDocumentSource(QUrl::fromLocalFile(path)));
         QCOMPARE(opened.document()->layers.size(), 1u);
@@ -678,6 +916,7 @@ private slots:
         QCOMPARE(renderFrame(*c.document(), 0).pixels.pixels, noisy);
         QTemporaryDir directory(DREAMSCAPES_TEST_DIRECTORY "/text-export-XXXXXX"); QVERIFY(directory.isValid());
         const auto path = directory.filePath("text.png"); QVERIFY(c.exportImage(QUrl::fromLocalFile(path), "PNG"));
+        QTRY_VERIFY(!c.frameExporter()->property("busy").toBool());QVERIFY(c.frameExporter()->property("error").toString().isEmpty());
         const QImage exported(path); QCOMPARE(exported.size(), QSize(256, 144));
         for (int y = 0; y < 144; ++y) for (int x = 0; x < 256; ++x) QCOMPARE(exported.pixel(x, y), noisy[y * 256 + x]);
         QVERIFY(c.applyToolField("text", "textShadow", false));

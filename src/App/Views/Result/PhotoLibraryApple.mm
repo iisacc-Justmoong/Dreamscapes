@@ -5,8 +5,8 @@
 PhotoLibraryExporter::SaveOperation nativePhotoLibrarySaveOperation()
 {
     if (@available(macOS 11.0, iOS 14.0, *)) {
-        return [](const QString &path, PhotoLibraryExporter::Completion completion) {
-            NSURL *url = [NSURL fileURLWithPath:path.toNSString()];
+        return [](const PhotoLibraryExporter::Image &image, PhotoLibraryExporter::Completion completion) {
+            NSURL *url = [NSURL fileURLWithPath:image.path.toNSString()];
             auto importPhoto = ^(PHAuthorizationStatus status) {
                 if (status != PHAuthorizationStatusAuthorized && status != PHAuthorizationStatusLimited) {
                     completion({}, QStringLiteral("Allow Dreamscapes to add photos in system settings, then try again."));

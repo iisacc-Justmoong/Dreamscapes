@@ -19,42 +19,82 @@ Item {
     property string previewTool: ""
     property string previewField: ""
     property var previewValues: ({})
-    readonly property bool modalActive: toolSheet.modalActive || documentControls.modalActive || previewSheet.visible || sourceDialog.visible || exportDialog.visible || advancedSheet.visible || editorTimeline.modalActive || (desktopDock.item ? desktopDock.item.backgroundModalActive || desktopDock.item.layerModalActive || desktopDock.item.graphicModalActive || desktopDock.item.elementsModalActive || desktopDock.item.photoModalActive : false)
+    property bool applicationModalActive: false
+    property bool applicationSearchActive: false
+    readonly property bool modalActive: applicationModalActive || viewBar.modalActive || toolSheet.modalActive || documentControls.modalActive || previewSheet.visible || sourceDialog.visible || exportDialog.visible || advancedSheet.visible || editorTimeline.modalActive || (desktopDock.item ? desktopDock.item.backgroundModalActive || desktopDock.item.layerModalActive || desktopDock.item.graphicModalActive || desktopDock.item.elementsModalActive || desktopDock.item.photoModalActive : false)
     property int selectedPath: -1
     property var generationTargetCanvas: null
     property url imageSource: ""
     property var generationResult: ({})
     property var generationResults: []
     property var canvasSpecification: ({})
+    property bool initializeBlankCanvas: true
     readonly property alias project: canvasProject
     readonly property var blankCanvas: canvasProject.currentCanvas
     readonly property string documentError: canvasProject.error
-    readonly property var activeGenerationResult: generationResults[canvasProject.currentIndex] || generationResult
-    function createBlankCanvas(specification) { return canvasProject.createCanvas(specification) }
-    function openDocumentSource(source, asCopy) {
-        if (!canvasProject.openDocumentSource(source, Boolean(asCopy))) return false
-        documentOpened(source)
-        return true
+    property var generationResultsByArtboard: ({})
+    readonly property var sourceArtboards: canvasProject ? canvasProject.artboards : []
+    readonly property string activeArtboardId: canvasProject && sourceArtboards[canvasProject.currentIndex] ? sourceArtboards[canvasProject.currentIndex].id : ""
+    readonly property var activeGenerationResult: activeArtboardId
+        ? generationResultsByArtboard[activeArtboardId] || ({}) : generationResults[canvasProject ? canvasProject.currentIndex : 0] || generationResult
+    function syncGenerationMetadata() {
+        if (!canvasProject) return
+        const mapped = ({})
+        sourceArtboards.forEach(function(board, index) {
+            mapped[board.id] = generationResults.length === 1 ? generationResults[0] : generationResults[index] || ({})
+        })
+        generationResultsByArtboard = mapped
     }
+    onGenerationResultsChanged: syncGenerationMetadata()
+    function createBlankCanvas(specification) { imageImporter.cancel(); canvasProject.cancelDocumentOpen(); return canvasProject.createCanvas(specification) }
+    function openDocumentSource(source, asCopy) {
+        imageImporter.cancel()
+        return canvasProject.openDocumentSource(source, Boolean(asCopy))
+    }
+    readonly property bool documentOpening: canvasProject.opening
+    function cancelDocumentOpen() { canvasProject.cancelDocumentOpen() }
     function saveDocumentAs(destination) { return canvasProject.saveDocumentAs(destination) }
-    function openImages(sources) { return canvasProject.openImages(sources) }
+    function openImages(sources, entries) { canvasProject.cancelDocumentOpen(); return imageImporter.start(sources, entries || [], false) }
     function localFileSource(path) { return blankCanvas.localFileSource(path) }
     property bool mobileLayout: false
     readonly property string selectedTool: toolToolbar.currentTool
     property bool desktopPanelExpanded: true
     // Retain the requested width when a smaller window temporarily clamps it.
-    property real desktopPanelWidth: 342
+    readonly property real desktopPanelDefaultWidth: 304
+    property real desktopPanelWidth: desktopPanelDefaultWidth
     readonly property real desktopPanelMinimumWidth: 280
     readonly property real desktopPanelMaximumWidth: Math.min(720,
         Math.max(desktopPanelMinimumWidth, width - sidebar.width - toolToolbar.implicitWidth - 320),
         Math.max(0, width - sidebar.width - toolToolbar.implicitWidth))
     readonly property bool compactSidebar: width < LV.Theme.scaleMetric(700)
     signal backRequested()
+    signal publishRequested()
     signal navigationRequested(string action)
     signal toolSelected(string toolId)
     signal toolActionRequested(string toolId, string fieldId, var values)
     signal documentOpened(url source)
-    EditorProject { id: canvasProject; objectName: "editorProject" }
+    signal documentOpenFailed(string message)
+    signal documentOpenCancelled()
+    signal imagesImported(var entries, var sources, bool attached)
+    signal imageImportFailed(string message)
+    EditorProject {
+        id: canvasProject
+        objectName: "editorProject"
+        container: root.generationRuntime ? root.generationRuntime.container : null
+        onDocumentOpened: function(source) { root.documentOpened(source) }
+        onDocumentOpenFailed: function(message) { root.documentOpenFailed(message) }
+        onDocumentOpenCancelled: root.documentOpenCancelled()
+    }
+    readonly property alias imageImportRequest: imageImporter
+    EditorImageImportRequest {
+        id: imageImporter
+        objectName: "editorImageImportRequest"
+        project: canvasProject
+        container: root.generationRuntime ? root.generationRuntime.container : null
+        onReady: function(entries, sources, attached) { root.imagesImported(entries, sources, attached) }
+        onFailed: function(message) { root.imageImportFailed(message) }
+        onRejected: function(message) { root.imageImportFailed(message) }
+    }
     function syncPagePresentation() {
         root.blankCanvas.pagePresentation = canvasProject.canvasCount > 1 && !root.blankCanvas.infiniteCanvas
     }
@@ -73,7 +113,11 @@ Item {
     }
     Connections {
         target: canvasProject
-        function onCurrentCanvasChanged() { root.mountCanvas() }
+        function onCurrentCanvasChanged() {
+            root.generationResultsByArtboard = ({})
+            root.mountCanvas()
+            Qt.callLater(root.syncGenerationMetadata)
+        }
         function onProjectChanged() { Qt.callLater(root.syncPagePresentation) }
     }
     Connections {
@@ -158,6 +202,7 @@ Item {
         else if (toolId === "file" && fieldId === "field-6") requestSource("file", values)
         else if (toolId === "file" && fieldId === "field-12") {
             if (values["field-1"] === "IISC" && values["field-11"]) documentControls.requestSaveAs(values["field-10"], blankCanvas.localDirectory(values["field-0"] || ""))
+            else if (!blankCanvas.prepareImageExport()) toolSheet.notice = blankCanvas.error
             else { const folder = blankCanvas.localDirectory(values["field-0"] || ""); if (folder.toString().length) exportDialog.currentFolder = folder; exportDialog.nameFilters = [values["field-1"] + " (*." + String(values["field-1"]).toLowerCase() + ")"]; exportDialog.format = values["field-1"]; exportDialog.selectedFile = values["field-10"] + "." + String(values["field-1"]).toLowerCase(); exportDialog.open() }
         }
         else if (toolId === "camera-photo" && fieldId === "field-7") requestSource(toolId, values)
@@ -174,22 +219,14 @@ Item {
         else toolSheet.notice = blankCanvas.toolHint
     }
     Component.onCompleted: {
-        if (!blankCanvas.documentReady) createBlankCanvas({width: 1024, height: 1024, unit: "px", background: "White"})
+        if (initializeBlankCanvas && !blankCanvas.documentReady) createBlankCanvas({width: 1024, height: 1024, unit: "px", background: "White"})
         blankCanvas.configureTool(toolSheet.toolId, toolSheet.values)
         mountCanvas()
+        syncGenerationMetadata()
     }
-    onVisibleChanged: if (!visible) { toolSheet.dismiss(); editorTimeline.playing = false; blankCanvas.media.stop(); blankCanvas.photoSources.cancel() }
+    onVisibleChanged: if (!visible) { canvasProject.cancelDocumentOpen(); imageImporter.cancel(); toolSheet.dismiss(); editorTimeline.playing = false; blankCanvas.media.stop(); blankCanvas.photoSources.cancel() }
     onMobileLayoutChanged: if (!mobileLayout) toolSheet.dismiss()
 
-    Rectangle {
-        objectName: "editorWorkAreaBackground"
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        anchors.left: sidebar.right
-        anchors.right: parent.right
-        visible: !root.mobileLayout
-        color: LV.Theme.panelBackground05
-    }
     DesktopHomeSidebar {
         id: sidebar
         objectName: "editorSidebar"
@@ -247,11 +284,19 @@ Item {
         anchors.margins: root.mobileLayout ? LV.Theme.gap16 : 0
         clip: true
 
+        EditorViewBar {
+            id: viewBar
+            anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
+            visible: !root.mobileLayout
+            height: root.mobileLayout ? 0 : implicitHeight
+            canvas: root.blankCanvas
+            onPublishRequested: root.publishRequested()
+        }
         EditorDocumentControls {
             id: documentControls
             objectName: "editorDocumentControls"
             defaultSaveDirectory: root.generationRuntime ? root.generationRuntime.filesDirectory : ""
-            anchors.top: parent.top
+            anchors.top: viewBar.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: 8
@@ -260,6 +305,7 @@ Item {
             height: implicitHeight
             canvas: blankCanvas
             project: canvasProject
+            imageImporter: root.imageImportRequest
             mobileLayout: root.mobileLayout
             showCommandBar: root.mobileLayout
             onOpenDocumentRequested: function(source, asCopy) { root.openDocumentSource(source, asCopy) }
@@ -278,12 +324,28 @@ Item {
             anchors.bottom: pageStrip.top
             anchors.left: parent.left
             anchors.right: parent.right
+            clip: true
+            Rectangle {
+                objectName: "editorWorkAreaBackground"
+                anchors.fill: parent
+                visible: !root.mobileLayout
+                color: LV.Theme.panelBackground05
+            }
             EditorPageDeck {
                 anchors.fill: parent
                 project: canvasProject
                 canvas: root.blankCanvas
                 activePage: activePageClip
                 navigationEnabled: !root.modalActive
+            }
+            Rectangle {
+                z: 199
+                x: root.blankCanvas.panX + (root.blankCanvas.editingOrigin.x - root.blankCanvas.canvasOriginX) * root.blankCanvas.zoom
+                y: root.blankCanvas.panY + (root.blankCanvas.editingOrigin.y - root.blankCanvas.canvasOriginY) * root.blankCanvas.zoom
+                width: root.blankCanvas.editingWidth * root.blankCanvas.zoom
+                height: root.blankCanvas.editingHeight * root.blankCanvas.zoom
+                color: LV.Theme.surfaceInput
+                Image { anchors.fill: parent; visible: root.blankCanvas.viewOptions.display.transparency; source: "qrc:/editor/view-options/checker.svg"; fillMode: Image.Tile }
             }
             Item {
                 id: activePageClip
@@ -297,7 +359,7 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     visible: root.blankCanvas.pagePresentation
-                    color: LV.Theme.panelBackground06
+                    color: root.blankCanvas.viewOptions.display.transparency ? "transparent" : LV.Theme.panelBackground06
                 }
                 // The host remains viewport-sized. Its offset cancels the clip
                 // position, preserving native input and overlay coordinates.
@@ -308,8 +370,51 @@ Item {
                     y: -activePageClip.y
                     width: canvasSurface.width
                     height: canvasSurface.height
+                    opacity: root.blankCanvas.viewOptions.display.outlines || (root.blankCanvas.graphicsBackend === "software" && root.blankCanvas.viewOptions.display.channel !== "RGB") ? 0 : 1
+                    layer.enabled: root.blankCanvas.graphicsBackend !== "software" && root.blankCanvas.viewOptions.display.channel !== "RGB"
+                    layer.effect: ShaderEffect {
+                        property var source
+                        property int channel: ["RGB","Red","Green","Blue","Alpha"].indexOf(root.blankCanvas.viewOptions.display.channel)
+                        property vector4d canvasRect: Qt.vector4d(
+                            (root.blankCanvas.panX + (root.blankCanvas.editingOrigin.x - root.blankCanvas.canvasOriginX) * root.blankCanvas.zoom) / Math.max(1, width),
+                            (root.blankCanvas.panY + (root.blankCanvas.editingOrigin.y - root.blankCanvas.canvasOriginY) * root.blankCanvas.zoom) / Math.max(1, height),
+                            root.blankCanvas.editingWidth * root.blankCanvas.zoom / Math.max(1, width),
+                            root.blankCanvas.editingHeight * root.blankCanvas.zoom / Math.max(1, height))
+                        fragmentShader: "qrc:/editor/shaders/channel.frag.qsb"
+                    }
+                }
+                EditorAlignmentOverlay {
+                    objectName: "editorSoftwareChannelOverlay"
+                    x: -activePageClip.x; y: -activePageClip.y
+                    width: canvasSurface.width; height: canvasSurface.height
+                    visible: root.blankCanvas.graphicsBackend === "software" && root.blankCanvas.viewOptions.display.channel !== "RGB" && !root.blankCanvas.viewOptions.display.outlines
+                    canvas: root.blankCanvas; family: "channel"
                 }
             }
+            Binding { target: root.blankCanvas; property: "smoothRendering"; value: !root.blankCanvas.viewOptions.display["pixel-preview"] }
+            Binding { target: root.blankCanvas; property: "enabled"; value: !root.modalActive }
+            EditorAlignmentOverlay { objectName: "editorGridOverlay"; anchors.fill: parent; z: 208; canvas: root.blankCanvas; family: "grid" }
+            EditorAlignmentOverlay {
+                id: guidesOverlay
+                objectName: "editorGuidesOverlay"; anchors.fill: parent
+                z: root.blankCanvas.viewOptions.guides.above ? 216 : 199.5
+                canvas: root.blankCanvas; family: "guides"
+            }
+            EditorAlignmentOverlay { objectName: "editorOutlinesOverlay"; anchors.fill: parent; z: 209; canvas: root.blankCanvas; family: "outlines" }
+            EditorAlignmentOverlay { objectName: "editorSnapOverlay"; anchors.fill: parent; z: 217; canvas: root.blankCanvas; family: "snap" }
+            EditorAlignmentOverlay { objectName: "editorGuideInput"; anchors.fill: parent; z: 219; enabled: !root.modalActive; canvas: root.blankCanvas; family: "guide-input" }
+            Repeater {
+                model: root.blankCanvas.alignmentFeedback.concat(guidesOverlay.labels)
+                LV.Label {
+                    required property var modelData
+                    visible: Boolean(modelData.label)
+                    x: Math.min(canvasSurface.width - width, Math.max(0, modelData.position ? modelData.position.x : 0))
+                    y: Math.min(canvasSurface.height - height, Math.max(0, modelData.position ? modelData.position.y : 0))
+                    z: modelData.guide ? guidesOverlay.z + 0.1 : 218
+                    text: modelData.label || ""; style: caption; color: modelData.color || LV.Theme.primary
+                }
+            }
+            EditorCanvasRulers { objectName: "editorCanvasRulers"; anchors.fill: parent; z: 220; canvas: root.blankCanvas }
             EditorElementTransform {
                 anchors.fill: parent
                 z: 214
@@ -342,15 +447,13 @@ Item {
                 visible: root.selectedTool === "eraser"
                 smooth: true
             }
-            Image {
+            EditorClippingOverlay {
                 objectName: "editorClippingOverlay"
                 z: 212
-                x: blankCanvas.panX + (blankCanvas.editingOrigin.x - blankCanvas.canvasOriginX) * blankCanvas.zoom; y: blankCanvas.panY + (blankCanvas.editingOrigin.y - blankCanvas.canvasOriginY) * blankCanvas.zoom
-                width: blankCanvas.editingWidth * blankCanvas.zoom; height: blankCanvas.editingHeight * blankCanvas.zoom
-                source: blankCanvas.toolState.clippingOverlay || ""
+                anchors.fill: parent
+                canvas: root.blankCanvas
                 visible: root.selectedTool === "color" || root.selectedTool === "layers"
-                cache: false
-                smooth: true
+                onPreviewFailed: message => toolSheet.notice = message
             }
             Rectangle {
                 objectName: "editorCanvasGuide"
@@ -493,7 +596,7 @@ Item {
             root.desktopPanelWidth = Math.min(root.desktopPanelMaximumWidth,
                 Math.max(root.desktopPanelMinimumWidth, requested))
         }
-        onDoubleClicked: root.desktopPanelWidth = 342
+        onDoubleClicked: root.desktopPanelWidth = root.desktopPanelDefaultWidth
     }
     EditorToolbar {
         id: toolToolbar
@@ -574,7 +677,24 @@ Item {
         objectName: "editorExportDialog"
         property string format: "PNG"
         fileMode: Dialogs.FileDialog.SaveFile
-        onAccepted: if (!blankCanvas.exportImage(selectedFile, format)) toolSheet.notice = blankCanvas.error
+        onAccepted: {
+            if (blankCanvas.exportImage(selectedFile, format)) toolSheet.notice = qsTr("Exporting frame…")
+            else toolSheet.notice = blankCanvas.error
+        }
+        onRejected: blankCanvas.cancelImageExport()
+    }
+    Connections {
+        target: blankCanvas.frameExporter
+        function onSaved(destination) {
+            if (!blankCanvas.frameExporter.busy) toolSheet.notice = qsTr("Frame exported.")
+        }
+        function onFailed(destination, message) {
+            if (!blankCanvas.frameExporter.busy) toolSheet.notice = message
+        }
+    }
+    Connections {
+        target: blankCanvas.media.audioPlayback
+        function onFailed(id, message) { toolSheet.notice = message }
     }
     Connections {
         target: root.generationRuntime
@@ -713,7 +833,7 @@ Item {
     Shortcut { sequences: [StandardKey.Redo]; enabled: root.visible && blankCanvas.activeFocus && !root.modalActive && blankCanvas.canRedo; onActivated: blankCanvas.redo() }
     Shortcut {
         sequence: "Escape"
-        enabled: root.visible && !root.mobileLayout && root.desktopPanelExpanded && !root.modalActive
+        enabled: root.visible && !root.mobileLayout && root.desktopPanelExpanded && !root.modalActive && !root.applicationSearchActive
         onActivated: root.desktopPanelExpanded = false
     }
     DropArea {

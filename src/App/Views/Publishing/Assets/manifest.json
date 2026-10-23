@@ -1,0 +1,39 @@
+{
+  "fileKey": "bn8O4AHKr1X9DWnhR1TgEy",
+  "node": "1264:19399",
+  "dynamicArtwork": "EditorProject.pagePreviewSource; Figma example image is not packaged",
+  "assets": [
+    {
+      "file": "chevron-down.svg",
+      "node": "I1336:8517;242:9516",
+      "bytes": 321,
+      "width": "18",
+      "height": "18",
+      "sha256": "2cbfd27e4708bf4a3c6ad95140b7e580697114b27546b3cf0e657407d339c114"
+    },
+    {
+      "file": "stepper.svg",
+      "node": "I1336:8766;254:869",
+      "bytes": 1404,
+      "width": "18",
+      "height": "18",
+      "sha256": "30290411b1151cdaae1d6c259175e547f44a8892466b5178241a464212a7bcc7"
+    },
+    {
+      "file": "checkbox.svg",
+      "node": "I1336:8853;44:713",
+      "bytes": 1456,
+      "width": "17",
+      "height": "17",
+      "sha256": "a9d559fc6255d87c445e3f2f78c7678b6cf4b96dd89997357d770a85afa25e52"
+    },
+    {
+      "file": "add.svg",
+      "node": "I1336:8869;203:4881",
+      "bytes": 661,
+      "width": "18",
+      "height": "18",
+      "sha256": "da9dac227626aa917a6425c70eef858dd6875264124680f7c8b38b26072bff2e"
+    }
+  ]
+}

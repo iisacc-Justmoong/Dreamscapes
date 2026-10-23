@@ -1,0 +1,523 @@
+{
+  "snap": {
+    "enabled": {
+      "default": true
+    },
+    "preset": {
+      "default": "Smart",
+      "options": [
+        "Smart",
+        "Pixel",
+        "Vector",
+        "Layout"
+      ]
+    },
+    "canvas-edges": {
+      "default": true
+    },
+    "canvas-centers": {
+      "default": true
+    },
+    "layer-edges": {
+      "default": true
+    },
+    "layer-centers": {
+      "default": true
+    },
+    "guides": {
+      "default": true
+    },
+    "grid": {
+      "default": false
+    },
+    "pixel-edges": {
+      "default": false
+    },
+    "pixel-centers": {
+      "default": false
+    },
+    "anchors": {
+      "default": true
+    },
+    "baselines": {
+      "default": false
+    },
+    "spacing": {
+      "default": true
+    },
+    "size": {
+      "default": true
+    },
+    "angle": {
+      "default": true
+    },
+    "scale": {
+      "default": false
+    },
+    "smart-guides": {
+      "default": true
+    },
+    "distances": {
+      "default": true
+    },
+    "visible-only": {
+      "default": true
+    },
+    "ignore-locked": {
+      "default": true
+    },
+    "tolerance": {
+      "default": 8,
+      "min": 0,
+      "max": 100
+    },
+    "release": {
+      "default": 12,
+      "min": 0,
+      "max": 200
+    },
+    "angle-step": {
+      "default": 15,
+      "min": 0.1,
+      "max": 180
+    },
+    "scale-step": {
+      "default": 5,
+      "min": 0.1,
+      "max": 1000
+    },
+    "priority": {
+      "default": "Nearest",
+      "options": [
+        "Nearest",
+        "Guides first",
+        "Grid first"
+      ]
+    },
+    "axes": {
+      "default": "Both",
+      "options": [
+        "Both",
+        "Horizontal",
+        "Vertical"
+      ]
+    }
+  },
+  "grid": {
+    "enabled": {
+      "default": false
+    },
+    "type": {
+      "default": "Rectangular",
+      "options": [
+        "Rectangular",
+        "Isometric",
+        "Polar",
+        "Perspective",
+        "Pixel",
+        "Baseline",
+        "Layout"
+      ]
+    },
+    "units": {
+      "default": "px",
+      "options": [
+        "px",
+        "mm",
+        "pt",
+        "%"
+      ]
+    },
+    "reference": {
+      "default": "Canvas",
+      "options": [
+        "Canvas",
+        "Selection",
+        "Artboard"
+      ]
+    },
+    "style": {
+      "default": "Lines",
+      "options": [
+        "Lines",
+        "Dots"
+      ]
+    },
+    "projection": {
+      "default": "2-point",
+      "options": [
+        "1-point",
+        "2-point"
+      ]
+    },
+    "spacing-x": {
+      "default": 64,
+      "min": 0.001,
+      "max": 100000
+    },
+    "spacing-y": {
+      "default": 64,
+      "min": 0.001,
+      "max": 100000
+    },
+    "subdivisions": {
+      "default": 4,
+      "min": 1,
+      "max": 128,
+      "integer": true
+    },
+    "major-every": {
+      "default": 4,
+      "min": 1,
+      "max": 128,
+      "integer": true
+    },
+    "rotation": {
+      "default": 0,
+      "min": -360,
+      "max": 360
+    },
+    "step": {
+      "default": 32,
+      "min": 0.001,
+      "max": 100000
+    },
+    "axis-angle": {
+      "default": 30,
+      "min": 1,
+      "max": 89
+    },
+    "spokes": {
+      "default": 12,
+      "min": 1,
+      "max": 512,
+      "integer": true
+    },
+    "start-angle": {
+      "default": 0,
+      "min": -360,
+      "max": 360
+    },
+    "sweep": {
+      "default": 360,
+      "min": 0.1,
+      "max": 360
+    },
+    "ring-count": {
+      "default": 16,
+      "min": 1,
+      "max": 256,
+      "integer": true
+    },
+    "pixel-step": {
+      "default": 1,
+      "min": 0.1,
+      "max": 64
+    },
+    "reveal-at": {
+      "default": 400,
+      "min": 1,
+      "max": 6400
+    },
+    "increment": {
+      "default": 16,
+      "min": 0.001,
+      "max": 100000
+    },
+    "offset": {
+      "default": 0,
+      "min": -100000,
+      "max": 100000
+    },
+    "columns": {
+      "default": 12,
+      "min": 1,
+      "max": 512,
+      "integer": true
+    },
+    "rows": {
+      "default": 4,
+      "min": 1,
+      "max": 512,
+      "integer": true
+    },
+    "gutter-x": {
+      "default": 24,
+      "min": 0,
+      "max": 100000
+    },
+    "gutter-y": {
+      "default": 24,
+      "min": 0,
+      "max": 100000
+    },
+    "margin-x": {
+      "default": 32,
+      "min": 0,
+      "max": 100000
+    },
+    "margin-y": {
+      "default": 32,
+      "min": 0,
+      "max": 100000
+    },
+    "horizon": {
+      "default": 50,
+      "min": -1000,
+      "max": 1000
+    },
+    "density": {
+      "default": 12,
+      "min": 2,
+      "max": 128,
+      "integer": true
+    },
+    "vp1-x": {
+      "default": -50,
+      "min": -10000,
+      "max": 10000
+    },
+    "vp1-y": {
+      "default": 50,
+      "min": -10000,
+      "max": 10000
+    },
+    "vp2-x": {
+      "default": 150,
+      "min": -10000,
+      "max": 10000
+    },
+    "vp2-y": {
+      "default": 50,
+      "min": -10000,
+      "max": 10000
+    },
+    "depth-step": {
+      "default": 8,
+      "min": 0.1,
+      "max": 90
+    },
+    "origin-x": {
+      "default": 0,
+      "min": -1000000,
+      "max": 1000000
+    },
+    "origin-y": {
+      "default": 0,
+      "min": -1000000,
+      "max": 1000000
+    },
+    "opacity": {
+      "default": 35,
+      "min": 0,
+      "max": 100
+    },
+    "major": {
+      "default": true
+    },
+    "axes": {
+      "default": false
+    },
+    "adaptive": {
+      "default": true
+    },
+    "intersections": {
+      "default": true
+    },
+    "color": {
+      "default": "#548AF7"
+    }
+  },
+  "guides": {
+    "enabled": {
+      "default": true
+    },
+    "type": {
+      "default": "Single",
+      "options": [
+        "Single",
+        "Layout",
+        "Video safe",
+        "Print / bleed",
+        "Rule of thirds",
+        "Golden ratio",
+        "Diagonals"
+      ]
+    },
+    "units": {
+      "default": "px",
+      "options": [
+        "px",
+        "mm",
+        "%"
+      ]
+    },
+    "reference": {
+      "default": "Canvas",
+      "options": [
+        "Canvas",
+        "Selection",
+        "Artboard"
+      ]
+    },
+    "orientation": {
+      "default": "Vertical",
+      "options": [
+        "Horizontal",
+        "Vertical",
+        "Angle"
+      ]
+    },
+    "style": {
+      "default": "Solid",
+      "options": [
+        "Solid",
+        "Dashed"
+      ]
+    },
+    "position": {
+      "default": 320,
+      "min": -1000000,
+      "max": 1000000
+    },
+    "angle": {
+      "default": 45,
+      "min": -360,
+      "max": 360
+    },
+    "columns": {
+      "default": 12,
+      "min": 1,
+      "max": 512,
+      "integer": true
+    },
+    "rows": {
+      "default": 4,
+      "min": 1,
+      "max": 512,
+      "integer": true
+    },
+    "gutter-x": {
+      "default": 24,
+      "min": 0,
+      "max": 100000
+    },
+    "gutter-y": {
+      "default": 24,
+      "min": 0,
+      "max": 100000
+    },
+    "margin-x": {
+      "default": 32,
+      "min": 0,
+      "max": 100000
+    },
+    "margin-y": {
+      "default": 32,
+      "min": 0,
+      "max": 100000
+    },
+    "action-inset": {
+      "default": 5,
+      "min": 0,
+      "max": 49
+    },
+    "title-inset": {
+      "default": 10,
+      "min": 0,
+      "max": 49
+    },
+    "bleed": {
+      "default": 3,
+      "min": 0,
+      "max": 1000
+    },
+    "safe-margin": {
+      "default": 8,
+      "min": 0,
+      "max": 1000
+    },
+    "crop-inset": {
+      "default": 0,
+      "min": 0,
+      "max": 1000
+    },
+    "ratio": {
+      "default": 1.618,
+      "min": 1.001,
+      "max": 100
+    },
+    "opacity": {
+      "default": 70,
+      "min": 0,
+      "max": 100
+    },
+    "margins": {
+      "default": true
+    },
+    "locked": {
+      "default": false
+    },
+    "labels": {
+      "default": false
+    },
+    "snap": {
+      "default": true
+    },
+    "smart": {
+      "default": true
+    },
+    "above": {
+      "default": true
+    },
+    "clear-existing": {
+      "default": false
+    },
+    "all-artboards": {
+      "default": false
+    },
+    "action-safe": {
+      "default": true
+    },
+    "title-safe": {
+      "default": true
+    },
+    "color": {
+      "default": "#548AF7"
+    }
+  },
+  "display": {
+    "rulers": {
+      "default": true
+    },
+    "constrain": {
+      "default": true
+    },
+    "outlines": {
+      "default": false
+    },
+    "transparency": {
+      "default": true
+    },
+    "pixel-preview": {
+      "default": false
+    },
+    "composite": {
+      "default": "Composite",
+      "options": [
+        "Composite",
+        "Outlines"
+      ]
+    },
+    "channel": {
+      "default": "RGB",
+      "options": [
+        "RGB",
+        "Red",
+        "Green",
+        "Blue",
+        "Alpha"
+      ]
+    }
+  }
+}

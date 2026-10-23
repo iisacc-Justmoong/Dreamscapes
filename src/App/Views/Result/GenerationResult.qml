@@ -32,7 +32,7 @@ Item {
     readonly property bool showingPreview: !galleryVisible && !detailVisible && previewSource.toString().length > 0
     readonly property url imageSource: showingPreview ? previewSource : selectedResult.imageSource || ""
     readonly property bool selectedIsVideo: !showingPreview && selectedResult.mediaType === "Video"
-    readonly property url mediaSource: selectedIsVideo ? selectedResult.mediaSource || "" : imageSource
+    readonly property url mediaSource: selectedIsVideo ? selectedResult.mediaSource || "" : selectedResult.documentSource || imageSource
     readonly property var selectedTile: gallery.currentItem
     readonly property int imageStatus: galleryVisible
         ? selectedTile ? selectedTile.imageStatus : Image.Null : generatedImage.status
@@ -44,6 +44,7 @@ Item {
     }
     signal backRequested()
     signal cancelRequested()
+    signal operationFailed(string operation, string message, var parameters)
     signal imagesRequested(var images)
 
     // QuickGenerate derives its height from the shared 22 px controls.
@@ -58,11 +59,13 @@ Item {
     function selectImage(index, openDetail) {
         if (index < 0 || index >= galleryResults.length)
             return
+        if (openDetail) rememberGalleryPosition()
         selectedImageSource = galleryResults[index].imageSource.toString()
         detailVisible = openDetail
         if (openDetail) root.forceActiveFocus()
         else gallery.forceActiveFocus()
     }
+    function rememberGalleryPosition() { gallery.rememberPosition() }
     function activateImage(index, modifiers) {
         imageSelection.selectAt(index, modifiers, gallery.currentIndex)
         root.selectImage(index, false)
@@ -86,6 +89,9 @@ Item {
         imageMenu.close()
         saveDialog.close()
         gallery.cancelFlick()
+        gallery.restoreSavedPosition = false
+        gallery.hasPresented = false
+        gallery.savedContentY = 0
         gallery.forceLayout()
         gallery.positionViewAtBeginning()
     }
@@ -122,7 +128,7 @@ Item {
     ListModel { id: galleryModel }
 
     function saveImageToFile() {
-        if (!canSaveImage || saveDialog.visible)
+        if (!canSaveImage || saveDialog.visible || fileExporter.busy)
             return
         saveFeedback = ""
         // Keep the chosen image even if another generation finishes during the dialog.
@@ -140,12 +146,13 @@ Item {
         if (selectedIsVideo || !canSaveImage || !photoLibrary.supported || photoLibrary.busy)
             return
         saveFeedback = qsTr("Saving to Photos…")
-        photoLibrary.save(imageSource)
+        photoLibrary.save(mediaSource)
     }
 
     onImageSourceChanged: {
         imageMenu.close()
-        saveFeedback = ""
+        if (!fileExporter.busy && !photoLibrary.busy)
+            saveFeedback = ""
     }
     onCanSaveImageChanged: { if (!canSaveImage) imageMenu.close() }
 
@@ -153,13 +160,15 @@ Item {
         id: fileExporter
         objectName: "imageFileExporter"
         onSaved: root.saveFeedback = qsTr("File saved")
-        onFailed: function(message) { root.saveFeedback = message }
+        onFailed: function(message) { root.saveFeedback = message; root.operationFailed("Save media", message, {source:saveDialog.sourceImage, destination:saveDialog.selectedFile}) }
+        onRejected: function(message) { root.saveFeedback = message }
     }
 
     Connections {
         target: root.photoLibrary
         function onSaved(assetIdentifier) { root.saveFeedback = qsTr("Saved to Photos") }
-        function onFailed(message) { root.saveFeedback = message }
+        function onFailed(message) { root.saveFeedback = message; root.operationFailed("Save to Photos", message, {source:root.imageSource}) }
+        function onRejected(message) { root.saveFeedback = message }
     }
 
     Dialogs.FileDialog {
@@ -170,7 +179,11 @@ Item {
         title: qsTr("Save to File")
         fileMode: Dialogs.FileDialog.SaveFile
         currentFolder: StandardPaths.writableLocation(StandardPaths.PicturesLocation)
-        onAccepted: sourceIsVideo ? fileExporter.saveVideo(sourceImage, selectedFile) : fileExporter.save(sourceImage, selectedFile)
+        onAccepted: {
+            root.saveFeedback = qsTr("Saving file…")
+            if (sourceIsVideo) fileExporter.saveVideo(sourceImage, selectedFile)
+            else fileExporter.save(sourceImage, selectedFile)
+        }
     }
 
     LV.ContextMenu {
@@ -180,9 +193,9 @@ Item {
         itemWidth: Math.max(0, Math.min(LV.Theme.scaleMetric(145),
             root.width - leftPadding - rightPadding - edgeMargin * 2))
         items: root.photoLibrary.supported && !root.selectedIsVideo
-            ? [{ label: qsTr("Save to File") },
+            ? [{ label: qsTr("Save to File"), enabled: !fileExporter.busy },
                { label: qsTr("Save to Photos"), enabled: !root.photoLibrary.busy }]
-            : [{ label: qsTr("Save to File") }]
+            : [{ label: qsTr("Save to File"), enabled: !fileExporter.busy }]
         onItemTriggered: function(index) {
             if (index === 0) root.saveImageToFile()
             else if (index === 1) root.saveImageToPhotos()
@@ -219,7 +232,7 @@ Item {
             objectName: "saveVideoButton"
             text: qsTr("Save video")
             visible: root.selectedIsVideo
-            enabled: root.canSaveImage
+            enabled: root.canSaveImage && !fileExporter.busy
             onClicked: root.saveImageToFile()
         }
         ImageSelectionBar {
@@ -248,6 +261,42 @@ Item {
         GridView {
             id: gallery
             objectName: "resultGallery"
+            property real savedContentY: 0
+            property bool restoreSavedPosition: false
+            property bool hasPresented: false
+            function rememberPosition() {
+                if (!hasPresented) return
+                if (!restoreSavedPosition) savedContentY = contentY
+                restoreSavedPosition = true
+            }
+            function restorePosition() {
+                if (!visible || !restoreSavedPosition) return
+                forceLayout()
+                contentY = Math.max(originY, Math.min(savedContentY,
+                    originY + Math.max(0, contentHeight - height)))
+            }
+            // Hidden composers may settle their geometry over more than one
+            // layout pass. Preserve the user's position through every pass.
+            onVisibleChanged: {
+                if (!visible) { if (hasPresented) restoreSavedPosition = true }
+                else if (!hasPresented) { hasPresented = true; restoreSavedPosition = false }
+                else Qt.callLater(restorePosition)
+            }
+            onContentYChanged: if (visible && !restoreSavedPosition) savedContentY = contentY
+            onHeightChanged: if (visible) Qt.callLater(restorePosition)
+            onMovementStarted: restoreSavedPosition = false
+            WheelHandler {
+                target: null
+                onWheel: function(event) {
+                    const delta = event.pixelDelta.y || event.angleDelta.y / 120 * 60
+                    if (!delta || gallery.contentHeight <= gallery.height) { event.accepted = false; return }
+                    gallery.cancelFlick()
+                    gallery.restoreSavedPosition = false
+                    gallery.contentY = Math.max(gallery.originY, Math.min(
+                        gallery.originY + gallery.contentHeight - gallery.height, gallery.contentY - delta))
+                    event.accepted = true
+                }
+            }
             anchors.fill: parent
             anchors.topMargin: LV.Theme.gap2
             visible: root.galleryVisible
@@ -265,6 +314,7 @@ Item {
                 ? root.galleryResults.findIndex(function(entry) { return entry.imageSource.toString() === root.selectedImageSource }) : -1
             keyNavigationEnabled: false
             Keys.onPressed: function(event) {
+                restoreSavedPosition = false
                 let index = currentIndex < 0 ? 0 : currentIndex
                 if (event.key === Qt.Key_A && (event.modifiers & (Qt.ControlModifier | Qt.MetaModifier))) {
                     imageSelection.selectAll(); event.accepted = true; return
@@ -297,6 +347,7 @@ Item {
                 id: galleryScrollBar
                 objectName: "galleryScrollBar"
                 policy: Controls.ScrollBar.AsNeeded
+                onPressedChanged: if (pressed) gallery.restoreSavedPosition = false
                 contentItem: Rectangle {
                     implicitWidth: LV.Theme.gap8
                     implicitHeight: LV.Theme.scaleMetric(40)

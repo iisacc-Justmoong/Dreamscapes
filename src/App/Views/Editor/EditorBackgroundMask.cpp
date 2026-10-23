@@ -136,7 +136,7 @@ bool EditorCanvas::selectBackgroundMask(const QString &id) {
     const auto *layer=documentReady()?findLayer(*document(),selectedLayerId().toStdString()):nullptr; if(!layer) return false;
     const auto &stack=layerProperties(*layer).appearance.maskStack;
     if(std::none_of(stack.begin(),stack.end(),[&](const auto &entry){return entry.id==id.toStdString();})) return fail(tr("Select an existing mask."));
-    m_selectedBackgroundMask=id; m_selection=backgroundMaskPixels(); clearError(); emit toolStateChanged(); return true;
+    m_selectedBackgroundMask=id; m_selection=backgroundMaskPixels(); refreshSelectionStatistics(); clearError(); emit toolStateChanged(); return true;
 }
 bool EditorCanvas::completeBackgroundMask(RasterMask next,const QString &kind,bool replaceCurrent) {
     const auto info=maskPanelInfo(); if(!info["canEdit"].toBool()) return fail(info["reason"].toString());
@@ -167,7 +167,7 @@ bool EditorCanvas::completeBackgroundMask(RasterMask next,const QString &kind,bo
         }
         return true;
     })) return false;
-    m_selectedBackgroundMask=QString::fromStdString(id); m_selection=std::move(next); clearError(); emit toolStateChanged(); return true;
+    m_selectedBackgroundMask=QString::fromStdString(id); m_selection=std::move(next); refreshSelectionStatistics(); clearError(); emit toolStateChanged(); return true;
 }
 bool EditorCanvas::createBackgroundMask() {
     cancelBackgroundMaskGesture(); const auto info=maskPanelInfo(); if(!info["canEdit"].toBool()) return fail(info["reason"].toString());
@@ -190,7 +190,7 @@ bool EditorCanvas::deleteBackgroundMask() {
     const auto info=maskPanelInfo();if(!info["canEdit"].toBool())return fail(info["reason"].toString());
     cancelBackgroundMaskGesture(); const int index=backgroundMaskIndex(); if(index<0) return fail(tr("Select a mask first."));
     const bool ok=commit([&](Document &draft){auto &stack=layerProperties(*findLayer(draft,selectedLayerId().toStdString())).appearance.maskStack; const auto asset=stack[index].mask.assetId; stack.erase(stack.begin()+index); if(assetReferences(draft,asset).empty()) std::erase_if(draft.assets,[&](const auto &a){return assetId(a)==asset;}); return true;});
-    if(ok){m_selectedBackgroundMask.clear(); m_selection={}; emit toolStateChanged();} return ok;
+    if(ok){m_selectedBackgroundMask.clear(); m_selection={}; m_selectedPixelCount=0; emit toolStateChanged();} return ok;
 }
 bool EditorCanvas::setBackgroundMaskProperty(const QString &field,const QVariant &value) {
     if(m_maskGestureActive) return fail(tr("Finish the mask gesture first."));

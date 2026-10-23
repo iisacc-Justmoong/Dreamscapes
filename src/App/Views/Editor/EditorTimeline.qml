@@ -11,16 +11,30 @@ FocusScope {
     required property var canvas
     property var generation: null
     readonly property EditorTimelineModel stateModel: EditorTimelineModel {
+        id: timelineModel
         canvas: root.canvas
     }
-    property bool playing: false
-    property real timelineScale: 1
+    property alias playing: timelineModel.playing
+    property alias timelineScale: timelineView.zoom
     property bool editingTime: false
     property string renameTarget: ""
     // Viewing a short document must not stretch its only frame across the ruler.
-    readonly property int viewFrameCount: Math.max(3, stateModel.totalFrames, Math.ceil(stateModel.fps))
-    readonly property int firstVisibleFrame: Math.max(0, Math.floor(lanes.contentX / Math.max(1, lanes.contentWidth) * viewFrameCount))
-    readonly property int lastVisibleFrame: Math.min(viewFrameCount - 1, Math.ceil((lanes.contentX + lanes.width) / Math.max(1, lanes.contentWidth) * viewFrameCount) - 1)
+    readonly property EditorTimelineViewport viewState: EditorTimelineViewport {
+        id: timelineView
+        objectName: "editorTimelineViewState"
+        frameCount: root.stateModel.totalFrames
+        frameRate: root.stateModel.fps
+        viewportWidth: lanes.width
+        viewportHeight: viewport.height
+        verticalOffset: viewport.contentY - lanes.y
+        contentX: lanes.contentX
+        trackLayout: root.stateModel.trackLayout
+        dragPreview: root.stateModel.dragPreview
+        keyDragPreview: root.stateModel.keyDragPreview
+    }
+    readonly property int viewFrameCount: timelineView.viewFrameCount
+    readonly property int firstVisibleFrame: timelineView.firstVisibleFrame
+    readonly property int lastVisibleFrame: timelineView.lastVisibleFrame
     readonly property int rulerHeight: 44
     readonly property color rulerTickColor: "#8d8d8d"
     readonly property color rulerBaselineColor: "#f0f000"
@@ -30,30 +44,14 @@ FocusScope {
     readonly property bool wide: width >= 900
     readonly property var selected: stateModel.selectedClip
     readonly property var selectedKey: stateModel.selectedKey
-    readonly property var trackLayout: {
-        let top = rulerHeight;
-        return stateModel.tracks.filter(track => track.type === "Audio" || stateModel.filter === "All" || stateModel.clips.some(clip => clip.trackId === track.id && (stateModel.filter === "Out" ? clip.excluded : !clip.excluded))).map(track => {
-            const curve = stateModel.mode === "Curves" && stateModel.keys.some(key => key.trackId === track.id && key.kind === "Motion");
-            const height = (track.type === "Audio" ? 48 : 40) + (curve ? 64 : 0);
-            const row = Object.assign({}, track, {
-                top: top,
-                height: height,
-                curve: curve
-            });
-            top += height;
-            return row;
-        });
-    }
-    readonly property real laneHeight: rulerHeight + (trackLayout.length ? trackLayout.reduce((sum, track) => sum + track.height, 0) : 82)
-    readonly property int tickStep: {
-        const needed = viewFrameCount / Math.max(1, lanes.contentWidth / 76), power = Math.pow(10, Math.floor(Math.log10(Math.max(1, needed))));
-        return [1, 2, 5, 10].map(value => value * power).find(value => value >= needed) || 1;
-    }
-    readonly property int minorTickStep: tickStep % 5 === 0 ? tickStep / 5 : tickStep % 2 === 0 ? tickStep / 2 : tickStep
+    readonly property var trackLayout: stateModel.trackLayout
+    readonly property real laneHeight: stateModel.laneHeight
+    readonly property int tickStep: timelineView.majorStep
+    readonly property int minorTickStep: timelineView.minorStep
     implicitHeight: footer.y + footer.height + 1
     signal previewError(string message)
     function frameLabel(frame) {
-        return "F" + String(frame).padStart(3, "0");
+        return timelineView.frameLabel(frame);
     }
     function number(value) {
         const match = String(value).match(/-?\d+/);
@@ -72,16 +70,12 @@ FocusScope {
         lanes.contentX = 0;
         viewport.contentY = 0;
     }
-    function timecode() {
-        const rate = Math.max(1, Math.round(stateModel.fps)), frame = stateModel.playhead;
-        return [Math.floor(frame / rate / 3600), Math.floor(frame / rate / 60) % 60, Math.floor(frame / rate) % 60, frame % rate].map(value => String(value).padStart(2, "0")).join(":") + " · " + frameLabel(frame);
+    function zoomTimeline(factor, anchor) {
+        lanes.contentX = timelineView.zoomAt(factor, anchor);
     }
     function rowSpacer(row, spacer) {
         const items = row.children.filter(item => item !== spacer && item.visible && item.width > 0);
         return root.wide ? Math.max(0, row.width - items.reduce((sum, item) => sum + item.width, 0) - row.spacing * items.length) : 0;
-    }
-    function dragLayer(id, delta, edge) {
-        stateModel.dragClip(id, delta, edge || "", Math.max(0, Math.floor(6 / lanes.contentWidth * viewFrameCount)));
     }
     function chooseFrame(id) {
         imageDialog.targetCanvas = canvas;
@@ -89,30 +83,43 @@ FocusScope {
         imageDialog.targetFrame = stateModel.playhead;
         imageDialog.open();
     }
-    onVisibleChanged: if (!visible)
-        playing = false
-    onEnabledChanged: if (!enabled)
-        playing = false
+    onVisibleChanged: if (!visible) {
+        playing = false;
+        pointerInput.cancelGesture();
+        stateModel.cancelThumbnails();
+    }
+    onEnabledChanged: if (!enabled) {
+        playing = false;
+        pointerInput.cancelGesture();
+        stateModel.cancelThumbnails();
+    }
     onCanvasChanged: {
         playing = false;
+        pointerInput.cancelGesture();
         Qt.callLater(fitTimeline);
     }
     Connections {
         target: root.canvas
-        function onDocumentChanged() { root.playing = false; }
-    }
-    onPlayingChanged: {
-        if (!canvas || !canvas.media)
-            return;
-        if (!playing)
-            canvas.media.stop();
-        else if (stateModel.tracks.some(track => track.type === "Audio") && !canvas.playTimelineAudio()) {
-            playing = false;
-            previewError(canvas.error);
+        function onDocumentChanged() {
+            root.playing = false;
+            pointerInput.cancelGesture();
         }
     }
+    Connections {
+        target: root.stateModel
+        function onPlaybackFailed(message) { root.previewError(message); }
+    }
     Keys.onPressed: function (event) {
-        if (event.key === Qt.Key_Space) {
+        if (event.key === Qt.Key_Escape && (pointerInput.pressed || stateModel.dragging || stateModel.scrubbing)) {
+            pointerInput.cancelGesture();
+            event.accepted = true;
+        } else if (event.key === Qt.Key_Plus || event.key === Qt.Key_Equal || event.key === Qt.Key_Minus) {
+            zoomTimeline(event.key === Qt.Key_Minus ? 1 / 1.25 : 1.25, lanes.width / 2);
+            event.accepted = true;
+        } else if (event.key === Qt.Key_0) {
+            fitTimeline();
+            event.accepted = true;
+        } else if (event.key === Qt.Key_Space) {
             if (stateModel.totalFrames > 1)
                 playing = !playing;
             event.accepted = true;
@@ -143,20 +150,19 @@ FocusScope {
         }
     }
     Timer {
-        interval: Math.max(1, 1000 / root.stateModel.fps)
+        interval: 16
         repeat: true
-        running: root.playing && root.visible && root.enabled
-        property int firstFrame: 0
-        property double startedAt: 0
-        onRunningChanged: if (running) {
-            firstFrame = root.stateModel.playhead;
-            startedAt = Date.now();
-        }
+        running: pointerInput.pressed && !pointerInput.cancelled && root.stateModel.dragging && root.visible && root.enabled
+        property double previous: 0
+        onRunningChanged: previous = Date.now()
         onTriggered: {
-            const frame = firstFrame + Math.floor((Date.now() - startedAt) / 1000 * root.stateModel.fps);
-            root.stateModel.seek(frame);
-            if (frame >= root.stateModel.totalFrames - 1)
-                root.playing = false;
+            const now = Date.now();
+            const next = timelineView.edgeScroll(pointerInput.viewportPointerX, now - previous);
+            previous = now;
+            if (next !== lanes.contentX) {
+                lanes.contentX = next;
+                root.stateModel.updateDrag(lanes.contentX + pointerInput.viewportPointerX);
+            }
         }
     }
     component Button: LV.LabelButton {
@@ -193,9 +199,10 @@ FocusScope {
             selectable: button.selectable
             selected: button.selected
         }
-        Controls.ToolTip.visible: hovered
-        Controls.ToolTip.text: Accessible.name
-        Controls.ToolTip.delay: 500
+        LV.Tooltip {
+            target: button
+            text: button.Accessible.name
+        }
     }
     component Field: LV.InputField {
         height: 24
@@ -233,7 +240,7 @@ FocusScope {
                         anchors.fill: parent
                         visible: !root.editingTime
                         tone: LV.AbstractButton.Borderless
-                        text: root.timecode()
+                        text: root.stateModel.preparing ? qsTr("Preparing audio…") : root.stateModel.timecode
                         Accessible.name: qsTr("Go to frame")
                         onClicked: {
                             root.editingTime = true;
@@ -273,7 +280,7 @@ FocusScope {
                     objectName: "editorTimelinePlay"
                     text: root.playing ? "Ⅱ" : "▶"
                     enabled: root.stateModel.totalFrames > 1
-                    Accessible.name: root.playing ? qsTr("Pause timeline") : qsTr("Play timeline")
+                    Accessible.name: root.stateModel.preparing ? qsTr("Cancel audio preparation") : root.playing ? qsTr("Pause timeline") : qsTr("Play timeline")
                     onClicked: root.playing = !root.playing
                 }
                 Button {
@@ -436,7 +443,7 @@ FocusScope {
                     model: ["All", "Kept", "Out"]
                     delegate: Button {
                         required property string modelData
-                        text: modelData + " " + root.stateModel.clips.filter(clip => clip.type === "Layer" && (modelData === "All" || (modelData === "Out" ? clip.excluded : !clip.excluded))).length
+                        text: modelData + " " + (modelData === "All" ? root.stateModel.layerCount : modelData === "Kept" ? root.stateModel.keptCount : root.stateModel.layerCount - root.stateModel.keptCount)
                         selectable: true
                         selected: root.stateModel.filter === modelData
                         onClicked: root.stateModel.filter = modelData
@@ -495,7 +502,7 @@ FocusScope {
                 }
             }
             Repeater {
-                model: root.trackLayout
+                model: timelineView.visibleTracks
                 delegate: Item {
                     id: heading
                     required property var modelData
@@ -571,7 +578,7 @@ FocusScope {
                 y: panel.rulerY
                 width: parent.width - x - 1
                 height: root.laneHeight
-                contentWidth: width * root.timelineScale
+                contentWidth: timelineView.contentWidth
                 contentHeight: height
                 flickableDirection: Flickable.HorizontalFlick
                 boundsBehavior: Flickable.StopAtBounds
@@ -584,15 +591,15 @@ FocusScope {
                     width: lanes.contentWidth
                     height: lanes.height
                     Repeater {
-                        model: Math.ceil(root.viewFrameCount / root.tickStep)
+                        model: timelineView.majorTicks
                         delegate: Item {
-                            required property int index
-                            objectName: "editorTimelineRulerTick-" + index * root.tickStep
-                            x: index * root.tickStep / root.viewFrameCount * laneContent.width
+                            required property var modelData
+                            objectName: "editorTimelineRulerTick-" + modelData.frame
+                            x: modelData.x
                             width: 1
                             height: laneContent.height
                             Rectangle {
-                                objectName: "editorTimelineRulerMark-" + index * root.tickStep
+                                objectName: "editorTimelineRulerMark-" + parent.modelData.frame
                                 y: 25
                                 width: 2
                                 height: 14
@@ -605,23 +612,22 @@ FocusScope {
                                 color: LV.Theme.surfaceInput
                             }
                             LV.Label {
-                                objectName: "editorTimelineRulerLabel-" + index * root.tickStep
+                                objectName: "editorTimelineRulerLabel-" + parent.modelData.frame
                                 x: 2
                                 y: 1
-                                text: root.frameLabel(index * root.tickStep)
+                                text: root.frameLabel(parent.modelData.frame)
                                 style: caption
                                 color: LV.Theme.textSecondary
                             }
                         }
                     }
                     Repeater {
-                        model: Math.ceil(root.viewFrameCount / root.minorTickStep)
+                        model: timelineView.minorTicks
                         delegate: Rectangle {
-                            required property int index
-                            readonly property int frame: index * root.minorTickStep
+                            required property var modelData
+                            readonly property int frame: modelData.frame
                             objectName: "editorTimelineRulerMinor-" + frame
-                            visible: frame % root.tickStep !== 0
-                            x: frame / root.viewFrameCount * laneContent.width
+                            x: modelData.x
                             y: 29
                             width: 2
                             height: 10
@@ -634,17 +640,6 @@ FocusScope {
                         width: laneContent.width
                         height: 4
                         color: root.rulerBaselineColor
-                    }
-                    MouseArea {
-                        width: parent.width
-                        height: root.rulerHeight
-                        onPressed: function (mouse) {
-                            root.seekFrame(Math.floor(mouse.x / width * root.viewFrameCount));
-                        }
-                        onPositionChanged: function (mouse) {
-                            if (pressed)
-                                root.seekFrame(Math.floor(mouse.x / width * root.viewFrameCount));
-                        }
                     }
                     LV.Label {
                         objectName: "editorTimelineEmptyState"
@@ -660,7 +655,7 @@ FocusScope {
                         color: LV.Theme.textSecondary
                     }
                     Repeater {
-                        model: root.trackLayout
+                        model: timelineView.visibleTracks
                         delegate: Item {
                             id: trackRow
                             required property var modelData
@@ -670,58 +665,75 @@ FocusScope {
                             height: modelData.height
                             readonly property bool inViewport: lanes.y + y + height >= viewport.contentY && lanes.y + y <= viewport.contentY + viewport.height
                             Repeater {
-                                model: root.stateModel.clips.filter(clip => clip.trackId === trackRow.modelData.id && (clip.type === "Audio" || root.stateModel.filter === "All" || (root.stateModel.filter === "Out" ? clip.excluded : !clip.excluded)))
+                                model: trackRow.modelData.clips
                                 delegate: Rectangle {
                                     id: card
                                     required property var modelData
+                                    readonly property var displayData: root.stateModel.dragPreview[modelData.id] || modelData
+                                    readonly property real visibleLeft: Math.max(0, lanes.contentX - x)
+                                    readonly property real visibleWidth: Math.max(0, Math.min(width - visibleLeft, lanes.width))
                                     objectName: "editorTimelineClip-" + modelData.id
-                                    x: modelData.in / root.viewFrameCount * trackRow.width
+                                    x: displayData.in / root.viewFrameCount * trackRow.width
                                     y: 4
-                                    width: Math.max(1, (modelData.out - modelData.in) / root.viewFrameCount * trackRow.width - 4)
+                                    width: Math.max(1, (displayData.out - displayData.in) / root.viewFrameCount * trackRow.width - 4)
                                     height: modelData.type === "Audio" ? 40 : 32
                                     radius: 8
                                     clip: true
                                     color: LV.Theme.surfaceControl
-                                    opacity: modelData.excluded ? 0.4 : 1
+                                    opacity: modelData.excluded || displayData.valid === false ? 0.4 : 1
                                     border.width: root.stateModel.selectedIds.indexOf(modelData.id) >= 0 ? 1 : 0
                                     border.color: LV.Theme.accent
                                     Image {
                                         id: preview
+                                        property int completion: 0
+                                        Connections {
+                                            target: root.stateModel
+                                            function onThumbnailReady(layerId) {
+                                                if (layerId === card.modelData.id)
+                                                    preview.completion++;
+                                            }
+                                        }
                                         objectName: "editorTimelineThumbnail-" + card.modelData.id
-                                        x: 4
+                                        x: card.visibleLeft + 4
                                         y: 2
                                         width: 32
                                         height: 28
-                                        visible: card.modelData.type === "Layer" && card.width > 44
-                                        source: visible && trackRow.inViewport && root.visible ? root.stateModel.thumbnail(card.modelData.id, root.stateModel.playhead) : ""
+                                        visible: card.modelData.type === "Layer" && card.visibleWidth > 44
+                                        source: {
+                                            const revision = root.stateModel.thumbnailRevision;
+                                            const completion = preview.completion;
+                                            return visible && trackRow.inViewport && root.visible && root.enabled ? root.stateModel.requestThumbnail(card.modelData.id, root.stateModel.playhead) : "";
+                                        }
                                         fillMode: Image.PreserveAspectCrop
                                     }
                                     LV.Label {
-                                        x: card.modelData.type === "Layer" && card.width > 44 ? 44 : 4
+                                        x: card.visibleLeft + (card.modelData.type === "Layer" && card.visibleWidth > 44 ? 44 : 4)
                                         y: 2
-                                        width: Math.max(0, card.width - x - 4)
+                                        width: Math.max(0, card.visibleLeft + card.visibleWidth - x - 4)
                                         text: card.modelData.name
                                         style: body
                                         elide: Text.ElideRight
                                     }
                                     LV.Label {
-                                        x: card.width > 44 ? 44 : 4
+                                        x: card.visibleLeft + (card.visibleWidth > 44 ? 44 : 4)
                                         y: 17
-                                        width: Math.max(0, card.width - x - 4)
+                                        width: Math.max(0, card.visibleLeft + card.visibleWidth - x - 4)
                                         visible: card.modelData.type === "Layer"
-                                        text: root.frameLabel(card.modelData.in) + " · " + card.modelData.timing + " · " + card.modelData.frames + "f"
+                                        text: root.frameLabel(card.displayData.in) + " · " + card.modelData.timing + " · " + card.displayData.frames + "f"
                                         style: caption
                                         color: LV.Theme.textSecondary
                                         elide: Text.ElideRight
                                     }
                                     Canvas {
                                         id: wave
-                                        x: 2
+                                        objectName: "editorTimelineWaveform-" + card.modelData.id
+                                        x: Math.max(2, card.visibleLeft)
                                         y: 15
-                                        width: Math.max(0, card.width - 4)
+                                        width: Math.max(0, Math.min(card.width - x - 2, lanes.width))
                                         height: 23
                                         visible: card.modelData.type === "Audio"
                                         onWidthChanged: requestPaint()
+                                        onXChanged: requestPaint()
                                         onPaint: {
                                             const values = card.modelData.waveform || [], c = getContext("2d");
                                             c.clearRect(0, 0, width, height);
@@ -729,38 +741,12 @@ FocusScope {
                                             c.lineWidth = 1;
                                             c.beginPath();
                                             values.forEach((value, index) => {
-                                                const x = index / Math.max(1, values.length - 1) * width, peak = value * height / 2;
+                                                const x = 2 + index / Math.max(1, values.length - 1) * (card.width - 4) - wave.x, peak = value * height / 2;
                                                 c.moveTo(x, height / 2 - peak);
                                                 c.lineTo(x, height / 2 + peak);
                                             });
                                             c.stroke();
                                         }
-                                    }
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        acceptedButtons: Qt.LeftButton | Qt.RightButton
-                                        property real pressX: 0
-                                        onPressed: function (mouse) {
-                                            root.stateModel.selectClip(card.modelData.id, Boolean(mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier | Qt.ShiftModifier)));
-                                            pressX = mapToItem(laneContent, mouse.x, 0).x;
-                                            if (mouse.button === Qt.RightButton) {
-                                                trackMenu.targetId = card.modelData.trackId;
-                                                trackMenu.openFor(card, mouse.x, mouse.y);
-                                            }
-                                        }
-                                        onReleased: function (mouse) {
-                                            if (mouse.button !== Qt.LeftButton || card.modelData.locked)
-                                                return;
-                                            const delta = Math.round((mapToItem(laneContent, mouse.x, 0).x - pressX) / laneContent.width * root.viewFrameCount);
-                                            if (root.stateModel.tool === "Blade") {
-                                                root.seekFrame(Math.floor(pressX / laneContent.width * root.viewFrameCount));
-                                                root.stateModel.split();
-                                            } else if (delta) {
-                                                root.dragLayer(card.modelData.id, delta, "");
-                                            }
-                                        }
-                                        onDoubleClicked: if (card.modelData.type === "Layer" && card.modelData.timing === "Dynamic" && card.modelData.representation === "Bitmap")
-                                            root.chooseFrame(card.modelData.id)
                                     }
                                     Repeater {
                                         model: root.stateModel.selectedIds.indexOf(card.modelData.id) >= 0 && !card.modelData.locked ? ["in", "out"] : []
@@ -772,68 +758,60 @@ FocusScope {
                                             width: 3
                                             height: card.height - 8
                                             color: LV.Theme.accent
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                anchors.margins: -3
-                                                cursorShape: Qt.SizeHorCursor
-                                                property real pressX: 0
-                                                onPressed: function (mouse) {
-                                                    pressX = mapToItem(laneContent, mouse.x, 0).x;
-                                                }
-                                                onReleased: function (mouse) {
-                                                    root.dragLayer(card.modelData.id, Math.round((mapToItem(laneContent, mouse.x, 0).x - pressX) / laneContent.width * root.viewFrameCount), handle.modelData);
-                                                }
-                                            }
                                         }
                                     }
                                 }
                             }
                             Repeater {
-                                model: root.stateModel.mode !== "Layers" ? root.stateModel.keys.filter(key => key.trackId === trackRow.modelData.id) : []
+                                model: trackRow.modelData.keys
                                 delegate: Rectangle {
                                     required property var modelData
-                                    x: modelData.frame / root.viewFrameCount * trackRow.width - 3
+                                    readonly property var displayData: root.stateModel.keyDragPreview.id === modelData.id ? root.stateModel.keyDragPreview : modelData
+                                    objectName: "editorTimelineKey-" + modelData.id
+                                    x: displayData.frame / root.viewFrameCount * trackRow.width - 3
                                     y: 1
                                     width: 6
                                     height: 6
                                     rotation: 45
-                                    color: root.selectedKey.id === modelData.id ? LV.Theme.accent : LV.Theme.titleHeaderColor
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        anchors.margins: -3
-                                        onClicked: root.stateModel.selectKey(parent.modelData.id)
-                                    }
+                                    color: displayData.valid === false ? LV.Theme.accentRed : root.selectedKey.id === modelData.id ? LV.Theme.accent : LV.Theme.titleHeaderColor
                                 }
                             }
                             Canvas {
                                 id: curve
+                                objectName: "editorTimelineCurve-" + trackRow.modelData.id
+                                x: lanes.contentX
                                 y: 40
-                                width: trackRow.width
+                                width: Math.max(0, Math.min(lanes.width, trackRow.width - x))
                                 height: 64
                                 visible: trackRow.modelData.curve
                                 Connections {
                                     target: root.stateModel
-                                    function onChanged() {
+                                    function onLayoutChanged() {
                                         curve.requestPaint();
+                                    }
+                                    function onDragPreviewChanged() {
+                                        if (curve.visible)
+                                            curve.requestPaint();
                                     }
                                 }
                                 onWidthChanged: requestPaint()
+                                onXChanged: requestPaint()
                                 onPaint: {
                                     const c = getContext("2d");
                                     c.clearRect(0, 0, width, height);
                                     c.strokeStyle = LV.Theme.accent;
                                     c.lineWidth = 2;
                                     c.beginPath();
-                                    const keys = root.stateModel.keys.filter(key => key.trackId === trackRow.modelData.id && key.kind === "Motion").sort((a, b) => a.frame - b.frame);
+                                    const keys = timelineView.curveKeys(trackRow.modelData.id);
                                     keys.forEach((key, index) => {
-                                        const x = key.frame / root.viewFrameCount * width, y = (1 - key.value) * height;
+                                        const x = key.frame / root.viewFrameCount * trackRow.width - curve.x, y = (1 - key.value) * height;
                                         if (!index)
                                             c.moveTo(x, y);
                                         else if (keys[index - 1].interpolation === "Hold") {
                                             c.lineTo(x, (1 - keys[index - 1].value) * height);
                                             c.lineTo(x, y);
                                         } else if (keys[index - 1].interpolation === "Smooth") {
-                                            const previous = keys[index - 1], px = previous.frame / root.viewFrameCount * width, py = (1 - previous.value) * height;
+                                            const previous = keys[index - 1], px = previous.frame / root.viewFrameCount * trackRow.width - curve.x, py = (1 - previous.value) * height;
                                             c.bezierCurveTo(px + (x - px) / 3, py, px + 2 * (x - px) / 3, y, x, y);
                                         } else
                                             c.lineTo(x, y);
@@ -851,20 +829,129 @@ FocusScope {
                         color: LV.Theme.accent
                         opacity: root.stateModel.tool === "Range" ? 0.12 : 0
                     }
+                    // The pointer owner survives culling of any row or clip delegate.
                     MouseArea {
+                        id: pointerInput
+                        objectName: "editorTimelinePointerInput"
                         anchors.fill: parent
-                        z: 5
-                        enabled: root.stateModel.tool === "Range"
-                        property int first: 0
+                        z: 6
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                        hoverEnabled: true
+                        preventStealing: true
+                        property var pressedHit: ({})
+                        property string pressedTool: ""
+                        property bool cancelled: false
+                        property real pressX: 0
+                        property real viewportPointerX: 0
+                        property real panStartX: 0
+                        property real panStartScroll: 0
+                        property real panStartY: 0
+                        property real panStartScrollY: 0
+                        readonly property var hoverHit: timelineView.hitTest(mouseX, mouseY)
+                        cursorShape: pressedHit.kind === "pan" ? Qt.ClosedHandCursor : root.stateModel.tool === "Blade" ? Qt.CrossCursor : hoverHit.edge ? Qt.SizeHorCursor : Qt.ArrowCursor
+                        function cancelGesture() {
+                            cancelled = true;
+                            pressedHit = ({});
+                            root.stateModel.cancelDrag();
+                            root.stateModel.cancelScrub();
+                        }
                         onPressed: function (mouse) {
-                            first = Math.floor(mouse.x / width * root.viewFrameCount);
-                            root.stateModel.markRange(first, first);
+                            root.forceActiveFocus();
+                            cancelled = false;
+                            pressedTool = root.stateModel.tool;
+                            pressX = mouse.x;
+                            viewportPointerX = mouse.x - lanes.contentX;
+                            if (mouse.button === Qt.MiddleButton) {
+                                panStartX = viewportPointerX;
+                                panStartScroll = lanes.contentX;
+                                pressedHit = {kind: "pan"};
+                                return;
+                            }
+                            // Capture the target/edge before any preview moves it.
+                            pressedHit = timelineView.hitTest(mouse.x, mouse.y);
+                            if (pressedHit.kind === "ruler") {
+                                if (mouse.button === Qt.LeftButton)
+                                    root.stateModel.beginScrub(timelineView.frameAt(mouse.x));
+                                else
+                                    pressedHit = ({});
+                            } else if (mouse.button === Qt.LeftButton && root.stateModel.tool === "Range") {
+                                pressedHit = {kind: "range", frame: timelineView.frameAt(mouse.x)};
+                                root.stateModel.markRange(pressedHit.frame, pressedHit.frame);
+                            } else if (pressedHit.kind === "key") {
+                                root.stateModel.selectKey(pressedHit.id);
+                                if (mouse.button === Qt.LeftButton)
+                                    root.stateModel.beginKeyDrag(pressedHit.id, mouse.x, timelineView.pixelsPerFrame, timelineView.snapTolerance);
+                            } else if (pressedHit.kind === "clip") {
+                                const multiple = Boolean(mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier | Qt.ShiftModifier));
+                                if (multiple || root.stateModel.selectedIds.indexOf(pressedHit.id) < 0 || root.selectedKey.id)
+                                    root.stateModel.selectClip(pressedHit.id, multiple);
+                                if (mouse.button === Qt.RightButton) {
+                                    trackMenu.targetId = pressedHit.trackId;
+                                    trackMenu.openFor(pointerInput, mouse.x, mouse.y);
+                                } else if (!pressedHit.locked && root.stateModel.tool !== "Blade" && root.stateModel.selectedIds.indexOf(pressedHit.id) >= 0) {
+                                    root.stateModel.beginDrag(pressedHit.id, pressedHit.edge, mouse.x, timelineView.pixelsPerFrame, timelineView.snapTolerance);
+                                }
+                            } else {
+                                if (!(mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier | Qt.ShiftModifier)))
+                                    root.stateModel.clearSelection();
+                                // Nested horizontal Flickables cannot reliably forward a
+                                // mouse grab vertically. Pan the dock without editing a clip.
+                                panStartY = mapToItem(viewport, 0, mouse.y).y;
+                                panStartScrollY = viewport.contentY;
+                                pressedHit = {kind: "viewPan"};
+                            }
                         }
                         onPositionChanged: function (mouse) {
-                            if (pressed)
-                                root.stateModel.markRange(first, Math.floor(mouse.x / width * root.viewFrameCount));
+                            viewportPointerX = mouse.x - lanes.contentX;
+                            if (!pressed || cancelled)
+                                return;
+                            if (pressedHit.kind === "pan") {
+                                lanes.contentX = timelineView.boundedScroll(panStartScroll + panStartX - viewportPointerX);
+                            } else if (pressedHit.kind === "viewPan") {
+                                viewport.contentY = Math.max(0, Math.min(viewport.contentHeight - viewport.height, panStartScrollY + panStartY - mapToItem(viewport, 0, mouse.y).y));
+                            } else if (pressedHit.kind === "ruler") {
+                                root.stateModel.updateScrub(timelineView.frameAt(mouse.x));
+                            } else if (pressedHit.kind === "range") {
+                                root.stateModel.markRange(pressedHit.frame, timelineView.frameAt(mouse.x));
+                            } else if (root.stateModel.dragging) {
+                                root.stateModel.updateDrag(mouse.x);
+                            }
                         }
-                        onReleased: root.stateModel.selectMarkedRange()
+                        onCanceled: cancelGesture()
+                        onReleased: function (mouse) {
+                            if (!cancelled && mouse.button === Qt.LeftButton) {
+                                if (pressedHit.kind === "ruler") {
+                                    root.stateModel.finishScrub(timelineView.frameAt(mouse.x));
+                                } else if (pressedHit.kind === "range") {
+                                    root.stateModel.selectMarkedRange();
+                                } else if (pressedHit.kind === "clip" && !pressedHit.locked && pressedTool === "Blade" && root.stateModel.tool === pressedTool) {
+                                    if (root.stateModel.selectClip(pressedHit.id)) {
+                                        root.seekFrame(timelineView.frameAt(pressX));
+                                        root.stateModel.split();
+                                    }
+                                } else if (root.stateModel.dragging) {
+                                    root.stateModel.updateDrag(mouse.x);
+                                    root.stateModel.finishDrag();
+                                }
+                            }
+                            pressedHit = ({});
+                        }
+                        onDoubleClicked: if (!cancelled && pressedHit.type === "Layer" && pressedHit.timing === "Dynamic" && pressedHit.representation === "Bitmap")
+                            root.chooseFrame(pressedHit.id)
+                        onWheel: function (wheel) {
+                            if (root.stateModel.dragging || pressed) {
+                                wheel.accepted = false;
+                            } else if (wheel.modifiers & (Qt.ControlModifier | Qt.MetaModifier)) {
+                                root.zoomTimeline(Math.pow(1.25, wheel.angleDelta.y / 120), wheel.x - lanes.contentX);
+                                wheel.accepted = true;
+                            } else if ((wheel.modifiers & Qt.ShiftModifier) || wheel.pixelDelta.x || wheel.angleDelta.x) {
+                                const delta = wheel.pixelDelta.x || wheel.pixelDelta.y || wheel.angleDelta.x / 2 || wheel.angleDelta.y / 2;
+                                lanes.contentX = timelineView.boundedScroll(lanes.contentX - delta);
+                                wheel.accepted = true;
+                            } else {
+                                wheel.accepted = false;
+                            }
+                        }
                     }
                     Rectangle {
                         objectName: "editorTimelinePlayhead"
@@ -1077,7 +1164,7 @@ FocusScope {
                     height: 24
                     width: Math.min(432, footer.width)
                     verticalAlignment: Text.AlignVCenter
-                    text: qsTr("%1 layers · %2 kept · %3f · %4 keys").arg(root.stateModel.clips.filter(clip => clip.type === "Layer").length).arg(root.stateModel.clips.filter(clip => clip.type === "Layer" && !clip.excluded).length).arg(root.stateModel.totalFrames).arg(root.stateModel.keys.length)
+                    text: qsTr("%1 layers · %2 kept · %3f · %4 keys").arg(root.stateModel.layerCount).arg(root.stateModel.keptCount).arg(root.stateModel.totalFrames).arg(root.stateModel.keys.length)
                     style: body
                     elide: Text.ElideRight
                 }
@@ -1119,7 +1206,7 @@ FocusScope {
         items: ["100%", "125%", "150%", "200%", "400%", "800%"]
         showIconSlot: false
         onItemTriggered: function (index) {
-            root.timelineScale = [1, 1.25, 1.5, 2, 4, 8][index];
+            root.zoomTimeline([1, 1.25, 1.5, 2, 4, 8][index] / root.timelineScale, lanes.width / 2);
         }
     }
     LV.ContextMenu {

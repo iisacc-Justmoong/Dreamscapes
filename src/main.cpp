@@ -1,21 +1,11 @@
-#include "App/Views/Home/HomeCanvas.h"
-#include "App/Views/Home/CanvasPresets.h"
+#include "App/StorageViewTypes.h"
 #include "App/Views/Home/CanvasPreview.h"
-#include "App/Views/Editor/EditorCanvas.h"
-#include "App/Views/Editor/EditorCanvasFeedback.h"
-#include "App/Views/Editor/EditorTimelineModel.h"
-#include "App/Views/Editor/EditorProject.h"
-#include "App/Views/ColorManagerModel.h"
 #include "App/ApplicationLifetime.h"
 #include <backend/runtime/appentry.h>
 #include "App/Generation/GenerationController.h"
 #include "App/Generation/AdvancedImageParameters.h"
-#include "App/Views/Result/ImageFileExporter.h"
-#include "App/Views/Result/PhotoLibraryExporter.h"
 #include <QtQml/qqml.h>
 #include <iiSocietyHelper.h>
-#include <iiSocietyContainer/DashboardFiles.h>
-#include <iiSocietyContainer/SocietyApplication.h>
 #include <QGuiApplication>
 #include <QIcon>
 #include <QQmlApplicationEngine>
@@ -35,7 +25,8 @@ int main(int argc, char *argv[])
     application.moduleUri = QStringLiteral("Dreamscapes");
     application.rootObject = QStringLiteral("Main");
     application.configureEngine = [](QQmlApplicationEngine &engine) {
-        registerColorManagerTypes();
+        registerStorageViewTypes();
+        dreamscapes::installCanvasPreviewProvider(engine);
         configureApplicationLifetime(engine);
 #ifdef DREAMSCAPES_WITH_LOCAL_MCP
         QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
@@ -47,25 +38,8 @@ int main(int argc, char *argv[])
         QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
             [](QObject *root, const QUrl &) { if (root) dreamscapesLocalRuntimeProbe(root); });
 #endif
-        qmlRegisterUncreatableType<iiSocietyContainer::Container>("Dreamscapes.Storage", 1, 0,
-            "SocietyContainer", "Provided by iiSocietyHelper");
-        qmlRegisterUncreatableType<iiSocietyHelper::FileDownload>("Dreamscapes.Storage", 1, 0,
-            "SocietyFileDownload", "Provided by iiSocietyHelper");
         qmlRegisterType<GenerationController>("Dreamscapes.Storage", 1, 0, "GenerationController");
-        // Storage is a static NO_PLUGIN module; register the draft in the
-        // production entry point just like the other exposed storage types.
         qmlRegisterType<AdvancedImageParameters>("Dreamscapes.Storage", 1, 0, "AdvancedImageParameters");
-        qmlRegisterType<iiSocietyContainer::DashboardFiles>("Dreamscapes.Storage", 1, 0, "DashboardFiles");
-        qmlRegisterType<iiSocietyContainer::SocietyApplication>("Dreamscapes.Storage", 1, 0, "SocietyApplication");
-        qmlRegisterType<HomeCanvas>("Dreamscapes.Storage", 1, 0, "HomeCanvas");
-        qmlRegisterType<CanvasPresets>("Dreamscapes.Storage", 1, 0, "CanvasPresets");
-        qmlRegisterType<CanvasPreview>("Dreamscapes.Storage", 1, 0, "CanvasPreview");
-        qmlRegisterType<EditorCanvas>("Dreamscapes.Storage", 1, 0, "EditorCanvas");
-        qmlRegisterType<EditorCanvasFeedback>("Dreamscapes.Storage", 1, 0, "EditorCanvasFeedback");
-        qmlRegisterType<EditorTimelineModel>("Dreamscapes.Storage", 1, 0, "EditorTimelineModel");
-        qmlRegisterType<EditorProject>("Dreamscapes.Storage", 1, 0, "EditorProject");
-    qmlRegisterType<ImageFileExporter>("Dreamscapes.Storage", 1, 0, "ImageFileExporter");
-        qmlRegisterType<PhotoLibraryExporter>("Dreamscapes.Storage", 1, 0, "PhotoLibraryExporter");
         auto *helper = new iiSocietyHelper::Helper(&engine);
         helper->setObjectName(QStringLiteral("societyHelper"));
         engine.rootContext()->setContextProperty(QStringLiteral("societyHelper"), helper);

@@ -1,7 +1,13 @@
+#include "EditorPhotoImportCommand.h"
 #include "EditorCanvas.h"
+#include "EditorDocumentOpen.h"
 #include "EditorMedia.h"
+#include "EditorFrameExporter.h"
+#include "EditorColorSampler.h"
+#include <QQmlEngine>
 #include "EditorCameraPhoto.h"
 #include "EditorToolUtils.h"
+#include "EditorStillTiming.h"
 #include "App/Generation/ImageCanvas.h"
 #include <iiSharedCanvas/Bitmap/BitmapCodec.h>
 #include <iiSharedCanvas/Validation/Validation.h>
@@ -16,32 +22,7 @@
 
 using namespace iiSharedCanvas;
 namespace {
-bool staticStill(const Layer &layer) {
-    return layerTiming(layer) == LayerTiming::Static && contentKind(layer) != ContentKind::Video;
-}
-FrameIndex defaultStillFrames(const Document &document) {
-    const auto rate = document.timeline.frameRate;
-    if (rate.denominator == 0) return 1; // Native validation reports invalid frame rates.
-    return FrameIndex(std::max<std::uint64_t>(1,
-        (std::uint64_t(rate.numerator) + rate.denominator - 1) / rate.denominator));
-}
-template<class Eligible>
-void assignDefaultStillRanges(Document &document, const Eligible &eligible) {
-    const auto needsRange = [&](const Layer &layer) {
-        return eligible(layer) && staticStill(layer) && !layerProperties(layer).frameRange;
-    };
-    if (!std::any_of(document.layers.begin(), document.layers.end(), needsRange)) return;
-    const auto previousFrames = document.timeline.frameCount;
-    const auto frames = std::max(previousFrames, defaultStillFrames(document));
-    if (previousFrames == 0) return; // Leave malformed edits for native validation.
-    for (auto &layer : document.layers) {
-        auto &properties = layerProperties(layer);
-        if (needsRange(layer)) properties.frameRange = LayerFrameRange{0, frames - 1};
-        else if (!properties.frameRange && frames > previousFrames)
-            properties.frameRange = LayerFrameRange{0, previousFrames - 1};
-    }
-    document.timeline.frameCount = frames;
-}
+using dreamscapes::assignDefaultStillRanges;
 QString localPath(const QUrl &url) {
     if (url.isLocalFile()) return url.toLocalFile();
     return url.scheme().isEmpty() ? url.toString() : QString{};
@@ -60,7 +41,31 @@ QVariantMap layerDescription(const Layer &layer, const QString &selected) {
 }
 }
 
-EditorCanvas::EditorCanvas(QQuickItem *parent) : CanvasItem(parent), m_media(std::make_unique<EditorMedia>(this)), m_photoSources(std::make_unique<EditorCameraPhoto>(this)) {
+EditorCanvas::EditorCanvas(QQuickItem *parent):EditorCanvas(std::make_shared<EditorFrameExporter>(),parent) {}
+EditorCanvas::EditorCanvas(std::shared_ptr<EditorFrameExporter> exporter,QQuickItem *parent)
+    : EditorCanvas(std::move(exporter), std::make_unique<EditorColorSampler>(), parent) {}
+EditorCanvas::EditorCanvas(std::shared_ptr<EditorFrameExporter> exporter, std::unique_ptr<EditorColorSampler> sampler, QQuickItem *parent)
+    : CanvasItem(parent), m_media(std::make_unique<EditorMedia>(this)),
+      m_frameExporter(exporter?std::move(exporter):std::make_shared<EditorFrameExporter>()),
+      m_colorSampler(sampler ? std::move(sampler) : std::make_unique<EditorColorSampler>()),
+      m_photoSources(std::make_unique<EditorCameraPhoto>(this)) {
+    m_documentStorage.setObjectName("editorDocumentStorage");
+    QQmlEngine::setObjectOwnership(m_frameExporter.get(),QQmlEngine::CppOwnership);
+    connect(m_colorSampler.get(), &EditorColorSampler::finished, this, &EditorCanvas::finishColorRead);
+    const auto retireRead = [this] { if (retireColorRead()) emit toolStateChanged(); };
+    connect(this, &CanvasItem::documentChanged, this, retireRead);
+    connect(this, &CanvasItem::revisionChanged, this, retireRead);
+    connect(this, &CanvasItem::liveStrokeActiveChanged, this, [this, retireRead] { if (liveStrokeActive()) retireRead(); });
+    const auto retireNeutral = [this, retireRead] { if (m_colorRead == ColorRead::Neutral) retireRead(); };
+    connect(this, &CanvasItem::frameChanged, this, retireNeutral);
+    connect(this, &CanvasItem::selectionChanged, this, retireNeutral);
+    connect(this, &EditorCanvas::activeArtboardChanged, this, retireNeutral);
+    m_viewOptions = std::make_unique<EditorViewOptions>(this);
+    connect(m_viewOptions.get(), &EditorViewOptions::changed, this, [this] { resetAlignmentGesture(); });
+    connect(m_viewOptions.get(), &EditorViewOptions::guidesChanged, this, &EditorCanvas::resetAlignmentGesture);
+    connect(this, &EditorCanvas::documentInfoChanged, this, [this] {
+        if(m_elementTransformHandle.isEmpty() && !m_creatingElement) resetAlignmentGesture();
+    });
     setAcceptHoverEvents(true);
     connect(this, &CanvasItem::viewportChanged, this, &EditorCanvas::notifyInteractionFeedback);
     connect(this, &CanvasItem::brushChanged, this, &EditorCanvas::notifyInteractionFeedback);
@@ -77,13 +82,7 @@ EditorCanvas::EditorCanvas(QQuickItem *parent) : CanvasItem(parent), m_media(std
     connect(this, &CanvasItem::frameChanged, this, &EditorCanvas::cancelElementTransform);
     connect(this, &CanvasItem::frameChanged, this, &EditorCanvas::elementTransformChanged);
     connect(this, &EditorCanvas::toolStateChanged, this, &EditorCanvas::elementTransformChanged);
-    connect(m_photoSources.get(), &EditorCameraPhoto::importReady, this, [this](const QUrl &source) {
-        const auto previousTool = m_tool; const auto previousValues = m_toolValues;
-        auto settings = settingsFor("camera-photo");
-        if (!QStringList{"Camera", "Capture", "Gallery"}.contains(settings.value("selector").toString())) settings["selector"] = "Gallery";
-        if (!importToolSource(source, "camera-photo", settings)) m_photoSources->reportImportFailure(error());
-        if (previousTool != m_tool) configureTool(previousTool, previousValues);
-    });
+    m_photoImport = std::make_unique<EditorPhotoImportCommand>(this, m_photoSources.get(), this);
     connect(this, &CanvasItem::viewportChanged, this, &EditorCanvas::constrainViewport);
     connect(this, &CanvasItem::documentChanged, this, &EditorCanvas::constrainViewport);
     connect(m_media.get(), &EditorMedia::captured, this, [this](const QImage &image) {
@@ -98,7 +97,7 @@ EditorCanvas::EditorCanvas(QQuickItem *parent) : CanvasItem(parent), m_media(std
         }
         insertPixels(captured, tr("Camera capture"));
     });
-    connect(m_media.get(), &EditorMedia::changed, this, &EditorCanvas::toolStateChanged);
+    connect(m_media.get(), &EditorMedia::cameraChanged, this, &EditorCanvas::toolStateChanged);
     connect(this, &CanvasItem::selectionChanged, this, [this] { invalidateToolPreview(); emit toolStateChanged(); });
     connect(this, &CanvasItem::revisionChanged, this, &EditorCanvas::toolStateChanged);
     connect(this, &CanvasItem::revisionChanged, this, &EditorCanvas::recordHistory);
@@ -109,28 +108,43 @@ EditorCanvas::EditorCanvas(QQuickItem *parent) : CanvasItem(parent), m_media(std
         m_maskPolygon.clear();
     });
     connect(this, &CanvasItem::documentChanged, this, &EditorCanvas::documentInfoChanged);
-    connect(this, &CanvasItem::documentChanged, this, [this] { m_clippingKey.clear(); m_clippingImage = QUrl{}; });
     connect(this, &CanvasItem::revisionChanged, this, &EditorCanvas::documentInfoChanged);
-    connect(this, &CanvasItem::selectionChanged, this, &EditorCanvas::documentInfoChanged);
-    connect(this, &CanvasItem::frameChanged, this, &EditorCanvas::documentInfoChanged);
+    // Presentation has its own notifications. Selection and seeking must not
+    // invalidate file metadata, document structure, or project ownership.
+    connect(this, &EditorCanvas::documentInfoChanged, this, &EditorCanvas::layerStateChanged);
+    connect(this, &CanvasItem::selectionChanged, this, &EditorCanvas::layerStateChanged);
+    connect(this, &CanvasItem::frameChanged, this, &EditorCanvas::layerStateChanged);
+    connect(this, &EditorCanvas::activeArtboardChanged, this, &EditorCanvas::layerStateChanged);
+    connect(this, &EditorCanvas::fileStateChanged, this, &EditorCanvas::layerStateChanged);
+    connect(this, &EditorCanvas::documentInfoChanged, this, &EditorCanvas::editingGeometryChanged);
+    connect(this, &EditorCanvas::activeArtboardChanged, this, &EditorCanvas::editingGeometryChanged);
     connect(this, &EditorCanvas::documentInfoChanged, this, &EditorCanvas::fileInformationChanged);
+    connect(this, &EditorCanvas::fileStateChanged, this, &EditorCanvas::fileInformationChanged);
     connect(this, &EditorCanvas::specificationChanged, this, &EditorCanvas::fileInformationChanged);
+    connect(this, &EditorCanvas::specificationChanged, this, &EditorCanvas::fileStateChanged);
     connect(this, &EditorCanvas::errorChanged, this, &EditorCanvas::fileInformationChanged);
-    connect(this, &EditorCanvas::activeArtboardChanged, this, &EditorCanvas::fileInformationChanged);
-    connect(this, &EditorCanvas::pagePresentationChanged, this, &EditorCanvas::fileInformationChanged);
+    connect(this, &CanvasItem::frameChanged, this, &EditorCanvas::fileViewInformationChanged);
+    connect(this, &EditorCanvas::editingGeometryChanged, this, &EditorCanvas::fileViewInformationChanged);
+    connect(this, &EditorCanvas::pagePresentationChanged, this, &EditorCanvas::fileViewInformationChanged);
+    connect(this, &CanvasItem::frameChanged, this, &EditorCanvas::refreshBackgroundMaskOverlay);
     const auto synchronize = [this] {
         if (!m_historySuspended && !m_synchronizingDocument && !m_documentAlias.isEmpty()
             && documentReady() && !liveStrokeActive()) synchronizeDocument(*document());
     };
     connect(this, &CanvasItem::revisionChanged, this, synchronize);
     connect(this, &CanvasItem::liveStrokeActiveChanged, this, synchronize);
-    connect(m_documentStorage.container(), &iiSocietyContainer::Container::stateChanged, this, [this] {
+    connect(m_documentStorage.container(), &iiSocietyContainer::Container::stateChanged, this,
+        [this, revision = m_documentStorage.container()->revision()]() mutable {
+        if (revision == m_documentStorage.container()->revision()) return;
+        revision = m_documentStorage.container()->revision();
         if (m_synchronizingDocument || m_documentAlias.value("key").toString().isEmpty()) return;
         const auto state = m_documentStorage.container()->containerId() == m_documentAlias.value("containerId").toString()
             ? m_documentStorage.container()->alias(m_documentAlias.value("key").toString()) : QVariantMap{};
-        m_documentAlias["exists"] = state.value("exists", false);
-        m_documentAlias["available"] = state.value("available", false);
-        emit documentInfoChanged();
+        const auto exists = state.value("exists", false), available = state.value("available", false);
+        if (m_documentAlias.value("exists") == exists && m_documentAlias.value("available") == available) return;
+        m_documentAlias["exists"] = exists;
+        m_documentAlias["available"] = available;
+        emit fileStateChanged();
     });
     connect(this, &CanvasItem::lastErrorChanged, this, &EditorCanvas::errorChanged);
     connect(this, &CanvasItem::selectionChanged, this, [this] { synchronizeElementSelection(true); });
@@ -142,8 +156,11 @@ EditorCanvas::EditorCanvas(QQuickItem *parent) : CanvasItem(parent), m_media(std
         m_elementObservedTool = m_tool;
         synchronizeElementSelection(true);
     });
+    // Parenting sends ChildAdded synchronously. Derived interaction state must
+    // already be initialized before a value-owned QObject enters this tree.
+    m_documentStorage.setParent(this);
 }
-EditorCanvas::~EditorCanvas() { unbind(); }
+EditorCanvas::~EditorCanvas() { m_photoImport.reset(); m_colorSampler->cancel(); disconnect(m_colorSampler.get(), nullptr, this, nullptr); m_documentStorage.setParent(nullptr); unbind(); }
 QUrl EditorCanvas::localDirectory(const QString &path) const {
     const auto value = QUrl(path).isLocalFile() ? QUrl(path).toLocalFile() : path;
     return QFileInfo(value).isDir() ? QUrl::fromLocalFile(QFileInfo(value).absoluteFilePath()) : QUrl{};
@@ -171,8 +188,12 @@ QVariantList EditorCanvas::layers() const {
     return result;
 }
 QVariantMap EditorCanvas::selectedLayer() const {
-    for (const auto &entry : layers()) if (entry.toMap()["selected"].toBool()) {
-        auto result = entry.toMap(); const auto id = result.value("id").toString();
+    if (!documentReady()) return {};
+    const auto id = selectedLayerId();
+    if (id.isEmpty()) return {};
+    for (auto it = document()->layers.crbegin(); it != document()->layers.crend(); ++it) {
+        if (QString::fromStdString(layerProperties(*it).id) != id || !belongsToActiveArtboard(*it)) continue;
+        auto result = layerDescription(*it, id);
         result["lock"] = m_pixelLocks.contains(id) ? "Pixels" : m_positionLocks.contains(id) ? "Position" : "None";
         result["preserveAlpha"] = alphaProtected(id);
         return result;
@@ -194,7 +215,8 @@ bool EditorCanvas::selectLayer(const QString &id) {
         for (int i = 0; i < int(boards.size()); ++i) if (boards[i].id == *layerProperties(*layer).artboardId) { selectArtboard(i, false); break; }
     }
     const auto *asset = resolveAssetAt(*document(), *layer, frame());
-    if (std::holds_alternative<StaticBitmapLayer>(*layer) && asset && contentKind(*asset) == ContentKind::Raster) {
+    if ((std::holds_alternative<StaticBitmapLayer>(*layer) || std::holds_alternative<DynamicBitmapLayer>(*layer))
+        && asset && contentKind(*asset) == ContentKind::Raster) {
         const auto previous = m_selectedDocumentLayer;
         m_selectedDocumentLayer.clear();
         if (!CanvasItem::selectLayer(id)) {
@@ -232,21 +254,17 @@ void EditorCanvas::clearSelection() {
     }
 }
 bool EditorCanvas::adopt(Document candidate, const QVariantMap &specification) {
+    m_viewOptions->clearGuides(); m_textBaselines.clear();
     cancelElementTransform();
     cancelInteractionGesture();
     const auto validation = validate(candidate);
     if (!validation.ok()) return fail(QString::fromStdString(validation.issues.front().message));
-    const bool implicitStill = candidate.timeline.frameCount == 1 && candidate.frames.empty()
-        && candidate.audioTracks.empty() && !candidate.layers.empty()
-        && std::all_of(candidate.layers.begin(), candidate.layers.end(), [](const Layer &layer) {
-            const auto &properties = layerProperties(layer);
-            return staticStill(layer) && !properties.frameRange && properties.motion.empty();
-        });
-    if (implicitStill) assignDefaultStillRanges(candidate, [](const Layer &) { return true; });
+    retireColorRead(); m_colorReadError.clear();
+    dreamscapes::normalizeImplicitStill(candidate);
     cancelStroke(); cancelBackgroundMaskGesture(); m_selectedBackgroundMask.clear();
     m_historySuspended = true;
     m_selectedDocumentLayer.clear(); m_activeArtboard.clear();
-    ++m_graphicDocumentSequence; m_graphicMaskOperand.clear(); m_graphicMaskLayer.clear();
+    ++m_graphicDocumentSequence; m_graphicMaskOperand.reset(); m_graphicMaskLayer.clear();
     m_layerColorPicking = m_layerColorValid = m_histogramShadows = m_histogramHighlights = false;
     clearAreaSelection(); m_elementBounds.clear(); m_elementSettings.clear(); m_elementPatterns.clear(); m_patternImage = {}; m_selectedElements.clear(); m_textOrigins.clear(); m_textSettings.clear(); m_audioSource = {}; m_audioTrack.clear(); m_media->stop();
     unbind();
@@ -273,25 +291,20 @@ void EditorCanvas::restoreView(qreal scale, qreal x, qreal y, quint32 currentFra
 bool EditorCanvas::openDocumentSource(const QUrl &source, bool asCopy) {
     const auto path = localPath(source);
     if (path.isEmpty()) return fail(tr("Choose a local canvas document or image."));
-    try {
-        if (path.endsWith(".iisc", Qt::CaseInsensitive)) {
-            m_documentStorage.openForSource(path);
-            auto imported = m_documentStorage.readCanvas(path);
-            if (!imported.ok()) return fail(QString::fromStdString(imported.result.message));
-            const auto alias = m_documentStorage.aliasForPath(path);
-            if (!alias.value("available").toBool()) return fail(tr("The canvas alias is unavailable."));
-            const auto extent = imported.document.extent;
-            const auto previousFrames = imported.document.timeline.frameCount;
-            if (!adopt(std::move(imported.document), {{"name", alias.value("name")}, {"pixelWidth", extent.width}, {"pixelHeight", extent.height}})) return false;
-            if (!asCopy) {
-                m_documentAlias = alias; m_documentVersion = alias.value("version").toString();
-                if (m_canvas.timeline.frameCount != previousFrames && !synchronizeDocument(m_canvas)) return false;
-                emit documentInfoChanged();
-            }
-            return true;
-        }
-        return openImages({source});
-    } catch (const std::exception &exception) { return fail(QString::fromUtf8(exception.what())); }
+    return adoptDocumentOpen(dreamscapes::prepareDocumentOpen({std::filesystem::path(path.toStdU16String()),{}, {},asCopy}));
+}
+bool EditorCanvas::adoptDocumentOpen(dreamscapes::DocumentOpenResult result) {
+    if(!result.ok())return fail(result.cancelled?tr("Opening was cancelled."):QString::fromStdString(result.error));
+    if(!dreamscapes::documentSourceUnchanged(result))return fail(tr("The source document changed. Open it again."));
+    if(result.bindFile&&!m_documentStorage.adoptStorage(result.storage))return fail(m_documentStorage.errorString());
+    const auto extent=result.document.extent;const auto previousFrames=result.document.timeline.frameCount;
+    if(!adopt(std::move(result.document),{{"name",QString::fromStdString(result.name)},{"pixelWidth",extent.width},{"pixelHeight",extent.height}}))return false;
+    if(result.bindFile) {
+        m_documentAlias=std::move(result.alias);m_documentVersion=m_documentAlias.value("version").toString();
+        if(m_canvas.timeline.frameCount!=previousFrames&&!synchronizeDocument(m_canvas))return false;
+        emit fileStateChanged();
+    }
+    return true;
 }
 bool EditorCanvas::openImages(const QVariantList &sources) {
     if (sources.isEmpty()) return fail(tr("Select at least one image."));
@@ -347,9 +360,9 @@ bool EditorCanvas::synchronizeDocument(const Document &document) {
     const auto saved = m_documentStorage.saveCanvas(
         QByteArray(reinterpret_cast<const char *>(encoded.bytes.data()), qsizetype(encoded.bytes.size())), filePath(), m_documentVersion);
     m_documentSynchronized = !saved.isEmpty();
-    if (saved.isEmpty()) { emit documentInfoChanged(); return fail(m_documentStorage.errorString()); }
+    if (saved.isEmpty()) { emit fileStateChanged(); return fail(m_documentStorage.errorString()); }
     m_documentAlias = saved; m_documentVersion = saved.value("version").toString();
-    clearError(); emit documentInfoChanged(); return true;
+    clearError(); emit fileStateChanged(); return true;
 }
 bool EditorCanvas::saveDocumentAs(const QUrl &destination) {
     cancelElementTransform();
@@ -365,7 +378,7 @@ bool EditorCanvas::saveDocumentAs(const QUrl &destination) {
         QByteArray(reinterpret_cast<const char *>(encoded.bytes.data()), qsizetype(encoded.bytes.size())), path);
     if (saved.isEmpty()) return fail(m_documentStorage.errorString());
     m_documentAlias = saved; m_documentVersion = saved.value("version").toString(); m_documentSynchronized = true;
-    clearError(); emit documentInfoChanged(); return true;
+    clearError(); emit fileStateChanged(); return true;
 }
 bool EditorCanvas::saveDocument() { return saveDocumentAs(QUrl::fromLocalFile(filePath())); }
 DocumentEditResult EditorCanvas::editDocument(const std::function<DocumentEditResult(DocumentEditor &)> &edit) {
@@ -377,7 +390,13 @@ DocumentEditResult EditorCanvas::editDocument(const std::function<DocumentEditRe
     if (!result.changed) return result;
     QScopedValueRollback<bool> guard(m_synchronizingDocument, true);
     if (!synchronizeDocument(candidate)) return {DocumentEditCode::PersistenceFailed, false, "document", error().toStdString()};
-    recordDocumentChange(candidate); m_canvas = std::move(candidate); refresh(); return result;
+    m_canvas = std::move(candidate); refresh(); return result;
+}
+bool EditorCanvas::setPublicationMetadata(PublicationMetadata metadata) {
+    if (liveStrokeActive()) return fail(tr("Finish the current stroke before saving publication metadata."));
+    return editDocument([&](DocumentEditor &editor) {
+        return editor.setPublicationMetadata(std::move(metadata));
+    }).ok();
 }
 bool EditorCanvas::commit(const std::function<bool(Document &)> &edit) {
     cancelElementTransform();
@@ -401,9 +420,9 @@ bool EditorCanvas::commit(const std::function<bool(Document &)> &edit) {
         if (!scopedEdit(candidate)) return false;
         const auto checked = validate(candidate);
         if (!checked.ok()) return fail(QString::fromStdString(checked.issues.front().message));
+        recordDocumentChange(candidate);
         QScopedValueRollback<bool> guard(m_synchronizingDocument, true);
         if (!synchronizeDocument(candidate)) return false;
-        recordDocumentChange(candidate);
         m_canvas = std::move(candidate);
         clearError();
         return refresh();

@@ -1,0 +1,9 @@
+{
+  "job": {"id": "example-failed-video", "mediaType": "Video", "modelName": "Example model", "width": 576, "height": 1024, "video": {"fps": 24, "frames": 72}},
+  "inference": {"state": "loading", "backend": "video", "step": 0, "total": 0},
+  "timedOut": true,
+  "rawError": "The worker stopped reporting progress during model loading.",
+  "workerLog": "No additional diagnostic event was supplied in this example.",
+  "sessionsDirectory": "build/failure-agent-example/.sessions",
+  "reportPath": "build/failure-agent-example/.report.json"
+}

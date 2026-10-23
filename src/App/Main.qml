@@ -10,7 +10,9 @@ import Dreamscapes.Storage 1.0
 import "Views/Home"
 import "Views/Result"
 import "Views/Editor"
+import "Views/Publishing"
 import "Views/Preferences"
+import "Views"
 import "Views/Home/ImageSelection.js" as ImageSelection
 import "Views/Home/StorageBrowserEntries.js" as StorageEntries
 
@@ -18,6 +20,32 @@ LV.ApplicationWindow {
     id: window
     objectName: "mainWindow"
     property var preferencesWindow: null
+    property string dismissedFailureId: ""
+    function showFailureExplanation(id) {
+        failureDetails.report = generationBackend.failureAnalysis(id)
+        failureDetails.open = true
+    }
+    FailureDetails {
+        id: failureDetails
+        onPrimaryClicked: { open = false; window.dismissedFailureId = report.jobId || "" }
+    }
+    Connections {
+        target: window.generationBackend
+        function onFailureExplained(jobId, report) {
+            if (failureDetails.report.jobId === jobId) failureDetails.report = report
+        }
+    }
+    LV.LabelButton {
+        objectName: "failureExplanationButton"
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.topMargin: 8
+        z: 900
+        visible: !!window.generationBackend.latestFailure.jobId && window.dismissedFailureId !== window.generationBackend.latestFailure.jobId
+        text: window.generationBackend.latestFailure.state === "pending" ? qsTr("Failure details · Analyzing…") : qsTr("Failure details")
+        tone: LV.AbstractButton.Default
+        onClicked: window.showFailureExplanation(window.generationBackend.latestFailure.jobId)
+    }
     function openPreferences() {
         if (isMobilePlatform)
             return;
@@ -67,7 +95,14 @@ LV.ApplicationWindow {
             }
         }
         Platform.Menu { title: qsTr("Window") }
-        Platform.Menu { title: qsTr("Help") }
+        Platform.Menu {
+            title: qsTr("Help")
+            Platform.MenuItem {
+                text: qsTr("Latest failure explanation…")
+                enabled: !!window.generationBackend.latestFailure.jobId
+                onTriggered: window.showFailureExplanation(window.generationBackend.latestFailure.jobId)
+            }
+        }
     }
     property string initialContainerPath: ""
     // Theme.targetOverride is the LVRS-supported preview/test hook; the real
@@ -82,12 +117,33 @@ LV.ApplicationWindow {
     Loader { id: agentQuestions }
     property bool resultVisible: false
     property bool editorVisible: false
+    property bool publishVisible: false
+    readonly property var publishView: publishLoader.item
+    function openPublish() {
+        if (!editorVisible || !editorView || editorView.modalActive || editorView.documentOpening || editorView.imageImportRequest.active) return false
+        publishLoader.active = true
+        if (!publishLoader.item) return false
+        editorLoader.retainedWidth = editorLoader.width
+        editorLoader.retainedHeight = editorLoader.height
+        publishVisible = true
+        publishLoader.item.open()
+        publishLoader.item.forceActiveFocus()
+        return true
+    }
+    function closePublish() {
+        publishVisible = false
+        if (editorView) editorView.blankCanvas.forceActiveFocus()
+    }
+    onResultVisibleChanged: cancelFileOpen()
+    onEditorVisibleChanged: { cancelFileOpen(); if (!editorVisible) publishVisible = false }
     property string storageBrowserSection: ""
     property string pendingFileKey: ""
     property string pendingFileSection: ""
+    property string pendingFileContainerId: ""
+    property var pendingCanvasOpen: null
     readonly property bool storageBrowserVisible: storageBrowserSection.length > 0 && !resultVisible && !editorVisible
     onStorageBrowserVisibleChanged: if (!storageBrowserVisible) cancelFileOpen()
-    onStorageBrowserSectionChanged: if (pendingFileSection && pendingFileSection !== storageBrowserSection) cancelFileOpen()
+    onStorageBrowserSectionChanged: if (imageOpen.active || (editorView && (editorView.imageImportRequest.active || editorView.documentOpening)) || (pendingFileSection && pendingFileSection !== storageBrowserSection)) cancelFileOpen()
     readonly property var editorView: editorLoader.item
     function ensureEditor() {
         editorLoader.active = true
@@ -171,11 +227,9 @@ LV.ApplicationWindow {
     readonly property var platformInputMethod: Qt.inputMethod
     readonly property real keyboardBottomInset: platformInputMethod.visible && platformInputMethod.keyboardRectangle.height > 0
         ? Math.max(0, height - platformInputMethod.keyboardRectangle.y) : 0
-    // Keep the app-owned title-bar row and every view clear of AppKit's native
-    // traffic lights. The extra content gap prevents the first control row from
-    // visually colliding with either the buttons or the drag region.
-    readonly property real desktopTitleBarHeight: LV.Theme.scaleMetric(48)
-    readonly property real desktopTitleBarContentGap: LV.Theme.gap8
+    // One application title bar keeps Home and Editor navigation geometrically stable.
+    readonly property real desktopTitleBarHeight: LV.Theme.scaleMetric(32)
+    readonly property real desktopTitleBarContentGap: 0
     readonly property real desktopTitleBarLeadingClearance: nativeTitleBarControlsRect.width > 0
         ? nativeTitleBarControlsRect.x + nativeTitleBarControlsRect.width + LV.Theme.gap12
         : LV.Theme.gap12
@@ -189,8 +243,8 @@ LV.ApplicationWindow {
             : 0)
     title: "Dreamscapes"
     primaryColor: LV.Theme.defaultPrimary
-    width: useMobileHomeLayout ? 390 : 1280
-    height: useMobileHomeLayout ? 844 : 800
+    width: useMobileHomeLayout ? 390 : 1920
+    height: useMobileHomeLayout ? 844 : 1200
     desktopMinWidth: 320
     desktopMinHeight: 480
     mobileMinWidth: 320
@@ -202,22 +256,36 @@ LV.ApplicationWindow {
     nativeTitleBarHeight: useMobileHomeLayout ? 0 : desktopTitleBarHeight
     nativeTitleBarLeftMargin: LV.Theme.gap16
     // LVRS owns window movement only in this top strip; content drags paint/select.
-    windowDragHandleHeight: 40
+    windowDragHandleHeight: 32
     windowDragExclusionItems: [appContent, desktopToolbar]
 
     signal generateRequested(string prompt, string mediaType, string aspectRatio, int count)
 
     function openCanvas(imageSource, generationResult) {
+        cancelFileOpen()
         ensureEditor()
         imageSource = generationResult && generationResult.documentSource || imageSource
         quickGenerate.dismissInput()
         modelMenu.close()
-        const opened = imageSource ? editorView.openDocumentSource(imageSource)
-            : editorView.createBlankCanvas({width: 1024, height: 1024, unit: "px", ppi: 300, background: "White", name: qsTr("Untitled Canvas")})
-        if (!opened) {
+        if (imageSource) {
+            const intent = { source: imageSource.toString(), result: generationResult || ({}) }
+            pendingCanvasOpen = intent
+            if (!editorView.openDocumentSource(imageSource)) {
+                if (pendingCanvasOpen === intent) pendingCanvasOpen = null
+                generationRequestError = editorView.documentError
+                return false
+            }
+            generationRequestError = ""
+            return true
+        }
+        if (!editorView.createBlankCanvas({width: 1024, height: 1024, unit: "px", ppi: 300, background: "White", name: qsTr("Untitled Canvas")})) {
             generationRequestError = editorView.documentError
             return false
         }
+        return finishCanvasOpen("", generationResult)
+    }
+    function finishCanvasOpen(imageSource, generationResult) {
+        publishVisible = false
         canvasImageSource = imageSource || ""
         canvasGenerationResult = generationResult || ({})
         canvasGenerationResults = generationResult && imageSource ? [generationResult] : []
@@ -234,16 +302,41 @@ LV.ApplicationWindow {
             generationRequestError = qsTr("Select images to open in the editor.")
             return false
         }
+        cancelFileOpen()
+        const unavailable = images.find(entry => entry.available === false)
+        if (unavailable && unavailable.section && (!storageBrowserVisible || storageBrowserSection !== unavailable.section))
+            showStorage(unavailable.section)
+        if (!imageOpen.start(images)) return false
+        pendingFileKey = ""
+        pendingFileSection = ""
+        pendingFileContainerId = ""
+        generationRequestError = ""
+        return true
+    }
+    ImageOpenRequest {
+        id: imageOpen
+        objectName: "imageOpenRequest"
+        container: window.societyContainer
+        download: generation.fileDownload
+        onReady: function(images, sources) { window.openPreparedImages(images, sources) }
+        onChanged: if (active) window.generationRequestError = ""
+        onFailed: function(message) { window.generationRequestError = message; generation.explainOperationFailure("Open canvas", message) }
+        onRejected: function(message) { window.generationRequestError = message }
+    }
+    function openPreparedImages(images, sources) {
+        resultView.rememberGalleryPosition()
         ensureEditor()
-        const sources = images.map(entry => entry.source || (entry.path ? editorView.localFileSource(String(entry.path)) : ImageSelection.source(entry)))
-        if (!editorView.openImages(sources)) {
-            generationRequestError = editorView.documentError
-            return false
-        }
+        // Rejection is delivered by the command's signal; its existing operation
+        // and document error states deliberately remain independent.
+        if (!editorView.openImages(sources, images)) return false
+        generationRequestError = ""
+        return true
+    }
+    function finishPreparedImages(images, sources) {
         quickGenerate.dismissInput()
         modelMenu.close()
         canvasImageSource = sources[0]
-        canvasGenerationResult = images[0]
+        canvasGenerationResult = images[0] || ({})
         canvasGenerationResults = images.slice()
         canvasSpecification = ({})
         generationRequestError = ""
@@ -252,20 +345,26 @@ LV.ApplicationWindow {
         return true
     }
     function openHomeFileDialog() {
+        cancelFileOpen()
         quickGenerate.dismissInput()
         modelMenu.close()
         homeOpenDialog.open()
     }
     function closeCanvas() {
+        cancelFileOpen()
         editorVisible = false
     }
     function openNewCanvas() {
+        cancelFileOpen()
         quickGenerate.dismissInput()
         modelMenu.close()
         newCanvasDialog.begin()
     }
 
     function presentLatestResult() {
+        // Manual file views have no submission owner. Unrelated job updates
+        // must never replace the file the user explicitly opened.
+        if (!resultJobIds.length) return
         const result = submissionResults.length > 0 ? submissionResults[submissionResults.length - 1] : ({})
         const source = result.imageSource ? result.imageSource.toString() : ""
         if (source === (currentResult.imageSource ? currentResult.imageSource.toString() : ""))
@@ -297,6 +396,7 @@ LV.ApplicationWindow {
         mobileHome.showHome()
     }
     function showSubmission(jobIds) {
+        cancelFileOpen()
         storageBrowserSection = ""
         editorVisible = false
         dismissResult()
@@ -314,8 +414,12 @@ LV.ApplicationWindow {
     Component.onCompleted: {
         generation.connectStorage(initialContainerPath)
     }
-    onActiveChanged: { if (active) { generation.refreshModels(); historyModel.refresh() } }
-    onResultVisibleChanged: if (!resultVisible) historyModel.refresh()
+    CanvasPreview {
+        // Generation result URLs share the existing asynchronous IISC provider.
+        Component.onCompleted: sourceForFile({})
+    }
+    // Native inventory/file monitors publish real backend changes. Window focus
+    // and result visibility are presentation and never reopen/rescan storage.
 
     // Helper owns the container mirror and supplies Alias metadata and previews.
     readonly property var societyContainer: generation.container
@@ -333,6 +437,19 @@ LV.ApplicationWindow {
         onQueryChanged: snapshot.query = query
         function refresh() { snapshot.refresh() }
     }
+    readonly property alias socialPublishing: publishing
+    SocialPublishingController {
+        id: publishing
+        objectName: "socialPublishingController"
+        onJobFinished: function(jobId, result) {
+            if (!result.published && result.error !== "cancelled")
+                generation.explainOperationFailure("Publish", result.message || result.error, {
+                    providerJobId: jobId, errorCode: result.error,
+                    completedSteps: (result.completed || []).length, nextStep: result.next,
+                    requiresReconciliation: result.requiresReconciliation
+                })
+        }
+    }
     GenerationController {
         id: generation
         objectName: "generationController"
@@ -345,24 +462,33 @@ LV.ApplicationWindow {
         }
     }
 
-    // Home exposes the shared ApplicationWindow accent material.
+    // Home and Editor share the same application controls and title-bar geometry.
     DesktopHomeToolbar {
         id: desktopToolbar
         anchors.top: parent.top
         anchors.right: parent.right
-        anchors.topMargin: Math.max(0, (window.desktopTitleBarHeight - height) / 2)
+        anchors.topMargin: Math.max(0, ((window.visibility === Window.FullScreen
+            ? LV.Theme.controlHeightSm + LV.Theme.gap12 : window.desktopTitleBarHeight) - height) / 2)
         anchors.rightMargin: LV.Theme.gap12
         width: Math.min(LV.Theme.scaleMetric(265), Math.max(0,
             window.width - anchors.rightMargin - window.desktopTitleBarLeadingClearance))
-        visible: !window.useMobileHomeLayout && !window.resultVisible && !window.editorVisible && !window.storageBrowserVisible
+        visible: !window.useMobileHomeLayout && (window.editorVisible || (!window.resultVisible && !window.storageBrowserVisible))
         jobs: generation.jobs
+        inlineSearch: window.editorVisible && !window.publishVisible
+        searchResults: historyModel.recentFiles.map(file => ({file: file, label: qsTr("Files") + " · " + file.name}))
+            .concat(historyModel.recentPublished.map(file => ({file: file, label: qsTr("Published") + " · " + file.name})))
+            .concat(window.generationHistoryEntries.map(file => ({file: file, label: qsTr("History") + " · " + file.name}))).slice(0, 8)
         onPreferencesRequested: window.openPreferences()
         onSocietyRequested: window.openSociety()
-        onActivityRequested: desktopHome.showHome()
+        onActivityRequested: if (!window.editorVisible) desktopHome.showHome()
+        onSearchDismissed: if (window.editorVisible && window.editorView) window.editorView.blankCanvas.forceActiveFocus()
+        onFileRequested: function(file) { window.openHomeFile(file) }
     }
     Shortcut {
         sequence: StandardKey.Find
         enabled: (desktopToolbar.visible || window.storageBrowserVisible) && !newCanvasDialog.visible
+            && !window.publishVisible
+            && !(window.editorVisible && window.editorView && window.editorView.modalActive)
         onActivated: window.storageBrowserVisible ? storageBrowserLoader.item.focusSearch() : desktopToolbar.focusSearch()
     }
     Shortcut { sequence: StandardKey.New; enabled: !newCanvasDialog.visible; onActivated: window.openNewCanvas() }
@@ -402,19 +528,40 @@ LV.ApplicationWindow {
         window.generationRequestError = Qt.openUrlExternally("society://")
             ? "" : qsTr("Could not open Society. Open Society on this device and try again.")
     }
+    function reportUnavailableAction(action) {
+        generationRequestError = action === "audio"
+            ? qsTr("Audio generation is not available yet. Your prompt is preserved.")
+            : action === "board" ? qsTr("Board creation is not available yet. Your prompt is preserved.")
+            : qsTr("This action is not available on this device.")
+        return false
+    }
     function openHomeFile(file) {
+        imageOpen.cancel()
+        if (!file || typeof file !== "object") {
+            generationRequestError = qsTr("Choose a file to open.")
+            return false
+        }
         if (file.exists === false) {
             generationRequestError = qsTr("This file is no longer available.")
             return false
         }
         if (file.available === false) {
             const section = file.section || "files"
-            if (!file.key || !file.containerId) return false
+            if (!file.key || !file.containerId) {
+                generationRequestError = qsTr("The file's drive information is missing. Refresh files and try again.")
+                return false
+            }
             if (!storageBrowserVisible || storageBrowserSection !== section) showStorage(section)
             pendingFileKey = file.key
             pendingFileSection = section
+            pendingFileContainerId = file.containerId
             generationRequestError = ""
-            return generation.fileDownload.start(file.key, file.containerId)
+            if (generation.fileDownload.start(file.key, file.containerId)) return true
+            pendingFileKey = ""
+            pendingFileSection = ""
+            pendingFileContainerId = ""
+            generationRequestError = qsTr("The file download could not be started. Refresh files and try again.")
+            return false
         }
         cancelFileOpen()
         if (file.mediaType === "Video") {
@@ -422,7 +569,7 @@ LV.ApplicationWindow {
             dismissResult()
             currentResult = file
             resultVisible = true
-            return
+            return true
         }
         const name = String(file.name || file.path || "")
         if (/\.iiscp?$/i.test(name) || file.isImage === true || (file.isImage === undefined && ImageSelection.isImage(file))) {
@@ -434,24 +581,33 @@ LV.ApplicationWindow {
         return false
     }
     function cancelFileOpen() {
+        const key = pendingFileKey
+        const containerId = pendingFileContainerId
+        imageOpen.cancel()
+        if (editorView) { editorView.imageImportRequest.cancel(); editorView.cancelDocumentOpen() }
+        pendingCanvasOpen = null
+        ImageSelection.cancelOwnedDownload(generation.fileDownload, key, containerId)
         pendingFileKey = ""
         pendingFileSection = ""
-        generation.fileDownload.cancel()
+        pendingFileContainerId = ""
     }
     Connections {
         target: generation.fileDownload
         function onReady(file) {
-            if (!window.storageBrowserVisible || window.pendingFileKey !== file.key
+            if (!window.storageBrowserVisible || window.pendingFileKey !== file.key || window.pendingFileContainerId !== file.containerId
+                || window.societyContainer.containerId !== file.containerId
                 || window.pendingFileSection !== window.storageBrowserSection) return
             const fresh = StorageEntries.sectionFiles(window.societyContainer.aliases, window.pendingFileSection)
                 .find(entry => entry.key === file.key)
             window.pendingFileKey = ""
             window.pendingFileSection = ""
+            window.pendingFileContainerId = ""
             if (fresh && fresh.available) window.openHomeFile(fresh)
         }
     }
     function showStorage(section) {
         if (["files", "published", "generation-history"].indexOf(section) < 0) return
+        cancelFileOpen()
         quickGenerate.dismissInput()
         modelMenu.close()
         editorVisible = false
@@ -484,7 +640,7 @@ LV.ApplicationWindow {
                     quickGenerate.mediaType = "Video"
                     quickGenerate.focusPrompt()
                     window.generationRequestError = ""
-                }
+                } else window.reportUnavailableAction(action)
             }
             recentFiles: historyModel.recentFiles
             recentPublished: historyModel.recentPublished
@@ -513,6 +669,8 @@ LV.ApplicationWindow {
             recentFiles: historyModel.recentFiles
             recentPublished: historyModel.recentPublished
             generationHistory: window.generationHistoryEntries
+            jobs: generation.jobs
+            generationStatus: window.generationStatusText
             loading: historyModel.loading
             errorText: window.generationRequestError || historyModel.errorString
             browserSection: window.storageBrowserSection
@@ -531,9 +689,7 @@ LV.ApplicationWindow {
                     if (videoWorkspaceLoader.item) videoWorkspaceLoader.item.parameterPanel.focusPrompt()
                     window.generationRequestError = ""
                 } else {
-                    window.generationRequestError = action === "audio"
-                        ? qsTr("Audio generation is not available yet. Your prompt is preserved.")
-                        : qsTr("Board creation is not available yet. Your prompt is preserved.")
+                    window.reportUnavailableAction(action)
                 }
             }
             onBrowseRequested: window.showStorage("files")
@@ -556,6 +712,8 @@ LV.ApplicationWindow {
             sourceComponent: StorageBrowser {
                 container: window.societyContainer
                 download: generation.fileDownload
+                imageOpenRequest: imageOpen
+                imageImporter: window.editorView ? window.editorView.imageImportRequest : null
                 section: window.storageBrowserSection || "files"
                 errorText: window.generationRequestError
                 onBackRequested: {
@@ -604,6 +762,7 @@ LV.ApplicationWindow {
 
         GenerationResult {
             id: resultView
+            onOperationFailed: function(operation, message, parameters) { generation.explainOperationFailure(operation, message, parameters) }
             anchors.top: parent.top
             anchors.bottom: window.resultVisible
                 ? resultComposerViewport.top : parent.bottom
@@ -629,24 +788,37 @@ LV.ApplicationWindow {
         Loader {
             id: editorLoader
             objectName: "canvasEditorLoader"
+            property real retainedWidth: 0
+            property real retainedHeight: 0
             active: false
-            anchors.fill: parent
-            visible: window.editorVisible
+            anchors.top: parent.top
+            anchors.left: parent.left
+            width: window.publishVisible ? retainedWidth : parent.width
+            height: window.publishVisible ? retainedHeight : parent.height
+            visible: window.editorVisible && !window.publishVisible
             sourceComponent: CanvasEditor {
                 generationRuntime: generation
+                applicationModalActive: desktopToolbar.modalActive || window.publishVisible
+                applicationSearchActive: desktopToolbar.searchActive
                 mobileLayout: window.useMobileHomeLayout
                 visible: window.editorVisible
                 imageSource: window.canvasImageSource
+                initializeBlankCanvas: false
                 generationResult: window.canvasGenerationResult
                 generationResults: window.canvasGenerationResults
                 canvasSpecification: window.canvasSpecification
+                onImagesImported: function(images, sources, attached) { if (!attached) window.finishPreparedImages(images, sources) }
+                onImageImportFailed: function(message) { window.generationRequestError = message }
                 onDocumentOpened: function(source) {
-                    window.canvasImageSource = source
-                    window.canvasGenerationResult = ({})
-                    window.canvasGenerationResults = []
-                    window.canvasSpecification = ({})
+                    const intent = window.pendingCanvasOpen
+                    const result = intent && intent.source === source.toString() ? intent.result : ({})
+                    window.pendingCanvasOpen = null
+                    window.finishCanvasOpen(source, result)
                 }
+                onDocumentOpenFailed: function(message) { window.pendingCanvasOpen = null; window.generationRequestError = message }
+                onDocumentOpenCancelled: window.pendingCanvasOpen = null
                 onBackRequested: window.closeCanvas()
+                onPublishRequested: window.openPublish()
                 onNavigationRequested: function(action) {
                     window.closeCanvas()
                     desktopHome.activate(action)
@@ -654,18 +826,59 @@ LV.ApplicationWindow {
             }
         }
 
+        Loader {
+            id: publishLoader
+            objectName: "publishWorkspaceLoader"
+            active: false
+            anchors.fill: parent
+            visible: window.publishVisible && window.editorVisible
+            sourceComponent: PublishWorkspace {
+                project: window.editorView.project
+                backend: publishing
+                onBackRequested: window.closePublish()
+            }
+        }
+
+        LV.HStack {
+            objectName: "imageImportStatus"
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: LV.Theme.gap16
+            spacing: LV.Theme.gap8
+            z: 20
+            visible: !!window.editorView && (window.editorView.documentOpening
+                || (!window.editorVisible && !window.storageBrowserVisible && window.editorView.imageImportRequest.active))
+            LV.Label { text: window.editorView && window.editorView.documentOpening ? qsTr("Opening document…") : qsTr("Opening originals…"); style: body }
+            LV.LabelButton {
+                objectName: "imageImportCancel"
+                text: qsTr("Cancel")
+                tone: LV.AbstractButton.Default
+                onClicked: if (window.editorView.documentOpening) window.editorView.cancelDocumentOpen(); else window.editorView.imageImportRequest.cancel()
+            }
+        }
         Flickable {
             id: resultComposerViewport
             objectName: "resultComposerViewport"
+            property real retainedComposerHeight: LV.Theme.controlHeightSm * 2 + LV.Theme.gap8 + LV.Theme.gap10 * 2
+            function retainComposerHeight() {
+                if (visible) retainedComposerHeight = quickGenerate.implicitHeight
+            }
+            onVisibleChanged: if (visible) Qt.callLater(retainComposerHeight)
+            Connections {
+                target: quickGenerate
+                function onImplicitHeightChanged() { Qt.callLater(resultComposerViewport.retainComposerHeight) }
+            }
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             visible: window.resultVisible && !window.editorVisible
             // Preserve access to Cancel when a prompt grows beyond the window.
-            height: Math.min(quickGenerate.implicitHeight,
+            // The shared composer moves to Home while Result is hidden. Keep
+            // Result's geometry so its gallery does not clamp its scroll offset.
+            height: Math.min(retainedComposerHeight,
                 Math.max(0, parent.height - LV.Theme.controlHeightSm * 2))
             contentWidth: width
-            contentHeight: quickGenerate.implicitHeight
+            contentHeight: retainedComposerHeight
             clip: true
             flickableDirection: Flickable.VerticalFlick
             boundsBehavior: Flickable.StopAtBounds
@@ -683,14 +896,51 @@ LV.ApplicationWindow {
             height: implicitHeight
             contentInset: window.resultVisible ? LV.Theme.gap10 : 0
             canvasEnabled: !window.useMobileHomeLayout && !window.resultVisible
+            desktopLayout: !window.useMobileHomeLayout && !window.resultVisible
+            generation: window.generationBackend
             menusOpenUpward: window.resultVisible
             generationPending: window.generationPending
             defaultPrompts: generation.defaultGenerationPrompts
             videoModels: generation.videoModels
             selectedVideoModel: generation.selectedVideoModel
             onVideoModelSelected: function(id) { generation.selectedVideoModel = id }
+            onPaintRequested: window.openNewCanvas()
+            onMediaActionRequested: function(action) {
+                window.reportUnavailableAction(action)
+            }
+            onAdvancedRequested: function(parameters) {
+                if (!Object.keys(parameters).length) {
+                    window.generationRequestError = quickGenerate.homePaint.canvas.inputError
+                    return
+                }
+                quickGenerate.dismissInput()
+                if (quickGenerate.mediaType === "Video") {
+                    videoWorkspaceLoader.openWorkspace()
+                    const panel = videoWorkspaceLoader.item.parameterPanel
+                    for (const key of ["prompt", "negativePrompt", "width", "height", "outputCount", "seed"])
+                        panel.edit(key, parameters[key])
+                    panel.edit("randomSeed", parameters.seed < 0)
+                    panel.edit("duration", quickGenerate.videoDuration)
+                    panel.edit("fps", quickGenerate.videoFps)
+                    if (parameters.referenceImages.length) panel.addImageKey(parameters.referenceImages[0], 0)
+                    desktopHome.selectedAction = "video"
+                    panel.focusPrompt()
+                } else {
+                    imageWorkspaceLoader.opened = true
+                    const panel = imageWorkspaceLoader.item.parameterPanel
+                    if (!panel.parameterStore.updateParameters(parameters)) {
+                        window.generationRequestError = panel.parameterStore.errorString
+                        return
+                    }
+                    desktopHome.selectedAction = "image"
+                    panel.focusPrompt()
+                }
+                window.generationRequestError = ""
+            }
             errorText: window.resultVisible ? "" : window.generationRequestError
             onGenerateRequested: function(prompt, mediaType, aspectRatio, count) {
+                const draft = quickGenerate.desktopLayout ? quickGenerate.desktopComposer : null
+                const seed = draft ? draft.seed : -1
                 window.generateRequested(prompt, mediaType, aspectRatio, count)
                 window.generationRequestError = ""
                 let jobId
@@ -706,17 +956,24 @@ LV.ApplicationWindow {
                         }
                         firstFrame = references[0]
                     }
-                    jobId = generation.enqueueVideo(prompt, aspectRatio, count, firstFrame,
-                        quickGenerate.videoDuration, quickGenerate.videoFps)
-                } else if (quickGenerate.hasCanvasInputs) {
-                    const parameters = quickGenerate.generationParameters(generation.selectedModel)
+                    if (draft && draft.negativePrompt !== draft.appliedNegativePrompt) {
+                        jobId = generation.enqueueVideoRecipe({prompt: prompt, negativePrompt: draft.negativePrompt,
+                            width: draft.outputSize.width, height: draft.outputSize.height, outputCount: count, seed: seed,
+                            duration: quickGenerate.videoDuration, fps: quickGenerate.videoFps,
+                            shots: [{frames: quickGenerate.videoDuration * quickGenerate.videoFps, prompt: prompt,
+                                conditions: firstFrame ? [{frame: 0, image: firstFrame, strength: 1}] : []}]})
+                    } else jobId = generation.enqueueVideo(prompt, aspectRatio, count, firstFrame,
+                        quickGenerate.videoDuration, quickGenerate.videoFps, seed)
+                } else if (quickGenerate.hasCanvasInputs || (draft && draft.usesExplicitParameters)) {
+                    const parameters = draft ? draft.parameters(generation.selectedModel, true)
+                        : quickGenerate.generationParameters(generation.selectedModel)
                     if (Object.keys(parameters).length === 0) {
                         window.generationRequestError = quickGenerate.homePaint.canvas.inputError
                         return
                     }
-                    jobId = generation.enqueueHomeCanvas(parameters, aspectRatio)
+                    jobId = generation.enqueueHomeCanvas(parameters, aspectRatio, !!draft && draft.usesExplicitParameters)
                 } else {
-                    jobId = generation.enqueue(prompt, aspectRatio, count)
+                    jobId = generation.enqueue(prompt, aspectRatio, count, seed)
                 }
                 if (jobId.length === 0) window.generationRequestError = generation.errorString
             }
@@ -813,7 +1070,7 @@ LV.ApplicationWindow {
                                 text: qsTr("Details")
                                 tone: LV.AbstractButton.Default
                                 visible: Boolean(queueRow.modelData.error)
-                                onClicked: queueRow.detailsVisible = !queueRow.detailsVisible
+                                onClicked: window.showFailureExplanation(queueRow.modelData.id)
                             }
                             LV.LabelButton {
                                 text: qsTr("Cancel")

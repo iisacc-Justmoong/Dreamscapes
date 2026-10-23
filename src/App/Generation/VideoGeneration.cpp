@@ -1,4 +1,5 @@
 #include "VideoGeneration.h"
+#include <ModelPackaging/ModelInspection.hpp>
 #include <QJsonArray>
 #include <QMap>
 #include <QSet>
@@ -9,6 +10,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
+#include <algorithm>
 
 namespace dreamscapes {
 QSize videoSize(const QString &ratio)
@@ -21,12 +23,10 @@ QSize videoSize(const QString &ratio)
     if (ratio == "9:16") return {576,1024};
     return {};
 }
-bool isVideoModel(const QString &directory)
+bool isVideoModel(const QString &path)
 {
-    QFile file(directory + "/model_index.json");
-    if (file.size() > 1024 * 1024 || !file.open(QIODevice::ReadOnly)) return false;
-    const auto type = QJsonDocument::fromJson(file.readAll()).object().value("_class_name").toString();
-    return type == "LTXPipeline" || type == "LTXConditionPipeline" || type == "LTXImageToVideoPipeline";
+    const auto info = iild::inspectModel(path.toStdU16String());
+    return std::find(info.modalities.begin(), info.modalities.end(), "video") != info.modalities.end();
 }
 bool validateVideoOutput(const QString &path, const QJsonObject &generation,
     const QSize &size, int frames, int fps, QString *error)
@@ -85,6 +85,25 @@ bool normalizeVideoRecipe(QJsonObject *recipe, QString *error)
     }
     if (v.value("device") == "cpu" && QStringList{"model","sequential"}.contains(v.value("offload").toString()))
         return reject(QObject::tr("GPU offload requires a GPU execution device."));
+    const QSet<QString> motions{"none","static","dolly-in","dolly-out","pan-left","pan-right",
+        "tilt-up","tilt-down","orbit-left","orbit-right","crane-up","crane-down","zoom-in","zoom-out",
+        "handheld","tracking","dolly-zoom"};
+    if (!v.contains("camera")) v["camera"] = QJsonArray{"none"};
+    const auto camera = v.value("camera").toArray();
+    if (!v.value("camera").isArray() || camera.isEmpty() || camera.size() > 3)
+        return reject(QObject::tr("Choose one to three camera movements."));
+    QSet<QString> chosen;
+    for (const auto &motion : camera) {
+        if (!motion.isString() || !motions.contains(motion.toString()) || chosen.contains(motion.toString()))
+            return reject(QObject::tr("Choose distinct supported camera movements."));
+        chosen.insert(motion.toString());
+    }
+    if (camera.size() > 1 && (chosen.contains("none") || chosen.contains("static")))
+        return reject(QObject::tr("Static or None cannot be combined with camera movements."));
+    for (const auto &pair : QList<QStringList>{{"pan-left","pan-right"},{"tilt-up","tilt-down"},
+        {"dolly-in","dolly-out"},{"orbit-left","orbit-right"},{"crane-up","crane-down"},{"zoom-in","zoom-out"}})
+        if (chosen.contains(pair[0]) && chosen.contains(pair[1]))
+            return reject(QObject::tr("Opposing camera movements cannot be combined."));
     if (!v.value("prompt").isString() || v.value("prompt").toString().trimmed().isEmpty()
         || v.value("prompt").toString().size() > 32000 || v.value("negativePrompt").toString().size() > 32000)
         return reject(QObject::tr("Enter a video prompt of at most 32000 characters."));
@@ -117,7 +136,7 @@ bool normalizeVideoRecipe(QJsonObject *recipe, QString *error)
             positions.insert(int(frame));
         }
         normalized.append(QJsonObject{{"frames",int(frames)},{"prompt",prompt},
-            {"negative_prompt",v.value("negativePrompt").toString()},{"conditions",conditions}});
+            {"negative_prompt",v.value("negativePrompt").toString()},{"camera",camera},{"conditions",conditions}});
         total += int(frames);
     }
     if (total > 4097) return reject(QObject::tr("A composition supports at most 4097 output frames."));

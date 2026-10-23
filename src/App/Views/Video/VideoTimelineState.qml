@@ -182,17 +182,30 @@ QtObject {
         shots=old.filter(shot=>removed.every(entry=>entry.id!==shot.id)); selectedIds=shots.length ? [shots[0].id] : []; selectedKeyId=keys.some(key=>key.id===selectedKeyId) ? selectedKeyId : ""; seek(shots.length ? playhead : 0); markIn=shots.length ? Math.min(markIn,totalFrames-1) : 0; markOut=totalFrames-1; return true
     }
     function resizeComposition(frames, frameRate) {
-        frameRate=frameRate ?? fps
-        frames=Math.max(minimumFrames,Math.round(frames)); if(frames===totalFrames && frames===compositionFrames && frameRate===fps) return
-        checkpoint(); const scale=frames/totalFrames, next=copy(shots); let used=0
-        compositionFrames=frames; fps=frameRate
-        if(!next.length) {
-            keys=keys.map(key=>Object.assign({},key,{frame:Math.min(frames-1,Math.round(key.frame*scale))}))
-            seek(playhead); markIn=Math.min(markIn,frames-1); markOut=frames-1; return
+        error=""; frames=Number(frames); frameRate=Number(frameRate ?? fps)
+        if(!Number.isInteger(frames) || frames<minimumFrames || frames>2147483647 || !Number.isFinite(frameRate) || frameRate<=0)
+            return reject(qsTr("Choose a valid frame count and frame rate."))
+        if(!Number.isInteger(totalFrames) || totalFrames<minimumFrames)
+            return reject(qsTr("Reset the composition before changing its duration."))
+        if(frames<shots.length*minimumFrames)
+            return reject(qsTr("The duration must leave at least %1 frames for every shot.").arg(minimumFrames))
+        const scale=frames/totalFrames, next=shots.map(shot=>Object.assign({},shot))
+        let remaining=frames
+        for(let i=0;i<next.length;i++) {
+            const minimumAfter=(next.length-i-1)*minimumFrames
+            next[i].frames=i===next.length-1 ? remaining : Math.min(remaining-minimumAfter,Math.max(minimumFrames,Math.round(next[i].frames*scale)))
+            remaining-=next[i].frames
         }
-        for(let i=0;i<next.length;i++) { next[i].frames=i===next.length-1 ? frames-used : Math.max(2,Math.round(next[i].frames*scale)); used+=next[i].frames }
-        if(next[next.length-1].frames<2) { undo(); return }
-        shots=next; keys=keys.map(key=>Object.assign({},key,{frame:Math.min(frames-1,Math.round(key.frame*scale))})); seek(playhead); markOut=frames-1
+        const positions=new Set()
+        const nextKeys=keys.map(key=>Object.assign({},key,{frame:Math.min(frames-1,Math.round(key.frame*scale))}))
+        for(const key of nextKeys) {
+            if(positions.has(key.frame)) return reject(qsTr("Resizing would place image keyframes at the same frame. Move the keyframes or choose a longer duration."))
+            positions.add(key.frame)
+        }
+        if(frames===totalFrames && frames===compositionFrames && frameRate===fps) return true
+        // Validate the complete plan before publishing draft values or history.
+        checkpoint(); compositionFrames=frames; fps=frameRate; shots=next; keys=nextKeys
+        seek(playhead); markIn=Math.min(markIn,frames-1); markOut=frames-1; return true
     }
     function snappedFrame(frame) {
         if(!snap) return Math.round(frame)

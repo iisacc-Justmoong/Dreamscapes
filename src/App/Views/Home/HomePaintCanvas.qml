@@ -30,15 +30,17 @@ Item {
     }
     function dismissPopovers() { colorPopover.close() }
     component Tool: LV.IconButton {
+        id: tool
         property string help: ""
         iconSize: 18
         tone: LV.AbstractButton.Default
         implicitWidth: 22
         implicitHeight: 22
         Accessible.name: help
-        Controls.ToolTip.visible: hovered
-        Controls.ToolTip.text: help
-        Controls.ToolTip.delay: 500
+        LV.Tooltip {
+            target: tool
+            text: tool.help
+        }
     }
     ColumnLayout {
         id: layout

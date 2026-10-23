@@ -10,6 +10,7 @@ import Dreamscapes.Storage 1.0
 Item {
     id: root
     objectName: "advancedGenerate"
+    CanvasPreview { id: displayPreviews }
 
     property alias prompt: promptField.text
     property alias negativePrompt: negativePromptField.text
@@ -213,7 +214,9 @@ Item {
         Image {
             anchors.fill: parent
             anchors.bottomMargin: LV.Theme.scaleMetric(42)
-            source: root.generation ? root.generation.imagePreview(card.source) : card.source
+            source: displayPreviews.sourceForUrl(card.source)
+            asynchronous: true
+            sourceSize: Qt.size(Math.ceil(width * Screen.devicePixelRatio), Math.ceil(height * Screen.devicePixelRatio))
             fillMode: Image.PreserveAspectCrop
             visible: card.source.toString().length > 0
         }

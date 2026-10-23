@@ -18,22 +18,10 @@ QTransform matrix(const AffineTransform &t) {
 AffineTransform affine(const QTransform &t) {
     return {t.m11(), t.m12(), t.m21(), t.m22(), t.dx(), t.dy()};
 }
-QPainterPath pathFor(const VectorPath &source) {
-    QPainterPath path;
-    for (const auto &command : source.commands) std::visit([&](const auto &c) {
-        using T = std::decay_t<decltype(c)>;
-        if constexpr (std::is_same_v<T, MoveTo>) path.moveTo(c.point.x, c.point.y);
-        else if constexpr (std::is_same_v<T, LineTo>) path.lineTo(c.point.x, c.point.y);
-        else if constexpr (std::is_same_v<T, QuadraticTo>) path.quadTo(c.control.x, c.control.y, c.end.x, c.end.y);
-        else if constexpr (std::is_same_v<T, CubicTo>) path.cubicTo(c.control1.x, c.control1.y, c.control2.x, c.control2.y, c.end.x, c.end.y);
-        else path.closeSubpath();
-    }, command);
-    return path;
-}
 QPainterPath footprint(const VectorAsset &asset) {
     QPainterPath result;
     for (const auto &source : asset.paths) {
-        const auto path = pathFor(source);
+        const auto path = editorTools::vectorPainterPath(source);
         if (source.fill && qAlpha(source.fill->argb)) result = result.united(path);
         if (source.stroke && qAlpha(source.stroke->paint.argb) && source.stroke->width > 0) {
             QPainterPathStroker stroke; stroke.setWidth(source.stroke->width);
@@ -93,8 +81,7 @@ QVariantMap EditorCanvas::elementTransform() const {
         return points;
     };
     if (m_creatingElement) {
-        auto bounds = QRectF(m_elementStart, m_elementCurrent).normalized();
-        if (editorTools::toggle(m_toolValues, 3)) bounds.setHeight(bounds.width());
+        const auto bounds = elementCreationBounds();
         const auto origin = editingOrigin();
         return {{"visible", true}, {"creating", true}, {"points", pointsFor(bounds, QTransform::fromTranslate(origin.x(), origin.y()))}};
     }
@@ -177,6 +164,7 @@ bool EditorCanvas::beginElementTransform(const QString &handle, const QPointF &p
     if (handle != "move" && handle != "rotate"
         && std::none_of(handleIds.begin(), handleIds.end(), [&](const char *id) { return handle == id; })) return false;
     m_elementTransformId = selectedLayerId(); m_elementTransformHandle = handle;
+    resetAlignmentGesture();
     const auto *layer = findLayer(m_canvas, m_elementTransformId.toStdString());
     m_elementTransformBase = matrix(layerProperties(*layer).transform);
     m_elementTransformSample = elementWorldTransform(m_elementTransformId);
@@ -193,16 +181,22 @@ bool EditorCanvas::updateElementTransform(const QPointF &position, int modifiers
     auto *layer = findLayer(m_canvas, m_elementTransformId.toStdString());
     if (!layer || selectedLayerId() != m_elementTransformId || m_pixelLocks.contains(m_elementTransformId)
         || m_positionLocks.contains(m_elementTransformId)) { cancelElementTransform(); return false; }
-    const auto point = elementWorldPosition(position);
+    auto point = elementWorldPosition(position);
     if (!std::isfinite(point.x()) || !std::isfinite(point.y())) return false;
     m_elementTransformPosition = position;
     const bool shift = modifiers & Qt::ShiftModifier, alt = modifiers & Qt::AltModifier;
     const auto bounds = m_elementTransformBounds;
     const auto sample = m_elementTransformSample;
+    const auto snapOptions = m_viewOptions->snap();
+    if (!m_explicitElementResize && m_elementTransformHandle != "move" && m_elementTransformHandle != "rotate") point = snapAlignment(point);
     QTransform delta;
     if (m_elementTransformHandle == "move") {
         auto offset = point - m_elementTransformStart;
         if (shift) { if (std::abs(offset.x()) >= std::abs(offset.y())) offset.setY(0); else offset.setX(0); }
+        const auto original = sample.mapRect(bounds);
+        const auto corrected = snapAlignment(original.topLeft() + offset, original.translated(offset)) - (original.topLeft() + offset);
+        offset += corrected;
+        if (shift) { if (std::abs(point.x()-m_elementTransformStart.x()) >= std::abs(point.y()-m_elementTransformStart.y())) offset.setY(0); else offset.setX(0); }
         delta = QTransform::fromTranslate(offset.x(), offset.y());
     } else if (m_elementTransformHandle == "rotate") {
         const auto center = sample.map(bounds.center());
@@ -210,6 +204,7 @@ bool EditorCanvas::updateElementTransform(const QPointF &position, int modifiers
         if (std::hypot(finish.x(), finish.y()) < 0.001) return true;
         auto angle = (std::atan2(finish.y(), finish.x()) - std::atan2(start.y(), start.x())) * 180 / std::numbers::pi;
         if (shift) angle = std::round(angle / 15) * 15;
+        else if(snapOptions.value("enabled").toBool() && snapOptions.value("angle").toBool()) angle = dreamscapes::alignment::increment(angle, snapOptions.value("angle-step").toDouble());
         delta = around(center, 1, 1, angle);
     } else {
         const auto handle = m_elementTransformHandle;
@@ -221,7 +216,18 @@ bool EditorCanvas::updateElementTransform(const QPointF &position, int modifiers
         const auto localDelta = sample.inverted().map(point) - sample.inverted().map(m_elementTransformStart);
         double sx = horizontal ? (handlePoint.x() + localDelta.x() - anchor.x()) / (handlePoint.x() - anchor.x()) : 1;
         double sy = vertical ? (handlePoint.y() + localDelta.y() - anchor.y()) / (handlePoint.y() - anchor.y()) : 1;
-        if (horizontal && vertical && (shift || editorTools::toggle(m_toolValues, 3))) {
+        const bool constrain = !m_explicitElementResize && horizontal && vertical && (shift || editorTools::toggle(m_toolValues, 3) || m_viewOptions->display().value("constrain").toBool());
+        if (!m_explicitElementResize && snapOptions.value("enabled").toBool() && snapOptions.value("scale").toBool()) {
+            const auto step = snapOptions.value("scale-step").toDouble()/100;
+            if(horizontal)sx=1+dreamscapes::alignment::increment(sx-1,step);
+            if(vertical)sy=1+dreamscapes::alignment::increment(sy-1,step);
+        }
+        const auto originalSize = dimensions(bounds, sample);
+        const QSizeF requestedSize{std::abs(sx)*originalSize.width(),std::abs(sy)*originalSize.height()};
+        const auto matchedSize = m_explicitElementResize ? requestedSize : snapAlignmentSize(requestedSize);
+        if(horizontal)sx=std::copysign(matchedSize.width()/originalSize.width(),sx);
+        if(vertical)sy=std::copysign(matchedSize.height()/originalSize.height(),sy);
+        if (constrain) {
             const auto factor = std::abs(sx - 1) >= std::abs(sy - 1) ? sx : sy;
             sx = sy = factor;
         }
@@ -246,7 +252,7 @@ bool EditorCanvas::updateElementTransform(const QPointF &position, int modifiers
     restoreSelectedElementSettings();
     // A preview redraws without document authorship, persistence, or Undo entries.
     // The accepted transform is persisted once at release.
-    refresh();
+    refreshPreview();
     emit elementSelectionChanged(); emit elementTransformChanged();
     return true;
 }
@@ -260,6 +266,7 @@ bool EditorCanvas::endElementTransform(const QPointF &position, int modifiers) {
     layerProperties(*layer).transform = affine(m_elementTransformBase);
     m_elementTransformHandle.clear(); m_elementTransformId.clear(); m_elementTransformChanged = false;
     m_historySuspended = false;
+    resetAlignmentGesture();
     if (!changed) { restoreSelectedElementSettings(); emit elementSelectionChanged(); emit elementTransformChanged(); return true; }
     const bool accepted = commit([&](Document &draft) {
         auto *target = findLayer(draft, id.toStdString());
@@ -269,17 +276,18 @@ bool EditorCanvas::endElementTransform(const QPointF &position, int modifiers) {
     restoreSelectedElementSettings();
     if (!accepted) {
         QScopedValueRollback<bool> guard(m_historySuspended, true);
-        refresh();
+        refreshPreview();
     }
     emit elementSelectionChanged(); emit elementTransformChanged();
     return accepted;
 }
 void EditorCanvas::cancelElementTransform() {
+    resetAlignmentGesture();
     if (m_elementTransformHandle.isEmpty()) return;
     if (documentReady()) if (auto *layer = findLayer(m_canvas, m_elementTransformId.toStdString()))
         layerProperties(*layer).transform = affine(m_elementTransformBase);
     m_elementTransformHandle.clear(); m_elementTransformId.clear(); m_elementTransformChanged = false;
-    if (documentReady()) { restoreSelectedElementSettings(); refresh(); }
+    if (documentReady()) { restoreSelectedElementSettings(); refreshPreview(); }
     m_historySuspended = false;
     emit elementSelectionChanged(); emit elementTransformChanged();
 }
@@ -300,6 +308,7 @@ bool EditorCanvas::resizeSelectedElement(const QVariant &value) {
     const auto bounds = m_elementTransformBounds;
     const auto sample = m_elementTransformSample;
     const auto target = sample.map(bounds.topLeft() + QPointF(bounds.width() * width / state.value("width").toDouble(), bounds.height() * height / state.value("height").toDouble()));
+    const QScopedValueRollback<bool> explicitResize(m_explicitElementResize, true);
     const bool accepted = endElementTransform(elementItemPosition(target));
     restoreSelectedElementSettings();
     return accepted;

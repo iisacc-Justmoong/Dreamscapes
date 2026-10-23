@@ -10,9 +10,9 @@ Rectangle {
     implicitHeight: mobileLayout ? LV.Theme.scaleMetric(84)
         : tools.length * LV.Theme.scaleMetric(36) + Math.max(0, tools.length - 1) * LV.Theme.gap4 + LV.Theme.gap8 * 2
     radius: LV.Theme.scaleMetric(18)
-    color: mobileLayout ? LV.Theme.panelBackground03 : "transparent"
+    color: "transparent"
     border.width: mobileLayout ? 1 : 0
-    border.color: LV.Theme.panelBackground08
+    border.color: "transparent"
     readonly property string currentTool: tools[toolList.currentIndex].key
     readonly property int currentIndex: toolList.currentIndex
     signal toolSelected(string toolId)
@@ -87,6 +87,8 @@ Rectangle {
             width: LV.Theme.scaleMetric(root.mobileLayout ? 86 : 36)
             height: LV.Theme.scaleMetric(root.mobileLayout ? 68 : 36)
             text: modelData.label
+            iconName: modelData.key
+            iconSource: Qt.resolvedUrl("Assets/" + modelData.key + ".svg")
             selected: toolList.currentIndex === index
             navigationBar: root
             tabIndex: index
@@ -126,7 +128,7 @@ Rectangle {
                         y: LV.Theme.scaleRealMetric(tool.modelData.iconY)
                         width: LV.Theme.scaleRealMetric(tool.modelData.iconWidth)
                         height: LV.Theme.scaleRealMetric(tool.modelData.iconHeight)
-                        source: Qt.resolvedUrl("Assets/" + tool.modelData.key + ".svg")
+                        source: tool.iconSource
                         sourceSize: Qt.size(width * Screen.devicePixelRatio, height * Screen.devicePixelRatio)
                         fillMode: Image.PreserveAspectFit
                         Accessible.ignored: true

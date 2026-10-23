@@ -9,6 +9,9 @@ Item {
     id: root
     required property var canvas
     required property var project
+    property var imageImporter: null
+    property string importRejection: ""
+    readonly property string importError: importRejection || (imageImporter && imageImporter.error ? imageImporter.error : project.error)
     property bool mobileLayout: false
     property bool showCommandBar: true
     property url defaultSaveDirectory: ""
@@ -21,10 +24,17 @@ Item {
         // Page geometry can refit the native canvas and notify the project.
         // Apply navigation layout after that document notification completes.
         function onProjectChanged() { Qt.callLater(root.syncPageNavigation) }
+        function onCurrentCanvasChanged() { root.importRejection = "" }
+    }
+    Connections {
+        target: root.imageImporter
+        function onRejected(message) { root.importRejection = message }
+        function onChanged() { if (root.imageImporter.active) root.importRejection = "" }
+        function onReady() { root.importRejection = "" }
     }
     readonly property bool modalActive: commandMenu.visible || openDialog.visible || attachDialog.visible || placeDialog.visible || saveDialog.visible || layersSheet.visible || paintColorSheet.visible
     signal openDocumentRequested(url source, bool asCopy)
-    implicitHeight: navigation.y + navigation.height + (root.project.error.length > 0 ? errorLabel.implicitHeight + 8 : 0)
+    implicitHeight: navigation.y + navigation.height + (root.importError.length > 0 ? errorLabel.implicitHeight + 8 : 0)
     function requestOpen(asCopy, directory) { openDialog.openAsCopy = Boolean(asCopy); if (directory && directory.toString().length) openDialog.currentFolder = directory; openDialog.open() }
     function requestPlace(placement) { placeDialog.placement = placement || "Fit"; placeDialog.open() }
     function requestSave() {
@@ -61,7 +71,9 @@ Item {
             elide: Text.ElideRight
         }
         LV.LabelButton { objectName: "editorDocumentOpen"; text: qsTr("Open"); height: 22; onClicked: root.requestOpen() }
-        LV.LabelButton { objectName: "editorDocumentAttach"; text: qsTr("Add Images"); height: 22; onClicked: attachDialog.open() }
+        LV.LabelButton { objectName: "editorDocumentAttach"; text: qsTr("Add Images"); height: 22; enabled: !!root.imageImporter; onClicked: attachDialog.open() }
+        LV.Label { text: qsTr("Opening originals…"); height: 22; style: caption; visible: !!root.imageImporter && root.imageImporter.active }
+        LV.LabelButton { objectName: "editorImageImportCancel"; text: qsTr("Cancel"); height: 22; visible: !!root.imageImporter && root.imageImporter.active; onClicked: root.imageImporter.cancel() }
         LV.LabelButton { objectName: "editorDocumentSave"; text: qsTr("Save"); height: 22; onClicked: root.requestSave() }
         LV.LabelButton { objectName: "editorDocumentUndo"; text: qsTr("Undo"); height: 22; enabled: root.canvas.canUndo; onClicked: root.canvas.undo() }
         LV.LabelButton { objectName: "editorDocumentRedo"; text: qsTr("Redo"); height: 22; enabled: root.canvas.canRedo; onClicked: root.canvas.redo() }
@@ -93,8 +105,8 @@ Item {
         anchors.top: navigation.bottom
         anchors.topMargin: 8
         width: parent.width
-        visible: root.project.error.length > 0
-        text: root.project.error
+        visible: root.importError.length > 0
+        text: root.importError
         style: description
         wrapMode: Text.Wrap
         sizeToContentHeight: true
@@ -112,7 +124,7 @@ Item {
             { label: qsTr("Layers") },
             { label: qsTr("Fit") },
             { label: qsTr("Paint Color") },
-            { label: qsTr("Add Images") }
+            { label: qsTr("Add Images"), enabled: !!root.imageImporter }
         ]
         onItemTriggered: function(index) {
             if (index === 0) root.requestOpen()
@@ -145,7 +157,7 @@ Item {
             const images = []
             for (let index = 0; index < selectedFiles.length; ++index)
                 images.push(selectedFiles[index].toString())
-            root.project.attachImages(images)
+            if (root.imageImporter) root.imageImporter.start(images, [], true)
         }
         onVisibleChanged: if (!visible) Qt.callLater(function() { root.canvas.forceActiveFocus() })
     }

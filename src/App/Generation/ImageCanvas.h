@@ -1,6 +1,7 @@
 #pragma once
 #include <iiSharedCanvas/Media/MediaIo.h>
 #include <QString>
+#include <QUrl>
 
 namespace dreamscapes {
 // Consumer bridge: existing SDK owns the canvas model, pixels and serialization.
@@ -10,6 +11,7 @@ bool storeImageCanvas(const QString &source, const QString &destination, QString
 // otherwise use the source's Society drive, then the configured default drive.
 QString persistImageCanvas(const QString &source, QString *error, const QString &containerPath = {});
 // Validate an explicit save/export path. Within Society, .iisc belongs to Files.
-QString canvasDestination(const QString &path, QString *error);
 QString imageCanvasPreview(const QString &source, const QString &directory, QString *error);
+// Lazy UI source; building it performs no file access or canvas decoding.
+QUrl imageCanvasPreviewSource(const QString &path, const QString &version);
 }

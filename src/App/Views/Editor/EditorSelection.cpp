@@ -3,6 +3,7 @@
 #include <QPainter>
 #include <QPainterPathStroker>
 #include <QTransform>
+#include <algorithm>
 using namespace iiSharedCanvas;
 using namespace editorTools;
 RasterMask EditorCanvas::layerMask() const {
@@ -19,8 +20,12 @@ RasterMask EditorCanvas::layerMask() const {
     return mask;
 }
 QUrl EditorCanvas::selectionOverlay() const { return backgroundMaskActive() ? m_backgroundMaskOverlay : m_selectionOverlay; }
-void EditorCanvas::clearAreaSelection() { m_selection = {}; m_selectionOverlay = QUrl{}; updateSelectionOutline(); invalidateToolPreview(); emit toolStateChanged(); }
+void EditorCanvas::refreshSelectionStatistics() {
+    m_selectedPixelCount = std::count_if(m_selection.alpha.begin(), m_selection.alpha.end(), [](auto alpha) { return alpha != 0; });
+}
+void EditorCanvas::clearAreaSelection() { m_selection = {}; m_selectedPixelCount = 0; m_selectionOverlay = QUrl{}; updateSelectionOutline(); invalidateToolPreview(); emit toolStateChanged(); }
 void EditorCanvas::updateSelectionOverlay() {
+    refreshSelectionStatistics();
     updateSelectionOutline();
     if (m_selection.alpha.empty()) { m_selectionOverlay = QUrl{}; emit toolStateChanged(); return; }
     QImage image(m_selection.extent.width, m_selection.extent.height, QImage::Format_ARGB32); image.fill(Qt::transparent);

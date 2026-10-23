@@ -84,7 +84,7 @@ QVariantMap EditorCanvas::previewBackgroundRemoval(const QVariantMap &values) {
     const auto previous=m_selection;const auto restore=qScopeGuard([&]{m_selection=previous;updateSelectionOverlay();});
     const bool subjectOnly=values.value("removeKeep","All foreground subjects").toString()=="Selected subject";
     if(!semanticSelection({{"field-9",*threshold},{"field-10",subjectOnly?"Subject":"Background"},{"field-12",0}},true))return reject(error());
-    if(!subjectOnly)for(auto &value:m_selection.alpha)value=255-value;
+    if(!subjectOnly){for(auto &value:m_selection.alpha)value=255-value;refreshSelectionStatistics();}
     auto mask=layerMask();const auto original=*selectedRasterPixels();
     const int shiftSteps=int(std::ceil(std::abs(*shift)* *radius/100));
     for(int step=0;step<shiftSteps;++step) {

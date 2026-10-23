@@ -53,6 +53,35 @@ deployment.deploy(SimpleNamespace(app=Path(supplied_app)))
 
 
 class DeploymentLockTests(unittest.TestCase):
+    def test_compact_framework_metadata_pruning_retains_runtime_resources(self):
+        spec = importlib.util.spec_from_file_location("deployment", SCRIPT)
+        deployment = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(deployment)
+        app = self.app("Metadata")
+        framework = app / "Contents/Frameworks/QtFixture.framework"
+        version = framework / "Versions/A"
+        version.mkdir(parents=True)
+        (version / "QtFixture").write_bytes(b"runtime binary")
+        (framework / "Versions/Current").symlink_to("A")
+        for name in ("Headers", "PrivateHeaders", "Modules"):
+            (version / name).mkdir()
+            (version / name / "development.txt").write_text("development")
+            (framework / name).symlink_to("Versions/Current/" + name)
+        resources = version / "Resources"
+        resources.mkdir()
+        (resources / "LICENSE.txt").write_text("license")
+        external = self.workspace / "sdk/QtExternal.framework/Headers"
+        external.mkdir(parents=True)
+        (external / "source.h").write_text("SDK source")
+        (framework.parent / "QtExternal.framework").symlink_to(external.parent, target_is_directory=True)
+        deployment.prune_framework_development_files(app)
+        for name in ("Headers", "PrivateHeaders", "Modules"):
+            self.assertFalse((framework / name).is_symlink())
+            self.assertFalse((version / name).exists())
+        self.assertEqual((version / "QtFixture").read_bytes(), b"runtime binary")
+        self.assertEqual((resources / "LICENSE.txt").read_text(), "license")
+        self.assertEqual((external / "source.h").read_text(), "SDK source")
+
     def setUp(self):
         (ROOT / "build").mkdir(exist_ok=True)
         self.temporary = tempfile.TemporaryDirectory(prefix="deploy-lock-tests-", dir=ROOT / "build")

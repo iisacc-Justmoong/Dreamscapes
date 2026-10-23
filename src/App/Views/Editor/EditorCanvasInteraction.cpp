@@ -62,6 +62,7 @@ QPainterPath EditorCanvas::gestureFeedbackPath() const {
     return outline.createStroke(stroke);
 }
 QPainterPath EditorCanvas::brushFeedbackPath() const {
+    if (m_layerColorPicking || m_pickNeutral || m_colorRead != ColorRead::None) return {};
     if (!documentReady() || !m_feedbackPointerInside || !isVisible() || m_navigatingCanvas) return {};
     const auto point = editingPosition(m_feedbackPointer);
     if (!infiniteCanvas() && !QRectF(0, 0, editingWidth(), editingHeight()).contains(point)) return {};
@@ -104,7 +105,8 @@ QVariantMap EditorCanvas::interactionFeedback() const {
         {"pointer", m_feedbackPointer}};
 }
 void EditorCanvas::notifyInteractionFeedback() {
-    if (m_tool != "elements" && !m_navigatingCanvas) {
+    if (!m_navigatingCanvas && (m_layerColorPicking || m_pickNeutral || m_colorRead != ColorRead::None)) setCursor(Qt::CrossCursor);
+    else if (m_tool != "elements" && !m_navigatingCanvas) {
         if (!brushFeedbackPath().isEmpty()) setCursor(m_pixelLocks.contains(selectedLayerId()) ? Qt::ForbiddenCursor : Qt::BlankCursor);
         else if (m_feedbackPointerInside && (m_tool == "select" || m_tool == "masking" || backgroundMaskActive())) setCursor(Qt::CrossCursor);
         else unsetCursor();
@@ -117,9 +119,13 @@ void EditorCanvas::updatePointerFeedback(const QPointF &position, bool inside) {
     notifyInteractionFeedback();
 }
 void EditorCanvas::cancelInteractionGesture() {
-    if (liveStrokeActive()) {
-        cancelStroke();
-        if (m_strokeAuthorship) { m_canvas.authorship = *m_strokeAuthorship; refresh(); }
+    resetAlignmentGesture();
+    const QPointer<EditorCanvas> owner(this);
+    const bool hadStroke = liveStrokeActive();
+    if (hadStroke) cancelStroke();
+    if (!owner) return;
+    if (hadStroke || m_strokeAuthorship) {
+        if (m_strokeAuthorship) { m_canvas.authorship = *m_strokeAuthorship; refresh(); if (!owner) return; }
         m_strokeAuthorship.reset(); m_strokePixels = {}; m_historySuspended = false;
     }
     if (m_gestureActive && m_historySuspended && m_tool == "retouch") {
@@ -132,16 +138,20 @@ void EditorCanvas::cancelInteractionGesture() {
     emit elementTransformChanged();
     notifyInteractionFeedback();
 }
-void EditorCanvas::updateSelectionOutline() {
+void EditorCanvas::updateSelectionOutline(const QImage &prepared) {
+    ++m_graphicSelectionSequence;
     m_selectionOutline = {};
     if (m_selection.alpha.empty()) { notifyInteractionFeedback(); return; }
     const auto width = int(m_selection.extent.width), height = int(m_selection.extent.height);
-    QImage mono(width, height, QImage::Format_MonoLSB); mono.fill(0);
-    mono.setColor(0, qRgb(255, 255, 255)); mono.setColor(1, qRgb(0, 0, 0));
-    for (int y = 0; y < height; ++y) {
-        auto *row = mono.scanLine(y);
-        for (int x = 0; x < width; ++x)
-            if (m_selection.alpha[std::size_t(y) * width + x] >= 128) row[x / 8] |= 1 << (x % 8);
+    QImage mono = prepared;
+    if (mono.isNull()) {
+        mono = QImage(width, height, QImage::Format_MonoLSB); mono.fill(0);
+        mono.setColor(0, qRgb(255, 255, 255)); mono.setColor(1, qRgb(0, 0, 0));
+        for (int y = 0; y < height; ++y) {
+            auto *row = mono.scanLine(y);
+            for (int x = 0; x < width; ++x)
+                if (m_selection.alpha[std::size_t(y) * width + x] >= 128) row[x / 8] |= 1 << (x % 8);
+        }
     }
     m_selectionOutline.addRegion(QRegion(QBitmap::fromImage(mono)));
     m_selectionOutline = m_selectionOutline.simplified();

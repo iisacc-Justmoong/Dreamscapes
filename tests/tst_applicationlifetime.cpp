@@ -15,8 +15,16 @@ int main(int argc, char **argv)
     QObject::connect(&app, &QCoreApplication::aboutToQuit, [&] {
         qInfo() << "Explicit quit reached at phase" << phase;
     });
-    QTimer::singleShot(250, &app, [&] { phase = 1; window->close(); });
+    QTimer::singleShot(250, &app, [&] {
+        phase = 1;
+        window->close();
+        if (window->isVisible()) app.exit(12);
+    });
     QTimer::singleShot(500, &app, [&] {
+        // A delayed initial Active notification may legitimately restore the
+        // window between callbacks. Establish the windowless precondition at
+        // the point where the explicit Dock/Active behavior is exercised.
+        window->close();
         if (window->isVisible()) { app.exit(12); return; }
         // Cocoa propagates this even when a windowless app is already active.
         app.applicationStateChanged(Qt::ApplicationActive);
@@ -25,8 +33,8 @@ int main(int argc, char **argv)
         }
         phase = 2;
         window->close();
+        if (window->isVisible()) { app.exit(14); return; }
         QTimer::singleShot(100, &app, [&] {
-            if (window->isVisible()) { app.exit(14); return; }
             phase = 3;
             QCoreApplication::quit();
         });

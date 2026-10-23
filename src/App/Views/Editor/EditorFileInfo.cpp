@@ -63,6 +63,17 @@ QString metadataEntries(const std::vector<StableDiffusionMetadataEntry> &entries
 }
 }
 
+QVariantMap EditorCanvas::fileViewInformation() const
+{
+    // View context is small, read-only and independent of persisted metadata.
+    return {{"EditorProject.currentIndex", number(activeArtboardIndex())},
+        {"EditorCanvas.activeArtboardIndex", number(activeArtboardIndex())},
+        {"EditorCanvas.editingWidth/Height", documentReady() ? dimensions(editingWidth(), editingHeight()) : unavailable},
+        {"EditorCanvas.editingOrigin", documentReady() ? coordinates(qRound64(editingOrigin().x()), qRound64(editingOrigin().y())) : unavailable},
+        {"EditorCanvas.pagePresentation", boolean(pagePresentation())},
+        {"EditorCanvas.frame", number(frame())}};
+}
+
 QVariantMap EditorCanvas::fileInformation() const
 {
     using namespace iiSharedCanvas;

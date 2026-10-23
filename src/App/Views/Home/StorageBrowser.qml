@@ -11,6 +11,9 @@ Item {
     objectName: "storageBrowser"
     property var container: null
     property var download: null
+    property var imageOpenRequest: null
+    property var imageImporter: null
+    readonly property bool importing: !!imageImporter && imageImporter.active
     readonly property var downloadState: download ? download.state : ({})
     readonly property bool downloading: !!download && download.active
     readonly property bool downloadVisible: !!container && downloadState.containerId === container.containerId
@@ -197,18 +200,20 @@ Item {
         ImageSelectionBar {
             id: selection
             objectName: "storageBrowserSelection"
-            entries: root.sectionFiles.filter(file => file.available !== false)
+            entries: root.sectionFiles
             onOpenRequested: function(images) { root.imagesRequested(images) }
         }
         LV.HStack {
             objectName: "storageBrowserDownload"
             Layout.fillWidth: true
-            visible: root.downloadVisible
+            visible: root.downloadVisible || root.importing
             LV.Label {
                 objectName: "storageBrowserDownloadStatus"
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
-                text: (root.downloadState.name || "") + " · " + root.downloadStatus()
+                text: root.importing ? qsTr("Opening originals…") : (root.imageOpenRequest && root.imageOpenRequest.active
+                    ? qsTr("Image %1/%2 · ").arg(root.imageOpenRequest.completed + 1).arg(root.imageOpenRequest.total) : "")
+                    + (root.downloadState.name || "") + " · " + root.downloadStatus()
                 elide: Text.ElideMiddle
                 style: caption
                 Accessible.role: Accessible.StaticText
@@ -217,9 +222,13 @@ Item {
                 objectName: "storageBrowserDownloadRetry"
                 text: qsTr("Retry")
                 tone: LV.AbstractButton.Default
-                visible: !root.downloading
+                visible: !root.downloading && !root.importing
                 enabled: !!root.downloadState.key && root.available && root.downloadState.containerId === root.container.containerId
                 onClicked: {
+                    if (root.imageOpenRequest && root.imageOpenRequest.canRetry) {
+                        root.imageOpenRequest.retry()
+                        return
+                    }
                     const file = root.sectionFiles.find(entry => entry.key === root.downloadState.key)
                     if (file) root.fileRequested(file)
                 }
@@ -228,8 +237,11 @@ Item {
                 objectName: "storageBrowserDownloadCancel"
                 text: qsTr("Cancel")
                 tone: LV.AbstractButton.Default
-                visible: root.downloading
-                onClicked: if (root.download) root.download.cancel()
+                visible: root.downloading || root.importing
+                onClicked: {
+                    if (root.importing) root.imageImporter.cancel()
+                    else if (root.download) root.download.cancel()
+                }
             }
         }
         LV.ProgressBar {

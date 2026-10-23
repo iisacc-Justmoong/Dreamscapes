@@ -24,6 +24,8 @@ Item {
     property bool showPrimaryAction: true
     property bool showSecondaryAction: true
     property bool showMoreMenu: true
+    property bool compact: false
+    property bool fillControl: false
     property bool navigationEnabled: showValue || showTrailingIcon
     property string iconName: "nodesfolder"
     property url iconSource: ""
@@ -34,15 +36,15 @@ Item {
     property int miniItemWidth: LV.Theme.scaleMetric(170)
     property int minItemWidth: type === LV.ListItem.Mini ? miniItemWidth
         : type === LV.ListItem.Navigation || type === LV.ListItem.Toggle ? navigationItemWidth : LV.Theme.scaleMetric(400)
-    property int standardItemHeight: LV.Theme.scaleMetric(44)
+    property int standardItemHeight: compact ? (type === LV.ListItem.Select ? LV.Theme.scaleMetric(20) : LV.Theme.controlHeightSm) + 2 * LV.Theme.gap4 : LV.Theme.scaleMetric(44)
     property Component trailingComponent: null
     readonly property alias inputControl: inputField
     readonly property bool flatPanelRow: true
     readonly property bool effectiveEnabled: enabled
     readonly property bool mini: type === LV.ListItem.Mini
     readonly property string variantName: ["Mini", "Detail", "Navigation", "Toggle", "Checkable", "Action", "ActionGroup", "Stepper", "Select", "InlineEdit"][type] || "Mini"
-    readonly property int insetHorizontal: mini ? LV.Theme.gap4 : LV.Theme.scaleMetric(12)
-    readonly property int insetVertical: mini ? LV.Theme.gap2 : LV.Theme.gap8
+    readonly property int insetHorizontal: mini ? LV.Theme.gap4 : compact ? LV.Theme.gap8 : LV.Theme.scaleMetric(12)
+    readonly property int insetVertical: mini ? LV.Theme.gap2 : compact ? LV.Theme.gap4 : LV.Theme.gap8
     signal edited(string field, var value)
     signal actionTriggered(string action, var payload)
     signal clicked()
@@ -91,7 +93,7 @@ Item {
         y: (root.height - height) / 2
         width: Math.max(0, root.width - 2 * root.insetHorizontal)
         height: implicitHeight
-        spacing: root.mini ? LV.Theme.scaleMetric(1) : LV.Theme.gap8
+        spacing: root.mini ? LV.Theme.scaleMetric(1) : root.compact ? LV.Theme.gap4 : LV.Theme.gap8
         Image {
             visible: root.showLeadingIcon
             Layout.preferredWidth: root.iconSize; Layout.preferredHeight: root.iconSize
@@ -100,7 +102,7 @@ Item {
             fillMode: Image.PreserveAspectFit
         }
         ColumnLayout {
-            Layout.fillWidth: true; Layout.minimumWidth: 0
+            Layout.fillWidth: !root.fillControl; Layout.minimumWidth: 0
             spacing: LV.Theme.gap4
             LV.Label {
                 objectName: "panelRow_label"
@@ -163,6 +165,7 @@ Item {
             visible: root.type === LV.ListItem.Select
             active: visible
             sourceComponent: LV.ListItemSelector { objectName: "panelRow_selector"; listItem: root; config: root.selector }
+            Layout.fillWidth: root.fillControl; Layout.minimumWidth: 0
             Layout.preferredWidth: implicitWidth; Layout.preferredHeight: implicitHeight
         }
         LV.InputField {
@@ -170,6 +173,7 @@ Item {
             objectName: "panelRow_input1"
             visible: root.type === LV.ListItem.InlineEdit
             Layout.preferredWidth: root.inputWidth
+            Layout.fillWidth: root.fillControl; Layout.minimumWidth: 0
             text: root.inputText1
             clearButtonVisible: root.configValue(root.input1, "clearButtonVisible", true)
             Accessible.name: root.label

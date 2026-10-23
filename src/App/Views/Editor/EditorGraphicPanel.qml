@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Dialogs
 import LVRS 1.0 as LV
+import Dreamscapes.Storage 1.0
 import ".." as Shared
 import "EditorGraphicDefinitions.js" as Panels
 import "EditorGraphicState.js" as State
@@ -29,7 +30,14 @@ Column {
     property int sampleSequence: 0
     property var collectionIndicesByOperation: ({})
     property string indicesOperation: ""
-    property bool busy: false
+    readonly property bool imageBusy: imageCommand.state.pending
+    property bool imageAction: false
+    property var imageOrigin: ({})
+    readonly property bool busy: imageBusy || settingsHelper.state.pending
+    property bool helperAction: false
+    property bool preparingHelper: false
+    property var helperOrigin: ({})
+    property int imageCommandEpoch: 0
     property string resultMessage: ""
     width: 398
     spacing: 12
@@ -252,29 +260,88 @@ Column {
         const states = Panels.catalog().statusViews[family] || {}
         return status ? Panels.byId(states[status]) : null
     }
+    function helperContext() {
+        return {tool: toolId, view: currentViewId, indices: collectionIndices,
+            draft: helperAction && selectedView ? parameters(selectedView.operation) : ({})}
+    }
+    function finishHelper() {
+        if (!helperAction || preparingHelper || settingsHelper.state.pending) return
+        // Keep a detached value while applying the returned settings changes
+        // the owner context and clears its previous result.
+        const result = JSON.parse(JSON.stringify(settingsHelper.state))
+        const current = helperOrigin.engine === engine && settingsHelper.contextMatches(helperContext())
+        helperAction = false
+        if (!current || !result.valid) {
+            resultMessage = current ? result.error || "" : ""
+            operationStatus = resultMessage ? engine && engine.documentReady ? "error" : "empty" : ""
+            return
+        }
+        applyReturnedParameters(result.operation, result)
+        resultMessage = qsTr("Settings updated")
+        operationStatus = "applied"
+    }
+    EditorGraphicHelper {
+        id: settingsHelper
+        objectName: "editorGraphicHelper"
+        canvas: root.engine
+        context: root.helperContext()
+        onChanged: Qt.callLater(root.finishHelper)
+    }
+    Connections {
+        target: root.toolState
+        function onValuesChanged() { ++root.imageCommandEpoch }
+    }
     function execute(action, operation, supplied) {
         if (!engine || busy || !selectedView) return
         previewSheet.close(); operationSheet.close()
-        busy = true
         operationStatus = "processing"
         resultMessage = qsTr("Processing…")
         const api = operation || selectedView.operation
         const args = supplied === undefined ? parameters(api) : supplied
-        Qt.callLater(function() {
-            let ok = false
-            if (action === "preview" || action === "helper") {
-                const result = root.engine.previewGraphicOperation(root.toolId, api, args)
-                ok = Boolean(result.imageSource)
-                if (ok) {
-                    root.applyReturnedParameters(api, result)
-                    if (action === "preview") { root.previewImage = result.imageSource; root.originalImage = result.originalImageSource || result.imageSource; previewSheet.open() }
-                }
-            } else ok = root.engine.applyGraphicOperation(root.toolId, api, args)
-            root.resultMessage = ok ? action === "preview" ? qsTr("Preview ready") : action === "helper" ? qsTr("Settings updated") : qsTr("Applied") : root.engine.error
-            root.busy = false
-            root.operationStatus = ok ? action === "preview" ? "preview" : "applied" : root.engine.documentReady ? "error" : "empty"
-            if (action !== "preview" && action !== "helper" && action !== "mask-helper") operationSheet.open()
-        })
+        if (action === "helper") {
+            preparingHelper = true
+            helperAction = true
+            helperOrigin = {engine: engine}
+            settingsHelper.request(api, args)
+            preparingHelper = false
+            finishHelper()
+            return
+        }
+        imageAction = true
+        imageOrigin = {engine: engine, action: action, api: api}
+        imageCommand.request(action, toolId, api, args)
+        finishImage()
+    }
+    function imageContext() {
+        return {tool: toolId, view: currentViewId, epoch: imageCommandEpoch, indices: collectionIndices}
+    }
+    function finishImage() {
+        if (!imageAction || imageCommand.state.pending) return
+        const result = Object.assign({}, imageCommand.state)
+        const origin = imageOrigin
+        const current = origin.engine === engine && imageCommand.contextMatches(imageContext())
+        imageAction = false
+        if (!current || !result.valid) {
+            resultMessage = current ? result.error || "" : ""
+            operationStatus = resultMessage ? engine && engine.documentReady ? "error" : "empty" : ""
+            return
+        }
+        if (origin.action === "preview") {
+            const preview = result.imageSource
+            const original = result.originalImageSource || preview
+            applyReturnedParameters(origin.api, result)
+            previewImage = preview; originalImage = original; previewSheet.open()
+        }
+        resultMessage = origin.action === "preview" ? qsTr("Preview ready") : qsTr("Applied")
+        operationStatus = origin.action === "preview" ? "preview" : "applied"
+        if (origin.action !== "preview" && origin.action !== "mask-helper") operationSheet.open()
+    }
+    EditorGraphicCommand {
+        id: imageCommand
+        objectName: "editorGraphicCommand"
+        canvas: root.engine
+        context: root.imageContext()
+        onChanged: Qt.callLater(root.finishImage)
     }
     function swatchColor() {
         if (!selectedView || !selectedView.sourceParameter) return "transparent"
@@ -383,9 +450,10 @@ Column {
     Connections {
         target: root.engine
         function onToolStateChanged() {
-            if (!root.samplingColor || root.engine.layerColorSample.picking) return
+            if (!root.samplingColor || root.engine.layerColorSample.picking || root.engine.layerColorSample.pending) return
             root.samplingColor = false
             const sample = root.engine.layerColorSample
+            if (sample.error) { root.resultMessage = sample.error; return }
             if (!sample.valid || sample.sequence === root.sampleSequence) return
             const color = sample.color
             root.execute("helper", root.pickerApi, {sample: [color.r, color.g, color.b, color.a]})

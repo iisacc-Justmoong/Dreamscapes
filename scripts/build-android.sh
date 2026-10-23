@@ -88,11 +88,8 @@ build_dependency iiAcountManager "$sdk_source_root/iiAcountManager" \
 for package in iiFileProvider iiCSMIDI iiSocietyContainer; do
     build_dependency "$package" "$sdk_source_root/$package"
 done
-build_dependency iiServerHost "$sdk_source_root/iiServerHost" -DBUILD_SHARED_LIBS=OFF
-for package in iiSocietySync iiSocietyGeneration; do
-    build_dependency "$package" "$sdk_source_root/$package" -DBUILD_SHARED_LIBS=OFF
-done
-for package in iiPaintEngine iiSharedCanvas iiSDKCore iiSocietyMonitor iiSocietyHelper; do
+build_dependency iiWebServer "$sdk_source_root/iiWebServer" -DBUILD_SHARED_LIBS=OFF
+for package in iiPaintEngine iiSharedCanvas iiSDKCore iiSocietyHelper; do
     build_dependency "$package" "$sdk_source_root/$package"
 done
 build_dependency iiLocalDiffusion "$sdk_source_root/iiLocalDiffusion" \
@@ -101,7 +98,7 @@ build_dependency iiLocalDiffusion "$sdk_source_root/iiLocalDiffusion" \
     "-Djson-c_DIR=$prefix/lib/cmake/json-c"
 
 packages=("-DLVRS_DIR=$sdk_install_root/LVRS/platforms/android/lib/cmake/LVRS")
-for package in iiAcountManager iiFileProvider iiCSMIDI iiServerHost iiSocietyContainer iiSocietySync iiSocietyHelper iiSocietyGeneration iiLocalDiffusion; do
+for package in iiAcountManager iiFileProvider iiCSMIDI iiWebServer iiSocietyContainer iiSocietyHelper iiLocalDiffusion; do
     packages+=("-D${package}_DIR=$prefix/lib/cmake/$package")
 done
 for package in iiLicenseManager iiPaintEngine iiUpdateManager; do

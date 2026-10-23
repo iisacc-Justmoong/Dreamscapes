@@ -16,15 +16,16 @@ Rectangle {
     readonly property bool photoModalActive: photoLoader.item ? photoLoader.item.modalActive : false
     signal closeRequested()
     signal actionRequested(string toolId, string fieldId, var values)
-    color: LV.Theme.panelBackground05
+    color: "transparent"
     radius: LV.Theme.radiusXl
-    border.width: 1
-    border.color: LV.Theme.panelBackground08
+    readonly property real contentInset: LV.Theme.gap12
+    border.width: 0
+    border.color: "transparent"
 
     Loader {
         id: fileLoader
         anchors.fill: parent
-        anchors.margins: LV.Theme.gap16 + root.border.width
+        anchors.margins: root.contentInset
         active: root.toolState.toolId === "file"
         sourceComponent: EditorFilePanel { toolState: root.toolState }
     }
@@ -34,7 +35,7 @@ Rectangle {
         visible: !fileLoader.active
         objectName: "editorDesktopPanelViewport"
         anchors.fill: parent
-        anchors.margins: LV.Theme.gap16 + root.border.width
+        anchors.margins: root.contentInset
         contentWidth: width
         contentHeight: backgroundLoader.active ? backgroundLoader.height : photoLoader.active ? photoLoader.height : elementsLoader.active ? elementsLoader.height : graphicLoader.active ? graphicLoader.height : textLoader.active ? textLoader.height : layerLoader.active ? layerLoader.height : compactLoader.active ? compactLoader.height : genericLoader.height
         clip: true

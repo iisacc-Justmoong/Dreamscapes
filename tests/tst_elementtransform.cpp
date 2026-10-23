@@ -1,5 +1,7 @@
 #include "App/Views/Editor/EditorCanvas.h"
+#include "App/Views/Editor/EditorTimelineModel.h"
 #include <iiSharedCanvas.h>
+#include <SocietyDrive.h>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QSignalSpy>
@@ -17,6 +19,7 @@ public:
 };
 class ElementTransformTests : public QObject {
     Q_OBJECT
+    QTemporaryDir m_storage{DREAMSCAPES_TEST_DIRECTORY "/element-transform-documents-XXXXXX.societycontainer"};
     static QVariantMap settings(const QString &shape = "Rectangle", const QString &fill = "Solid") {
         return {{"selector", shape}, {"field-0", QVariantList{1080, 1080}}, {"field-1", 0},
             {"field-2", fill}, {"field-3", false}, {"field-4", 360}, {"field-5", 0},
@@ -25,6 +28,10 @@ class ElementTransformTests : public QObject {
             {"field-14", 100}, {"field-15", "Normal"}, {"field-16", "#FF0000"}, {"field-17", "#0000FF"}};
     }
     static void prepare(EditorCanvas &canvas, const QString &fill = "Solid") {
+        // These contracts measure unconstrained geometry. Alignment has its own
+        // enabled-mode integration tests in tst_viewoptions.cpp.
+        canvas.viewOptions()->edit("snap", "enabled", false);
+        canvas.viewOptions()->edit("display", "constrain", false);
         canvas.setSize({800, 600});
         QVERIFY(canvas.createCanvas({{"width", 160}, {"height", 120}, {"unit", "px"}, {"background", "Transparent"}}));
         canvas.configureTool("elements", settings("Rectangle", fill));
@@ -52,6 +59,10 @@ class ElementTransformTests : public QObject {
         QVERIFY(event.isAccepted());
     }
 private slots:
+    void initTestCase() {
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(m_storage.path()));
+        qputenv("SOCIETY_CONTAINER_PATH", m_storage.path().toUtf8());
+    }
     void allEightHandlesResizeOneUndoTransaction_data() {
         QTest::addColumn<QString>("id"); QTest::addColumn<QPointF>("delta");
         QTest::addColumn<QSizeF>("expected"); QTest::addColumn<QPointF>("corner");
@@ -174,7 +185,7 @@ private slots:
         EditorCanvas original; prepare(original);
         const auto encoded = encodeIisc(*original.document()); QVERIFY(encoded.ok());
         const auto decoded = decodeIisc(encoded.bytes); QVERIFY(decoded.ok());
-        EditorCanvas canvas; canvas.setSize({800, 600}); QVERIFY(canvas.loadProjectPage(decoded.document, "Reopened"));
+        EditorCanvas canvas; canvas.viewOptions()->edit("snap", "enabled", false); canvas.viewOptions()->edit("display", "constrain", false); canvas.setSize({800, 600}); QVERIFY(canvas.loadProjectPage(decoded.document, "Reopened"));
         canvas.configureTool("elements", settings());
         QVERIFY(canvas.selectElement(original.selectedLayerId()));
         QCOMPARE(canvas.selectedElementSettings().value("selector").toString(), QString("Vector"));
@@ -229,7 +240,7 @@ private slots:
         document.assets.emplace_back(VectorAsset{"second", document.extent, {rectangle(20, 16, 60, 30)}});
         document.layers.emplace_back(DynamicVectorLayer{{"animated", "Animated vector"}, KeyframedSource{{0, 12}}});
         document.frames = {{0, {{"animated", "first"}}}, {12, {{"animated", "second"}}}};
-        EditorCanvas canvas; canvas.setSize({800, 600}); QVERIFY(canvas.loadProjectPage(document, "Frames"));
+        EditorCanvas canvas; canvas.viewOptions()->edit("snap", "enabled", false); canvas.viewOptions()->edit("display", "constrain", false); canvas.setSize({800, 600}); QVERIFY(canvas.loadProjectPage(document, "Frames"));
         canvas.configureTool("elements", settings()); QVERIFY(canvas.selectElement("animated"));
         QCOMPARE(size(canvas), QVariantList({40.0, 24.0}));
         const auto before = encodeIisc(*canvas.document()).bytes;
@@ -268,9 +279,25 @@ private slots:
         };
         QCOMPARE(readStored(), before);
         const auto start = canvas.elementTransform().value("center").toPointF();
+        const auto revision = canvas.revision();
+        const auto alias = canvas.fileAlias();
+        EditorTimelineModel timeline; timeline.setCanvas(&canvas);
+        QSignalSpy thumbnails(&timeline, &EditorTimelineModel::thumbnailsChanged);
+        QSignalSpy projection(&timeline, &EditorTimelineModel::projectionChanged);
+        QSignalSpy changed(&canvas, &EditorCanvas::documentInfoChanged);
+        QSignalSpy fileChanged(&canvas, &EditorCanvas::fileInformationChanged);
+        QSignalSpy authored(&canvas, &EditorCanvas::revisionChanged);
+        QSignalSpy history(&canvas, &EditorCanvas::undoRedoChanged);
         QVERIFY(canvas.beginElementTransform("move", start)); QVERIFY(canvas.updateElementTransform(start + QPointF(10, 5) * canvas.zoom()));
+        QCOMPARE(canvas.revision(), revision);
+        QCOMPARE(canvas.fileAlias(), alias);
+        QCOMPARE(authored.count(), 0); QCOMPARE(changed.count(), 0); QCOMPARE(fileChanged.count(), 0); QCOMPARE(history.count(), 0);
+        QCOMPARE(thumbnails.count(), 0); QCOMPARE(projection.count(), 0);
         QCOMPARE(readStored(), before);
         canvas.cancelElementTransform(); QCOMPARE(encodeIisc(*canvas.document()).bytes, before); QCOMPARE(readStored(), before);
+        QCOMPARE(canvas.revision(), revision);
+        QCOMPARE(authored.count(), 0); QCOMPARE(changed.count(), 0); QCOMPARE(fileChanged.count(), 0); QCOMPARE(history.count(), 0);
+        QCOMPARE(thumbnails.count(), 0); QCOMPARE(projection.count(), 0);
         QVERIFY(canvas.beginElementTransform("move", start)); QVERIFY(canvas.updateElementTransform(start + QPointF(10, 5) * canvas.zoom()));
         QVERIFY(canvas.saveDocument()); // Save cancels the uncommitted preview.
         QCOMPARE(readStored(), before); QCOMPARE(encodeIisc(*canvas.document()).bytes, before);

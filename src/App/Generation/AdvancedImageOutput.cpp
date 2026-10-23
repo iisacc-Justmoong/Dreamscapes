@@ -48,7 +48,7 @@ bool writeAdvancedImage(const QString &source, QIODevice *destination, const QJs
         QImage pixels(image.constBits(), image.width(), image.height(), image.bytesPerLine(), image.format());
         auto stripped = pixels.copy(); stripped.setColorSpace(target); image = std::move(stripped);
     }
-    QImageWriter writer(destination, QFileInfo(source).suffix().toLatin1());
+    QImageWriter writer(destination, "PNG");
     if (!writer.write(image)) { *error = writer.errorString(); return false; }
     return true;
 }

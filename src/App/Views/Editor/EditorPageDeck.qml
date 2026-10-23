@@ -45,6 +45,13 @@ Item {
                 root.project.canvasCount - 7)) + index
             readonly property var board: root.boards[pageIndex] || ({})
             readonly property int distance: Math.abs(pageIndex - root.project.currentIndex)
+            property int previewCompletion: 0
+            Connections {
+                target: root.project
+                function onPagePreviewReady(page) {
+                    if (page === card.pageIndex) ++card.previewCompletion
+                }
+            }
             readonly property var pageSize: distance > 0 ? root.pageSize(pageIndex) : ({ width: 1, height: 1, scale: 1 })
             readonly property real depthScale: pageSize.scale
             readonly property real darkenAmount: Math.min(0.56, 0.20 + Math.max(0, distance - 1) * 0.14)
@@ -79,6 +86,7 @@ Item {
                 anchors.fill: parent
                 source: {
                     const revision = root.project.pagePreviewRevision
+                    const completion = card.previewCompletion
                     return card.visible ? root.project.pagePreviewSource(card.pageIndex, 512, 512) : ""
                 }
                 fillMode: Image.PreserveAspectFit

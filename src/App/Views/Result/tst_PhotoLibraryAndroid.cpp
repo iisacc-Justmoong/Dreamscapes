@@ -66,7 +66,7 @@ private slots:
         bool finished = false;
         QString error;
         const auto name = "Dreamscapes-missing-" + QUuid::createUuid().toString(QUuid::Id128) + ".png";
-        nativePhotoLibrarySaveOperation()("/missing/dreamscapes/" + name, [&](QString asset, QString message) {
+        nativePhotoLibrarySaveOperation()({"/missing/dreamscapes/" + name,"image/png"}, [&](QString asset, QString message) {
             QVERIFY(asset.isEmpty());
             error = message;
             finished = true;

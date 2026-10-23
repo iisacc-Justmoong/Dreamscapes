@@ -10,6 +10,7 @@ import "EditorCompactDefinitions.js" as Compact
 LV.Sheet {
     id: root
     objectName: "editorToolSheet"
+    surfaceColor: "transparent"
     property string toolId: "elements"
     property var engine: null
     property var projectRuntime: null

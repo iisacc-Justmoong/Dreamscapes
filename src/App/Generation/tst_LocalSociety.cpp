@@ -3,8 +3,8 @@
 #include "SocietyGenerationStorage.h"
 #include "GenerationWorkProgress.h"
 #include <iiSocietyHelper.h>
-#include <iiSocietySync.h>
-#include <iiSocietyGeneration/Host.h>
+#include <iiSocietyHelper/Sync/Sync.h>
+#include <iiSocietyHelper/Generation/Host.h>
 #include <StorageMap.h>
 #include <QFile>
 #include <QImage>
@@ -672,24 +672,24 @@ private slots:
         QVERIFY2(!linkError, linkError.message().c_str());
         const auto storage = iiSocietyContainer::SharedStorage::open(desktop.path());
         QVERIFY(storage && storage->models().size() == 1);
-        iiSocietyGeneration::Host generationHost;
+        iiSocietyHelper::Generation::Host generationHost;
         QVERIFY(generationHost.open(desktop.path()));
-        iiServerHost::LanPeer host, client;
-        iiSocietyGeneration::Remote remote([&](const auto &request) { return client.request("desktop", request); });
+        iiWebServer::LanPeer host, client;
+        iiSocietyHelper::Generation::Remote remote([&](const auto &request) { return client.request("desktop", request); });
         QJsonObject previousProgress;
-        connect(&remote, &iiSocietyGeneration::Remote::progress, this, [&](const QJsonObject &progress) {
+        connect(&remote, &iiSocietyHelper::Generation::Remote::progress, this, [&](const QJsonObject &progress) {
             if (progress != previousProgress) qInfo().noquote() << QJsonDocument(progress).toJson(QJsonDocument::Compact);
             previousProgress = progress;
         });
-        connect(&client, &iiServerHost::LanPeer::completed, &remote,
+        connect(&client, &iiWebServer::LanPeer::completed, &remote,
             [&](auto id, auto result, auto) { remote.receive(id, result); });
-        const auto files = iiSocietySync::filesHandler(desktop.path());
+        const auto files = iiSocietyHelper::Sync::filesHandler(desktop.path());
         QVERIFY(host.startHost("desktop", "Actual host", [&](const auto &peer, const auto &request) {
             return request.value("op") == "society.generation" ? generationHost.handle(peer, request) : files(peer, request);
-        }, {"127.0.0.1"}, QHostAddress::LocalHost));
+        }, {"127.0.0.1"}, iiWebServer::Address::loopback()));
         QVERIFY(client.join(host.createOffer(), "phone", "Empty model client"));
         QTRY_VERIFY2(client.connected(), qPrintable(client.errorString()));
-        QSignalSpy finished(&remote, &iiSocietyGeneration::Remote::finished);
+        QSignalSpy finished(&remote, &iiSocietyHelper::Generation::Remote::finished);
         const QJsonObject job{{"id", QUuid::createUuid().toString(QUuid::WithoutBraces)},
             {"prompt", "A white cockatoo on a flowering branch, botanical illustration"},
             {"width", 256}, {"height", 256}, {"steps", 2}, {"seed", 42},
@@ -724,15 +724,15 @@ private slots:
             QVERIFY(fixture.open(QIODevice::WriteOnly)); fixture.write("fixture");
         }
 
-        iiServerHost::LanPeer host, client;
-        auto remoteGeneration = std::make_shared<iiSocietyGeneration::Remote>([&](const QJsonObject &request) {
+        iiWebServer::LanPeer host, client;
+        auto remoteGeneration = std::make_shared<iiSocietyHelper::Generation::Remote>([&](const QJsonObject &request) {
             return client.request("desktop", request);
         });
-        connect(&client, &iiServerHost::LanPeer::completed, remoteGeneration.get(),
+        connect(&client, &iiWebServer::LanPeer::completed, remoteGeneration.get(),
             [remoteGeneration](auto id, auto result, auto) { remoteGeneration->receive(id, result); });
         std::atomic_int hostRuns{0};
         std::string hostModelPath;
-        iiSocietyGeneration::Host generationHost([&](const auto &request, const auto &, const auto &, const auto &progress) {
+        iiSocietyHelper::Generation::Host generationHost([&](const auto &request, const auto &, const auto &, const auto &progress) {
             progress({iiLocalDiffusion::NativeGenerationStage::Loading, 25, 100});
             hostModelPath = request.modelPath.string(); ++hostRuns; return imageResult(request);
         });
@@ -751,14 +751,14 @@ private slots:
         app.setForeground(true);
 
         // Only the two Society roles own transports and synchronization.
-        iiSocietySync::Controller hosting({}), syncing([&](const auto &peer, const auto &request) {
+        iiSocietyHelper::Sync::Controller hosting({}), syncing([&](const auto &peer, const auto &request) {
             return client.request(peer, request);
         });
-        const auto files = iiSocietySync::filesHandler(desktop.path());
+        const auto files = iiSocietyHelper::Sync::filesHandler(desktop.path());
         QVERIFY(host.startHost("desktop", "Desktop Society", [&](const auto &peer, const auto &request) {
             if (request.value("op") == "society.generation") return generationHost.handle(peer, request);
             return request.value("op") == "society.sync" ? hosting.handle(peer, request) : files(peer, request);
-        }, {"127.0.0.1"}, QHostAddress::LocalHost));
+        }, {"127.0.0.1"}, iiWebServer::Address::loopback()));
         QVERIFY(client.join(host.createOffer(), "phone", "iPhone Society"));
         QTRY_VERIFY2(client.connected(), qPrintable(client.errorString()));
         const QString scope(64, 'a');
@@ -769,10 +769,10 @@ private slots:
             qPrintable(QStringLiteral("Host: %1; client: %2")
                 .arg(hosting.errorString(), syncing.errorString())), 15000);
         hosting.setPeers({"phone"}, {});
-        connect(&client, &iiServerHost::LanPeer::completed, &syncing, [&](auto id, auto result, auto) {
+        connect(&client, &iiWebServer::LanPeer::completed, &syncing, [&](auto id, auto result, auto) {
             syncing.receive(id, result);
         });
-        QSignalSpy synchronized(&syncing, &iiSocietySync::Controller::synchronized);
+        QSignalSpy synchronized(&syncing, &iiSocietyHelper::Sync::Controller::synchronized);
         syncing.setPeers({"desktop"}, {"desktop"});
         QTRY_VERIFY2_WITH_TIMEOUT(!synchronized.isEmpty(), qPrintable(syncing.errorString()), 30000);
         QTRY_COMPARE_WITH_TIMEOUT(app.models().size(), 1, 6000);

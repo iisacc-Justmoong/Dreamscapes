@@ -25,6 +25,10 @@ bool EditorCanvas::belongsToActiveArtboard(const Layer &layer) const {
 FrameRenderResult EditorCanvas::renderEditingFrame(const Document &value) const {
     return activeArtboard() ? renderArtboard(value, frame(), m_activeArtboard) : renderFrame(value, frame());
 }
+EditorFrameSnapshot EditorCanvas::editingFrameSnapshot() {
+    return {renderDocumentSnapshot(), frame(), editingArtboardId()};
+}
+std::string EditorCanvas::editingArtboardId() const { return activeArtboard() ? m_activeArtboard : std::string{}; }
 std::string EditorCanvas::backgroundLayerId() const {
     return activeArtboard() ? m_activeArtboard + ":background.layer" : "canvas.background.layer";
 }
@@ -38,10 +42,10 @@ bool EditorCanvas::selectArtboard(int index, bool reveal) {
     const bool changed = id != m_activeArtboard;
     if (changed) {
         m_activeArtboard = id; clearSelection(); clearAreaSelection();
-        m_clippingKey.clear(); m_clippingImage = QUrl{}; m_eraserOverlay = QUrl{};
+        m_eraserOverlay = QUrl{};
         for (auto layer = document()->layers.crbegin(); layer != document()->layers.crend(); ++layer)
             if (belongsToActiveArtboard(*layer)) { selectLayer(QString::fromStdString(layerProperties(*layer).id)); break; }
-        emit activeArtboardChanged(); emit documentInfoChanged();
+        emit activeArtboardChanged();
     }
     if ((reveal || (changed && m_pagePresentation && !infiniteCanvas() && document()->artboards.size() > 1)) && width() > 0) {
         if (m_pagePresentation && !infiniteCanvas() && document()->artboards.size() > 1) {
