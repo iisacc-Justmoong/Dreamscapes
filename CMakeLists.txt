@@ -203,6 +203,9 @@ qt_add_qml_module(DreamscapesGeneration
         src/App/Generation/SocietyGenerationStorage.h src/App/Generation/SocietyGenerationStorage.cpp
         src/App/Generation/ImageCanvas.h src/App/Generation/ImageCanvas.cpp
         src/App/Views/Result/ImageFileExporter.h src/App/Views/Result/ImageFileExporter.cpp
+        src/App/Views/Result/ReviewSelection.h
+        src/App/Views/Result/GenerationReviewModel.h src/App/Views/Result/GenerationReviewModel.cpp
+        src/App/Views/Result/GenerationReviewExport.h src/App/Views/Result/GenerationReviewExport.cpp
         src/App/Views/Result/PhotoLibraryExporter.h src/App/Views/Result/PhotoLibraryExporter.cpp)
 if(APPLE)
     enable_language(OBJCXX)
@@ -311,6 +314,10 @@ lvrs_add_qml_app(
         src/App/Views/Video/VideoTimelineState.qml
         src/App/Views/Home/GenerationHistory.qml
         src/App/Views/Result/GenerationResult.qml
+        src/App/Views/Result/ReviewQueue.qml
+        src/App/Views/Result/ReviewInspector.qml
+        src/App/Views/Result/ReviewMediaView.qml
+        src/App/Views/Result/ReviewCompare.qml
         src/App/Views/Editor/CanvasEditor.qml
         src/App/Views/Editor/EditorTimeline.qml
         src/App/Views/Editor/EditorPageDeck.qml
@@ -696,6 +703,36 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     qt_add_executable(DreamscapesTimelineViewportTests tests/tst_timelineviewport.cpp)
     target_link_libraries(DreamscapesTimelineViewportTests PRIVATE DreamscapesGeneration Qt6::Test)
     add_test(NAME Dreamscapes.TimelineViewport COMMAND DreamscapesTimelineViewportTests)
+
+    add_executable(DreamscapesReviewSelectionCoreTests tests/test_reviewselection.cpp)
+    target_compile_features(DreamscapesReviewSelectionCoreTests PRIVATE cxx_std_23)
+    target_include_directories(DreamscapesReviewSelectionCoreTests PRIVATE src)
+    add_test(NAME Dreamscapes.ReviewSelectionCore COMMAND DreamscapesReviewSelectionCoreTests)
+    qt_add_executable(DreamscapesReviewModelTests tests/tst_reviewmodel.cpp
+        src/App/Views/Result/GenerationReviewModel.h src/App/Views/Result/GenerationReviewModel.cpp)
+    target_compile_features(DreamscapesReviewModelTests PRIVATE cxx_std_23)
+    target_include_directories(DreamscapesReviewModelTests PRIVATE src)
+    target_link_libraries(DreamscapesReviewModelTests PRIVATE Qt6::Test)
+    target_compile_definitions(DreamscapesReviewModelTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    add_test(NAME Dreamscapes.ReviewModel COMMAND DreamscapesReviewModelTests)
+    qt_add_executable(DreamscapesReviewExportTests tests/tst_reviewexport.cpp)
+    target_link_libraries(DreamscapesReviewExportTests PRIVATE DreamscapesGeneration Qt6::Test)
+    target_compile_definitions(DreamscapesReviewExportTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    add_test(NAME Dreamscapes.ReviewExport COMMAND DreamscapesReviewExportTests)
+    qt_add_executable(DreamscapesReviewGuiTests src/App/tst_GenerationReview.cpp)
+    target_link_libraries(DreamscapesReviewGuiTests PRIVATE DreamscapesGeneration
+        Qt6::Test Qt6::Widgets Qt6::Quick Qt6::QuickControls2 Qt6::QuickDialogs2)
+    target_compile_definitions(DreamscapesReviewGuiTests PRIVATE
+        DREAMSCAPES_QML_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/src/App"
+        DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}"
+        DREAMSCAPES_FAKE_GENERATOR="${CMAKE_CURRENT_SOURCE_DIR}/src/App/Generation/fixtures/generate.py")
+    lvrs_configure_qml_app(DreamscapesReviewGuiTests NO_PLATFORM_RUNTIME_TARGETS)
+    add_test(NAME Dreamscapes.ReviewWorkspace COMMAND DreamscapesReviewGuiTests)
+    set_tests_properties(Dreamscapes.ReviewWorkspace PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 180)
+    add_test(NAME Dreamscapes.FailureDetails COMMAND DreamscapesGuiTests failureDetailsShowFullTextAndScroll)
+    set_tests_properties(Dreamscapes.FailureDetails PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 60)
 
     qt_add_executable(DreamscapesTimelineThumbnailTests tests/tst_timelinethumbnails.cpp)
     target_include_directories(DreamscapesTimelineThumbnailTests PRIVATE src)

@@ -171,6 +171,15 @@ LV.ApplicationWindow {
     readonly property var submissionJobs: generation.jobs.filter(function(job) { return resultJobIds.indexOf(job.id) >= 0 })
     readonly property var submissionResults: generation.connected
         ? generation.completedResults.filter(function(result) { return resultJobIds.indexOf(result.id) >= 0 }) : []
+    readonly property var reviewResults: {
+        const entries = generation.connected ? generation.completedResults : []
+        if (resultJobIds.length || !currentResult.imageSource) return entries
+        const source = (currentResult.documentSource || currentResult.mediaSource || currentResult.imageSource).toString()
+        return entries.some(entry => (entry.documentSource || entry.mediaSource || entry.imageSource || "").toString() === source)
+            ? entries : entries.concat([currentResult])
+    }
+    readonly property var reviewActiveJob: generation.jobs.find(job => ["running","connecting-host","downloading"].indexOf(job.state) >= 0) || ({})
+    readonly property bool reviewPending: generation.jobs.some(job => ["queued","running","connecting-host","downloading"].indexOf(job.state) >= 0)
     readonly property var activeGeneration: submissionJobs.find(function(job) { return job.state === "running" || job.state === "connecting-host" || job.state === "downloading" }) || ({})
     readonly property bool generationPending: submissionJobs.some(function(job) {
         return job.state === "queued" || job.state === "running" || job.state === "connecting-host" || job.state === "downloading"
@@ -238,7 +247,7 @@ LV.ApplicationWindow {
             ? Math.max(0, windowDragHandleTopMargin + windowDragHandleHeight) : 0,
         !useMobileHomeLayout
             ? (visibility === Window.FullScreen
-                ? (!resultVisible || editorVisible ? LV.Theme.controlHeightSm + LV.Theme.gap12 : 0)
+                ? LV.Theme.controlHeightSm + LV.Theme.gap12
                 : desktopTitleBarHeight + desktopTitleBarContentGap)
             : 0)
     title: "Dreamscapes"
@@ -399,11 +408,23 @@ LV.ApplicationWindow {
         cancelFileOpen()
         storageBrowserSection = ""
         editorVisible = false
-        dismissResult()
+        resultView.resetPresentation()
+        generationRequestError = ""
+        currentResult = ({})
         resultJobIds = jobIds.slice()
         quickGenerate.dismissInput()
         modelMenu.close()
         resultVisible = true
+        Qt.callLater(resultView.focusResults)
+    }
+    function openGenerationReview() {
+        cancelFileOpen()
+        storageBrowserSection = ""
+        editorVisible = false
+        quickGenerate.dismissInput()
+        modelMenu.close()
+        resultVisible = true
+        Qt.callLater(resultView.focusResults)
     }
     function stateLabel(state) {
         const labels = { "queued": qsTr("Queued"), "running": qsTr("Generating"), "completed": qsTr("Completed"),
@@ -454,11 +475,10 @@ LV.ApplicationWindow {
         id: generation
         objectName: "generationController"
         onSubmissionQueued: function(jobIds) {
-            const firstJob = generation.jobs.find(job => job.id === jobIds[0])
-            // Reference images use an advanced recipe, but Home still owns the result route.
-            if (videoWorkspaceLoader.item && videoWorkspaceLoader.item.submitting) return
-            if (quickGenerate.submitting || !firstJob || !firstJob.advancedParameters)
-                window.showSubmission(jobIds)
+            // Editor operations retain their target canvas and inline result flow.
+            if (window.editorView && window.editorView.submitting) return
+            // Home and the Image/Video generation views share one review route.
+            window.showSubmission(jobIds)
         }
     }
 
@@ -472,7 +492,7 @@ LV.ApplicationWindow {
         anchors.rightMargin: LV.Theme.gap12
         width: Math.min(LV.Theme.scaleMetric(265), Math.max(0,
             window.width - anchors.rightMargin - window.desktopTitleBarLeadingClearance))
-        visible: !window.useMobileHomeLayout && (window.editorVisible || (!window.resultVisible && !window.storageBrowserVisible))
+        visible: !window.useMobileHomeLayout && !window.storageBrowserVisible
         jobs: generation.jobs
         inlineSearch: window.editorVisible && !window.publishVisible
         searchResults: historyModel.recentFiles.map(file => ({file: file, label: qsTr("Files") + " · " + file.name}))
@@ -569,6 +589,7 @@ LV.ApplicationWindow {
             dismissResult()
             currentResult = file
             resultVisible = true
+            Qt.callLater(function() { resultView.showEntry(file) })
             return true
         }
         const name = String(file.name || file.path || "")
@@ -675,6 +696,7 @@ LV.ApplicationWindow {
             errorText: window.generationRequestError || historyModel.errorString
             browserSection: window.storageBrowserSection
             onHomeRequested: window.storageBrowserSection = ""
+            onQueueRequested: window.openGenerationReview()
             onQuickActionRequested: function(action) {
                 window.storageBrowserSection = ""
                 if (action === "canvas") window.openNewCanvas()
@@ -770,12 +792,17 @@ LV.ApplicationWindow {
             anchors.right: parent.right
             visible: window.resultVisible && !window.editorVisible
             result: window.currentResult
-            results: window.submissionResults
-            previewSource: window.activeGeneration.id ? generation.previewImage : ""
-            previewPrompt: window.activeGeneration.prompt || ""
-            generationPending: window.generationPending
+            results: window.reviewResults
+            jobs: generation.jobs
+            inferenceStatus: generation.inferenceStatus
+            previewSource: window.reviewActiveJob.id && generation.previewJobId === window.reviewActiveJob.id ? generation.previewImage : ""
+            previewPrompt: window.reviewActiveJob.prompt || ""
+            generationPending: window.reviewPending
+            cancelAvailable: window.generationPending
             statusText: window.generationStatusText
             onCancelRequested: window.cancelSubmission()
+            onCancelJobRequested: function(id) { generation.cancel(id) }
+            onFailureRequested: function(id) { window.showFailureExplanation(id) }
             errorText: window.generationRequestError || (window.generationPending ? ""
                 : (window.submissionJobs.find(function(job) { return job.state === "failed" }) || {}).error || "")
             onBackRequested: {

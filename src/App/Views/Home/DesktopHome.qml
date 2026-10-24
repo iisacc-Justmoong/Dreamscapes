@@ -33,9 +33,9 @@ Item {
     signal imagesRequested(var images)
     signal promptRequested(string prompt)
     signal homeRequested()
+    signal queueRequested()
     function showQueue() {
-        settingsExpanded = true
-        Qt.callLater(function() { root.scrollToItem(storageSlot) })
+        root.queueRequested()
     }
     function choosePrompt(prompt) { showHome(); root.promptRequested(prompt) }
 

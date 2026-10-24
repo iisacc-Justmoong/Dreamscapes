@@ -84,6 +84,7 @@
 #include "Generation/VideoGeneration.h"
 #include "../../tests/LocalRuntimeProbeReady.h"
 #include "Views/Result/ImageFileExporter.h"
+#include "Views/Result/GenerationReviewModel.h"
 #include "Views/Result/PhotoLibraryExporter.h"
 #include <iiSocietyHelper.h>
 #include <iiSocietyContainer/DashboardFiles.h>
@@ -416,6 +417,7 @@ void escapeResult(QQuickWindow *window)
 void editResultImage(QQuickWindow *window, int index)
 {
     auto *result = item(window, "generationResult");
+    if (result->property("detailVisible").toBool()) QVERIFY(QMetaObject::invokeMethod(result,"goBack"));
     auto *selection = item(result, "resultImageSelection");
     QVERIFY(selection && selection->isVisible() && selection->isEnabled());
     click(window, item(selection, "resultImageSelectionToggle"));
@@ -423,8 +425,10 @@ void editResultImage(QQuickWindow *window, int index)
     const auto entries = listProperty(result, "galleryResults");
     QVERIFY(index >= 0 && index < entries.size());
     QVERIFY(QMetaObject::invokeMethod(selection, "toggle", Q_ARG(QVariant, entries[index])));
+    QCoreApplication::processEvents();
     click(window, item(selection, "resultImageSelectionOpen"));
-    QTRY_VERIFY(item(window, "canvasEditor")->isVisible());
+    QTRY_VERIFY2_WITH_TIMEOUT(item(window,"canvasEditor") && item(window,"canvasEditor")->isVisible(),
+        qPrintable(window->property("generationRequestError").toString()),30000);
 }
 
 QQuickItem *menuEntry(QQuickItem *root, const QString &label)
@@ -1073,11 +1077,11 @@ void GuiTests::advancedWorkspacePreservesDraftAndScrolls()
     QVERIFY(QMetaObject::invokeMethod(workspace, "submit"));
     QCOMPARE(listProperty(workspace, "jobIds").size(), 2);
     QVERIFY(workspace->property("requestError").toString().isEmpty());
-    QVERIFY(!window->property("resultVisible").toBool());
+    QVERIFY(window->property("resultVisible").toBool());
     QTRY_COMPARE_WITH_TIMEOUT(listProperty(workspace, "results").size(), 2, 15000);
     QVERIFY(workspace->property("imageSource").toUrl().isValid());
-    QVERIFY(!window->property("resultVisible").toBool());
-    QVERIFY(workspace->isVisible());
+    QVERIFY(window->property("resultVisible").toBool());
+    QVERIFY(!workspace->isVisible());
     QCOMPARE(quick->property("prompt").toString(), "Independent quick draft");
     draft->reset();
     QTRY_COMPARE(panel->property("prompt").toString(), "");
@@ -1150,8 +1154,8 @@ void GuiTests::advancedCanvasMatchesResolutionAndStreamsItsBatch()
     const auto ids = listProperty(workspace, "jobIds");
     QCOMPARE(ids.size(), 2);
     QVERIFY(workspace->property("pending").toBool());
-    QVERIFY(!window->property("resultVisible").toBool());
-    QVERIFY(workspace->isVisible());
+    QVERIFY(window->property("resultVisible").toBool());
+    QVERIFY(!workspace->isVisible());
 
     const auto advanceFrame = [&](int step) {
         QFile gate(QFileInfo(controller->previewImage().toLocalFile()).dir().filePath(QString("continue-%1").arg(step)));
@@ -1164,7 +1168,7 @@ void GuiTests::advancedCanvasMatchesResolutionAndStreamsItsBatch()
         QTRY_COMPARE(controller->previewStep(), step);
         QVERIFY(!workspace->property("showingPreview").toBool());
         QVERIFY(image->property("source").toUrl().isEmpty());
-        QVERIFY(!window->property("resultVisible").toBool());
+        QVERIFY(window->property("resultVisible").toBool());
         QVERIFY(advanceFrame(step));
     }
 
@@ -1176,7 +1180,9 @@ void GuiTests::advancedCanvasMatchesResolutionAndStreamsItsBatch()
             QTRY_COMPARE(image->property("source").toUrl(), controller->previewImage());
             QTRY_COMPARE(image->property("status").toInt(), 1); // Image.Ready, not just assigned URL.
             QCOMPARE(QImage(controller->previewImage().toLocalFile()).pixelColor(0, 0).red(), step * 60);
-            auto frame = image->grabToImage();
+            auto *live=item(window,"reviewQueueLivePreview");QVERIFY(live&&live->isVisible());
+            QTRY_COMPARE(live->property("status").toInt(),1);
+            auto frame = live->grabToImage();
             QVERIFY(frame);
             QSignalSpy rendered(frame.data(), &QQuickItemGrabResult::ready);
             QVERIFY(rendered.wait(3000));
@@ -1185,9 +1191,9 @@ void GuiTests::advancedCanvasMatchesResolutionAndStreamsItsBatch()
             QCOMPARE(pixels.pixelColor(pixels.width() / 2, pixels.height() / 2).red(), step * 60);
             QTRY_VERIFY(item(window, "advancedGenerationStatus")->property("text").toString().contains(QString("%1 / 3").arg(step)));
             QVERIFY(qAbs(surface->width() / surface->height() - 2.0) < 0.001);
-            QVERIFY(workspace->isVisible());
-            QVERIFY(!quick->isVisible());
-            QVERIFY(!window->property("resultVisible").toBool());
+            QVERIFY(!workspace->isVisible());
+            QVERIFY(quick->isVisible());
+            QVERIFY(window->property("resultVisible").toBool());
             QCOMPARE(listProperty(workspace, "results").size(), index);
             QVERIFY(advanceFrame(step));
         }
@@ -1204,7 +1210,9 @@ void GuiTests::advancedCanvasMatchesResolutionAndStreamsItsBatch()
     QVERIFY(workspace->setProperty("selectedResultId", ids.first().toString()));
     QTRY_COMPARE(image->property("source").toUrl(), results.first().toMap().value("imageSource").toUrl());
     QCOMPARE(quick->property("prompt").toString(), "Independent quick draft");
-    QVERIFY(!window->property("resultVisible").toBool());
+    QVERIFY(window->property("resultVisible").toBool());
+    click(window,item(window,"reviewBackButton"));
+    QTRY_VERIFY(workspace->isVisible());
     const auto capture = qEnvironmentVariable("DREAMSCAPES_CANVAS_CAPTURE");
     if (!capture.isEmpty()) QVERIFY(window->grabWindow().save(capture));
     click(window, item(window, "advancedImageSelectionToggle"));
@@ -2970,16 +2978,16 @@ void GuiTests::resultImageContextMenu()
     auto *preview = item(window, "generatedImage");
     auto *result = item(window, "generationResult");
     auto *gallery = item(window, "resultGallery");
+    QQmlExpression detach(engine.rootContext(),result,"results = []");detach.evaluate();QVERIFY(!detach.hasError());
     QQuickItem *targetImage = preview;
     if (galleryMode) {
         const auto nextSource = QUrl::fromLocalFile(images.filePath("next image.png"));
         QVERIFY(fixture.save(nextSource.toLocalFile()));
-        QVERIFY(window->setProperty("currentResult", QVariantMap{{"imageSource", nextSource}}));
-        QVERIFY(result->setProperty("results", QVariantList{QVariantMap{{"imageSource", source}},
-            QVariantMap{{"imageSource", nextSource}}}));
+        QVERIFY(result->setProperty("results",QVariantList{QVariantMap{{"imageSource",source}},QVariantMap{{"imageSource",nextSource}}}));
+        QVERIFY(window->setProperty("currentResult",QVariantMap{{"imageSource",nextSource}}));
         QTRY_VERIFY(QMetaObject::invokeMethod(gallery, "itemAtIndex", Q_RETURN_ARG(QQuickItem *, targetImage), Q_ARG(int, 0)) && targetImage);
         QTRY_VERIFY(targetImage->property("imageReady").toBool());
-    } else QTRY_COMPARE(preview->property("status").toInt(), 1);
+    } else { QVERIFY(QMetaObject::invokeMethod(result,"selectImage",Q_ARG(QVariant,0),Q_ARG(QVariant,true))); QTRY_COMPARE(preview->property("status").toInt(),1); }
     auto *menu = window->findChild<QObject *>("imageContextMenu");
     QVERIFY2(menu, "Generated images need a file-save context menu.");
     const auto point = targetImage->mapToScene(targetImage->boundingRect().center()).toPoint();
@@ -2999,7 +3007,7 @@ void GuiTests::resultImageContextMenu()
         QTest::touchEvent(window, touch).release(0, point, window);
     }
     QTRY_VERIFY(menu->property("opened").toBool());
-    auto *save = menuEntry(window->contentItem(), QStringLiteral("Save to File"));
+    auto *save = menuEntry(window->contentItem(), QStringLiteral("Save current to File"));
     QVERIFY(save && save->isEnabled());
     const auto menuBounds = save->mapRectToScene(save->boundingRect());
     QVERIFY(menuBounds.left() >= 0 && menuBounds.right() <= window->width());
@@ -3008,16 +3016,16 @@ void GuiTests::resultImageContextMenu()
     if (galleryMode) QVERIFY(gallery->isVisible());
     QTest::keyClick(window, Qt::Key_Escape);
     QTRY_VERIFY(!menu->property("visible").toBool());
-    // Temporary denoising previews cannot be exported as completed images.
-    QVERIFY(result->setProperty("previewSource", source));
-    if (galleryMode) {
-        QVERIFY(result->setProperty("generationPending", true));
-        QQuickItem *pending = nullptr;
-        QTRY_VERIFY(QMetaObject::invokeMethod(gallery, "itemAtIndex", Q_RETURN_ARG(QQuickItem *, pending), Q_ARG(int, 2)) && pending);
-        QVERIFY(!pending->property("imageReady").toBool());
-        QTest::mouseClick(window, Qt::RightButton, Qt::NoModifier,
-            pending->mapToScene(pending->boundingRect().center()).toPoint());
-    } else QTest::mouseClick(window, Qt::RightButton, Qt::NoModifier, point);
+    // Live previews are separate from completed result rows and cannot be exported.
+    QVERIFY(window->setProperty("currentResult",QVariantMap{}));
+    QVERIFY(result->setProperty("results",QVariantList{}));
+    QVERIFY(result->setProperty("detailVisible",false));
+    QVERIFY(result->setProperty("previewSource",source));
+    QVERIFY(result->setProperty("generationPending",true));
+    QTRY_VERIFY(!result->property("canSaveImage").toBool());
+    QCOMPARE(gallery->property("count").toInt(),0);
+    auto *live=item(result,"liveGenerationPreview");QVERIFY(live);
+    QTest::mouseClick(window,Qt::RightButton,Qt::NoModifier,live->mapToScene(live->boundingRect().center()).toPoint());
     QVERIFY(!menu->property("visible").toBool());
 }
 
@@ -3033,7 +3041,7 @@ void GuiTests::resultImageSaveDialogPreservesSelectionAndCancel()
     next.fill(Qt::blue);
     const auto nextSource = QUrl::fromLocalFile(images.filePath("next.png"));
     QVERIFY(next.save(nextSource.toLocalFile()));
-    const auto target = QUrl::fromLocalFile(images.filePath(QStringLiteral("저장한 이미지.png")));
+    const auto target = QUrl::fromLocalFile(images.filePath(QStringLiteral("Files/저장한 이미지.png")));
     QQmlApplicationEngine engine;
     engine.setInitialProperties({{"initialContainerPath", images.path()}});
     engine.load(sourceUrl("Main.qml"));
@@ -3042,12 +3050,13 @@ void GuiTests::resultImageSaveDialogPreservesSelectionAndCancel()
     QVERIFY(window && QTest::qWaitForWindowExposed(window));
     QVERIFY(window->setProperty("currentResult", QVariantMap{{"imageSource", source}}));
     QVERIFY(window->setProperty("resultVisible", true));
+    QVERIFY(QMetaObject::invokeMethod(item(window,"generationResult"),"selectImage",Q_ARG(QVariant,0),Q_ARG(QVariant,true)));
     auto *preview = item(window, "generatedImage");
     auto *result = item(window, "generationResult");
     auto *menu = window->findChild<QObject *>("imageContextMenu");
     auto *dialog = window->findChild<QObject *>("saveImageDialog");
     QVERIFY(preview && result && menu && dialog);
-    QVERIFY(dialog->setProperty("currentFolder", QUrl::fromLocalFile(images.path())));
+    QVERIFY(dialog->setProperty("currentFolder", QUrl::fromLocalFile(images.filePath("Files"))));
     QTRY_COMPARE(preview->property("status").toInt(), 1);
     auto *exporter = window->findChild<ImageFileExporter *>("imageFileExporter");
     QVERIFY(exporter);
@@ -3056,7 +3065,7 @@ void GuiTests::resultImageSaveDialogPreservesSelectionAndCancel()
     const auto point = preview->mapToScene(preview->boundingRect().center()).toPoint();
     QTest::mouseClick(window, Qt::RightButton, Qt::NoModifier, point);
     QTRY_VERIFY(menu->property("opened").toBool());
-    auto *entry = menuEntry(window->contentItem(), QStringLiteral("Save to File"));
+    auto *entry = menuEntry(window->contentItem(), QStringLiteral("Save current to File"));
     QVERIFY(entry);
     click(window, entry);
     QTRY_VERIFY(dialog->property("visible").toBool());
@@ -3073,6 +3082,7 @@ void GuiTests::resultImageSaveDialogPreservesSelectionAndCancel()
     QTRY_VERIFY(!menu->property("visible").toBool());
     QTest::mouseClick(window, Qt::RightButton, Qt::NoModifier, point);
     QTRY_VERIFY(menu->property("opened").toBool());
+    entry=menuEntry(window->contentItem(),QStringLiteral("Save current to File"));QVERIFY(entry);
     click(window, entry);
     QTRY_VERIFY(dialog->property("visible").toBool());
     auto *fileName = item(window, "fileNameTextField");
@@ -3084,8 +3094,9 @@ void GuiTests::resultImageSaveDialogPreservesSelectionAndCancel()
     QTRY_COMPARE(preview->property("source").toUrl(), nextSource);
     QCOMPARE(dialog->property("sourceImage").toUrl(), source);
     QVERIFY(QMetaObject::invokeMethod(dialog, "accept"));
-    QTRY_COMPARE(saved.size(), 1);
-    QCOMPARE(failed.size(), 0);
+    QTRY_VERIFY_WITH_TIMEOUT(saved.size()+failed.size()>0,30000);
+    if(!failed.isEmpty())QFAIL(qPrintable(failed.first().first().toString()));
+    QCOMPARE(saved.size(),1);QCOMPARE(failed.size(),0);
     QCOMPARE(saved.first().first().toUrl(), target);
     QFile originalFile(source.toLocalFile()), savedFile(target.toLocalFile());
     QVERIFY(originalFile.open(QIODevice::ReadOnly) && savedFile.open(QIODevice::ReadOnly));
@@ -3126,6 +3137,7 @@ void GuiTests::nativeResultSaveCommandsUseTheDocument()
     QCOMPARE(QFileInfo(commandSource.toLocalFile()).canonicalFilePath(),QFileInfo(source.toLocalFile()).canonicalFilePath());
     QCOMPARE(native["imageSource"].toUrl().scheme(),"image");
     QVERIFY(window->setProperty("currentResult",native));QVERIFY(window->setProperty("resultVisible",true));
+    QVERIFY(QMetaObject::invokeMethod(item(window,"generationResult"),"selectImage",Q_ARG(QVariant,0),Q_ARG(QVariant,true)));
     auto *result=item(window,"generationResult");auto *image=item(window,"generatedImage");QVERIFY(result&&image);
     QTRY_COMPARE(image->property("status").toInt(),1);
     QCOMPARE(image->property("source").toUrl(),native["imageSource"].toUrl());
@@ -3134,8 +3146,8 @@ void GuiTests::nativeResultSaveCommandsUseTheDocument()
     auto *exporter=window->findChild<ImageFileExporter *>("imageFileExporter");QVERIFY(exporter);
     QCOMPARE(exporter->suggestedFileName(source),QStringLiteral("원본 #1.png"));
     QSignalSpy saved(exporter,&ImageFileExporter::saved),failed(exporter,&ImageFileExporter::failed);
-    const auto target=QUrl::fromLocalFile(files.filePath("exported.png"));
-    QVERIFY(dialog->setProperty("currentFolder",QUrl::fromLocalFile(files.path())));
+    const auto target=QUrl::fromLocalFile(files.filePath("Files/exported.png"));
+    QVERIFY(dialog->setProperty("currentFolder",QUrl::fromLocalFile(files.filePath("Files"))));
     QVERIFY(QMetaObject::invokeMethod(result,"saveImageToFile"));QTRY_VERIFY(dialog->property("visible").toBool());
     QCOMPARE(dialog->property("sourceImage").toUrl(),commandSource);QCOMPARE(dialog->property("defaultSuffix").toString(),"png");
     const auto next=QUrl::fromLocalFile(files.filePath("next.png"));QImage blue(16,16,QImage::Format_RGB32);blue.fill(Qt::blue);QVERIFY(blue.save(next.toLocalFile()));
@@ -3145,7 +3157,9 @@ void GuiTests::nativeResultSaveCommandsUseTheDocument()
     QVERIFY(fileName->setProperty("text",QFileInfo(target.toLocalFile()).fileName()));
     QVERIFY(QMetaObject::invokeMethod(fileName,"textEdited"));QVERIFY(QMetaObject::invokeMethod(fileName,"editingFinished"));
     QVERIFY(QMetaObject::invokeMethod(dialog,"accept"));
-    QTRY_COMPARE(saved.count(),1);QCOMPARE(failed.count(),0);
+    QTRY_VERIFY_WITH_TIMEOUT(saved.count()+failed.count()>0,30000);
+    if(!failed.isEmpty())QFAIL(qPrintable(failed.first().first().toString()));
+    QCOMPARE(saved.count(),1);QCOMPARE(failed.count(),0);
     QCOMPARE(saved.at(0).at(0).toUrl(),target);
     const QImage output(target.toLocalFile());QCOMPARE(output.size(),QSize(5001,2));QCOMPARE(output.pixel(0,0),0xff00ff00U);
     QCOMPARE(output.pixel(5000,1),0x804080c0U);QCOMPARE(output.text("parameters"),QString::fromStdString(metadata.generationParametersText));
@@ -3183,6 +3197,7 @@ void GuiTests::resultImageSaveToPhotos()
     QVERIFY(window->setProperty("currentResult", QVariantMap{{"imageSource", source}}));
     QVERIFY(window->setProperty("resultVisible", true));
     auto *result = item(window, "generationResult");
+    QVERIFY(QMetaObject::invokeMethod(item(window,"generationResult"),"selectImage",Q_ARG(QVariant,0),Q_ARG(QVariant,true)));
     auto *preview = item(window, "generatedImage");
     auto *menu = window->findChild<QObject *>("imageContextMenu");
     auto *dialog = window->findChild<QObject *>("saveImageDialog");
@@ -3199,9 +3214,9 @@ void GuiTests::resultImageSaveToPhotos()
     const auto point = preview->mapToScene(preview->boundingRect().center()).toPoint();
     QTest::mouseClick(window, Qt::RightButton, Qt::NoModifier, point);
     QTRY_VERIFY(menu->property("opened").toBool());
-    auto *photo = menuEntry(window->contentItem(), QStringLiteral("Save to Photos"));
+    auto *photo = menuEntry(window->contentItem(), QStringLiteral("Save current to Photos"));
     QVERIFY(photo && photo->isEnabled());
-    auto *file = menuEntry(window->contentItem(), QStringLiteral("Save to File"));
+    auto *file = menuEntry(window->contentItem(), QStringLiteral("Save current to File"));
     QVERIFY(file && file->isEnabled());
     const auto photoBounds = photo->mapRectToScene(photo->boundingRect());
     QVERIFY(photoBounds.left() >= 0 && photoBounds.right() <= window->width());
@@ -3217,7 +3232,7 @@ void GuiTests::resultImageSaveToPhotos()
     QTRY_VERIFY(!menu->property("visible").toBool());
     QTest::mouseClick(window, Qt::RightButton, Qt::NoModifier, point);
     QTRY_VERIFY(menu->property("opened").toBool());
-    photo = menuEntry(window->contentItem(), QStringLiteral("Save to Photos"));
+    photo = menuEntry(window->contentItem(), QStringLiteral("Save current to Photos"));
     QVERIFY(photo && !photo->isEnabled());
     QTest::keyClick(window, Qt::Key_Escape);
     QTRY_VERIFY(!menu->property("visible").toBool());
@@ -3234,13 +3249,13 @@ void GuiTests::resultImageSaveToPhotos()
     QVERIFY(exporter->save(QUrl::fromLocalFile(images.filePath("missing.png"))));
     QTRY_VERIFY(!exporter->busy());
     QVERIFY(result->property("saveFeedback").toString().startsWith("Could not prepare the image:"));
-    // Desktop platforms without a system photo backend retain only file export.
+    // Platforms without a Photos backend retain file export and disable Photos.
     auto *unsupported = new PhotoLibraryExporter({}, window);
     QVERIFY(result->setProperty("photoLibrary", QVariant::fromValue(unsupported)));
     QTest::mouseClick(window, Qt::RightButton, Qt::NoModifier, point);
     QTRY_VERIFY(menu->property("opened").toBool());
-    QVERIFY(menuEntry(window->contentItem(), QStringLiteral("Save to File")));
-    QVERIFY(!menuEntry(window->contentItem(), QStringLiteral("Save to Photos")));
+    QVERIFY(menuEntry(window->contentItem(), QStringLiteral("Save current to File")));
+    QVERIFY(!menuEntry(window->contentItem(), QStringLiteral("Save current to Photos"))->isEnabled());
 }
 
 void GuiTests::viewsLeaveWindowChromeAvailable()
@@ -3458,7 +3473,7 @@ void GuiTests::generateOpensResultImmediatelyAndDisplaysEveryPreview()
     QVERIFY(window && controller && controller->connected());
     QVERIFY(QTest::qWaitForWindowExposed(window));
     auto *quick = item(window, "quickGenerate");
-    auto *preview = item(window, "generatedImage");
+    auto *preview = item(window, "liveGenerationPreview");
     auto *generate = item(quick, "generateButton");
     QSignalSpy submissions(controller, &GenerationController::submissionQueued);
     QVERIFY(quick->setProperty("prompt", "live-gui"));
@@ -3470,6 +3485,7 @@ void GuiTests::generateOpensResultImmediatelyAndDisplaysEveryPreview()
     QVERIFY(!generate->isEnabled());
     QVERIFY(!item(window, "resultBackButton"));
     QVERIFY(!item(window, "newProjectButton"));
+    generate=item(quick,"generateButton");QVERIFY(generate);
     QUrl previous;
     for (int step = 1; step <= 3; ++step) {
         QTRY_COMPARE(controller->previewStep(), step);
@@ -3496,8 +3512,9 @@ void GuiTests::generateOpensResultImmediatelyAndDisplaysEveryPreview()
         QVERIFY(nextFrame.open(QIODevice::WriteOnly));
         nextFrame.close();
     }
-    QTRY_VERIFY_WITH_TIMEOUT(!controller->latestImage().isEmpty(), 10000);
-    QTRY_COMPARE(preview->property("source").toUrl(), controller->latestImage());
+    QTRY_VERIFY2_WITH_TIMEOUT(!controller->latestImage().isEmpty(),qPrintable(QString::fromUtf8(QJsonDocument::fromVariant(controller->jobs()).toJson())),30000);
+    QTRY_COMPARE(item(window,"generationResult")->property("imageSource").toUrl(),controller->latestImage());
+    QTRY_VERIFY(item(window,"resultGallery")->isVisible());
     QTRY_VERIFY(generate->isEnabled());
     QCOMPARE(quick->property("prompt").toString(), "next image draft");
     QCOMPARE(item(window, "quickGenerate"), quick);
@@ -3592,7 +3609,7 @@ void GuiTests::resultCancelsTheActiveGeneration()
         QCOMPARE(controller->jobs().size(), 3);
         const auto captureDirectory = qEnvironmentVariable("DREAMSCAPES_CAPTURE_DIR");
         if (!captureDirectory.isEmpty() && (phase == "preview" || phase == "native")) {
-            QTRY_COMPARE(item(window, "generatedImage")->property("status").toInt(), 1);
+            QTRY_VERIFY(item(window,"generationResult")->property("imageReady").toBool());
             QVERIFY(QDir().mkpath(captureDirectory));
             QVERIFY(window->grabWindow().save(captureDirectory + '/' + target + '-' + phase + ".png"));
         }
@@ -3604,7 +3621,11 @@ void GuiTests::resultCancelsTheActiveGeneration()
     QVERIFY(item(window, target == "ios" ? "mobileHome" : "desktopHome")->isVisible());
     QCOMPARE(item(window, "desktopHome")->property("selectedAction").toString(), "home");
     QVERIFY(listProperty(window, "resultJobIds").isEmpty());
-    QVERIFY(item(window, "generationResult")->property("imageSource").toUrl().isEmpty());
+    // A native worker can still own its transient preview while unwinding.
+    // The hidden workspace must expose no completed/selected file commands.
+    QVERIFY(!item(window,"generationResult")->isVisible());
+    QVERIFY(!item(window,"generationResult")->property("canSaveImage").toBool());
+    QVERIFY(listProperty(item(window,"generationResult"),"galleryResults").isEmpty());
     QCOMPARE(quick->property("prompt").toString(), phase == "queued" ? prompt : "draft typed while generating");
     QCOMPARE(quick->property("aspectRatio").toString(), "3:4");
     QCOMPARE(quick->property("generationCount").toInt(), 3);
@@ -3668,7 +3689,7 @@ void GuiTests::countSelectionCreatesThreeImagesInSociety()
     };
     QTRY_VERIFY2_WITH_TIMEOUT(allCompleted(),
         qPrintable(QString::fromUtf8(QJsonDocument::fromVariant(controller->jobs()).toJson(QJsonDocument::Compact))), 10000);
-    QCOMPARE(QDir(storage.filePath("Generation History")).entryList(QDir::Files).size(), 3);
+    QCOMPARE(QDir(storage.filePath("Generation History")).entryList({"*.png"},QDir::Files).size(),3);
     QCOMPARE(quick->property("generationCount").toInt(), 3);
     QVERIFY(window->property("resultVisible").toBool());
     auto *gallery = item(window, "resultGallery");
@@ -3682,19 +3703,19 @@ void GuiTests::countSelectionCreatesThreeImagesInSociety()
     QTRY_VERIFY(!gallery->isVisible());
     QVERIFY(quick->setProperty("prompt", "Another batch from the detail view"));
     click(window, item(quick, "generateButton"));
-    // A new submission retires the prior detail selection and starts with an empty result.
+    // A new submission closes detail while preserving the earlier session results.
     auto *result = item(window, "generationResult");
     QVERIFY(!result->property("detailVisible").toBool());
-    QCOMPARE(listProperty(result, "galleryResults").size(), 0);
-    QVERIFY(result->property("imageSource").toUrl().isEmpty());
+    QCOMPARE(listProperty(result,"galleryResults").size(),3);
+    QVERIFY(!result->property("imageSource").toUrl().isEmpty());
     QVERIFY(result->property("generationPending").toBool());
     QTRY_COMPARE(controller->jobs().size(), 6);
     QTRY_VERIFY_WITH_TIMEOUT(allCompleted(), 10000);
     QTRY_VERIFY(gallery->isVisible());
-    QTRY_COMPARE(gallery->property("count").toInt(), 3);
-    for (const auto &entry : listProperty(result, "galleryResults"))
+    QTRY_COMPARE(gallery->property("count").toInt(),6);
+    for (const auto &entry : listProperty(window,"submissionResults"))
         QCOMPARE(entry.toMap().value("prompt").toString(), "Another batch from the detail view");
-    QCOMPARE(QDir(storage.filePath("Generation History")).entryList(QDir::Files).size(), 6);
+    QCOMPARE(QDir(storage.filePath("Generation History")).entryList({"*.png"},QDir::Files).size(),6);
 }
 
 void GuiTests::newSubmissionReplacesDismissedResults_data()
@@ -3707,103 +3728,53 @@ void GuiTests::newSubmissionReplacesDismissedResults_data()
 
 void GuiTests::newSubmissionReplacesDismissedResults()
 {
-    QFETCH(QSize, viewport);
-    QFETCH(int, previousCount);
-    QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/result-submission-XXXXXX.societycontainer");
+    QFETCH(QSize,viewport);QFETCH(int,previousCount);
+    QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/review-submission-XXXXXX.societycontainer");
     QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
-    QFile model(storage.filePath("Models/submission.safetensors"));
-    QVERIFY(model.open(QIODevice::WriteOnly)); model.write("protocol fixture"); model.close();
-    QQmlApplicationEngine engine;
-    engine.setInitialProperties({{"initialContainerPath", storage.path()}, {"width", viewport.width()}, {"height", viewport.height()}});
-    engine.load(sourceUrl("Main.qml"));
-    QCOMPARE(engine.rootObjects().size(), 1);
-    auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first()); QVERIFY(window);
-    QVERIFY(QTest::qWaitForWindowExposed(window));
-    auto *controller = window->findChild<GenerationController *>("generationController"); QVERIFY(controller);
-    auto *quick = item(window, "quickGenerate");
-    auto *result = item(window, "generationResult");
-    const auto results = [&] { return listProperty(result, "galleryResults"); };
-    quick->setProperty("generationCount", previousCount);
-    quick->setProperty("prompt", "previous submission");
-    click(window, item(window, "generateButton"));
-    QTRY_COMPARE_WITH_TIMEOUT(controller->completedResults().size(), previousCount, 10000);
-    QTRY_COMPARE(results().size(), previousCount);
-    const auto oldImage = controller->latestImage();
-    QVERIFY(QFileInfo::exists(oldImage.toLocalFile()));
-    click(window, item(window, "cancelGenerationButton"));
-    QTRY_VERIFY(!window->property("resultVisible").toBool());
-    QCOMPARE(results().size(), 0);
-    QVERIFY(result->property("imageSource").toUrl().isEmpty());
-
-    quick->setProperty("generationCount", 2);
-    quick->setProperty("prompt", "live");
-    click(window, item(window, "generateButton"));
-    QVERIFY(window->property("resultVisible").toBool());
-    QCOMPARE(results().size(), 0);
-    QVERIFY(result->property("imageSource").toUrl().isEmpty());
-    QVERIFY(result->property("generationPending").toBool());
-    QVERIFY(!item(window, "resultStatus")->property("text").toString().isEmpty());
-    QTRY_VERIFY(!controller->previewImage().isEmpty());
-    QTRY_COMPARE(result->property("previewSource").toUrl(), controller->previewImage());
-    QVERIFY(result->property("imageSource").toUrl() != oldImage);
-    QTRY_COMPARE_WITH_TIMEOUT(controller->completedResults().size(), previousCount + 2, 10000);
-    QTRY_COMPARE(results().size(), 2);
-    for (const auto &entry : results()) QCOMPARE(entry.toMap().value("prompt").toString(), "live");
-    QVERIFY(QFileInfo::exists(oldImage.toLocalFile()));
-    QCOMPARE(QDir(storage.filePath("Generation History")).entryList(QDir::Files).size(), previousCount + 2);
+    QFile model(storage.filePath("Models/review.safetensors"));QVERIFY(model.open(QIODevice::WriteOnly));model.write("fixture");model.close();
+    QQmlApplicationEngine engine;engine.setInitialProperties({{"initialContainerPath",storage.path()}});engine.load(sourceUrl("Main.qml"));
+    QCOMPARE(engine.rootObjects().size(),1);auto *window=qobject_cast<QQuickWindow*>(engine.rootObjects().first());QVERIFY(window);
+    window->resize(viewport);QVERIFY(QTest::qWaitForWindowExposed(window));
+    auto *controller=window->findChild<GenerationController*>("generationController");QVERIFY(controller);
+    auto *quick=item(window,"quickGenerate");auto *result=item(window,"generationResult");
+    quick->setProperty("generationCount",previousCount);quick->setProperty("prompt","previous submission");
+    click(window,item(quick,"generateButton"));QTRY_COMPARE_WITH_TIMEOUT(controller->completedResults().size(),previousCount,30000);
+    auto *review=window->findChild<GenerationReviewModel*>("generationReviewModel");QVERIFY(review);
+    review->selectAt(0);review->setReview("shortlisted");const auto selected=review->selectedEntries();const auto focused=review->focusedKey();
+    click(window,item(result,"reviewBackButton"));QVERIFY(!window->property("resultVisible").toBool());
+    QCOMPARE(review->selectedEntries(),selected);QCOMPARE(review->shortlistedCount(),1);
+    quick->setProperty("generationCount",2);quick->setProperty("prompt","next submission");click(window,item(quick,"generateButton"));
+    QVERIFY(window->property("resultVisible").toBool());QCOMPARE(review->selectedEntries(),selected);QCOMPARE(review->focusedKey(),focused);
+    QTRY_COMPARE_WITH_TIMEOUT(controller->completedResults().size(),previousCount+2,30000);
+    QTRY_COMPARE(review->totalCount(),previousCount+2);QCOMPARE(review->selectedEntries(),selected);QCOMPARE(review->focusedKey(),focused);
+    QCOMPARE(listProperty(window,"submissionResults").size(),2);QCOMPARE(listProperty(result,"galleryResults").size(),previousCount+2);
+    QCOMPARE(QDir(storage.filePath("Generation History")).entryList({"*.png"},QDir::Files).size(),previousCount+2);
 }
 
 void GuiTests::dismissedGenerationCannotReopenOrContaminateTheNextSubmission()
 {
-    QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/dismissed-generation-XXXXXX.societycontainer");
-    QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
-    QFile model(storage.filePath("Models/session.safetensors"));
-    QVERIFY(model.open(QIODevice::WriteOnly)); model.write("protocol fixture"); model.close();
-    QQmlApplicationEngine engine; engine.setInitialProperties({{"initialContainerPath", storage.path()}});
-    engine.load(sourceUrl("Main.qml")); QCOMPARE(engine.rootObjects().size(), 1);
-    auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first()); QVERIFY(window);
-    QVERIFY(QTest::qWaitForWindowExposed(window));
-    auto *controller = window->findChild<GenerationController *>("generationController"); QVERIFY(controller);
-    auto *result = item(window, "generationResult");
-    QVERIFY(!controller->enqueue("live-gui").isEmpty());
-    QTRY_VERIFY(window->property("resultVisible").toBool());
-    QTRY_COMPARE(controller->previewStep(), 1);
-    escapeResult(window);
-    QVERIFY(!window->property("resultVisible").toBool());
-    QVERIFY(result->property("imageSource").toUrl().isEmpty());
-    // A new accepted request must open immediately while the dismissed worker still runs.
-    const auto next = controller->enqueue("live"); QVERIFY(!next.isEmpty());
-    QVERIFY(window->property("resultVisible").toBool());
-    QVERIFY(result->property("previewSource").toUrl().isEmpty());
-    QVERIFY(result->property("generationPending").toBool());
-    QCOMPARE(item(window, "resultStatus")->property("text").toString(), "Queued");
-    QVERIFY(item(window, "cancelGenerationButton")->isEnabled());
-    QVERIFY(!item(window, "generateButton")->isEnabled());
-    click(window, item(window, "cancelGenerationButton"));
-    QVERIFY(!window->property("resultVisible").toBool());
-    QCOMPARE(controller->jobs().first().toMap().value("state").toString(), "cancelled");
-    QCOMPARE(controller->jobs().last().toMap().value("state").toString(), "running");
-    // Cancel only owns the displayed submission; the dismissed worker survives.
-    QVERIFY(!controller->enqueue("live").isEmpty());
-    QVERIFY(window->property("resultVisible").toBool());
-    QVERIFY(result->property("previewSource").toUrl().isEmpty());
-    for (int step = 1; step <= 3; ++step) {
-        QTRY_COMPARE(controller->previewStep(), step);
-        QVERIFY(result->property("previewSource").toUrl().isEmpty());
-        QVERIFY(result->property("imageSource").toUrl().isEmpty());
+    QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/review-dismissed-XXXXXX.societycontainer");
+    QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));QFile model(storage.filePath("Models/review.safetensors"));
+    QVERIFY(model.open(QIODevice::WriteOnly));model.write("fixture");model.close();
+    QQmlApplicationEngine engine;engine.setInitialProperties({{"initialContainerPath",storage.path()}});engine.load(sourceUrl("Main.qml"));
+    QCOMPARE(engine.rootObjects().size(),1);auto *window=qobject_cast<QQuickWindow*>(engine.rootObjects().first());QVERIFY(window&&QTest::qWaitForWindowExposed(window));
+    auto *controller=window->findChild<GenerationController*>("generationController");QVERIFY(controller);
+    const auto first=controller->enqueue("live-gui");QVERIFY(!first.isEmpty());QTRY_COMPARE(controller->previewStep(),1);
+    escapeResult(window);QVERIFY(!window->property("resultVisible").toBool());
+    const auto second=controller->enqueue("live");QVERIFY(!second.isEmpty());QVERIFY(window->property("resultVisible").toBool());
+    // The whole queue may show the earlier active job, but Cancel batch owns only the new batch.
+    click(window,item(window,"cancelGenerationButton"));QVERIFY(!window->property("resultVisible").toBool());
+    auto state=[&](const QString& id){for(const auto& value:controller->jobs())if(value.toMap().value("id")==id)return value.toMap().value("state").toString();return QString{};};
+    QCOMPARE(state(second),QString("cancelled"));QCOMPARE(state(first),QString("running"));
+    for(int step=1;step<=3;++step) {
+        QTRY_COMPARE(controller->previewStep(),step);
         QFile release(QFileInfo(controller->previewImage().toLocalFile()).dir().filePath(QString("continue-%1").arg(step)));
-        QVERIFY(release.open(QIODevice::WriteOnly)); release.close();
+        QVERIFY(release.open(QIODevice::WriteOnly));release.close();
     }
-    QTRY_VERIFY_WITH_TIMEOUT(!controller->completedResults().isEmpty(), 10000);
-    QTRY_COMPARE(controller->jobs().first().toMap().value("state").toString(), "running");
-    QCOMPARE(listProperty(result, "galleryResults").size(), 0);
-    // Dismiss the second request too; its later previews and completion must keep Home open.
-    escapeResult(window);
+    QTRY_VERIFY2_WITH_TIMEOUT(state(first)=="completed",qPrintable(QString::fromUtf8(QJsonDocument::fromVariant(controller->jobs()).toJson())),30000);
     QVERIFY(!window->property("resultVisible").toBool());
-    QTRY_COMPARE_WITH_TIMEOUT(controller->completedResults().size(), 2, 10000);
-    QVERIFY(!window->property("resultVisible").toBool());
-    QVERIFY(result->property("imageSource").toUrl().isEmpty());
-    QVERIFY(result->property("previewSource").toUrl().isEmpty());
+    QVERIFY(QMetaObject::invokeMethod(window,"openGenerationReview"));
+    auto *review=window->findChild<GenerationReviewModel*>("generationReviewModel");QVERIFY(review);QCOMPARE(review->totalCount(),1);
 }
 
 void GuiTests::resultGalleryLayoutAndSelection_data()
@@ -3819,190 +3790,57 @@ void GuiTests::resultGalleryLayoutAndSelection_data()
 
 void GuiTests::resultGalleryLayoutAndSelection()
 {
-    QFETCH(QSize, size);
-    QFETCH(int, count);
-    QTemporaryDir images(DREAMSCAPES_TEST_DIRECTORY "/gallery-layout-XXXXXX.societycontainer");
-    QVERIFY(iiSocietyContainer::SocietyDrive::create(images.path()));
+    QFETCH(QSize,size);QFETCH(int,count);
+    QTemporaryDir images(DREAMSCAPES_TEST_DIRECTORY "/review-gallery-sources-XXXXXX");QVERIFY(images.isValid());
     QVariantList results;
-    for (int index = 0; index < count; ++index) {
-        QImage fixture(192, index % 2 ? 256 : 128, QImage::Format_RGB32);
-        fixture.fill(QColor::fromHsv((index * 37) % 360, 120, 190));
-        QPainter painter(&fixture);
-        painter.fillRect(0, 0, 64, fixture.height(), QColor::fromHsv((index * 37 + 40) % 360, 140, 140));
-        painter.setPen(Qt::white);
-        painter.setFont(QFont("Helvetica", 26));
-        painter.drawText(fixture.rect(), Qt::AlignCenter, QString::number(index + 1));
-        painter.end();
-        const auto path = images.filePath(QString("image-%1.png").arg(index));
-        QVERIFY(fixture.save(path));
-        results.append(QVariantMap{{"imageSource", QUrl::fromLocalFile(path)},
-            {"id", QString::number(index)}, {"prompt", QString("Image %1 prompt").arg(index + 1)},
-            {"aspectRatio", index % 2 ? "3:4" : "3:2"}});
+    for(int index=0;index<count;++index) {
+        QImage fixture(192,index%2?256:128,QImage::Format_RGB32);fixture.fill(QColor::fromHsv((index*37)%360,120,190));
+        const auto path=images.filePath(QString("image-%1.png").arg(index));QVERIFY(fixture.save(path));
+        results.append(QVariantMap{{"id",QString::number(index)},{"imageSource",QUrl::fromLocalFile(path)},
+            {"width",fixture.width()},{"height",fixture.height()},{"prompt",QString("Image %1 prompt").arg(index+1)}});
     }
-    QQmlApplicationEngine engine;
-    engine.setInitialProperties({{"initialContainerPath", images.path()}});
-    engine.load(sourceUrl("Main.qml"));
-    QCOMPARE(engine.rootObjects().size(), 1);
-    auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
-    QVERIFY(window);
-    window->resize(size);
-    QVERIFY(window->setProperty("currentResult", results.last()));
-    QVERIFY(window->setProperty("resultVisible", true));
-    auto *result = item(window, "generationResult");
-    QVERIFY(result && result->setProperty("results", results));
-    auto *gallery = item(window, "resultGallery");
-    QVERIFY(gallery);
-    QVERIFY(QTest::qWaitForWindowExposed(window));
-    auto *generation=qobject_cast<GenerationController *>(window->findChild<QObject *>("generationController"));QVERIFY(generation);
-    const auto jobsBeforeNavigation=generation->jobs();QSignalSpy navigationJobs(generation,&GenerationController::jobsChanged);
-    QTRY_VERIFY(gallery->isVisible());
-    QTRY_COMPARE(gallery->property("count").toInt(), count);
-    auto *quick = item(window, "quickGenerate");
-    QVERIFY(quick->setProperty("prompt", "Next image draft"));
-    auto *toolbar = item(window, "resultToolbar");
-    QVERIFY(gallery->width() >= result->width() - 4);
-    QVERIFY(gallery->height() >= result->height() - toolbar->height() - 8);
-    QVERIFY(gallery->clip());
-    QVERIFY(gallery->property("contentHeight").toReal() > gallery->height());
-    QCOMPARE(gallery->property("cellWidth"), gallery->property("cellHeight"));
-    const auto columns = gallery->property("columns").toInt();
-    QVERIFY(columns >= 2);
-    if (size.width() >= 960) QVERIFY(columns >= 4);
-    QQuickItem *tile = nullptr;
-    QTRY_VERIFY(QMetaObject::invokeMethod(gallery, "itemAtIndex", Q_RETURN_ARG(QQuickItem *, tile), Q_ARG(int, 0)) && tile);
+    // Rendering/selection is isolated from the storage inventory. The dedicated
+    // ReviewWorkspace suite verifies a genuinely generated original through Main.
+    QQmlEngine engine;QQmlComponent component(&engine,sourceUrl("Views/Result/GenerationResult.qml"));
+    QScopedPointer<QQuickItem> result(qobject_cast<QQuickItem*>(component.createWithInitialProperties({{"results",results}})));
+    QVERIFY2(result,qPrintable(component.errorString()));
+    QQuickWindow window;window.resize(size);result->setParentItem(window.contentItem());result->setSize(size);
+    auto *theme=engine.singletonInstance<QObject*>("LVRS","Theme");QVERIFY(theme);window.setColor(theme->property("window").value<QColor>());
+    window.show();QVERIFY(QTest::qWaitForWindowExposed(&window));
+    auto *gallery=item(result.data(),"resultGallery");QVERIFY(gallery);QTRY_COMPARE(gallery->property("count").toInt(),count);
+    QCOMPARE(gallery->width(),item(result.data(),"reviewResultsArea")->width());QVERIFY(gallery->height()>50);QVERIFY(gallery->clip());
+    QCOMPARE(gallery->property("cellWidth"),gallery->property("cellHeight"));
+    QVERIFY(gallery->property("columns").toInt()>=2);QVERIFY(gallery->property("contentHeight").toReal()>gallery->height());
+    QQuickItem *tile=nullptr;QTRY_VERIFY(QMetaObject::invokeMethod(gallery,"itemAtIndex",Q_RETURN_ARG(QQuickItem*,tile),Q_ARG(int,0))&&tile);
+    QTRY_VERIFY(tile->property("imageReady").toBool());QCOMPARE(item(tile,"galleryThumbnail")->property("fillMode").toInt(),2);
+    if(size==QSize(390,844)) {
+        auto *touch=QTest::createTouchDevice();const auto start=gallery->mapToScene(QPointF(gallery->width()/2,gallery->height()-50)).toPoint();
+        QTest::touchEvent(&window,touch).press(0,start,&window);
+        for(int step=1;step<=6;++step){QTest::touchEvent(&window,touch).move(0,start-QPoint(0,step*25),&window);QTest::qWait(20);}
+        QTest::touchEvent(&window,touch).release(0,start-QPoint(0,150),&window);QTRY_VERIFY(gallery->property("contentY").toReal()>0);
+        QVERIFY(!result->property("detailVisible").toBool());
+    }
+    if(size==QSize(960,640)&&count==80) {
+        const auto point=gallery->mapToScene(gallery->boundingRect().center());gallery->forceActiveFocus();
+        QWheelEvent wheel(point,window.mapToGlobal(point.toPoint()),QPoint(),QPoint(0,-360),Qt::NoButton,Qt::NoModifier,Qt::NoScrollPhase,false);
+        QCoreApplication::sendEvent(&window,&wheel);QTRY_VERIFY(gallery->property("contentY").toReal()>0);
+    }
+    QVERIFY(QMetaObject::invokeMethod(gallery,"cancelFlick"));QVERIFY(QMetaObject::invokeMethod(gallery,"positionViewAtEnd"));
+    QTRY_VERIFY(QMetaObject::invokeMethod(gallery,"itemAtIndex",Q_RETURN_ARG(QQuickItem*,tile),Q_ARG(int,count-1))&&tile);
     QTRY_VERIFY(tile->property("imageReady").toBool());
-    auto *thumbnail = item(tile, "galleryThumbnail");
-    QVERIFY(thumbnail);
-    QCOMPARE(thumbnail->property("fillMode").toInt(), 2); // Photo-style square crop.
-    QVERIFY(thumbnail->property("sourceSize").toSize().width() <= 1024);
-    const QString captureDirectory = qEnvironmentVariable("DREAMSCAPES_CAPTURE_DIR");
-    if (!captureDirectory.isEmpty()) {
-        QVERIFY(QDir().mkpath(captureDirectory));
-        QVERIFY(window->grabWindow().save(captureDirectory + '/' + QTest::currentDataTag() + ".png"));
-    }
-    if (size == QSize(390, 844)) {
-        auto *touch = QTest::createTouchDevice();
-        const auto start = gallery->mapToScene(QPointF(gallery->width() / 2, gallery->height() - 60)).toPoint();
-        QTest::touchEvent(window, touch).press(0, start, window);
-        for (int step = 1; step <= 6; ++step) {
-            QTest::touchEvent(window, touch).move(0, start - QPoint(0, step * 30), window);
-            QTest::qWait(20);
-        }
-        QTest::touchEvent(window, touch).release(0, start - QPoint(0, 180), window);
-        QTRY_VERIFY(gallery->property("contentY").toReal() > 0);
-        QVERIFY(gallery->isVisible()); // Scrolling a tile must not open its detail view.
-        QVERIFY(QMetaObject::invokeMethod(gallery, "cancelFlick"));
-    } else if (size == QSize(960, 640) && count == 80) {
-        const auto point = gallery->mapToScene(gallery->boundingRect().center());
-        window->requestActivate();
-        QVERIFY(QTest::qWaitForWindowActive(window));
-        QTest::mouseMove(window, point.toPoint());
-        gallery->forceActiveFocus();
-        QWheelEvent wheel(point, window->mapToGlobal(point.toPoint()), QPoint(), QPoint(0, -360),
-            Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
-        QCoreApplication::sendEvent(window, &wheel);
-        QTRY_VERIFY2(gallery->property("contentY").toReal() > 0,
-            qPrintable(QString("Wheel accepted=%1, active=%2, contentHeight=%3, height=%4, count=%5")
-                .arg(wheel.isAccepted()).arg(window->isActive())
-                .arg(gallery->property("contentHeight").toReal()).arg(gallery->height())
-                .arg(gallery->property("count").toInt())));
-        QVERIFY(gallery->isVisible());
-    }
-    // The last image must be reachable without constructing all 1000 thumbnails.
-    QVERIFY(QMetaObject::invokeMethod(gallery, "cancelFlick"));
-    QTRY_VERIFY(!gallery->property("moving").toBool() && !gallery->property("dragging").toBool());
-    QTRY_VERIFY(QMetaObject::invokeMethod(gallery, "positionViewAtEnd")
-                && gallery->property("contentY").toReal() > 0);
-    QTRY_VERIFY(QMetaObject::invokeMethod(gallery, "itemAtIndex", Q_RETURN_ARG(QQuickItem *, tile), Q_ARG(int, count - 1)) && tile);
-    QTRY_VERIFY(tile->property("imageReady").toBool());
-    auto contentY = gallery->property("contentY").toReal();
-    auto gallerySizeBefore = gallery->size();
-    const auto windowSizeBefore = window->size();
-    QPointer<QQuickItem> anchoredTile(tile);
-    const auto viewportDiagnostic = [&] {
-        const auto rect = anchoredTile ? bounds(anchoredTile, gallery) : QRectF{};
-        return QString("gallery=%1x%2 before=%3x%4 tile=(%5,%6 %7x%8) y=%9 expected=%10 saved=%11 restore=%12 moving=%13 dragging=%14")
-            .arg(gallery->width(),0,'g',17).arg(gallery->height(),0,'g',17)
-            .arg(gallerySizeBefore.width(),0,'g',17).arg(gallerySizeBefore.height(),0,'g',17)
-            .arg(rect.x(),0,'g',17).arg(rect.y(),0,'g',17).arg(rect.width(),0,'g',17).arg(rect.height(),0,'g',17)
-            .arg(gallery->property("contentY").toReal(),0,'g',17).arg(contentY,0,'g',17)
-            .arg(gallery->property("savedContentY").toReal(),0,'g',17)
-            .arg(gallery->property("restoreSavedPosition").toBool())
-            .arg(gallery->property("moving").toBool()).arg(gallery->property("dragging").toBool());
-    };
-    const auto *content = gallery->property("contentItem").value<QQuickItem *>();
-    QVERIFY(content);
-    // GridView retains a small pool when jumping between distant pages.
-    if (count == 1000) QVERIFY(content->childItems().size() < 200);
-    const auto reachLastTile = [&] {
-        // Native composer geometry may still settle after the touch release.
-        // Assert reachability in the current viewport, including Retina rounding.
-        if (!QMetaObject::invokeMethod(gallery, "positionViewAtEnd")
-            || !QMetaObject::invokeMethod(gallery, "itemAtIndex", Q_RETURN_ARG(QQuickItem *, tile), Q_ARG(int, count - 1)) || !tile) return false;
-        anchoredTile=tile;
-        const auto pixel=1.0/window->devicePixelRatio();
-        return gallery->boundingRect().adjusted(-pixel,-pixel,pixel,pixel).contains(bounds(tile,gallery));
-    };
-    QTRY_VERIFY2(reachLastTile(),qPrintable(viewportDiagnostic()));
-    contentY=gallery->property("contentY").toReal();gallerySizeBefore=gallery->size();
-    QTest::mouseDClick(window, Qt::LeftButton, Qt::NoModifier,
-                      tile->mapToScene(tile->boundingRect().center()).toPoint(), 50);
-    QTRY_VERIFY(!gallery->isVisible());
-    auto *detail = item(window, "generatedImage");
-    QTRY_COMPARE(detail->property("status").toInt(), 1);
-    QCOMPARE(detail->property("source").toUrl(), results.last().toMap().value("imageSource").toUrl());
-    QCOMPARE(detail->property("fillMode").toInt(), 1);
-    QVERIFY(detail->height() > 242);
-    QSignalSpy projectRequests(result, SIGNAL(imagesRequested(QVariant)));
-    editResultImage(window, count - 1);
-    QCOMPARE(projectRequests.size(), 1);
-    QCOMPARE(projectRequests.first().at(0).toList(), QVariantList{results.last()});
-    QVERIFY(item(window, "canvasEditor")->isVisible());
-    click(window, editorBackControl(window));
-    QTRY_VERIFY(result->isVisible());
-    QVERIFY(QMetaObject::invokeMethod(item(result, "resultImageSelection"), "reset"));
-    QVERIFY(QMetaObject::invokeMethod(result, "selectImage", Q_ARG(QVariant, count - 1), Q_ARG(QVariant, true)));
-    // New completions must not switch the image being inspected or exported.
-    const auto selected = results.last().toMap();
-    QObject *saveDialog = nullptr;
-    if (size == QSize(960, 640) && count == 80) {
-        saveDialog = window->findChild<QObject *>("saveImageDialog");
-        QVERIFY(saveDialog && saveDialog->setProperty("currentFolder", QUrl::fromLocalFile(images.path())));
-        QVERIFY(QMetaObject::invokeMethod(result, "saveImageToFile"));
-        QTRY_VERIFY(saveDialog->property("visible").toBool());
-        QCOMPARE(saveDialog->property("sourceImage").toUrl(), selected.value("imageSource").toUrl());
-    }
-    auto added = results.first().toMap();
-    added["id"] = "next-batch";
-    results.append(added);
-    QVERIFY(result->setProperty("results", results));
-    QVERIFY(window->setProperty("currentResult", added));
-    QCOMPARE(detail->property("source").toUrl(), selected.value("imageSource").toUrl());
-    if (saveDialog) {
-        QCOMPARE(saveDialog->property("sourceImage").toUrl(), selected.value("imageSource").toUrl());
-        QVERIFY(QMetaObject::invokeMethod(saveDialog, "reject"));
-        QTRY_VERIFY(!saveDialog->property("visible").toBool());
-    }
-    escapeResult(window);
-    QTRY_VERIFY(gallery->isVisible());
-    QVERIFY(window->property("resultVisible").toBool());
-    QCOMPARE(window->size(),windowSizeBefore);
-    QTRY_VERIFY2(qAbs(gallery->property("savedContentY").toReal() - contentY) <= 1,qPrintable(viewportDiagnostic()));
-    // A larger viewport can legitimately clamp the retained position at its end.
-    QTRY_VERIFY2(qAbs(gallery->property("contentY").toReal() - contentY) <= 1
-        || (gallery->property("contentY").toReal()<contentY && gallery->property("atYEnd").toBool()),qPrintable(viewportDiagnostic()));
-    QCOMPARE(item(window, "quickGenerate"), quick);
-    QCOMPARE(quick->property("prompt").toString(), "Next image draft");
-    window->resize(QSize(640, 640));
-    QTRY_VERIFY(gallery->property("columns").toInt() != columns || size.width() == 640);
-    QVERIFY(gallery->property("contentWidth").toReal() <= gallery->width() + 1);
-    auto *cancel=item(window,"cancelGenerationButton");QVERIFY(cancel);
-    // The grid binding can update before the native toolbar layout is polished.
-    QTRY_VERIFY(cancel->isVisible() && bounds(cancel,window->contentItem()).left()>=0
-        && bounds(cancel,window->contentItem()).right()<=window->width());
-    click(window,cancel);
-    QTRY_VERIFY(!window->property("resultVisible").toBool());
-    QCOMPARE(generation->jobs(),jobsBeforeNavigation);QCOMPARE(navigationJobs.size(),0);
+    auto *content=gallery->property("contentItem").value<QQuickItem*>();QVERIFY(content);if(count==1000)QVERIFY(content->childItems().size()<200);
+    QTest::mouseDClick(&window,Qt::LeftButton,Qt::NoModifier,tile->mapToScene(tile->boundingRect().center()).toPoint(),50);
+    QTRY_VERIFY(result->property("detailVisible").toBool());QVERIFY(!gallery->isVisible());
+    auto *detail=item(result.data(),"generatedImage");QVERIFY(detail);QTRY_COMPARE(detail->property("status").toInt(),1);
+    QCOMPARE(detail->property("source").toUrl(),results.last().toMap().value("imageSource").toUrl());
+    QSignalSpy requests(result.data(),SIGNAL(imagesRequested(QVariant)));
+    QVERIFY(QMetaObject::invokeMethod(result.data(),"editEntries",Q_ARG(QVariant,QVariantList{results.last()})));
+    QCOMPARE(requests.count(),1);QCOMPARE(requests.first().first().toList(),QVariantList{results.last()});
+    auto appended=results.first().toMap();appended["id"]="new-arrival";results.append(appended);
+    QVERIFY(result->setProperty("results",results));QCOMPARE(detail->property("source").toUrl(),results[count-1].toMap().value("imageSource").toUrl());
+    QVERIFY(QMetaObject::invokeMethod(result.data(),"goBack"));QTRY_VERIFY(gallery->isVisible());QTRY_COMPARE(gallery->property("count").toInt(),count+1);
+    window.resize(640,640);result->setSize(window.size());QTRY_VERIFY(gallery->property("contentWidth").toReal()<=gallery->width()+1);
+    QSignalSpy back(result.data(),SIGNAL(backRequested()));click(&window,item(result.data(),"reviewBackButton"));QCOMPARE(back.count(),1);
 }
 
 void GuiTests::generateButtonUsesSocietyStorage()
@@ -4028,7 +3866,7 @@ void GuiTests::generateButtonUsesSocietyStorage()
     click(window, item(window, "generateButton"));
     QTRY_COMPARE(controller->jobs().size(), 1);
     QTRY_COMPARE_WITH_TIMEOUT(controller->jobs().first().toMap().value("state").toString(), QString("completed"), 10000);
-    QTRY_COMPARE(item(window, "generatedImage")->property("status").toInt(), 1);
+    QTRY_VERIFY(item(window,"generationResult")->property("imageReady").toBool());
     QTRY_VERIFY(window->property("resultVisible").toBool());
     QVERIFY(controller->latestResult().value("imageSource").toUrl().toLocalFile().startsWith(storage.filePath("Generation History/")));
     QVERIFY(controller->latestImage().toLocalFile().endsWith(".png"));
@@ -4055,18 +3893,19 @@ void GuiTests::generateButtonUsesSocietyStorage()
     QTRY_COMPARE(controller->jobs().size(), 2);
     auto *gallery = item(window, "resultGallery");
     auto *result = item(window, "generationResult");
-    QVERIFY(!gallery->isVisible());
-    QCOMPARE(listProperty(result, "galleryResults").size(), 0);
-    QVERIFY(preview->property("source").toUrl().isEmpty());
+    QVERIFY(gallery->isVisible());
+    QCOMPARE(listProperty(result,"galleryResults").size(),1);
+    QCOMPARE(result->property("imageSource").toUrl(),firstImage);
     QVERIFY(result->property("generationPending").toBool());
     QCOMPARE(controller->property("completedResults").toList().first().toMap().value("imageSource").toUrl(), firstImage);
     QVERIFY(quick->setProperty("prompt", "draft typed during generation"));
-    QTRY_COMPARE_WITH_TIMEOUT(controller->jobs().first().toMap().value("state").toString(), QString("completed"), 10000);
-    QVERIFY(controller->latestImage() != firstImage);
-    QTRY_COMPARE(gallery->property("count").toInt(), 1);
-    QVERIFY(!gallery->isVisible());
-    QTRY_COMPARE(preview->property("source").toUrl(), controller->latestImage());
-    QTRY_COMPARE(preview->property("status").toInt(), 1);
+    QTRY_COMPARE_WITH_TIMEOUT(controller->completedResults().size(),2,15000);
+    QVERIFY(controller->latestImage()!=firstImage);
+    QTRY_COMPARE(gallery->property("count").toInt(),2);
+    QVERIFY(gallery->isVisible());
+    QCOMPARE(result->property("imageSource").toUrl(),firstImage);
+    QVERIFY(QMetaObject::invokeMethod(result,"selectImage",Q_ARG(QVariant,1),Q_ARG(QVariant,true)));
+    QTRY_COMPARE(preview->property("source").toUrl(),controller->latestImage());
     QCOMPARE(quick->property("prompt").toString(), "draft typed during generation");
     QCOMPARE(quick->property("aspectRatio").toString(), "16:9");
 
@@ -4075,7 +3914,7 @@ void GuiTests::generateButtonUsesSocietyStorage()
     QVERIFY(quick->setProperty("aspectRatio", "9:16"));
     QSignalSpy projectRequests(result, SIGNAL(imagesRequested(QVariant)));
     QVERIFY(projectRequests.isValid());
-    editResultImage(window, 0);
+    editResultImage(window,1);
     QCOMPARE(projectRequests.size(), 1);
     const auto projectInput = projectRequests.first().at(0).toList().first().toMap();
     QCOMPARE(projectInput.value("imageSource").toUrl(), controller->latestImage());
@@ -4092,8 +3931,8 @@ void GuiTests::generateButtonUsesSocietyStorage()
         Q_ARG(QString, "Image"), Q_ARG(QString, "bad"), Q_ARG(int, 1)));
     QCOMPARE(controller->jobs().size(), 2);
     QVERIFY(window->property("resultVisible").toBool());
-    QCOMPARE(preview->property("source").toUrl(), controller->latestImage());
-    QCOMPARE(listProperty(result, "galleryResults").size(), 1);
+    QCOMPARE(result->property("imageSource").toUrl(),controller->latestImage());
+    QCOMPARE(listProperty(result,"galleryResults").size(),2);
     QCOMPARE(item(window, "resultStatus")->property("text").toString(), controller->errorString());
     QVERIFY(!controller->errorString().isEmpty());
 
@@ -4101,9 +3940,8 @@ void GuiTests::generateButtonUsesSocietyStorage()
     QTRY_COMPARE_WITH_TIMEOUT(controller->jobs().first().toMap().value("state").toString(), QString("failed"), 10000);
     QVERIFY(window->property("resultVisible").toBool());
     QTRY_VERIFY(item(window, "resultStatus")->isVisible());
-    QVERIFY(preview->property("source").toUrl().isEmpty());
-    QCOMPARE(listProperty(result, "galleryResults").size(), 0);
-    click(window, item(window, "cancelGenerationButton"));
+    QCOMPARE(listProperty(result,"galleryResults").size(),2);
+    click(window,item(window,"reviewBackButton"));
     QTRY_VERIFY(!window->property("resultVisible").toBool());
     QTRY_COMPARE(item(window, "desktopHome")->property("selectedAction").toString(), "home");
     QTRY_COMPARE(item(window, "desktopHomeViewport")->property("contentY").toReal(), 0.0);
@@ -4179,92 +4017,23 @@ void GuiTests::resultScreenLayout_data()
 
 void GuiTests::resultScreenLayout()
 {
-    QFETCH(QString, target);
-    QFETCH(QSize, size);
-    QFETCH(QSize, imageSize);
-    QTemporaryDir images(DREAMSCAPES_TEST_DIRECTORY "/result-layout-XXXXXX.societycontainer");
-    QVERIFY(images.isValid());
-    QImage fixture(imageSize, QImage::Format_RGB32);
-    fixture.fill(QColor("#4172a4"));
-    QPainter painter(&fixture);
-    painter.fillRect(0, 0, imageSize.width() / 3, imageSize.height(), QColor("#a44f41"));
-    painter.fillRect(imageSize.width() * 2 / 3, 0, imageSize.width() / 3, imageSize.height(), QColor("#55a47b"));
-    painter.end();
-    const auto path = images.filePath("fit-fixture.png");
-    QVERIFY(fixture.save(path));
-    QQmlApplicationEngine engine;
-    auto *theme = engine.singletonInstance<QObject *>("LVRS", "Theme");
-    QVERIFY(theme && theme->setProperty("targetOverride", target));
-    QVERIFY(iiSocietyContainer::SocietyDrive::create(images.path()));
-    engine.setInitialProperties({{"initialContainerPath", images.path()}});
-    engine.load(sourceUrl("Main.qml"));
-    QCOMPARE(engine.rootObjects().size(), 1);
-    auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
-    QVERIFY(window);
-    window->resize(size);
-    QVERIFY(window->setProperty("currentResult", QVariantMap{{"imageSource", QUrl::fromLocalFile(path)}, {"prompt", "Previous Prompt"}}));
-    QVERIFY(window->setProperty("resultVisible", true));
-    auto *quick = item(window, "quickGenerate");
-    QVERIFY(quick && quick->setProperty("prompt", "Previous Prompt"));
-    auto *result = item(window, "generationResult");
-    auto *preview = item(window, "generatedImage");
-    auto *cancel = item(window, "cancelGenerationButton");
-    auto *select = item(window, "resultImageSelectionToggle");
-    QVERIFY(result && preview && cancel && select);
-    QVERIFY(!item(window, "resultBackButton"));
-    QVERIFY(!item(window, "newProjectButton"));
-    QVERIFY(QTest::qWaitForWindowExposed(window));
-    QTRY_COMPARE(preview->property("status").toInt(), 1);
-    const auto top = window->property("contentTopInset").toReal();
-    const auto bottom = window->property("mobileSystemSafeBottomInset").toReal();
-    const auto left = window->property("mobileSystemSafeLeftInset").toReal();
-    const auto right = window->property("mobileSystemSafeRightInset").toReal();
-    QTRY_COMPARE(quick->mapToScene(QPointF(0, quick->height())).y(), size.height() - bottom);
-    QCOMPARE(cancel->mapToScene(QPointF()).y(), top);
-    QCOMPARE(select->mapToScene(QPointF()).y(), top);
-    QCOMPARE(select->mapToScene(QPointF(select->width(), 0)).x(), size.width() - right);
-    QCOMPARE(cancel->height(), 22.0);
-    QCOMPARE(select->height(), 22.0);
-    QCOMPARE(preview->width(), size.width() - left - right);
-    QCOMPARE(preview->height(), 242.0);
-    QCOMPARE(preview->property("fillMode").toInt(), 1); // Image.PreserveAspectFit
-    QVERIFY(preview->clip());
-    const auto imageScale = qMin(preview->width() / imageSize.width(), preview->height() / imageSize.height());
-    QVERIFY(qAbs(preview->property("paintedWidth").toReal() - imageSize.width() * imageScale) <= 0.5);
-    QVERIFY(qAbs(preview->property("paintedHeight").toReal() - imageSize.height() * imageScale) <= 0.5);
-    const auto upperGap = preview->mapToScene(QPointF()).y() - cancel->mapToScene(QPointF(0, cancel->height())).y();
-    const auto lowerGap = quick->mapToScene(QPointF()).y() - preview->mapToScene(QPointF(0, preview->height())).y();
-    QVERIFY(qAbs(upperGap - lowerGap) <= 1.0); // Qt snaps centered images to device-independent pixels.
-    // The native title-bar reserve changes the available vertical gap. The
-    // result composer itself must retain the compact 72px contract.
-    if (size == QSize(402, 575)) QTRY_COMPARE(quick->height(), 72.0); // LVRS spacing spring settles after the Home → Result route.
-    QVERIFY(cancel->isEnabled());
-    QVERIFY(select->isEnabled());
-    const QString captureDirectory = qEnvironmentVariable("DREAMSCAPES_CAPTURE_DIR");
-    if (!captureDirectory.isEmpty()) {
-        QVERIFY(QDir().mkpath(captureDirectory));
-        const auto capture = window->grabWindow();
-        QVERIFY(!capture.isNull());
-        QVERIFY(capture.save(captureDirectory + '/' + QTest::currentDataTag() + ".png"));
-    }
-    // All bottom menus remain within the window and above their trigger.
-    for (const auto *name : {"mediaTypeButton"}) {
-        auto *button = item(quick, name);
-        auto *menu = quick->findChild<QObject *>("mediaTypeMenu");
-        QVERIFY(button && menu);
-        click(window, button);
-        QTRY_VERIFY(menu->property("opened").toBool());
-        QVERIFY(menu->property("x").toReal() >= 0);
-        QVERIFY(menu->property("x").toReal() + menu->property("width").toReal() <= size.width());
-        QVERIFY(menu->property("y").toReal() >= 0);
-        QVERIFY(menu->property("y").toReal() + menu->property("height").toReal() <= button->mapToScene(QPointF()).y());
-        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
-        QTRY_VERIFY(!menu->property("visible").toBool());
-    }
-    // Finish native popup/window teardown before the next platform profile.
-    window->close();
-    QTRY_VERIFY(!window->isVisible());
-    QTest::qWait(100);
+    QFETCH(QString,target);QFETCH(QSize,size);QFETCH(QSize,imageSize);
+    QTemporaryDir files(DREAMSCAPES_TEST_DIRECTORY "/review-layout-XXXXXX.societycontainer");QVERIFY(iiSocietyContainer::SocietyDrive::create(files.path()));
+    QImage image(imageSize,QImage::Format_RGB32);image.fill(QColor("#4172a4"));const auto path=files.filePath("result.png");QVERIFY(image.save(path));
+    QQmlApplicationEngine engine;auto *theme=engine.singletonInstance<QObject*>("LVRS","Theme");QVERIFY(theme&&theme->setProperty("targetOverride",target));
+    engine.setInitialProperties({{"initialContainerPath",files.path()}});engine.load(sourceUrl("Main.qml"));QCOMPARE(engine.rootObjects().size(),1);
+    auto *window=qobject_cast<QQuickWindow*>(engine.rootObjects().first());QVERIFY(window);window->resize(size);
+    window->setProperty("currentResult",QVariantMap{{"imageSource",QUrl::fromLocalFile(path)}});window->setProperty("resultVisible",true);
+    QVERIFY(QTest::qWaitForWindowExposed(window));auto *result=item(window,"generationResult");auto *gallery=item(window,"resultGallery");
+    QTRY_VERIFY(gallery->isVisible());QVERIFY(gallery->clip());QVERIFY(gallery->width()<=result->width());QVERIFY(gallery->height()>20);
+    auto *actions=item(result,"reviewActionViewport");QVERIFY(actions&&actions->clip());QCOMPARE(actions->width(),result->width());
+    QVERIFY(QMetaObject::invokeMethod(result,"selectImage",Q_ARG(QVariant,0),Q_ARG(QVariant,true)));
+    auto *preview=item(result,"generatedImage");QVERIFY(preview);QTRY_COMPARE(preview->property("status").toInt(),1);
+    QCOMPARE(preview->property("fillMode").toInt(),1);QVERIFY(preview->clip());QVERIFY(preview->width()<=result->width());
+    QVERIFY(preview->height()>50);QVERIFY(!gallery->isVisible());
+    escapeResult(window);QTRY_VERIFY(gallery->isVisible());
+    const auto capture=qEnvironmentVariable("DREAMSCAPES_CAPTURE_DIR");
+    if(!capture.isEmpty()){QVERIFY(QDir().mkpath(capture));QVERIFY(window->grabWindow().save(capture+'/'+QTest::currentDataTag()+".png"));}
 }
 
 void GuiTests::newCanvasChoosesPrintAndCustomSizes_data()
@@ -4538,7 +4307,7 @@ void GuiTests::canvasRoutesPreserveSelectionAndDraft()
     }
     QVERIFY(result->setProperty("result", selected));
     QVERIFY(window->setProperty("resultVisible", true));
-    QTRY_COMPARE(item(window, "generatedImage")->property("status").toInt(), 1);
+    QTRY_VERIFY(item(window,"generationResult")->property("imageReady").toBool());
     QVERIFY(!item(window, "newProjectButton"));
     editResultImage(window, 0);
     editor = item(window, "canvasEditor");
@@ -4659,11 +4428,11 @@ void GuiTests::multiCanvasProjectSelection()
         QTest::mouseClick(window,Qt::LeftButton,modifiers,tile->mapToScene(tile->boundingRect().center()).toPoint());
     };
     tap(0,Qt::NoModifier); QVERIFY(!result->property("detailVisible").toBool());
-    tap(3,Qt::MetaModifier); QTRY_COMPARE(listProperty(selection,"selectedImages").size(),2);
-    tap(4,Qt::MetaModifier|Qt::ShiftModifier); QTRY_COMPARE(listProperty(selection,"selectedImages").size(),3);
-    tap(0,Qt::ControlModifier); QTRY_COMPARE(listProperty(selection,"selectedImages").size(),2);
+    tap(3,Qt::MetaModifier); QTRY_COMPARE(listProperty(selection,"selectedImages").size(),1);
+    tap(4,Qt::MetaModifier|Qt::ShiftModifier); QTRY_COMPARE(listProperty(selection,"selectedImages").size(),2);
+    tap(0,Qt::ControlModifier); QTRY_COMPARE(listProperty(selection,"selectedImages").size(),3);
     tap(4,Qt::ShiftModifier); QTRY_COMPARE(listProperty(selection,"selectedImages").size(),4);
-    tap(1,Qt::NoModifier); QCOMPARE(listProperty(selection,"selectedImages").size(),1);
+    tap(1,Qt::NoModifier); QCOMPARE(listProperty(selection,"selectedImages").size(),4);
     QTest::keyClick(window,Qt::Key_Right,Qt::ShiftModifier);
     QTest::keyClick(window,Qt::Key_Right,Qt::ShiftModifier);
     QTRY_COMPARE(listProperty(selection,"selectedImages").size(),2);
@@ -5295,6 +5064,7 @@ void GuiTests::generatedImageSelectionRoutes()
     QTRY_VERIFY(visualItem(result, "resultImageTile1"));
     QTest::mouseDClick(window, Qt::LeftButton, Qt::NoModifier, visualItem(result, "resultImageTile0")->mapToScene(visualItem(result, "resultImageTile0")->boundingRect().center()).toPoint(), 50);
     QTRY_VERIFY(result->property("detailVisible").toBool());
+    QVERIFY(QMetaObject::invokeMethod(result,"goBack"));
     click(window, item(window, "resultImageSelectionToggle"));
     QTRY_VERIFY(result->property("galleryVisible").toBool());
     QVERIFY(!result->property("detailVisible").toBool());
@@ -10954,7 +10724,7 @@ void GuiTests::resultCannotOpenProjectWithoutReadableImage()
         QVariantMap{{"imageSource", sourceUrl("missing-result.png")}}));
     QVERIFY(window->setProperty("resultVisible", true));
     QVERIFY(QTest::qWaitForWindowExposed(window));
-    QTRY_COMPARE(item(window, "generatedImage")->property("status").toInt(), 3);
+    QTRY_COMPARE(result->property("imageStatus").toInt(),3);
     QSignalSpy requests(result, SIGNAL(imagesRequested(QVariant)));
     QVERIFY(requests.isValid());
     click(window, item(selection, "resultImageSelectionToggle"));
@@ -12203,12 +11973,12 @@ void GuiTests::videoHomeSubmitPlaysAndExports()
     auto *result=item(window,"generationResult"); QVERIFY(result);
     QCOMPARE(listProperty(window,"submissionResults").size(),2);
     QVERIFY(QMetaObject::invokeMethod(result,"selectImage",Q_ARG(QVariant,0),Q_ARG(QVariant,true)));
-    auto *video=item(result,"generatedVideo"); QVERIFY(video && video->isVisible());
-    auto *player=result->findChild<QObject *>("generatedVideoPlayer"); QVERIFY(player);
+    auto *video=item(result,"generatedImage"); QVERIFY(video && video->isVisible());
+    auto *player=result->findChild<QObject *>("generatedImagePlayer"); QVERIFY(player);
     QTRY_VERIFY_WITH_TIMEOUT(player->property("hasVideo").toBool(),10000);
     QTRY_COMPARE_WITH_TIMEOUT(player->property("duration").toInt(),1000,10000);
     QVERIFY(!item(result,"newProjectButton"));
-    click(window,item(result,"videoPlayButton"));
+    click(window,item(video,"videoPlayButton"));
     QTRY_COMPARE(player->property("playbackState").toInt(),int(QMediaPlayer::PlayingState));
     QTRY_VERIFY(player->property("position").toInt()>0);
     const auto source=controller->completedResults()[0].toMap().value("mediaSource").toUrl();
@@ -12233,7 +12003,7 @@ void GuiTests::videoHomeSubmitPlaysAndExports()
     QVERIFY(QMetaObject::invokeMethod(window,"openHomeFile",Q_ARG(QVariant,QVariant(stored))));
     QVERIFY(window->property("resultVisible").toBool());
     QTRY_COMPARE(player->property("source").toUrl(),stored.value("mediaSource").toUrl());
-    auto *poster=item(result,"videoPoster"); QVERIFY(poster);
+    auto *poster=item(result,"generatedImageImage"); QVERIFY(poster);
     QTRY_COMPARE(poster->property("status").toInt(),1); // Image.Ready
     QVERIFY(poster->isVisible());
     const auto capture=qEnvironmentVariable("DREAMSCAPES_CAPTURE_DIR");
@@ -12745,7 +12515,7 @@ void GuiTests::videoWorkspaceRoutesEditsAndGenerates()
     click(window,item(workspace,"videoGenerateComposition"));
     QCOMPARE(submitted.size(),1); QCOMPARE(submitted[0][0].toStringList().size(),2);
     QVERIFY(workspace->property("saveFeedback").toString().isEmpty());
-    QVERIFY(!window->property("resultVisible").toBool()); QVERIFY(workspace->isVisible());
+    QVERIFY(window->property("resultVisible").toBool()); QVERIFY(!workspace->isVisible());
     const auto recipe=controller->jobs()[0].toMap().value("videoParameters").toMap();
     QCOMPARE(recipe.value("frames").toInt(),84); QCOMPARE(recipe.value("shots").toList().size(),3);
     QCOMPARE(controller->jobs()[0].toMap().value("steps").toInt(),7);
@@ -12756,6 +12526,10 @@ void GuiTests::videoWorkspaceRoutesEditsAndGenerates()
     controller->setForeground(true);
     QTRY_COMPARE_WITH_TIMEOUT(controller->completedResults().size(),2,30000);
     QCOMPARE(listProperty(workspace,"results").size(),2);
+    QVERIFY(window->property("resultVisible").toBool());
+    click(window,item(window,"reviewBackButton"));
+    click(window,visualItem(sidebar,"desktopAction_video"));
+    QTRY_VERIFY(workspace->isVisible());
     auto *player=workspace->findChild<QObject *>("videoWorkspacePlayer"); QVERIFY(player);
     QTRY_VERIFY_WITH_TIMEOUT(player->property("hasVideo").toBool(),10000);
     QTRY_COMPARE_WITH_TIMEOUT(player->property("duration").toInt(),3500,10000);

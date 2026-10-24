@@ -16,6 +16,8 @@
 #include "Views/Editor/EditorGraphicCommand.h"
 #include "Views/ColorManagerModel.h"
 #include "Views/Result/ImageFileExporter.h"
+#include "Views/Result/GenerationReviewModel.h"
+#include "Views/Result/GenerationReviewExport.h"
 #include "Views/Result/PhotoLibraryExporter.h"
 #include "Publishing/SocialPublishingController.h"
 #include "Publishing/PublishDraft.h"
@@ -58,6 +60,8 @@ void registerStorageViewTypes()
         qmlRegisterType<EditorGraphicHelper>(uri, 1, 0, "EditorGraphicHelper");
         qmlRegisterType<EditorGraphicCommand>(uri, 1, 0, "EditorGraphicCommand");
         qmlRegisterType<ImageFileExporter>(uri, 1, 0, "ImageFileExporter");
+        qmlRegisterType<GenerationReviewModel>(uri, 1, 0, "GenerationReviewModel");
+        qmlRegisterType<GenerationReviewExport>(uri, 1, 0, "GenerationReviewExport");
         qmlRegisterType<PhotoLibraryExporter>(uri, 1, 0, "PhotoLibraryExporter");
         return true;
     }();

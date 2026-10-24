@@ -6,23 +6,28 @@ import "ImageSelection.js" as Selection
 LV.HStack {
     id: root
     property var entries: []
-    property bool selectionMode: false
+    property var selectionBackend: null
+    property bool selectionMode: selectionBackend ? selectionBackend.selectionMode : false
     property var selectedKeys: []
     property string anchorKey: ""
     property bool toggleOnClick: false
     readonly property var images: entries.filter(entry => Selection.isImage(entry))
-    readonly property var selectedImages: images.filter(entry => selectedKeys.indexOf(Selection.key(entry)) >= 0)
+    readonly property var selectedImages: selectionBackend ? selectionBackend.selectedImages
+        : images.filter(entry => selectedKeys.indexOf(Selection.key(entry)) >= 0)
     signal openRequested(var images)
     spacing: LV.Theme.gap6
-    visible: images.length > 1 || selectionMode
-    function isSelected(entry) { return selectionMode && selectedKeys.indexOf(Selection.key(entry)) >= 0 }
+    visible: selectionBackend ? entries.length > 0 : images.length > 1 || selectionMode
+    onSelectionModeChanged: if (selectionBackend && !selectionMode) toggleOnClick = false
+    function isSelected(entry) { return selectionBackend ? selectionBackend.isSelected(entry) : selectionMode && selectedKeys.indexOf(Selection.key(entry)) >= 0 }
     function toggle(entry) {
+        if (selectionBackend) { selectionBackend.toggle(entry); return }
         if (!Selection.isImage(entry)) return
         const key = Selection.key(entry)
         selectedKeys = selectedKeys.indexOf(key) >= 0
             ? selectedKeys.filter(value => value !== key) : selectedKeys.concat([key])
     }
     function selectAt(index, modifiers, previousIndex) {
+        if (selectionBackend) { selectionBackend.selectAt(index, modifiers); return }
         const entry = entries[index]
         if (!Selection.isImage(entry)) return
         const key = Selection.key(entry)
@@ -48,24 +53,32 @@ LV.HStack {
         }
     }
     function selectAll() {
+        if (selectionBackend) { selectionBackend.selectAll(); return }
         toggleOnClick = false
         selectedKeys = images.map(entry => Selection.key(entry))
         anchorKey = selectedKeys[0] || ""
         selectionMode = true
     }
-    function reset() { selectionMode = false; selectedKeys = []; anchorKey = ""; toggleOnClick = false }
-    onEntriesChanged: selectedKeys = selectedKeys.filter(key => images.some(entry => Selection.key(entry) === key))
+    function reset() {
+        if (selectionBackend) { selectionBackend.clearSelection(); toggleOnClick = false; return }
+        selectionMode = false; selectedKeys = []; anchorKey = ""; toggleOnClick = false
+    }
+    onEntriesChanged: if (!selectionBackend) selectedKeys = selectedKeys.filter(key => images.some(entry => Selection.key(entry) === key))
     LV.LabelButton {
         objectName: root.objectName + "Toggle"
         text: root.selectionMode ? qsTr("Cancel") : qsTr("Select")
         tone: LV.AbstractButton.Borderless
-        onClicked: { if (root.selectionMode) root.reset(); else { root.selectionMode = true; root.toggleOnClick = true; root.selectedKeys = []; root.anchorKey = "" } }
+        onClicked: {
+            if (root.selectionMode) root.reset()
+            else if (root.selectionBackend) { root.selectionBackend.selectionMode = true; root.toggleOnClick = true }
+            else { root.selectionMode = true; root.toggleOnClick = true; root.selectedKeys = []; root.anchorKey = "" }
+        }
     }
     LV.LabelButton {
         objectName: root.objectName + "Open"
-        visible: root.selectionMode
+        visible: root.selectionBackend ? root.selectedImages.length > 0 : root.selectionMode
         text: qsTr("Edit (%1)").arg(root.selectedImages.length)
-        tone: LV.AbstractButton.Primary
+        tone: root.selectionBackend ? LV.AbstractButton.Default : LV.AbstractButton.Primary
         enabled: root.selectedImages.length > 0
         onClicked: root.openRequested(root.selectedImages)
     }

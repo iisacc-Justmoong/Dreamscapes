@@ -47,7 +47,7 @@ Item {
     }
 
     // Own the accepted batch here, before the deferred worker starts. The app
-    // shell identifies QuickGenerate submissions through the submitting composer.
+    // shell routes every accepted submission into the shared review workspace.
     Connections {
         target: root.generation
         function onSubmissionQueued(ids) {
