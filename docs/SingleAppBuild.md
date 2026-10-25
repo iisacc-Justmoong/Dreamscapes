@@ -4,6 +4,18 @@
 
 macOS Release는 [성능 및 런타임 구성](Performance.md)의 Apple 추론 프로필과 compact 배포를 사용한다. `python3 scripts/build-macos-runtime.py --jobs 8`로 제품 전용 iiLocalDiffusion을 준비한 뒤 앱을 빌드한다. 미사용 Qt 모듈·스타일·디버그 자료 및 중복 LVRS 자산을 제외하고, 실제 실행 파일과 플러그인·헬퍼의 의존 관계에 필요한 런타임을 포함한다. 아키텍처 축소와 로컬 심볼 제거 후 전체 번들을 다시 서명한다.
 
+OpenSSL은 CMake가 선택한 Crypto/SSL 동적 라이브러리를 배포 인벤토리에 명시한다.
+FindOpenSSL의 UNKNOWN_LIBRARY 대상이 공유 라이브러리 목록에서 누락되더라도,
+SDK가 보존한 공급자의 설치 이름을 현재 설정의 런타임으로 해석해야 한다.
+실제 의존 관계에 필요한 라이브러리만 포함하며, 이전 앱 번들의 Frameworks나
+이미 제거된 Homebrew 설치 경로에 의존하지 않는다. 배포 회귀 검사는 이전 번들이
+없는 상태에서 없어진 설치 이름을 재현하고 선택된 런타임으로 해결되는지 확인한다.
+
+Qt 미디어 플러그인의 FFmpeg 등 네이티브 의존 파일은 compact 정리보다 먼저
+수집한다. 파일이 없는 상태에서 의존 관계를 검사하여 배포가 중단되거나, 이전
+번들에 우연히 남아 있던 파일에 기대지 않아야 한다. 공통 배포 정책의 미디어
+회귀 검사가 새 번들에서 이 순서와 플러그인 중복 복사 방지를 검사한다.
+
 에디터 빌드는 iiSharedCanvas 0.31.2, iiPaintEngine 0.5.1 및 iiSocietyHelper 0.9.5 패키지를 사용한다. 앱과 Helper가 동일한 캔버스 헤더·라이브러리를 사용해야 한다. iiSharedCanvas 0.29.0의 iiPaintEngine 0.1 계열 의존 계약과 iiPaintEngine 0.4 계열 설치본을 혼용하지 않는다. 기존 macOS platform 설치 경로를 사용하는 소비자도 같은 iiPaintEngine 버전으로 갱신해야 한다. SDK 릴리스 검증 중에는 `build/runtime-sdk/<SDK>`에 설치한 패키지를 `iiSharedCanvas_DIR`와 `iiSocietyHelper_DIR`로 명시할 수 있다. 앱 번들은 선택된 패키지의 런타임을 함께 포함한다.
 
 제품은 [워크스페이스 단일 앱 정책](../../build-policy/README.md)를 사용합니다. `build/` 아래에 오직 정통 애플리케이션 번들이 생성됩니다. 테스트와 헬퍼는 일반 실행 파일이며, 런타임 배포 및 패키징은 원위치로 작동합니다. 정통 경로, 플랫폼 전환 및 검증 명령에 대한 정책을 참조하십시오.

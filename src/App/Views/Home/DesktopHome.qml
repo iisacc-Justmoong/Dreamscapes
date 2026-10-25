@@ -18,7 +18,11 @@ Item {
     property string selectedAction: "home"
     property string browserSection: ""
     readonly property bool compact: width < LV.Theme.scaleMetric(700)
-    readonly property real contentHorizontalInset: compact ? LV.Theme.gap12 : LV.Theme.gap24
+    readonly property real contentHorizontalInset: compact ? LV.Theme.gap12 : LV.Theme.gap16
+    readonly property bool wideWorkspace: viewport.width >= 1040
+    readonly property var selectedFile: recentFilesTable.selectedFile
+    property string modelName: ""
+    property string deviceName: qsTr("Automatic")
     readonly property alias quickGenerateContainer: promptSlot
     readonly property alias storageContainer: storageSlot
     readonly property alias imageWorkspaceContainer: imageWorkspaceSlot
@@ -77,17 +81,25 @@ Item {
             Layout.fillHeight: true
             visible: !root.browserSection && root.selectedAction !== "image" && root.selectedAction !== "video"
             contentWidth: width
-            contentHeight: content.y + content.implicitHeight + 32
+            contentHeight: content.y + content.implicitHeight + LV.Theme.gap16
             boundsBehavior: Flickable.StopAtBounds
             clip: true
             Controls.ScrollBar.vertical: Controls.ScrollBar { policy: Controls.ScrollBar.AsNeeded }
-            LV.VStack {
+            LV.VStack { alignment: Qt.AlignLeft;
                 id: content
                 objectName: "desktopHomeContent"
                 x: root.contentHorizontalInset
-                y: 20
+                y: LV.Theme.gap16
                 width: Math.max(0, viewport.width - root.contentHorizontalInset * 2)
-                spacing: LV.Theme.gap20
+                spacing: LV.Theme.gap12
+                LV.HStack {
+                    Layout.fillWidth: true
+                    LV.Label { text: qsTr("Workspace"); style: header }
+                    LV.Label { text: qsTr("Create and continue"); style: caption; color: LV.Theme.descriptionColor; visible: content.width > 500 }
+                    Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
+                    LV.LabelButton { tone: LV.AbstractButton.Default; objectName: "homeOpenFile"; text: qsTr("Open file"); onClicked: root.openFileRequested() }
+                    LV.LabelButton { tone: LV.AbstractButton.Default; objectName: "homeNewCanvas"; text: qsTr("New canvas"); onClicked: root.activate("canvas") }
+                }
                 Item {
                     id: promptSlot
                     objectName: "desktopQuickGenerateSlot"
@@ -104,46 +116,73 @@ Item {
                     sizeToContentHeight: true
                     Layout.fillWidth: true
                 }
-                HomeQueueBar {
+                GridLayout {
+                    id: workArea
+                    objectName: "homeFileWorkspace"
                     Layout.fillWidth: true
-                    jobs: root.jobs
-                    statusText: root.generationStatus
-                    onViewQueueRequested: root.showQueue()
+                    columns: root.wideWorkspace ? 2 : 1
+                    columnSpacing: LV.Theme.gap12
+                    rowSpacing: LV.Theme.gap12
+                    readonly property real panelHeight: root.wideWorkspace
+                        ? Math.max(360, viewport.height - promptSlot.height - 284) : 360
+                    Item {
+                        Layout.fillWidth: true; Layout.minimumWidth: 0
+                        Layout.preferredWidth: 700; Layout.preferredHeight: workArea.panelHeight
+                        HomeRecentFiles {
+                            id: recentFilesTable
+                            anchors.fill: parent; anchors.margins: LV.Theme.gap12
+                            files: root.recentFiles
+                            loading: root.loading
+                            onViewAllRequested: root.browseRequested()
+                            onOpenFileRequested: root.openFileRequested()
+                            onFileRequested: function(file) { root.fileRequested(file) }
+                        }
+                    }
+                    Item {
+                        Layout.fillWidth: true; Layout.minimumWidth: 0
+                        Layout.preferredWidth: 515; Layout.preferredHeight: workArea.panelHeight
+                        HomeSelectedFile {
+                            anchors.fill: parent; anchors.margins: LV.Theme.gap12
+                            file: recentFilesTable.selectedFile
+                            onFileRequested: function(file) { root.fileRequested(file) }
+                        }
+                    }
                 }
-                HomeContentRow {
-                    id: recentRow
-                    objectName: "desktopRecentFiles"
+                GridLayout {
+                    objectName: "homeSessionWorkspace"
                     Layout.fillWidth: true
-                    title: qsTr("Recent files")
-                    actionText: qsTr("All files")
-                    files: root.recentFiles
-                    openFileAction: true
-                    loading: root.loading
-                    emptyText: qsTr("No recent files")
-                    cardsObjectName: "desktopRecentFileCards"
-                    itemObjectNamePrefix: "desktopRecentFile"
-                    onScrollRequested: function(delta) { root.scrollBy(delta) }
-                    onViewAllRequested: root.browseRequested()
-                    onOpenFileRequested: root.openFileRequested()
-                    onFileRequested: function(file) { root.fileRequested(file) }
+                    columns: root.wideWorkspace ? 2 : 1
+                    columnSpacing: LV.Theme.gap12
+                    rowSpacing: LV.Theme.gap12
+                    HomeQueueBar {
+                        Layout.fillWidth: true; Layout.minimumWidth: 0
+                        Layout.preferredWidth: 526; Layout.preferredHeight: 160
+                        jobs: root.jobs
+                        statusText: root.generationStatus
+                        modelName: root.modelName
+                        deviceName: root.deviceName
+                        onViewQueueRequested: root.showQueue()
+                    }
+                    Item {
+                        Layout.fillWidth: true; Layout.minimumWidth: 0
+                        Layout.preferredWidth: 689; Layout.preferredHeight: 160
+                        HomeRecentGenerations {
+                            anchors.fill: parent; anchors.margins: LV.Theme.gap12
+                            files: root.generationHistory
+                            loading: root.loading
+                            onViewAllRequested: root.historyRequested()
+                            onFileRequested: function(file) { root.fileRequested(file) }
+                            onImagesRequested: function(images) { root.imagesRequested(images) }
+                        }
+                    }
                 }
-                HomeContentRow {
-                    objectName: "generationHistory"
+                LV.HStack {
+                    objectName: "homeSessionStatus"
+                    Layout.preferredHeight: LV.Theme.controlHeightSm
                     Layout.fillWidth: true
-                    title: qsTr("Recent Generations")
-                    actionText: qsTr("Generation history")
-                    actionObjectName: "viewAllGenerationHistory"
-                    cardsObjectName: "generationHistoryCards"
-                    itemObjectNamePrefix: "generationHistoryCard"
-                    emptyObjectName: "emptyGenerationHistory"
-                    emptyText: qsTr("No generated images yet")
-                    files: root.generationHistory
-                    imageSelectionEnabled: true
-                    loading: root.loading
-                    onScrollRequested: function(delta) { root.scrollBy(delta) }
-                    onViewAllRequested: root.historyRequested()
-                    onFileRequested: function(file) { root.fileRequested(file) }
-                    onImagesRequested: function(images) { root.imagesRequested(images) }
+                    LV.Label { text: root.generationStatus || qsTr("Session · Idle"); style: caption; color: LV.Theme.descriptionColor; elide: Text.ElideRight; Layout.maximumWidth: content.width / 2 }
+                    Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
+                    LV.Label { text: qsTr("Storage · Society drive"); style: caption; color: LV.Theme.descriptionColor }
                 }
                 LV.LabelButton {
                     objectName: "desktopGenerationSettings"

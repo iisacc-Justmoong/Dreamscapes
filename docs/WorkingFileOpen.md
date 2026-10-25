@@ -93,3 +93,16 @@ still have GUI-owner costs. There is no zero-I/O or whole-application FPS claim.
 The existing bitmap wrapper contract may publish individual originals before a
 later cancellation; it is not a cross-file transaction. Native foreground input
 testing remains separate while another UI automation is active.
+
+## Home 이미지 열기와 저장소 등록 잠금
+
+원본 접근 토큰은 최초 버전 캡처에서만 짧게 소유한다. 실제 페이로드 읽기는
+SDK 디코더의 자체 접근 토큰을 사용하고, 준비 완료 전과 채택 전의 버전 검사는
+계속 수행한다. 이미지의 편집용 iisc를 Society에 등록하는 동안에는 원본 토큰을
+유지하지 않는다. 파일 수집 작업이 등록 임대를 가진 채 같은 원본의 프리뷰를
+읽는 경우에도 서로 기다리지 않아야 한다.
+
+`bitmapPublicationDoesNotHoldTheOriginalReadLock` 검사는 등록 임대를 잠시 점유한
+상태에서 이미지 열기를 시작하고, 등록을 기다리는 동안 다른 읽기 작업이 원본에
+접근할 수 있는지 확인한다. 임대를 해제한 뒤 문서 열기 완료와 원본 바이트 보존도
+검사한다. Home의 실제 선택·Open in editor 경로는 GUI 회귀 검사로 별도 검증한다.

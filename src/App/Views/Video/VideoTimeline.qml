@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import LVRS 1.0 as LV
@@ -8,6 +9,7 @@ import "../Editor" as Editor
 
 FocusScope {
     id: root
+    readonly property Item panelFrame: Frames.PanelFrame { parent: root; panelId: "video-timeline" }
     objectName:"videoTimeline"
     CanvasPreview { id: displayPreviews }
     required property VideoTimelineState stateModel

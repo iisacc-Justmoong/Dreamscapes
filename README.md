@@ -88,6 +88,21 @@ Android's `scripts/build-android.sh` builds and installs iiAcountManager, which 
 
 <a id="소스-구조"></a>
 
+## Panel surfaces
+
+The compact Home uses transparent, borderless surfaces and an unframed sidebar.
+Other existing workspaces retain their individual panel contracts, including the
+editor's square, one-logical-pixel gray outlines. The shared
+`PanelFrame` is an input-transparent decoration; `PanelSheet` adapts the public
+LVRS Sheet background without changing its behavior. Control sizing and states
+retain the stock LVRS defaults. See [Panel frames](docs/PanelFrames.md) for the
+scope, layout contract and rendered integration checks.
+
+The desktop editor uses a 30px rail of native 22px LVRS icon PushButtons and a
+180px minimal timeline. Shared panel edges are painted once. Existing timeline
+commands remain available in Timeline options; opening it or changing display
+geometry does not edit the document. See [Compact editor layout](docs/EditorCompactLayout.md).
+
 ## Source structure
 
 It uses the project root, `src/App`, `src/App/Views`, and the `src/App/Generation` dedicated to the creation queue. QWidget is not used.
@@ -711,6 +726,12 @@ horizontally, the middle mouse button pans, and Escape cancels a drag without a
 file edit. See [native editor timeline](docs/EditorLayerTimeline.md) for data,
 interaction and regression details.
 
+The editor retains its last complete frame while the next IISC frame is being
+rendered, then replaces the presentation atomically. Playback applies backpressure
+and follows the current wall/audio clock instead of canceling unfinished frames
+on every tick. See [canvas frame presentation](docs/CanvasFramePresentation.md)
+for ownership, transparency, viewport and pixel-regression contracts.
+
 The [application interaction audit](docs/InteractionAudit.md) tracks command-to-work
 and completion ownership across the whole app. Its first fixes cover consistent
 Home file-open outcomes, manual result ownership, unsupported mobile commands and
@@ -728,3 +749,5 @@ Working-file writes and preview source copies share native file-identity access
 through iiFileProvider and iiSharedCanvas. Idle file bindings and detached preview
 rendering do not retain that access. Changed source data invalidates in-flight
 previews; concurrent previews can reuse the current validated projection.
+
+The compact desktop Home follows Figma node `1467:4554`: a growing prompt, full-width generation controls, a dense recent-file list, an expanded selected-file preview, and compact queue/history panels. Home surfaces are transparent and borderless. Existing generation parameters, reference inputs, presets, video duration/FPS, multi-image editing, downloads and full-library routes remain connected. See [Desktop Home](docs/DesktopHome.md) for the interaction and read-only metadata contracts.

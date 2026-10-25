@@ -1,4 +1,5 @@
 #include "App/Views/Home/CanvasPreview.h"
+#include "App/Views/Home/HomeFileDetails.h"
 #include <iiSharedCanvas.h>
 #include <QDir>
 #include <QFile>
@@ -29,6 +30,31 @@ private:
     }
 private slots:
     void initTestCase() { qmlRegisterType<CanvasPreview>("Dreamscapes.Storage", 1, 0, "CanvasPreview"); }
+    void selectedNativeMetadataIsReadOnly() {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/home-details-XXXXXX"); QVERIFY(root.isValid());
+        const auto path=root.filePath("artwork.iisc"); const auto encoded=iiSharedCanvas::encodeIisc(artwork()); QVERIFY(encoded.ok());
+        const auto bytes=QByteArray(reinterpret_cast<const char *>(encoded.bytes.data()),qsizetype(encoded.bytes.size()));
+        QFile file(path); QVERIFY(file.open(QIODevice::WriteOnly)); QCOMPARE(file.write(bytes),qint64(bytes.size())); file.close();
+        HomeFileDetails details; details.setFile(entry(path));
+        QTRY_VERIFY(!details.loading());
+        QCOMPARE(details.metadata().value("width").toInt(),80);
+        QCOMPARE(details.metadata().value("height").toInt(),40);
+        QCOMPARE(details.metadata().value("layerCount").toInt(),1);
+        QCOMPARE(details.metadata().value("pageCount").toInt(),1);
+        QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(),bytes);
+        QCOMPARE(QDir(root.path()).entryList(QDir::Files),QStringList{"artwork.iisc"});
+    }
+    void selectedMetadataDiscardsStaleAndUnavailableRequests() {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/home-details-switch-XXXXXX"); QVERIFY(root.isValid());
+        QImage first(80,40,QImage::Format_RGB32), second(36,72,QImage::Format_RGB32);
+        first.fill(Qt::red); second.fill(Qt::blue);
+        const auto a=root.filePath("a.png"), b=root.filePath("b.png"); QVERIFY(first.save(a)); QVERIFY(second.save(b));
+        HomeFileDetails details; details.setFile(entry(a)); details.setFile(entry(b));
+        QTRY_VERIFY(!details.loading()); QCOMPARE(details.metadata().value("width").toInt(),36); QCOMPARE(details.metadata().value("height").toInt(),72);
+        auto unavailable=entry(a); unavailable["available"]=false; details.setFile(unavailable);
+        QVERIFY(!details.loading()); QVERIFY(details.metadata().isEmpty());
+        details.setFile({}); QVERIFY(!details.loading()); QVERIFY(details.metadata().isEmpty());
+    }
     void ordinaryAndUnavailableFilesKeepTheirPreviews() {
         const QUrl png("file:///unchanged.png?v=5");
         QCOMPARE(dreamscapes::canvasPreviewSource({{"path", "/file.png"}, {"previewSource", png}}), png);

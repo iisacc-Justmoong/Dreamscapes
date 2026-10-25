@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
 import ".." as Shared
@@ -451,7 +452,7 @@ Column {
             }
         }
     }
-    LV.Sheet {
+    Frames.PanelSheet {
         id: colorSheet
         objectName: "maskColorSheet"
         parent: root.toolState.parent
@@ -461,7 +462,7 @@ Column {
             onCanceled: colorSheet.close()
         }
     }
-    LV.Sheet {
+    Frames.PanelSheet {
         id: renameSheet
         objectName: "maskRenameSheet"
         parent: root.toolState.parent

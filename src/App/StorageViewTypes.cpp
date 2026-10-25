@@ -1,9 +1,15 @@
 #include "StorageViewTypes.h"
+#include "ViewModels/ViewData.h"
+#include "ViewModels/WorkspaceSession.h"
+#include "Generation/VideoDraftModel.h"
+#include "Generation/GenerationComposerModel.h"
 #include "Views/Home/HomeCanvas.h"
 #include "Views/Home/CanvasPresets.h"
 #include "Views/Home/CanvasPreview.h"
+#include "Views/Home/HomeFileDetails.h"
 #include "Views/Home/ImageOpenRequest.h"
 #include "Views/Editor/EditorCanvas.h"
+#include "Views/Editor/EditorToolStateModel.h"
 #include "Views/Editor/EditorCanvasFeedback.h"
 #include "Views/Editor/EditorAlignmentOverlay.h"
 #include "Views/Editor/EditorClippingOverlay.h"
@@ -32,6 +38,10 @@ void registerStorageViewTypes()
 {
     static const bool registered = [] {
         constexpr auto uri = "Dreamscapes.Storage";
+        dreamscapes::registerNativeViewModelTypes();
+        qmlRegisterType<dreamscapes::WorkspaceSession>(uri, 1, 0, "NativeWorkspaceSession");
+        qmlRegisterType<GenerationComposerModel>(uri, 1, 0, "NativeGenerationComposer");
+        qmlRegisterType<VideoDraftModel>(uri, 1, 0, "NativeVideoDraft");
         registerColorManagerTypes();
         qmlRegisterUncreatableType<iiSocietyContainer::Container>(uri, 1, 0,
             "SocietyContainer", "Provided by iiSocietyHelper");
@@ -46,7 +56,9 @@ void registerStorageViewTypes()
         qmlRegisterType<HomeCanvas>(uri, 1, 0, "HomeCanvas");
         qmlRegisterType<CanvasPresets>(uri, 1, 0, "CanvasPresets");
         qmlRegisterType<CanvasPreview>(uri, 1, 0, "CanvasPreview");
+        qmlRegisterType<HomeFileDetails>(uri, 1, 0, "HomeFileDetails");
         qmlRegisterType<ImageOpenRequest>(uri, 1, 0, "ImageOpenRequest");
+        qmlRegisterType<EditorToolStateModel>(uri, 1, 0, "NativeEditorToolState");
         qmlRegisterType<EditorCanvas>(uri, 1, 0, "EditorCanvas");
         qmlRegisterType<EditorCanvasFeedback>(uri, 1, 0, "EditorCanvasFeedback");
         qmlRegisterType<EditorAlignmentOverlay>(uri, 1, 0, "EditorAlignmentOverlay");

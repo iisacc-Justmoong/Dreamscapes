@@ -1,12 +1,12 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import QtQuick.Shapes
 import QtQuick.Controls as Controls
 import QtQuick.Dialogs
 import QtMultimedia
 import LVRS 1.0 as LV
 import ".." as Views
-import "EditorCameraPhotoDefinitions.js" as Photo
 
 Column {
     id: root
@@ -15,8 +15,8 @@ Column {
     readonly property var backend: toolState.engine ? toolState.engine.photoSources : null
     property VideoOutput cameraOutput: null
     onCameraOutputChanged: syncPreview()
-    readonly property var values: Object.assign({}, Photo.defaults(), toolState.toolId === "camera-photo" ? toolState.values : toolState.settingsByTool["camera-photo"] || {})
-    readonly property string currentViewId: Photo.views.some(function(view) { return view.id === values.selector }) ? values.selector : "Camera"
+    readonly property var values: Object.assign({}, NativeData.photo.defaults(), toolState.toolId === "camera-photo" ? toolState.values : toolState.settingsByTool["camera-photo"] || {})
+    readonly property string currentViewId: NativeData.photo.views.some(function(view) { return view.id === values.selector }) ? values.selector : "Camera"
     readonly property bool modalActive: options.visible || libraryFolder.visible || regionPicker.visible
     readonly property real inputWidth: Math.min(206, width * 206 / 398)
     readonly property real previewAspectRatio: {
@@ -38,13 +38,13 @@ Column {
         toolState.setValue(id, next)
     }
     function selectView(id) {
-        if (!Photo.views.some(function(view) { return view.id === id })) return
+        if (!NativeData.photo.views.some(function(view) { return view.id === id })) return
         edit("selector", id)
         options.close()
     }
     function openOptions(id, control, entries) {
         options.fieldId = id
-        options.entries = entries || Photo.field(id).options.map(function(option) { return {id: option, label: option} })
+        options.entries = entries || NativeData.photo.field(id).options.map(function(option) { return {id: option, label: option} })
         options.openFor(control, 0, control.height)
     }
     function syncPreview() {
@@ -119,7 +119,7 @@ Column {
         arrow: LV.Stepper.UpDown
         activeFocusOnTab: true
         Accessible.role: Accessible.Button
-        Accessible.name: Photo.field(fieldId).label + ": " + text
+        Accessible.name: NativeData.photo.field(fieldId).label + ": " + text
         Accessible.onPressAction: option.clicked()
         Keys.onReturnPressed: option.clicked()
         Keys.onSpacePressed: option.clicked()
@@ -129,19 +129,19 @@ Column {
         id: parameter
         required property string fieldId
         width: parent.width; height: 22; spacing: 8
-        Heading { width: parent.width - 105; height: 22; label: Photo.field(parameter.fieldId).label }
+        Heading { width: parent.width - 105; height: 22; label: NativeData.photo.field(parameter.fieldId).label }
         OptionBox { width: 97; fieldId: parameter.fieldId }
     }
     component ToggleRow: Row {
         id: toggle
         required property string fieldId
         width: parent.width; height: 22; spacing: 8
-        Heading { width: parent.width - 46; height: 22; label: Photo.field(toggle.fieldId).label }
+        Heading { width: parent.width - 46; height: 22; label: NativeData.photo.field(toggle.fieldId).label }
         LV.ToggleSwitch {
             objectName: "photoToggle-" + toggle.fieldId
             trackWidth: 38; trackHeight: 22
             checked: Boolean(root.value(toggle.fieldId))
-            Accessible.name: Photo.field(toggle.fieldId).label
+            Accessible.name: NativeData.photo.field(toggle.fieldId).label
             onToggled: {
                 root.edit(toggle.fieldId, checked)
                 if (toggle.fieldId === "galleryMultiple" && !checked && root.backend) root.backend.retainSingleSelection()
@@ -152,11 +152,11 @@ Column {
         id: choices
         required property string fieldId
         width: parent.width; spacing: 8
-        Heading { label: Photo.field(choices.fieldId).label }
+        Heading { label: NativeData.photo.field(choices.fieldId).label }
         Row {
             spacing: 8
             Repeater {
-                model: Photo.field(choices.fieldId).options
+                model: NativeData.photo.field(choices.fieldId).options
                 LV.LabelButton {
                     id: choiceButton
                     required property string modelData
@@ -164,7 +164,7 @@ Column {
                     objectName: "photoChoice-" + choices.fieldId + "-" + index
                     text: modelData
                     tone: LV.AbstractButton.Default
-                    Accessible.name: Photo.field(choices.fieldId).label + ": " + modelData
+                    Accessible.name: NativeData.photo.field(choices.fieldId).label + ": " + modelData
                     Accessible.checkable: true
                     Accessible.checked: root.value(choices.fieldId) === modelData
                     Accessible.onToggleAction: choiceButton.click()
@@ -184,7 +184,7 @@ Column {
         id: timer
         required property string fieldId
         width: parent.width; spacing: 8
-        Heading { label: Photo.field(timer.fieldId).label }
+        Heading { label: NativeData.photo.field(timer.fieldId).label }
         Item {
             width: parent.width; height: 22
             Row {
@@ -198,7 +198,7 @@ Column {
                         objectName: "photoTimer-" + timer.fieldId + "-" + modelData
                         text: modelData ? modelData + " s" : qsTr("Off")
                         tone: LV.AbstractButton.Default
-                        Accessible.name: Photo.field(timer.fieldId).label + ": " + text
+                        Accessible.name: NativeData.photo.field(timer.fieldId).label + ": " + text
                         Accessible.checkable: true; Accessible.checked: Number(root.value(timer.fieldId)) === modelData
                         Accessible.onToggleAction: timerButton.click()
                         EditorButtonState {
@@ -218,7 +218,7 @@ Column {
                 placeholderText: qsTr("Duration")
                 inputMethodHints: Qt.ImhDigitsOnly
                 validator: IntValidator { bottom: 0; top: 60 }
-                Accessible.name: Photo.field(timer.fieldId).label + qsTr(" duration in seconds")
+                Accessible.name: NativeData.photo.field(timer.fieldId).label + qsTr(" duration in seconds")
                 onTextEdited: { const next = Number(text); if (text.length && isFinite(next) && next >= 0 && next <= 60) root.edit(timer.fieldId, next) }
             }
         }
@@ -299,7 +299,7 @@ Column {
         objectName: "photoNavigation"
         forceBorderlessTone: false
         Repeater {
-            model: Photo.views
+            model: NativeData.photo.views
             LV.IconButton {
                 id: selectionButton1
                 required property var modelData

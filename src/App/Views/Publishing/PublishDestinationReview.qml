@@ -1,11 +1,13 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 
 Item {
     id: root
+    readonly property Item panelFrame: Frames.PanelFrame { parent: root; panelId: "destination-review" }
     required property var review
     required property var draft
     required property var project
@@ -173,4 +175,6 @@ Item {
     }
     FolderDialog { id: exportFolder; title: qsTr("Export publication frames"); onAccepted: root.review.exportFrames(selectedFolder) }
     onVisibleChanged: if (!visible) exportFolder.close()
+    readonly property Item settingsPanelFrame: Frames.PanelFrame { parent: viewport.contentItem; target: settings; panelId: "destination-settings" }
+    readonly property Item previewPanelFrame: Frames.PanelFrame { parent: viewport.contentItem; target: preview; panelId: "destination-preview" }
 }

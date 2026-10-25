@@ -21,6 +21,7 @@ class EditorTimelineModel : public QObject {
     Q_PROPERTY(QVariantList keys READ keys NOTIFY projectionChanged)
     Q_PROPERTY(QVariantList trackLayout READ trackLayout NOTIFY layoutChanged)
     Q_PROPERTY(int laneHeight READ laneHeight NOTIFY layoutChanged)
+    Q_PROPERTY(int rulerHeight READ rulerHeight WRITE setRulerHeight NOTIFY layoutChanged)
     Q_PROPERTY(int layerCount READ layerCount NOTIFY projectionChanged)
     Q_PROPERTY(int keptCount READ keptCount NOTIFY projectionChanged)
     Q_PROPERTY(bool hasAudio READ hasAudio NOTIFY projectionChanged)
@@ -60,6 +61,8 @@ public:
     QVariantList keys() const { return m_keys; }
     QVariantList trackLayout() const { return m_trackLayout; }
     int laneHeight() const { return m_laneHeight; }
+    int rulerHeight() const { return m_rulerHeight; }
+    void setRulerHeight(int value);
     int layerCount() const { return m_layerCount; }
     int keptCount() const { return m_keptCount; }
     bool hasAudio() const { return m_hasAudio; }
@@ -181,7 +184,7 @@ private:
     bool m_playing=false,m_playbackClockStarted=false,m_audioClock=false,m_advancingPlayback=false;
     QVariantList m_tracks,m_clips,m_keys;
     QVariantList m_trackLayout;
-    int m_laneHeight=126,m_layerCount=0,m_keptCount=0;
+    int m_laneHeight=126,m_rulerHeight=44,m_layerCount=0,m_keptCount=0;
     bool m_hasAudio=false;
     double m_projectedFps=24;
     int m_projectedFrames=1;

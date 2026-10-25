@@ -1,27 +1,27 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
 import ".." as Views
-import "EditorFileDefinitions.js" as Files
 
 Item {
     id: root
     objectName: "editorFilePanel"
     required property var toolState
     readonly property string currentViewId: toolState.fileViewId || "information"
-    readonly property var selectedView: Files.view(currentViewId)
+    readonly property var selectedView: NativeData.file.view(currentViewId)
     readonly property string figmaNode: selectedView.figmaNode
     readonly property var information: toolState.projectRuntime && toolState.projectRuntime.currentCanvas === toolState.engine
         ? toolState.projectRuntime.fileInformation : toolState.engine ? toolState.engine.fileInformation : ({})
     readonly property var viewInformation: toolState.engine ? toolState.engine.fileViewInformation : ({})
     readonly property int fieldCount: selectedView.sections.reduce(function(count, section) { return count + section.rows.length }, 0)
-    readonly property int segmentCount: Files.views.length
+    readonly property int segmentCount: NativeData.file.views.length
     implicitWidth: 398
     implicitHeight: 766
 
     function selectView(id) {
-        if (!Files.views.some(function(view) { return view.id === id })) return false
+        if (!NativeData.file.views.some(function(view) { return view.id === id })) return false
         toolState.fileViewId = id
         return true
     }
@@ -44,7 +44,7 @@ Item {
         objectName: "editorFileViewSegments"
         forceBorderlessTone: false
         Repeater {
-            model: Files.views
+            model: NativeData.file.views
             LV.IconButton {
                 id: selectionButton1
                 required property var modelData

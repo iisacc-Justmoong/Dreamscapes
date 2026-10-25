@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
@@ -8,6 +9,7 @@ import ".." as Shared
 
 Item {
     id: root
+    readonly property Item panelFrame: Frames.PanelFrame { parent: root; panelId: "paint-input" }
     objectName: "homePaintCanvas"
     property string aspectRatio: "1:1"
     property alias canvas: canvas
@@ -50,7 +52,7 @@ Item {
             Layout.fillWidth: true
             implicitHeight: panel.implicitHeight + 24
             color: LV.Theme.panelBackground08
-            radius: 12
+            radius: 0
             ColumnLayout {
                 id: panel
                 anchors.left: parent.left

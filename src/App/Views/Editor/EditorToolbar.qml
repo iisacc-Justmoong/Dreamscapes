@@ -1,24 +1,27 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import LVRS 1.0 as LV
 
 Rectangle {
     id: root
     objectName: "editorToolbar"
     property bool mobileLayout: false
-    implicitWidth: LV.Theme.scaleMetric(36) + LV.Theme.gap8 * 2
-    implicitHeight: mobileLayout ? LV.Theme.scaleMetric(84)
-        : tools.length * LV.Theme.scaleMetric(36) + Math.max(0, tools.length - 1) * LV.Theme.gap4 + LV.Theme.gap8 * 2
-    radius: LV.Theme.scaleMetric(18)
+    property bool sharedBorders: false
+    readonly property Item panelFrame: Frames.PanelFrame {
+        parent: root; panelId: "tools"
+        topEdge: !root.sharedBorders; bottomEdge: !root.sharedBorders; leftEdge: !root.sharedBorders
+    }
+    implicitWidth: mobileLayout ? 52 : 30
+    implicitHeight: mobileLayout ? 84 : tools.length * 22 + Math.max(0, tools.length - 1) * 4 + 15 + 16
+    radius: 0
     color: "transparent"
     border.width: mobileLayout ? 1 : 0
     border.color: "transparent"
-    readonly property string currentTool: tools[toolList.currentIndex].key
+    readonly property string currentTool: tools[Math.max(0, toolList.currentIndex)].key
     readonly property int currentIndex: toolList.currentIndex
     signal toolSelected(string toolId)
 
-    // Figma 1105:91844 uses a vertical desktop rail; mobile keeps its bottom strip.
-    // Both layouts share the original 22px icon assets and the 18 active tools.
     readonly property var tools: [
         { key: "elements", label: qsTr("Elements"), iconWidth: 18.1, iconHeight: 18.1, iconX: 1.95, iconY: 1.95 },
         { key: "text", label: qsTr("Text"), iconWidth: 14.4333, iconHeight: 18.1, iconX: 3.7833, iconY: 1.95 },
@@ -40,11 +43,15 @@ Rectangle {
         { key: "eraser", label: qsTr("Eraser"), iconWidth: 16.2667, iconHeight: 15.35, iconX: 2.8667, iconY: 3.7833 }
     ]
 
+    function focusCurrent() {
+        const current = toolList.currentItem
+        if (current && current.button) current.button.forceActiveFocus()
+    }
     function selectTool(index) {
         if (index < 0 || index >= tools.length) return
         toolList.currentIndex = index
         toolList.positionViewAtIndex(index, ListView.Contain)
-        if (toolList.currentItem) toolList.currentItem.forceActiveFocus()
+        focusCurrent()
         toolSelected(tools[index].key)
     }
     function syncTool(index) {
@@ -58,10 +65,10 @@ Rectangle {
     ListView {
         id: toolList
         objectName: "editorToolList"
-        x: LV.Theme.gap8 + root.border.width
-        y: LV.Theme.gap8 + root.border.width
+        x: root.mobileLayout ? 9 : 4
+        y: root.mobileLayout ? 9 : 8
         width: Math.max(0, parent.width - x * 2)
-        height: root.mobileLayout ? LV.Theme.scaleMetric(68) : Math.max(0, root.height - y * 2)
+        height: root.mobileLayout ? 68 : Math.max(0, root.height - y * 2)
         orientation: root.mobileLayout ? ListView.Horizontal : ListView.Vertical
         spacing: LV.Theme.gap4
         model: root.tools
@@ -78,11 +85,56 @@ Rectangle {
             toolList.contentY = 0
             toolList.positionViewAtIndex(toolList.currentIndex, ListView.Contain)
         })
-
-        delegate: LV.Tab {
-            id: tool
+        delegate: Item {
+            id: host
             required property int index
             required property var modelData
+            readonly property int groupOffset: !root.mobileLayout && [4, 9, 12].indexOf(index) >= 0 ? 5 : 0
+            readonly property var button: buttonLoader.item
+            width: root.mobileLayout ? 86 : 22
+            height: (root.mobileLayout ? 68 : 22) + groupOffset
+            Rectangle {
+                visible: host.groupOffset > 0
+                x: 1; width: 20; height: 1
+                color: LV.Theme.panelBackground08
+            }
+            Loader {
+                id: buttonLoader
+                y: host.groupOffset
+                width: host.width
+                height: root.mobileLayout ? 68 : 22
+                sourceComponent: root.mobileLayout ? mobileButton : desktopButton
+                Component {
+                    id: desktopButton
+                    LV.IconButton {
+                        id: desktopTool
+                        objectName: "editorTool-" + host.modelData.key
+                        iconName: host.modelData.key
+                        iconSource: Qt.resolvedUrl("Assets/tool-" + host.modelData.key + ".svg")
+                        tone: LV.AbstractButton.Default
+                        autoExclusive: true
+                        readonly property bool selected: toolList.currentIndex === host.index
+                        EditorButtonState { button: desktopTool; selected: desktopTool.selected }
+                        Accessible.role: Accessible.RadioButton
+                        Accessible.name: host.modelData.label
+                        onClicked: root.selectTool(host.index)
+                        Keys.onUpPressed: root.moveFocus(host.index, -1)
+                        Keys.onDownPressed: root.moveFocus(host.index, 1)
+                        Keys.onPressed: function(event) {
+                            if (event.key === Qt.Key_Home || event.key === Qt.Key_End) {
+                                root.focusBoundary(event.key === Qt.Key_End)
+                                event.accepted = true
+                            }
+                        }
+                        LV.Tooltip { target: desktopTool; text: host.modelData.label }
+                    }
+                }
+                Component {
+                    id: mobileButton
+                    LV.Tab {
+            id: tool
+            readonly property int index: host.index
+            readonly property var modelData: host.modelData
             objectName: "editorTool-" + modelData.key
             width: LV.Theme.scaleMetric(root.mobileLayout ? 86 : 36)
             height: LV.Theme.scaleMetric(root.mobileLayout ? 68 : 36)
@@ -150,6 +202,9 @@ Rectangle {
                     horizontalAlignment: Text.AlignHCenter
                     color: tool.selected ? LV.Theme.textTokenTitleHeader : LV.Theme.textTokenCaption
                     Accessible.ignored: true
+                }
+            }
+        }
                 }
             }
         }

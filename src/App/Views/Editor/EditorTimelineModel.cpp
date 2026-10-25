@@ -276,6 +276,11 @@ void EditorTimelineModel::refresh() {
     if(projectionUpdated){emit projectionChanged();emit playheadChanged();}
     emit changed();
 }
+void EditorTimelineModel::setRulerHeight(int value) {
+    if(value<16||value>96||value==m_rulerHeight)return;
+    m_rulerHeight=value;
+    updateLayout(); // View geometry only; never a document command or refresh.
+}
 void EditorTimelineModel::updateLayout() {
     QHash<QString,QVariantList> clips,keys,motion;
     for(const auto &value:m_clips){const auto row=value.toMap();
@@ -283,7 +288,7 @@ void EditorTimelineModel::updateLayout() {
             clips[row["trackId"].toString()].append(value);}
     for(const auto &value:m_keys){const auto row=value.toMap();const auto id=row["trackId"].toString();
         keys[id].append(value);if(row["kind"]=="Motion")motion[id].append(value);}
-    QVariantList layout;int top=44;
+    QVariantList layout;int top=m_rulerHeight;
     for(const auto &value:m_tracks){auto row=value.toMap();const auto id=row["id"].toString();
         if(row["type"]!="Audio"&&m_filter!="All"&&clips.value(id).isEmpty())continue;
         auto motionKeys=motion.value(id);
@@ -294,7 +299,7 @@ void EditorTimelineModel::updateLayout() {
         row["clips"]=clips.value(id);row["keys"]=m_mode=="Layers"?QVariantList{}:keys.value(id);row["motionKeys"]=motionKeys;
         top+=height;layout.append(row);
     }
-    const int height=layout.isEmpty()?126:top;
+    const int height=layout.isEmpty()?m_rulerHeight+82:top;
     if(m_trackLayout!=layout||m_laneHeight!=height){m_trackLayout=std::move(layout);m_laneHeight=height;emit layoutChanged();}
 }
 QString EditorTimelineModel::timecode() const {

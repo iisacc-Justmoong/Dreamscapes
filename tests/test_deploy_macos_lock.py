@@ -53,6 +53,27 @@ deployment.deploy(SimpleNamespace(app=Path(supplied_app)))
 
 
 class DeploymentLockTests(unittest.TestCase):
+    def test_selected_crypto_resolves_a_missing_provider_install_name_without_an_old_bundle(self):
+        spec = importlib.util.spec_from_file_location("deployment", SCRIPT)
+        deployment = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(deployment)
+        app = self.app("Fresh")
+        executable = app / "Contents/MacOS/Fresh"
+        executable.parent.mkdir(parents=True)
+        executable.write_bytes(b"fixture")
+        crypto = self.workspace / "runtime-sdk/OpenSSL/lib/libcrypto.dylib"
+        crypto.parent.mkdir(parents=True)
+        crypto.write_bytes(b"configured runtime")
+        missing = str(self.workspace / "uninstalled-provider/libcrypto.3.dylib")
+        with mock.patch.object(deployment, "identities", side_effect=lambda path: [missing] if path == crypto else []), \
+             mock.patch.object(deployment, "dependencies", side_effect=lambda path: [missing] if path == executable else ["/usr/lib/libSystem.B.dylib"]), \
+             mock.patch.object(deployment, "rpaths", return_value=[]):
+            with self.assertRaisesRegex(RuntimeError, "Missing runtime dependency"):
+                deployment.native_sources(executable, [], [])
+            selected = deployment.native_sources(executable, [crypto], [])
+        self.assertEqual(selected, {"libcrypto.3.dylib": crypto.resolve()})
+        self.assertFalse((app / "Contents/Frameworks").exists())
+
     def test_compact_framework_metadata_pruning_retains_runtime_resources(self):
         spec = importlib.util.spec_from_file_location("deployment", SCRIPT)
         deployment = importlib.util.module_from_spec(spec)

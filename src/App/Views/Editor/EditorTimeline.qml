@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Controls as Controls
 import QtQuick.Dialogs
 import LVRS 1.0 as LV
@@ -7,12 +8,19 @@ import Dreamscapes.Storage 1.0
 
 FocusScope {
     id: root
+    property bool compactLayout: false
+    property bool sharedBorders: false
+    readonly property Item panelFrame: Frames.PanelFrame {
+        parent: root; panelId: "editor-timeline"
+        rightEdge: !root.sharedBorders; bottomEdge: !root.sharedBorders; leftEdge: !root.sharedBorders
+    }
     objectName: "editorTimeline"
     required property var canvas
     property var generation: null
     readonly property EditorTimelineModel stateModel: EditorTimelineModel {
         id: timelineModel
         canvas: root.canvas
+        rulerHeight: root.rulerHeight
     }
     property alias playing: timelineModel.playing
     property alias timelineScale: timelineView.zoom
@@ -22,6 +30,7 @@ FocusScope {
     readonly property EditorTimelineViewport viewState: EditorTimelineViewport {
         id: timelineView
         objectName: "editorTimelineViewState"
+        rulerHeight: root.rulerHeight
         frameCount: root.stateModel.totalFrames
         frameRate: root.stateModel.fps
         viewportWidth: lanes.width
@@ -35,12 +44,15 @@ FocusScope {
     readonly property int viewFrameCount: timelineView.viewFrameCount
     readonly property int firstVisibleFrame: timelineView.firstVisibleFrame
     readonly property int lastVisibleFrame: timelineView.lastVisibleFrame
-    readonly property int rulerHeight: 44
-    readonly property color rulerTickColor: "#8d8d8d"
-    readonly property color rulerBaselineColor: "#f0f000"
-    readonly property color rulerPlayheadColor: "#4096f3"
-    readonly property bool modalActive: imageDialog.visible
-    readonly property int gutter: width < 600 ? 88 : width < 1100 ? 144 : 184
+    readonly property int rulerHeight: compactLayout ? 32 : 44
+    readonly property color rulerTickColor: compactLayout ? LV.Theme.descriptionColor : "#8d8d8d"
+    readonly property color rulerBaselineColor: compactLayout ? LV.Theme.accentYellow : "#f0f000"
+    readonly property color rulerPlayheadColor: "#548af7"
+    // Resolve the stable window surface before option rows enter the popup.
+    readonly property Item inputBackdropSource: Controls.ApplicationWindow.window
+        ? Controls.ApplicationWindow.window.background : null
+    readonly property bool modalActive: imageDialog.visible || optionsPopup.visible
+    readonly property int gutter: compactLayout ? (width < 500 ? 88 : 192) : width < 600 ? 88 : width < 1100 ? 144 : 184
     readonly property bool wide: width >= 900
     readonly property var selected: stateModel.selectedClip
     readonly property var selectedKey: stateModel.selectedKey
@@ -48,7 +60,7 @@ FocusScope {
     readonly property real laneHeight: stateModel.laneHeight
     readonly property int tickStep: timelineView.majorStep
     readonly property int minorTickStep: timelineView.minorStep
-    implicitHeight: footer.y + footer.height + 1
+    implicitHeight: compactLayout ? 180 : footer.y + footer.height + 1
     signal previewError(string message)
     function frameLabel(frame) {
         return timelineView.frameLabel(frame);
@@ -73,9 +85,11 @@ FocusScope {
     function zoomTimeline(factor, anchor) {
         lanes.contentX = timelineView.zoomAt(factor, anchor);
     }
-    function rowSpacer(row, spacer) {
+    function openOptions() { pointerInput.cancelGesture(); optionsPopup.open(); }
+    function rowSpacer(row, spacer, always) {
+        if (root.compactLayout && !always) return 0;
         const items = row.children.filter(item => item !== spacer && item.visible && item.width > 0);
-        return root.wide ? Math.max(0, row.width - items.reduce((sum, item) => sum + item.width, 0) - row.spacing * items.length) : 0;
+        return (always || root.wide) ? Math.max(0, row.width - items.reduce((sum, item) => sum + item.width, 0) - row.spacing * items.length) : 0;
     }
     function chooseFrame(id) {
         imageDialog.targetCanvas = canvas;
@@ -84,6 +98,7 @@ FocusScope {
         imageDialog.open();
     }
     onVisibleChanged: if (!visible) {
+        optionsPopup.close();
         playing = false;
         pointerInput.cancelGesture();
         stateModel.cancelThumbnails();
@@ -208,13 +223,118 @@ FocusScope {
         height: 24
         width: 92
         clearButtonVisible: false
+        backdropSource: root.inputBackdropSource
+    }
+    Item {
+        id: compactHeader
+        objectName: "editorTimelineCompactHeader"
+        width: parent.width; height: root.compactLayout ? 36 : 0
+        visible: root.compactLayout
+        clip: true
+        Item {
+            id: timecodeCell
+            width: root.gutter; height: 36
+            LV.Label {
+                objectName: "editorTimelineTimecode"
+                anchors.left: parent.left; anchors.leftMargin: 8
+                anchors.right: parent.right; anchors.rightMargin: 8
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.stateModel.preparing ? qsTr("Preparing audio…") : root.stateModel.timecode
+                style: body; color: LV.Theme.primary; elide: Text.ElideRight
+            }
+            MouseArea { anchors.fill: parent; onClicked: { root.openOptions(); root.editingTime = true; Qt.callLater(function() { timeInput.forceActiveFocus() }); } }
+            readonly property Item divider: Frames.PanelFrame {
+                parent: timecodeCell; panelId: "timeline-timecode"
+                topEdge: false; bottomEdge: false; leftEdge: false
+            }
+        }
+        Row {
+            id: compactControls
+            objectName: "editorTimelineCompactControls"
+            x: root.gutter; y: 7; width: Math.max(0, parent.width - x - 8)
+            spacing: 8; clip: true
+            Row {
+                spacing: 4
+                ToolButton { iconSource: Qt.resolvedUrl("Assets/timeline-previous.svg"); Accessible.name: qsTr("Previous frame"); onClicked: root.seekFrame(root.stateModel.playhead - 1) }
+                ToolButton {
+                    objectName: root.compactLayout ? "editorTimelinePlay" : "editorTimelinePlayCompactInactive"
+                    iconSource: root.playing ? LV.Theme.iconPath("pause") : Qt.resolvedUrl("Assets/timeline-play.svg")
+                    enabled: root.stateModel.totalFrames > 1
+                    selectable: true; selected: root.playing
+                    Accessible.name: root.stateModel.preparing ? qsTr("Cancel audio preparation") : root.playing ? qsTr("Pause timeline") : qsTr("Play timeline")
+                    onClicked: root.playing = !root.playing
+                }
+                ToolButton { iconSource: Qt.resolvedUrl("Assets/timeline-next.svg"); Accessible.name: qsTr("Next frame"); onClicked: root.seekFrame(root.stateModel.playhead + 1) }
+            }
+            Rectangle { y: 4; width: 1; height: 14; color: LV.Theme.descriptionColor; opacity: 0.22 }
+            Row {
+                spacing: 4
+                ToolButton {
+                    iconSource: Qt.resolvedUrl("Assets/timeline-split.svg"); Accessible.name: qsTr("Split at head")
+                    enabled: !!root.selected.id && root.stateModel.playhead > root.selected.in && root.stateModel.playhead < root.selected.out && !root.selected.locked
+                    onClicked: root.stateModel.split()
+                }
+                ToolButton {
+                    iconSource: Qt.resolvedUrl("Assets/timeline-delete.svg"); Accessible.name: qsTr("Delete selection")
+                    enabled: !!root.selectedKey.id || (!!root.selected.id && !root.selected.locked)
+                    onClicked: root.selectedKey.id ? root.stateModel.removeKey(root.selectedKey.id) : root.stateModel.removeSelected()
+                }
+            }
+            LV.Label { text: Number(root.stateModel.fps.toFixed(3)) + " fps"; style: caption; color: LV.Theme.descriptionColor; height: 22; verticalAlignment: Text.AlignVCenter }
+            Item { id: compactSpacer; width: root.rowSpacer(compactControls, compactSpacer, true); height: 22 }
+            ToolButton {
+                visible: root.stateModel.error.length > 0; iconName: "statuswarning"
+                Accessible.name: root.stateModel.error; onClicked: root.openOptions()
+            }
+            ToolButton {
+                objectName: root.compactLayout ? "editorTimelineFit" : "editorTimelineFitCompactInactive"
+                iconSource: Qt.resolvedUrl("Assets/timeline-fit.svg"); Accessible.name: qsTr("Fit timeline"); onClicked: root.fitTimeline()
+            }
+            ToolButton { objectName: "editorTimelineMore"; iconSource: Qt.resolvedUrl("Assets/timeline-more.svg"); Accessible.name: qsTr("Timeline options"); onClicked: root.openOptions() }
+        }
+        readonly property Item divider: Frames.PanelFrame {
+            parent: compactHeader; panelId: "timeline-header"
+            topEdge: false; rightEdge: false; leftEdge: false
+        }
+    }
+    Frames.PanelSheet {
+        id: optionsPopup
+        objectName: "editorTimelineOptions"
+        title: qsTr("Timeline options")
+        presentation: LV.Sheet.Desktop
+        preferredWidth: Math.min(1100, root.Window.window ? root.Window.window.width - 48 : 1100)
+        preferredHeight: 300
+        contentPadding: 8
+        scrollContent: false
+        Flickable {
+            id: optionsViewport
+            objectName: "editorTimelineOptionsViewport"
+            width: optionsPopup.availableContentWidth; height: optionsPopup.availableContentHeight
+            contentWidth: optionsContent.width; contentHeight: optionsContent.height
+            clip: true; boundsBehavior: Flickable.StopAtBounds
+            Controls.ScrollBar.horizontal: Controls.ScrollBar { policy: Controls.ScrollBar.AsNeeded }
+            Controls.ScrollBar.vertical: Controls.ScrollBar { policy: Controls.ScrollBar.AsNeeded }
+            Item {
+                id: optionsContent
+                width: Math.max(optionsViewport.width, header.x + header.childrenRect.width + 8, tools.x + tools.childrenRect.width + 8, precision.x + precision.childrenRect.width + 8, footer.x + footer.childrenRect.width + 8)
+                height: optionsFps.y + optionsFps.height + 8
+                Button {
+                    id: optionsFps; objectName: "editorTimelineFrameRate"
+                    x: 8; y: footer.y + footer.height + 8
+                    text: Number(root.stateModel.fps.toFixed(3)) + " fps"
+                    Accessible.name: qsTr("Frame rate")
+                    onClicked: fpsMenu.openFor(this, 0, height)
+                }
+            }
+        }
     }
     Flickable {
         id: viewport
         objectName: "editorTimelineViewport"
-        anchors.fill: parent
+        anchors.top: compactHeader.bottom; anchors.bottom: parent.bottom
+        anchors.left: parent.left; anchors.right: parent.right
         contentWidth: width
-        contentHeight: root.implicitHeight
+        contentHeight: panel.height
         flickableDirection: Flickable.VerticalFlick
         boundsBehavior: Flickable.StopAtBounds
         clip: true
@@ -224,14 +344,16 @@ FocusScope {
         Item {
             id: panel
             width: viewport.width
-            height: root.implicitHeight
+            height: root.compactLayout ? Math.max(viewport.height, lanes.y + lanes.height) : root.implicitHeight
             Row {
                 id: header
+                parent: root.compactLayout ? optionsContent : panel
+                visible: !root.compactLayout || optionsPopup.visible
                 objectName: "editorTimelineHeader"
-                clip: true
+                clip: !root.compactLayout
                 x: 8
                 y: 7
-                width: parent.width - 16
+                width: root.compactLayout ? Math.max(0, optionsViewport.width - 16) : parent.width - 16
                 spacing: 8
                 Item {
                     width: 156
@@ -277,7 +399,7 @@ FocusScope {
                     }
                 }
                 Button {
-                    objectName: "editorTimelinePlay"
+                    objectName: root.compactLayout ? "editorTimelinePlayOptions" : "editorTimelinePlay"
                     text: root.playing ? "Ⅱ" : "▶"
                     enabled: root.stateModel.totalFrames > 1
                     Accessible.name: root.stateModel.preparing ? qsTr("Cancel audio preparation") : root.playing ? qsTr("Pause timeline") : qsTr("Play timeline")
@@ -355,7 +477,7 @@ FocusScope {
                     onClicked: root.stateModel.rippleDelete()
                 }
                 LV.ComboBox {
-                    objectName: "editorTimelineAddLayer"
+                    objectName: root.compactLayout ? "editorTimelineAddLayerOptions" : "editorTimelineAddLayer"
                     enabled: root.canvas && root.canvas.documentReady
                     width: 86
                     height: 22
@@ -372,11 +494,13 @@ FocusScope {
             }
             Row {
                 id: tools
+                parent: root.compactLayout ? optionsContent : panel
+                visible: !root.compactLayout || optionsPopup.visible
                 objectName: "editorTimelineTools"
-                clip: true
+                clip: !root.compactLayout
                 x: 8
                 y: header.y + header.height + 10
-                width: parent.width - 16
+                width: root.compactLayout ? Math.max(0, optionsViewport.width - 16) : parent.width - 16
                 spacing: 4
                 Repeater {
                     model: [
@@ -472,13 +596,13 @@ FocusScope {
                     onClicked: zoomMenu.openFor(this, 0, height)
                 }
                 Button {
-                    objectName: "editorTimelineFit"
+                    objectName: root.compactLayout ? "editorTimelineFitOptions" : "editorTimelineFit"
                     text: qsTr("Fit")
                     tone: LV.AbstractButton.Borderless
                     onClicked: root.fitTimeline()
                 }
             }
-            readonly property real rulerY: tools.y + tools.height + 3
+            readonly property real rulerY: root.compactLayout ? 0 : tools.y + tools.height + 3
             Row {
                 x: 4
                 y: panel.rulerY
@@ -486,6 +610,7 @@ FocusScope {
                 height: root.rulerHeight
                 spacing: 3
                 ToolButton {
+                    visible: !root.compactLayout
                     height: root.rulerHeight
                     iconName: "frame"
                     tone: LV.AbstractButton.Borderless
@@ -494,12 +619,28 @@ FocusScope {
                 }
                 LV.Label {
                     height: root.rulerHeight
-                    width: parent.width - 25
+                    width: parent.width - (root.compactLayout ? 0 : 25)
                     verticalAlignment: Text.AlignVCenter
-                    text: Number(root.stateModel.fps.toFixed(3)) + (root.gutter < 100 ? " fps" : " fps · frame number")
-                    style: body
+                    text: Number(root.stateModel.fps.toFixed(3)) + (root.gutter < 100 ? " fps" : (root.compactLayout ? " fps · Frames" : " fps · frame number"))
+                    style: root.compactLayout ? caption : body
                     elide: Text.ElideRight
                 }
+            }
+            Item {
+                visible: root.compactLayout
+                x: 0; y: panel.rulerY + root.rulerHeight
+                width: root.gutter; height: 40
+                LV.Label { x: 8; y: 12; visible: root.stateModel.tracks.length === 0; text: qsTr("Layers"); style: body }
+                LV.Label { x: 56; y: 13; visible: root.stateModel.tracks.length === 0; text: "0"; style: caption; color: LV.Theme.descriptionColor }
+                ToolButton {
+                    objectName: root.compactLayout ? "editorTimelineAddLayer" : "editorTimelineAddLayerCompactInactive"
+                    x: parent.width - 30; y: root.stateModel.tracks.length === 0 ? 8 : -root.rulerHeight + 5
+                    iconSource: Qt.resolvedUrl("Assets/timeline-add-layer.svg")
+                    Accessible.name: qsTr("Add layer")
+                    enabled: root.canvas && root.canvas.documentReady
+                    onClicked: addMenu.openFor(this, 0, height)
+                }
+                Rectangle { x: parent.width - 1; y: -root.rulerHeight; width: 1; height: Math.max(viewport.height, root.laneHeight); color: LV.Theme.accentGrayMuted }
             }
             Repeater {
                 model: timelineView.visibleTracks
@@ -577,7 +718,7 @@ FocusScope {
                 x: root.gutter
                 y: panel.rulerY
                 width: parent.width - x - 1
-                height: root.laneHeight
+                height: root.compactLayout ? Math.max(root.laneHeight, viewport.height) : root.laneHeight
                 contentWidth: timelineView.contentWidth
                 contentHeight: height
                 flickableDirection: Flickable.HorizontalFlick
@@ -600,9 +741,9 @@ FocusScope {
                             height: laneContent.height
                             Rectangle {
                                 objectName: "editorTimelineRulerMark-" + parent.modelData.frame
-                                y: 25
-                                width: 2
-                                height: 14
+                                y: root.compactLayout ? 18 : 25
+                                width: root.compactLayout ? 1 : 2
+                                height: root.compactLayout ? 12 : 14
                                 color: root.rulerTickColor
                             }
                             Rectangle {
@@ -613,8 +754,8 @@ FocusScope {
                             }
                             LV.Label {
                                 objectName: "editorTimelineRulerLabel-" + parent.modelData.frame
-                                x: 2
-                                y: 1
+                                x: root.compactLayout ? 3 : 2
+                                y: root.compactLayout ? 2 : 1
                                 text: root.frameLabel(parent.modelData.frame)
                                 style: caption
                                 color: LV.Theme.textSecondary
@@ -628,17 +769,17 @@ FocusScope {
                             readonly property int frame: modelData.frame
                             objectName: "editorTimelineRulerMinor-" + frame
                             x: modelData.x
-                            y: 29
-                            width: 2
-                            height: 10
+                            y: root.compactLayout ? 24 : 29
+                            width: root.compactLayout ? 1 : 2
+                            height: root.compactLayout ? 6 : 10
                             color: root.rulerTickColor
                         }
                     }
                     Rectangle {
                         objectName: "editorTimelineRulerBaseline"
-                        y: 40
+                        y: root.rulerHeight - (root.compactLayout ? 1 : 4)
                         width: laneContent.width
-                        height: 4
+                        height: root.compactLayout ? 1 : 4
                         color: root.rulerBaselineColor
                     }
                     LV.Label {
@@ -646,11 +787,11 @@ FocusScope {
                         x: 8
                         y: root.rulerHeight
                         width: parent.width - 16
-                        height: 80
+                        height: root.compactLayout ? Math.max(80, lanes.height - root.rulerHeight) : 80
                         visible: root.stateModel.tracks.length === 0
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
-                        text: qsTr("No layers")
+                        text: root.compactLayout ? qsTr("Empty timeline") : qsTr("No layers")
                         style: body
                         color: LV.Theme.textSecondary
                     }
@@ -954,56 +1095,53 @@ FocusScope {
                         }
                     }
                     Rectangle {
+                        parent: panel
                         objectName: "editorTimelinePlayhead"
-                        x: root.stateModel.playhead / root.viewFrameCount * laneContent.width
-                        y: 16
+                        x: lanes.x + root.stateModel.playhead / root.viewFrameCount * laneContent.width - lanes.contentX - 1
+                        y: lanes.y + (root.compactLayout ? 31 : 16)
                         z: 10
                         width: 2
-                        height: parent.height - y
+                        height: lanes.y + lanes.height - y
                         color: root.rulerPlayheadColor
                     }
-                    Canvas {
+                    Image {
+                        parent: panel
                         objectName: "editorTimelinePlayheadBadge"
-                        x: root.stateModel.playhead / root.viewFrameCount * laneContent.width + 1 - width / 2
-                        y: 16
-                        z: 10
-                        width: 22
-                        height: 26
-                        property color markerColor: root.rulerPlayheadColor
+                        x: lanes.x + root.stateModel.playhead / root.viewFrameCount * laneContent.width - lanes.contentX - width / 2
+                        y: lanes.y + (root.compactLayout ? 5 : 16)
+                        z: 10; width: 22; height: 26
+                        source: Qt.resolvedUrl("Assets/timeline-playhead.svg")
+                        fillMode: Image.PreserveAspectFit
                         Accessible.name: qsTr("Playhead at %1").arg(root.frameLabel(root.stateModel.playhead))
-                        onMarkerColorChanged: requestPaint()
-                        onPaint: {
-                            const c = getContext("2d");
-                            c.clearRect(0, 0, width, height);
-                            c.fillStyle = markerColor;
-                            c.beginPath();
-                            c.moveTo(0, 0);
-                            c.lineTo(width, 0);
-                            c.lineTo(width, 16);
-                            c.lineTo(width / 2, height);
-                            c.lineTo(0, 16);
-                            c.closePath();
-                            c.fill();
+                        MouseArea {
+                            anchors.fill: parent
+                            onPressed: { root.playing = false; root.stateModel.beginScrub(root.stateModel.playhead); }
+                            onPositionChanged: function(mouse) { if (pressed) root.stateModel.updateScrub(timelineView.frameAt(mapToItem(lanes, mouse.x, mouse.y).x + lanes.contentX)); }
+                            onReleased: function(mouse) { root.stateModel.finishScrub(timelineView.frameAt(mapToItem(lanes, mouse.x, mouse.y).x + lanes.contentX)); }
+                            onCanceled: root.stateModel.cancelScrub()
                         }
                     }
                 }
             }
             LV.Label {
+                parent: root.compactLayout ? optionsContent : panel
                 x: 4
                 y: precision.y + 3
                 width: root.gutter - 8
-                visible: root.wide
+                visible: root.wide && (!root.compactLayout || optionsPopup.visible)
                 text: root.selected.id ? qsTr("Layer / %1 selected").arg(root.stateModel.selectedIds.length) : qsTr("Layer selection")
                 style: body
                 elide: Text.ElideRight
             }
             Row {
                 id: precision
+                parent: root.compactLayout ? optionsContent : panel
+                visible: !root.compactLayout || optionsPopup.visible
                 objectName: "editorTimelinePrecision"
-                clip: true
+                clip: !root.compactLayout
                 x: root.wide ? root.gutter : 8
-                y: lanes.y + lanes.height + 3
-                width: parent.width - x - 8
+                y: root.compactLayout ? tools.y + tools.height + 12 : lanes.y + lanes.height + 3
+                width: root.compactLayout ? Math.max(0, optionsViewport.width - x - 8) : parent.width - x - 8
                 spacing: 4
                 Field {
                     objectName: "editorTimelineIn"
@@ -1143,6 +1281,7 @@ FocusScope {
             }
             LV.Label {
                 id: errorLabel
+                parent: root.compactLayout ? optionsContent : panel
                 x: 4
                 y: precision.y + precision.height + 3
                 width: parent.width - 8
@@ -1154,11 +1293,13 @@ FocusScope {
             }
             Row {
                 id: footer
+                parent: root.compactLayout ? optionsContent : panel
+                visible: !root.compactLayout || optionsPopup.visible
                 objectName: "editorTimelineFooter"
-                clip: true
+                clip: !root.compactLayout
                 x: 4
                 y: precision.y + precision.height + 6 + (errorLabel.visible ? errorLabel.height + 3 : 0)
-                width: parent.width - 8
+                width: root.compactLayout ? Math.max(0, optionsViewport.width - 8) : parent.width - 8
                 spacing: 8
                 LV.Label {
                     height: 24
@@ -1237,7 +1378,7 @@ FocusScope {
         showIconSlot: false
         onItemTriggered: function (index) {
             if (index === 0)
-                root.renameTarget = targetId;
+                { root.renameTarget = targetId; if (root.compactLayout) root.openOptions(); }
             else if (index < 3)
                 root.stateModel.moveTrack(targetId, index === 1 ? -1 : 1);
             else if (index === 3) {

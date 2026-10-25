@@ -1,10 +1,12 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import LVRS 1.0 as LV
 
 // A single composed settings section, or model options, in the LVRS list viewport.
 LV.List {
     id: root
+    readonly property Item panelFrame: Frames.PanelFrame { parent: root; panelId: "preferences" }
     default property alias view: root.itemDelegate
     items: [({})]
     footerVisible: false

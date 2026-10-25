@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
@@ -20,11 +21,19 @@ Item {
     readonly property alias parameterPanel:parameters
     readonly property alias timelineState:timelineState
     readonly property alias timelinePanel:timeline
-    readonly property var jobs:generation.jobs.filter(job=>root.jobIds.indexOf(job.id)>=0)
-    readonly property var results:generation.connected ? generation.completedResults.filter(result=>root.jobIds.indexOf(result.id)>=0) : []
-    readonly property var selectedResult:results.find(result=>result.id===selectedResultId) || results[results.length-1] || ({})
-    readonly property bool pending:jobs.some(job=>["queued","running","connecting-host","downloading"].indexOf(job.state)>=0)
-    readonly property string failure:requestError || (jobs.find(job=>job.state==="failed") || {}).error || ""
+    NativeGenerationProjection {
+        id: generationProjection
+        jobs: root.generation.jobs
+        results: root.generation.completedResults
+        connected: root.generation.connected
+        requestIds: root.jobIds
+        selectedResultId: root.selectedResultId
+    }
+    readonly property alias jobs: generationProjection.submissionJobs
+    readonly property alias results: generationProjection.submissionResults
+    readonly property alias selectedResult: generationProjection.selectedResult
+    readonly property alias pending: generationProjection.generationPending
+    readonly property string failure: requestError || generationProjection.failure
     readonly property string referenceSource:(timelineState.keys.slice().sort((a,b)=>b.frame-a.frame).find(key=>key.frame<=timelineState.playhead) || {}).source || ""
     readonly property bool canGenerate:!pending && !parameters.hasInvalidInputs && parameters.values.prompt.trim().length>0 && timelineState.outputFrames>0 && generation.videoModels.length>0
     readonly property string statusText:failure || (pending ? qsTr("%1 · %2 / %3").arg(generation.inferenceStatus.state || qsTr("Queued")).arg(generation.previewStep).arg(generation.previewTotalSteps) : results.length ? qsTr("%1 videos ready").arg(results.length) : referenceSource ? qsTr("Reference preview · F%1 · %2 s").arg(String(timelineState.playhead).padStart(3,"0")).arg((timelineState.playhead/parameters.values.fps).toFixed(3)) : qsTr("Ready to generate"))
@@ -147,4 +156,5 @@ Item {
         showIconSlot:false
         onItemTriggered:function(index){ root.selectedResultId=root.results[index].id }
     }
+    readonly property Item previewPanelFrame: Frames.PanelFrame { parent: preview; panelId: "video-preview" }
 }

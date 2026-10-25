@@ -1,11 +1,13 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
+import ".." as Frames
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
-import "EditorViewOptionDefinitions.js" as Definitions
 
 Item {
     id: root
+    readonly property Item panelFrame: Frames.PanelFrame { parent: root; panelId: "view-details" }
     required property var canvas
     property string family: "snap"
     readonly property string title: family === "snap" ? "Snap" : family === "grid" ? "Grid" : "Guides"
@@ -13,12 +15,12 @@ Item {
     readonly property string layoutType: values.type || ""
     readonly property string layoutUnits: values.units || ""
     readonly property string layoutOrientation: values.orientation || ""
-    readonly property var sections: Definitions.sections(family, {type: layoutType, units: layoutUnits, orientation: layoutOrientation})
+    readonly property var sections: NativeData.viewOptions.sections(family, {type: layoutType, units: layoutUnits, orientation: layoutOrientation})
     readonly property bool modalActive: true
     signal closeRequested()
     implicitWidth: 384
     implicitHeight: content.height + 83
-    Rectangle { anchors.fill: parent; color: LV.Theme.surfaceSolid; radius: LV.Theme.radiusControl; border.width: 1; border.color: LV.Theme.surfacePanel }
+    Rectangle { anchors.fill: parent; color: LV.Theme.surfaceSolid; radius: 0 }
     Row {
         id: header
         x: 8; y: 8; width: parent.width - 16; height: 24; spacing: 8

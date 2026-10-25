@@ -1,9 +1,11 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import LVRS 1.0 as LV
 
 Rectangle {
     id: root
+    readonly property Item panelFrame: Frames.PanelFrame { parent: root; panelId: "publish-canvas" }
     required property var project
     property int sourceIndex: 0
     property int maximumWidth: 1024
@@ -13,7 +15,7 @@ Rectangle {
     readonly property alias status: artwork.status
     readonly property alias imageSource: artwork.source
     color: LV.Theme.surfaceInput
-    radius: LV.Theme.radiusMd
+    radius: 0
     clip: true
     Connections {
         target: root.project

@@ -125,7 +125,7 @@ Controls.Popup {
             viewport.contentY = Math.max(0, Math.min(viewport.contentHeight - viewport.height,
                 point.y + control.height - viewport.height + 16))
     }
-    background: Rectangle { color: "#202020"; radius: root.compact ? 0 : LV.Theme.radiusMd; border.color: LV.Theme.surfaceAlt }
+    background: Rectangle { color: "#202020"; radius: 0; border.width: 1; border.color: LV.Theme.accentGrayMuted }
     Controls.Overlay.modal: Rectangle { color: Qt.rgba(0, 0, 0, 0.6) }
     Shortcut { sequence: StandardKey.Find; enabled: root.opened; onActivated: root.compact ? compactSearchField.forceInputFocus() : searchField.forceInputFocus() }
     Shortcut { sequence: "Ctrl+Return"; enabled: root.opened; onActivated: root.create() }

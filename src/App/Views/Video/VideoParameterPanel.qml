@@ -1,5 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
+import ".." as Frames
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
@@ -9,6 +11,7 @@ import "../Home"
 
 Item {
     id: root
+    readonly property Item panelFrame: Frames.PanelFrame { parent: root; panelId: "video-parameters" }
     objectName: "videoParameterPanel"
     required property var generation
     required property VideoTimelineState timeline
@@ -18,75 +21,35 @@ Item {
     property bool expanded: true
     property bool canGenerate: false
     property bool pending: false
-    property string selectedPreset: qsTr("Default")
-    property string presetFeedback: ""
+    property alias selectedPreset: nativeDraft.selectedPreset
+    property alias presetFeedback: nativeDraft.presetFeedback
     readonly property var presetNames: [qsTr("Default")].concat(generation.videoPresetNames || [])
     readonly property var cameraNames: [qsTr("None"),qsTr("Static"),qsTr("Dolly in"),qsTr("Dolly out"),qsTr("Pan left"),qsTr("Pan right"),qsTr("Tilt up"),qsTr("Tilt down"),qsTr("Orbit left"),qsTr("Orbit right"),qsTr("Crane up"),qsTr("Crane down"),qsTr("Zoom in"),qsTr("Zoom out"),qsTr("Handheld"),qsTr("Tracking"),qsTr("Dolly zoom")]
     readonly property var cameraValues: ["none","static","dolly-in","dolly-out","pan-left","pan-right","tilt-up","tilt-down","orbit-left","orbit-right","crane-up","crane-down","zoom-in","zoom-out","handheld","tracking","dolly-zoom"]
-    readonly property string aspectRatio: { const ratios=["1:1","4:3","3:4","16:9","9:16"]; return ratios.find(r=>{const n=r.split(":"); return values.width*Number(n[1])===values.height*Number(n[0])}) || qsTr("Custom") }
-    property var invalidInputs: ({})
-    readonly property bool hasInvalidInputs: Object.keys(invalidInputs).length>0 || !cameraSelectionValid
-    readonly property bool cameraSelectionValid: {
-        const motions=[values.camera1,values.camera2,values.camera3].filter(value=>value!=="none")
-        if(new Set(motions).size!==motions.length || (motions.length>1 && motions.indexOf("static")>=0)) return false
-        return ![["pan-left","pan-right"],["tilt-up","tilt-down"],["dolly-in","dolly-out"],["orbit-left","orbit-right"],["crane-up","crane-down"],["zoom-in","zoom-out"]].some(pair=>motions.indexOf(pair[0])>=0 && motions.indexOf(pair[1])>=0)
+    readonly property alias aspectRatio: nativeDraft.aspectRatio
+    readonly property alias invalidInputs: nativeDraft.invalidInputs
+    readonly property alias hasInvalidInputs: nativeDraft.hasInvalidInputs
+    readonly property alias cameraSelectionValid: nativeDraft.cameraSelectionValid
+    property alias values: nativeDraft.values
+    NativeVideoDraft {
+        id: nativeDraft
+        objectName: "videoNativeDraft"
+        generation: root.generation
+        timeline: root.timeline
+        onViewResetRequested: root.tab = "Generation"
     }
-    property var values: defaults()
     readonly property var modelNames: generation.videoModels.map(model=>model.name || model.id)
     signal generateRequested()
-    function defaults() {
-        const prompts = generation.defaultGenerationPrompts ? generation.defaultGenerationPrompts.Video : null
-        return {prompt:prompts ? prompts.prompt : "",negativePrompt:prompts ? prompts.negativePrompt : "",width:1024,height:576,duration:5,fps:24,outputCount:1,steps:30,cfgScale:3,seed:-1,randomSeed:true,interpolationFactor:2,decodeTimestep:0.05,decodeNoiseScale:0.025,imageConditionNoise:0,device:"auto",precision:"auto",offload:"auto",cpuTextEncoding:true,vaeTiling:true,crf:18,encodingPreset:"medium",camera1:"none",camera2:"none",camera3:"none"}
-    }
-    function edit(key, value) {
-        if(key==="aspectRatio") {
-            const sizes={"1:1":[512,512],"4:3":[640,480],"3:4":[480,640],"16:9":[1024,576],"9:16":[576,1024]}, size=sizes[value]
-            if(!size) return false
-            const valid=Object.assign({},invalidInputs); delete valid.width; delete valid.height
-            invalidInputs=valid; values=Object.assign({},values,{width:size[0],height:size[1]}); return true
-        }
-        const ranges={width:[32,4096],height:[32,4096],duration:[1,30],fps:[12,120],outputCount:[1,1000],steps:[1,1000],cfgScale:[0,100],seed:[0,4294967295],interpolationFactor:[2,8],decodeTimestep:[0,1],decodeNoiseScale:[0,1],imageConditionNoise:[0,1],crf:[0,51]}
-        const valid=Object.assign({},invalidInputs), range=ranges[key]
-        if(range && (!Number.isFinite(value) || value<range[0] || value>range[1] || (["width","height","duration","fps","outputCount","steps","seed","interpolationFactor","crf"].indexOf(key)>=0 && Math.round(value)!==value) || (["width","height"].indexOf(key)>=0 && value%32!==0) || (key==="fps" && [12,24,30,60,120].indexOf(value)<0))) { valid[key]=true; invalidInputs=valid; return false }
-        delete valid[key]
-        if(key==="randomSeed") { if(value || values.seed>=0) delete valid.seed; else valid.seed=true }
-        const next=Object.assign({},values,{[key]:value})
-        if((key==="duration" || key==="fps") && !timeline.resizeComposition(next.duration*next.fps,next.fps)) {
-            valid[key]=true; invalidInputs=valid; return false
-        }
-        invalidInputs=valid; values=next
-        return true
-    }
-    function parameters() {
-        const camera=[values.camera1,values.camera2,values.camera3].filter(motion=>motion!=="none")
-        return Object.assign({},values,{model:generation.selectedVideoModel,seed:values.randomSeed ? -1 : values.seed,camera:camera.length ? camera : ["none"],shots:timeline.recipeShots(values.prompt)})
-    }
-    function savePreset(name) {
-        if(hasInvalidInputs || !generation.saveVideoPreset(name,Object.assign({},values,{model:generation.selectedVideoModel}))) { presetFeedback=generation.videoPresetError; return false }
-        selectedPreset=name.trim(); presetFeedback=qsTr("Preset saved"); return true
-    }
-    function loadPreset(name) {
-        if(name===qsTr("Default")) { const next=defaults(); if(!timeline.resizeComposition(next.duration*next.fps,next.fps)) return false; values=next }
-        else {
-            const saved=generation.videoPreset(name)
-            if(!saved || !Object.keys(saved).length) { presetFeedback=generation.videoPresetError; return false }
-            const next=Object.assign(defaults(),saved)
-            if(!timeline.resizeComposition(next.duration*next.fps,next.fps)) { presetFeedback=timeline.error; return false }
-            values=next
-            if(saved.model && generation.videoModels.some(model=>model.id===saved.model)) generation.selectedVideoModel=saved.model
-        }
-        invalidInputs=({}); selectedPreset=name; presetFeedback=""; return true
-    }
+    function defaults() { return nativeDraft.defaults() }
+    function edit(key, value) { return nativeDraft.edit(key, value) }
+    function parameters() { return nativeDraft.parameters() }
+    function savePreset(name) { return nativeDraft.savePreset(name) }
+    function loadPreset(name) { return nativeDraft.loadPreset(name) }
     function focusPrompt() { tab="Generation"; viewport.contentY=0; prompt.forceActiveFocus() }
-    function resetDraft() { values=defaults(); invalidInputs=({}); timeline.reset(values.duration*values.fps,values.fps); tab="Generation"; selectedPreset=qsTr("Default"); presetFeedback="" }
+    function resetDraft() { nativeDraft.resetDraft() }
     Connections {
-        target:root.timeline
-        function onSelectedShotChanged() { if(!root.timeline.selectedShot.id) root.tab="Generation" }
-        function onCompositionRestored() {
-            const valid=Object.assign({},root.invalidInputs); delete valid.duration; delete valid.fps
-            root.invalidInputs=valid
-            root.values=Object.assign({},root.values,{duration:root.timeline.compositionFrames/root.timeline.fps,fps:root.timeline.fps})
-        }
+        target: root.timeline
+        function onSelectedShotChanged() { if (!root.timeline.selectedShot.id) root.tab = "Generation" }
     }
     FileDialog {
         id: imageDialog
@@ -96,13 +59,8 @@ Item {
         nameFilters: [qsTr("Images and canvases (*.iisc *.png *.jpg *.jpeg *.webp *.heic *.avif)")]
         onAccepted: root.addImageKeyToTrack(selectedFile,targetFrame,targetTrackId)
     }
-    function addImageKey(source, frame) { return addImageKeyToTrack(source,frame,"") }
-    function addImageKeyToTrack(source, frame, trackId) {
-        if(trackId && timeline.track(trackId).type!=="Contents") return false
-        const document = generation.imageDocument(source)
-        if (!String(document).length) return false
-        return timeline.addKeyToTrack(document,frame,trackId)
-    }
+    function addImageKey(source, frame) { return nativeDraft.addImageKey(source, frame) }
+    function addImageKeyToTrack(source, frame, trackId) { return nativeDraft.addImageKey(source, frame, trackId) }
     function chooseImage(frame, trackId) { imageDialog.targetFrame=frame; imageDialog.targetTrackId=trackId || ""; imageDialog.open() }
     component Section: Views.PanelRow {
         type: LV.ListItem.Navigation; compact:true; Layout.fillWidth:true; Layout.minimumWidth:0

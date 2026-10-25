@@ -1,19 +1,19 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import LVRS 1.0 as LV
 import ".." as Views
-import "EditorTextDefinitions.js" as TextDefinitions
 
 Column {
     id: root
     objectName: "editorTextPanel"
     required property var toolState
     property int panelIndex: 0
-    readonly property var values: Object.assign({}, TextDefinitions.defaultsFor(TextDefinitions.definition().fields),
+    readonly property var values: Object.assign({}, NativeData.text.defaultsFor(NativeData.text.definition().fields),
         toolState.toolId === "text" ? toolState.values : (toolState.settingsByTool.text || {}))
     readonly property var engine: toolState.engine
     readonly property var tabs: ["Content", "Typography", "Layout", "Appearance"]
-    readonly property string readout: TextDefinitions.readout(values)
+    readonly property string readout: NativeData.text.readout(values)
     width: 398
     spacing: 12
     function asset(name) { return Qt.resolvedUrl("Assets/Text/" + name + ".svg") }
@@ -37,10 +37,10 @@ Column {
     }
     function patch(next) { Object.keys(next).forEach(function(id) { root.edit(id, next[id]) }) }
     function resetView() {
-        patch(TextDefinitions.defaultsFor(panelIndex === 1 ? TextDefinitions.typography : panelIndex === 2 ? TextDefinitions.layout : TextDefinitions.appearance))
+        patch(NativeData.text.defaultsFor(panelIndex === 1 ? NativeData.text.typography : panelIndex === 2 ? NativeData.text.layout : NativeData.text.appearance))
         if (panelIndex === 2) edit("textLayoutEnabled", false)
     }
-    function applyRole(role) { patch(TextDefinitions.roleValues(role)) }
+    function applyRole(role) { patch(NativeData.text.roleValues(role)) }
     function optionAvailable(fieldId, option) {
         return !(fieldId === "textBlend" && ["Soft light", "Difference"].indexOf(option) >= 0)
             && !(fieldId === "textNoisePattern" && option === "Blue noise")
@@ -68,7 +68,7 @@ Column {
     component NumberField: LV.InputField {
         id: numberField
         required property string fieldId
-        readonly property var spec: TextDefinitions.byId(fieldId)
+        readonly property var spec: NativeData.text.byId(fieldId)
         objectName: "textInput-" + fieldId
         height: 22
         fieldMinHeight: 22
@@ -94,7 +94,7 @@ Column {
         width: parent.width
         height: 22
         spacing: 8
-        Heading { label: TextDefinitions.byId(numericRow.fieldId).label; width: parent.width - input.width - 8; height: 22 }
+        Heading { label: NativeData.text.byId(numericRow.fieldId).label; width: parent.width - input.width - 8; height: 22 }
         Item {
             id: input
             width: Math.min(206, parent.width * 0.56)
@@ -115,7 +115,7 @@ Column {
         width: parent.width
         height: 22
         spacing: 8
-        Heading { label: TextDefinitions.byId(scope.fieldId).label; width: parent.width - combo.width - 8; height: 22 }
+        Heading { label: NativeData.text.byId(scope.fieldId).label; width: parent.width - combo.width - 8; height: 22 }
         LV.ComboBox {
             id: combo
             objectName: "textSelect-" + scope.fieldId
@@ -123,19 +123,19 @@ Column {
             width: Math.min(206, parent.width * 0.56)
             height: 20; y: 1
             arrow: LV.Stepper.Down
-            Accessible.name: TextDefinitions.byId(scope.fieldId).label
+            Accessible.name: NativeData.text.byId(scope.fieldId).label
             onClicked: { options.fieldId = scope.fieldId; options.openFor(this, 0, height) }
         }
     }
     component ChoiceGroup: Column {
         id: choices
         required property string fieldId
-        property var entries: TextDefinitions.byId(fieldId).options
+        property var entries: NativeData.text.byId(fieldId).options
         property var icons: []
         property int columns: entries.length
         property real buttonHeight: 26
         property bool heading: true
-        property string headingText: TextDefinitions.byId(fieldId).label
+        property string headingText: NativeData.text.byId(fieldId).label
         property bool alignmentGallery: false
         width: parent.width
         spacing: 8
@@ -165,7 +165,7 @@ Column {
                         tone: LV.AbstractButton.Default
                         enabled: root.optionAvailable(choices.fieldId, choice.modelData)
                         Accessible.description: enabled ? "" : qsTr("Unavailable in the current canvas renderer")
-                        Accessible.name: TextDefinitions.byId(choices.fieldId).label + ": " + choice.modelData
+                        Accessible.name: NativeData.text.byId(choices.fieldId).label + ": " + choice.modelData
                         Accessible.checkable: true
                         Accessible.checked: root.value(choices.fieldId) === choice.modelData
                         onClicked: choices.fieldId === "textLinePreset" ? root.linePreset(choice.modelData) : root.edit(choices.fieldId, choice.modelData)
@@ -191,7 +191,7 @@ Column {
                             }
                         }
                         tone: LV.AbstractButton.Default
-                        Accessible.name: TextDefinitions.byId(choices.fieldId).label + ": " + choice.modelData
+                        Accessible.name: NativeData.text.byId(choices.fieldId).label + ": " + choice.modelData
                         Accessible.checkable: true
                         Accessible.checked: root.value(choices.fieldId) === choice.modelData
                         onClicked: root.edit(choices.fieldId, choice.modelData)
@@ -222,7 +222,7 @@ Column {
                 required property string modelData
                 width: (pair.width - 8) / 2
                 spacing: 8
-                Caption { text: TextDefinitions.byId(parameter.modelData).label }
+                Caption { text: NativeData.text.byId(parameter.modelData).label }
                 NumberField { fieldId: parameter.modelData; width: parent.width }
             }
         }
@@ -236,13 +236,13 @@ Column {
         LV.Slider {
             objectName: "textSlider-" + sliderRow.fieldId
             x: 8; width: parent.width - 16; height: 22
-            from: TextDefinitions.byId(sliderRow.fieldId).minimum
-            to: TextDefinitions.byId(sliderRow.fieldId).maximum
+            from: NativeData.text.byId(sliderRow.fieldId).minimum
+            to: NativeData.text.byId(sliderRow.fieldId).maximum
             value: Number(root.value(sliderRow.fieldId))
-            stepSize: TextDefinitions.byId(sliderRow.fieldId).step
+            stepSize: NativeData.text.byId(sliderRow.fieldId).step
             size: LV.Slider.Mini
             showSymbol: false; showMinMax: false
-            Accessible.name: TextDefinitions.byId(sliderRow.fieldId).label
+            Accessible.name: NativeData.text.byId(sliderRow.fieldId).label
             onMoved: root.edit(sliderRow.fieldId, value)
         }
     }
@@ -251,13 +251,13 @@ Column {
         required property string fieldId
         width: parent.width
         height: 22
-        Heading { label: TextDefinitions.byId(toggleRow.fieldId).label; width: parent.width - 46; height: 22 }
+        Heading { label: NativeData.text.byId(toggleRow.fieldId).label; width: parent.width - 46; height: 22 }
         Item { width: 8; height: 22 }
         LV.ToggleSwitch {
             objectName: "textToggle-" + toggleRow.fieldId
             trackWidth: 38; trackHeight: 22
             checked: Boolean(root.value(toggleRow.fieldId))
-            Accessible.name: TextDefinitions.byId(toggleRow.fieldId).label
+            Accessible.name: NativeData.text.byId(toggleRow.fieldId).label
             onToggled: root.edit(toggleRow.fieldId, checked)
         }
     }
@@ -350,7 +350,7 @@ Column {
         visible: root.panelIndex === 0
         width: parent.width
         spacing: 8
-        Gallery { entries: TextDefinitions.usages; fieldId: "selector" }
+        Gallery { entries: NativeData.text.usages; fieldId: "selector" }
         Column {
             width: parent.width; spacing: 8
             Heading { label: qsTr("Content") }
@@ -384,12 +384,12 @@ Column {
                     required property int index
                     width: parent.width; spacing: 8
                     Repeater {
-                        model: TextDefinitions.roles.slice(roleRow.index * 2, roleRow.index * 2 + 2)
+                        model: NativeData.text.roles.slice(roleRow.index * 2, roleRow.index * 2 + 2)
                         Rectangle {
                             id: roleTile
                             required property var modelData
                             width: (roleRow.width - 8) / 2
-                            height: Math.max(TextDefinitions.roles[roleRow.index * 2].size, TextDefinitions.roles[roleRow.index * 2 + 1].size) + 46
+                            height: Math.max(NativeData.text.roles[roleRow.index * 2].size, NativeData.text.roles[roleRow.index * 2 + 1].size) + 46
                             color: LV.Theme.panelBackground08; radius: LV.Theme.radiusMd
                             Column {
                                 anchors.fill: parent; anchors.margins: 8; spacing: 8
@@ -420,7 +420,7 @@ Column {
             id: aliasGrid
             width: parent.width; columns: 2; spacing: 8
             Repeater {
-                model: TextDefinitions.aliases
+                model: NativeData.text.aliases
                 LV.LabelButton {
                     id: selectionButton9
                     required property var modelData
@@ -471,7 +471,7 @@ Column {
             y: root.panelIndex === 3 ? 29 : String(root.value("field-5")).indexOf("Top") === 0 ? 28 : String(root.value("field-5")).indexOf("Bottom") === 0 ? 48 : 38
             style: body
             text: root.panelIndex === 3 && root.value("field-0") === "Enter your text…" ? qsTr("Your words, in focus") : root.value("field-0")
-            color: root.panelIndex === 3 ? TextDefinitions.fillColor(root.value("textFill"), root.value("textCustomFill")) : LV.Theme.bodyColor
+            color: root.panelIndex === 3 ? NativeData.text.fillColor(root.value("textFill"), root.value("textCustomFill")) : LV.Theme.bodyColor
             opacity: root.panelIndex === 3 ? root.value("textOpacity") / 100 : 1
             horizontalAlignment: root.panelIndex === 3 || ["Bottom", "Center", "Top"].indexOf(root.value("field-5")) >= 0 ? Text.AlignHCenter : String(root.value("field-5")).indexOf("right") >= 0 || root.value("field-5") === "Right" ? Text.AlignRight : Text.AlignLeft
             elide: Text.ElideRight
@@ -583,7 +583,7 @@ Column {
         id: options
         property string fieldId: "field-1"
         showIconSlot: false
-        items: TextDefinitions.byId(fieldId).options.map(function(option) { return {label: option} })
+        items: NativeData.text.byId(fieldId).options.map(function(option) { return {label: option} })
         onItemTriggered: function(index) { root.edit(fieldId, items[index].label) }
     }
     LV.Label { visible: root.toolState.notice.length > 0; width: parent.width; style: caption; text: root.toolState.notice; wrapMode: Text.Wrap; sizeToContentHeight: true }

@@ -1,7 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import LVRS 1.0 as LV
-import "EditorCompactDefinitions.js" as Compact
 
 Column {
     id: root
@@ -10,14 +10,14 @@ Column {
     readonly property string toolId: toolState.toolId
     readonly property var definition: toolState.definition
     readonly property var values: toolState.values
-    readonly property var viewCatalog: Compact.views(toolId)
+    readonly property var viewCatalog: NativeData.compact.viewsFor(toolId)
     readonly property string currentViewId: {
-        const saved = Compact.view(toolId, toolState.compactViewsByTool[toolId])
+        const saved = NativeData.compact.view(toolId, toolState.compactViewsByTool[toolId])
         const operation = viewCatalog.find(function(view) { return view.mode === values.selector })
         return saved && (!saved.mode || saved.mode === values.selector) ? saved.id
             : operation ? operation.id : viewCatalog.length ? viewCatalog[0].id : ""
     }
-    readonly property var selectedView: Compact.view(toolId, currentViewId)
+    readonly property var selectedView: NativeData.compact.view(toolId, currentViewId)
     readonly property var presentedFields: selectedView ? selectedView.fields.map(function(row) {
         const field = definition.fields.find(function(entry) { return entry.id === row.id })
         // Live model choices come from the generation runtime, not the atlas examples.
@@ -30,7 +30,7 @@ Column {
     width: 398
 
     function selectView(id) {
-        const view = Compact.view(toolId, id)
+        const view = NativeData.compact.view(toolId, id)
         if (!view) return
         const next = Object.assign({}, toolState.compactViewsByTool)
         next[toolId] = id

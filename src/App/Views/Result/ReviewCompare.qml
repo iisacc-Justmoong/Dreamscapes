@@ -1,11 +1,13 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
 
 Item {
     id: root
+    readonly property Item panelFrame: Frames.PanelFrame { parent: root; panelId: "comparison" }
     objectName: "reviewCompare"
     property var entries: []
     property bool syncView: true

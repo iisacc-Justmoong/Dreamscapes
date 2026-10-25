@@ -1,5 +1,6 @@
 #include "App/Generation/FailureAgent.h"
 #include "App/Generation/FailureEvidence.h"
+#include "App/Generation/FailureReportStorage.h"
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QFile>
@@ -17,6 +18,18 @@ class FailureAgentTests final : public QObject {
             {"reportPath", directory.isEmpty() ? QString() : directory + "/." + id + ".json"}};
     }
 private slots:
+    void reportCreatesMissingParentDirectoriesThroughTheProvider() {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/failure-parent-XXXXXX"); QVERIFY(root.isValid());
+        const auto path = root.filePath(QString::fromUtf8("reports/하위/report.json"));
+        const auto saved = dreamscapes::persistFailureReport({{"reportPath", path}, {"jobId", "nested-report"}});
+        QVERIFY2(!saved.contains("persistenceError"), qPrintable(saved["persistenceError"].toString()));
+        QFile file(path); QVERIFY(file.open(QIODevice::ReadOnly));
+        QCOMPARE(QJsonDocument::fromJson(file.readAll()).object()["jobId"], "nested-report");
+        QFile blocker(root.filePath("blocker")); QVERIFY(blocker.open(QIODevice::WriteOnly)); blocker.close();
+        const auto rejected = dreamscapes::persistFailureReport({{"reportPath", blocker.fileName() + "/report.json"}});
+        QVERIFY(rejected.contains("persistenceError"));
+        QVERIFY(!QFile::exists(blocker.fileName() + "/report.json"));
+    }
     void initTestCase() { qunsetenv("IIMULTIMODALAGENT_MODELS_DIR"); qunsetenv("IIMULTIMODALAGENT_MODEL"); }
     void realEngineReturnsDetailedEvidenceAndPersists() {
         QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/failure-agent-XXXXXX"); QVERIFY(root.isValid());

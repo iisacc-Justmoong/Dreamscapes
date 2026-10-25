@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 
@@ -82,6 +83,7 @@ Item {
                 }
 
                 GridLayout {
+                    id: quickActions
                     objectName: "mobileQuickActions"
                     Layout.fillWidth: true
                     Layout.preferredHeight: LV.Theme.scaleMetric(220)
@@ -127,6 +129,7 @@ Item {
                 }
 
                 FileCarousel {
+                    id: recentRow
                     objectName: "recentFiles"
                     Layout.fillWidth: true
                     title: qsTr("Recent files")
@@ -165,6 +168,7 @@ Item {
                 }
 
                 PublishedList {
+                    id: publishedRows
                     objectName: "recentPublishedList"
                     Layout.fillWidth: true
                     Layout.preferredHeight: LV.Theme.scaleMetric(280)
@@ -174,6 +178,7 @@ Item {
                 }
 
                 FileCarousel {
+                    id: historyRow
                     objectName: "mobileGenerationHistory"
                     Layout.fillWidth: true
                     title: qsTr("Generation history")
@@ -208,4 +213,8 @@ Item {
         onActivated: function(index) { root.destinationRequested(index) }
         onSearchRequested: root.searchRequested()
     }
+    readonly property Item actionsPanelFrame: Frames.PanelFrame { parent: viewport.contentItem; target: quickActions; panelId: "mobile-actions" }
+    readonly property Item recentPanelFrame: Frames.PanelFrame { parent: viewport.contentItem; target: recentRow; panelId: "mobile-recent-files" }
+    readonly property Item historyPanelFrame: Frames.PanelFrame { parent: viewport.contentItem; target: historyRow; panelId: "mobile-recent-generations" }
+    readonly property Item publishedPanelFrame: Frames.PanelFrame { parent: viewport.contentItem; target: publishedRows; panelId: "mobile-published" }
 }

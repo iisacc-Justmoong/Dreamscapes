@@ -49,6 +49,10 @@ EditorCanvas::EditorCanvas(std::shared_ptr<EditorFrameExporter> exporter, std::u
       m_frameExporter(exporter?std::move(exporter):std::make_shared<EditorFrameExporter>()),
       m_colorSampler(sampler ? std::move(sampler) : std::make_unique<EditorColorSampler>()),
       m_photoSources(std::make_unique<EditorCameraPhoto>(this)) {
+    const auto retirePresentation = [this] { ++m_presentationEpoch; };
+    connect(this, &CanvasItem::documentChanged, this, retirePresentation);
+    connect(this, &CanvasItem::revisionChanged, this, retirePresentation);
+    connect(this, &CanvasItem::renderArtboardIdChanged, this, retirePresentation);
     m_documentStorage.setObjectName("editorDocumentStorage");
     QQmlEngine::setObjectOwnership(m_frameExporter.get(),QQmlEngine::CppOwnership);
     connect(m_colorSampler.get(), &EditorColorSampler::finished, this, &EditorCanvas::finishColorRead);

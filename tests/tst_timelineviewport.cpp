@@ -16,6 +16,18 @@ QVariantMap row(QString id, int top, QVariantList clips) {
 class TimelineViewportTests : public QObject {
     Q_OBJECT
 private slots:
+    void compactRulerHitTestingUsesItsVisibleHeight() {
+        EditorTimelineViewport view;view.setViewportWidth(480);view.setViewportHeight(144);
+        view.setFrameCount(48);view.setRulerHeight(32);
+        const auto track=row("actual-layer",32,{clip("actual-clip",0,48)});
+        view.setTrackLayout({track});
+        QCOMPARE(view.rulerHeight(),32);
+        QCOMPARE(view.hitTest(100,31)["kind"].toString(),"ruler");
+        QCOMPARE(view.hitTest(100,38)["kind"].toString(),"clip");
+        QCOMPARE(view.hitTest(100,38)["id"].toString(),"actual-clip");
+        QCOMPARE(view.trackLayout(),QVariantList{track});
+        view.setRulerHeight(0);QCOMPARE(view.rulerHeight(),32);
+    }
     void anchoredZoomAndFrameMath() {
         EditorTimelineViewport view;
         view.setViewportWidth(900); view.setViewportHeight(180);

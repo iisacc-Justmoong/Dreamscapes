@@ -1,7 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import LVRS 1.0 as LV
-import "EditorGraphicState.js" as State
 
 Item {
     id: root
@@ -12,7 +12,7 @@ Item {
     height: implicitHeight
     readonly property bool editable: entry.enabled !== false && entry.supported !== false && !presenter.busy
     function currentValue() { return presenter.value(entry) }
-    function numericText() { return State.numberText(entry, currentValue()) }
+    function numericText() { return NativeData.graphicState.numberText(entry, currentValue()) }
     function click(option) { presenter.activate(option, entry) }
     Loader {
         id: rowContent
@@ -52,7 +52,7 @@ Item {
                 Accessible.name: root.entry.label
                 function commit() {
                     textModified = false
-                    const next = root.entry.control === "text" ? text : State.parseNumber(root.entry, text)
+                    const next = root.entry.control === "text" ? text : NativeData.graphicState.parseNumber(root.entry, text)
                     if (next !== undefined) { root.presenter.edit(root.entry, next); root.presenter.commitField(root.entry) }
                     text = Qt.binding(function() { return root.entry.control === "text" ? String(root.currentValue() || "") : root.numericText() })
                 }

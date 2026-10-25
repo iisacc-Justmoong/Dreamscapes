@@ -1,9 +1,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import LVRS 1.0 as LV
 import ".." as Views
-import "EditorElementsDefinitions.js" as Elements
-import "EditorToolDefinitions.js" as Definitions
 
 Column {
     id: root
@@ -14,16 +13,16 @@ Column {
     // inputs bound to Elements rather than the newly selected tool's fields.
     readonly property var values: {
         const draft = toolState.toolId === "elements" ? toolState.values
-            : (toolState.settingsByTool.elements || Definitions.defaults(Definitions.tool("elements")))
+            : (toolState.settingsByTool.elements || NativeData.tools.defaults(NativeData.tools.tool("elements")))
         return engine && engine.elementSelectionCount ? Object.assign({}, draft, engine.selectedElementSettings) : draft
     }
     readonly property string currentViewId: toolState.elementsViewId
-    readonly property var view: Elements.view(currentViewId)
+    readonly property var view: NativeData.elements.view(currentViewId)
     readonly property var candidates: engine ? engine.elementCandidates : []
     readonly property var activeCandidate: candidates.find(function(item) { return item.active }) || null
     readonly property int selectionCount: engine ? engine.elementSelectionCount : 0
     readonly property bool editable: !activeCandidate || activeCandidate.editable
-    readonly property var presentedFields: Elements.controls(currentViewId, activeCandidate ? activeCandidate.shape : "Rectangle")
+    readonly property var presentedFields: NativeData.elements.controls(currentViewId, activeCandidate ? activeCandidate.shape : "Rectangle")
     readonly property bool modalActive: options.visible
     readonly property real inputWidth: Math.min(206, width * 206 / 398)
     readonly property var scopedCandidates: toolState.elementsSelectionScope === "Selected shapes" ? candidates.filter(function(item) { return item.selected }) : candidates
@@ -43,7 +42,7 @@ Column {
             || (activeCandidate.resizable && ["field-0", "field-14", "field-15"].indexOf(id) >= 0)
     }
     function selectView(id) {
-        if (!Elements.views.some(function(item) { return item.id === id })) return
+        if (!NativeData.elements.views.some(function(item) { return item.id === id })) return
         toolState.elementsViewId = id
         options.close()
     }
@@ -59,7 +58,7 @@ Column {
     }
     function resetView() {
         if (!editable) return
-        presentedFields.forEach(function(id) { root.edit(id, Elements.field(id).initial) })
+        presentedFields.forEach(function(id) { root.edit(id, NativeData.elements.field(id).initial) })
         toolState.notice = ""
     }
     function setSelected(item, checked) {
@@ -84,13 +83,13 @@ Column {
     }
     function formatted(id, index) {
         if (id === "field-0") return Number(value(id)[index]).toFixed(2).replace(/\.?0+$/, "") + " px"
-        const spec = Elements.field(id)
+        const spec = NativeData.elements.field(id)
         return Number(value(id)).toFixed(spec.decimals || 0) + (spec.unit === "px" ? " px" : spec.unit || "")
     }
     function commitNumber(id, index, text) {
         const raw = text.trim().replace(/\s*(px|%|°)$/, "")
         const next = Number(raw)
-        const spec = Elements.field(id)
+        const spec = NativeData.elements.field(id)
         if (!raw.length || !isFinite(next)) return
         if (id === "field-0") {
             if (next < 1 || next > 65536) return
@@ -167,7 +166,7 @@ Column {
         property bool textModified: false
         enabled: root.fieldEnabled(fieldId)
         text: root.formatted(fieldId, dimension)
-        Accessible.name: Elements.field(fieldId).label + (dimension === 0 ? " Width" : dimension === 1 ? " Height" : "")
+        Accessible.name: NativeData.elements.field(fieldId).label + (dimension === 0 ? " Width" : dimension === 1 ? " Height" : "")
         function commit() {
             textModified = false
             root.commitNumber(fieldId, dimension, text)
@@ -184,7 +183,7 @@ Column {
         spacing: 8
         Row {
             width: parent.width; height: 22; spacing: 22
-            Heading { label: Elements.field(numeric.fieldId).label; width: parent.width - root.inputWidth - 22; height: 22 }
+            Heading { label: NativeData.elements.field(numeric.fieldId).label; width: parent.width - root.inputWidth - 22; height: 22 }
             NumberField { fieldId: numeric.fieldId; width: root.inputWidth }
         }
         LV.Slider {
@@ -192,13 +191,13 @@ Column {
             objectName: "elementsSlider-" + numeric.fieldId
             width: parent.width; height: 22
             enabled: root.fieldEnabled(numeric.fieldId)
-            from: Elements.field(numeric.fieldId).minimum
-            to: Elements.field(numeric.fieldId).maximum
-            stepSize: Elements.field(numeric.fieldId).step
+            from: NativeData.elements.field(numeric.fieldId).minimum
+            to: NativeData.elements.field(numeric.fieldId).maximum
+            stepSize: NativeData.elements.field(numeric.fieldId).step
             value: Number(root.value(numeric.fieldId))
             size: LV.Slider.Mini
             showMinMax: false; showSymbol: false; showTicks: false; showLabels: false
-            Accessible.name: Elements.field(numeric.fieldId).label
+            Accessible.name: NativeData.elements.field(numeric.fieldId).label
             onMoved: root.edit(numeric.fieldId, value)
             handle: Item {
                 implicitWidth: slider.rangeInset * 2
@@ -246,22 +245,22 @@ Column {
         id: toggle
         required property string fieldId
         width: parent.width; height: 22; spacing: 8
-        Heading { label: Elements.field(toggle.fieldId).label; width: parent.width - 46; height: 22 }
+        Heading { label: NativeData.elements.field(toggle.fieldId).label; width: parent.width - 46; height: 22 }
         LV.ToggleSwitch {
             objectName: "elementsToggle-" + toggle.fieldId
             trackWidth: 38; trackHeight: 22
             enabled: root.editable
             checked: Boolean(root.value(toggle.fieldId))
-            Accessible.name: Elements.field(toggle.fieldId).label
+            Accessible.name: NativeData.elements.field(toggle.fieldId).label
             onToggled: root.edit(toggle.fieldId, checked)
         }
     }
     component ChoicesControl: Column {
         id: choices
         required property string fieldId
-        readonly property var entries: Elements.field(fieldId).options
+        readonly property var entries: NativeData.elements.field(fieldId).options
         width: parent.width; spacing: 8
-        Heading { label: Elements.field(choices.fieldId).label }
+        Heading { label: NativeData.elements.field(choices.fieldId).label }
         Row {
             width: parent.width; spacing: 8; height: 22
             Repeater {
@@ -286,7 +285,7 @@ Column {
                         // Image opens a picker before changing the accepted fill.
                         onToggled: checked = Qt.binding(function() { return choiceButton.selectionChecked })
                         tone: LV.AbstractButton.Default
-                        Accessible.name: Elements.field(choices.fieldId).label + ": " + slot.modelData
+                        Accessible.name: NativeData.elements.field(choices.fieldId).label + ": " + slot.modelData
                         Accessible.checkable: choiceButton.checkable
                         Accessible.checked: choiceButton.checked
                         Accessible.onToggleAction: choiceButton.click()
@@ -308,7 +307,7 @@ Column {
         id: colorControl
         required property string fieldId
         width: parent.width; spacing: 8
-        Heading { label: Elements.field(colorControl.fieldId).label }
+        Heading { label: NativeData.elements.field(colorControl.fieldId).label }
         Row {
             width: parent.width; height: 28; spacing: 8
             LV.InputField {
@@ -319,7 +318,7 @@ Column {
                 property bool textModified: false
                 enabled: root.editable
                 text: root.value(colorControl.fieldId)
-                Accessible.name: Elements.field(colorControl.fieldId).label
+                Accessible.name: NativeData.elements.field(colorControl.fieldId).label
                 function commit() {
                     textModified = false
                     const hex = text.trim().toUpperCase()
@@ -335,7 +334,7 @@ Column {
                 width: 28; height: 28
                 enabled: root.editable
                 currentColor: root.value(colorControl.fieldId)
-                Accessible.name: Elements.field(colorControl.fieldId).label
+                Accessible.name: NativeData.elements.field(colorControl.fieldId).label
                 onClicked: root.toolState.chooseColor(colorControl.fieldId)
             }
         }
@@ -446,7 +445,7 @@ Column {
         LV.IconSegmentedControl {
             forceBorderlessTone: false
             ElementIcon { objectName: "elementsViewTab0"; assetName: "direct-select"; width: 22; height: 22; horizontalPadding: 2; verticalPadding: 2; tone: LV.AbstractButton.Borderless; Accessible.name: qsTr("Selection"); checkable: true; selectionChecked: root.view.tab === 0; onClicked: root.selectView("selection") }
-            ElementIcon { objectName: "elementsViewTab1"; assetName: "rectangle"; width: 22; height: 22; horizontalPadding: 2; verticalPadding: 2; tone: LV.AbstractButton.Borderless; Accessible.name: qsTr("Shape"); checkable: true; selectionChecked: root.view.tab === 1; onClicked: root.selectView(Elements.shapeView(root.value("selector"))) }
+            ElementIcon { objectName: "elementsViewTab1"; assetName: "rectangle"; width: 22; height: 22; horizontalPadding: 2; verticalPadding: 2; tone: LV.AbstractButton.Borderless; Accessible.name: qsTr("Shape"); checkable: true; selectionChecked: root.view.tab === 1; onClicked: root.selectView(NativeData.elements.shapeView(root.value("selector"))) }
             ElementIcon { objectName: "elementsViewTab2"; assetName: "fill"; width: 22; height: 22; horizontalPadding: 2; verticalPadding: 2; tone: LV.AbstractButton.Borderless; Accessible.name: qsTr("Fill"); checkable: true; selectionChecked: root.view.tab === 2; onClicked: root.selectView("fill") }
             ElementIcon { objectName: "elementsViewTab3"; assetName: "stroke"; width: 22; height: 22; horizontalPadding: 2; verticalPadding: 2; tone: LV.AbstractButton.Borderless; Accessible.name: qsTr("Stroke"); checkable: true; selectionChecked: root.view.tab === 3; onClicked: root.selectView("stroke") }
         }
@@ -483,7 +482,7 @@ Column {
         visible: root.view.tab === 1
         width: parent.width; height: 72; spacing: 8
         Repeater {
-            model: Elements.shapes
+            model: NativeData.elements.shapes
             Column {
                 id: shape
                 required property int index
@@ -540,7 +539,7 @@ Column {
             id: fieldLoader
             required property string modelData
             readonly property string fieldId: modelData
-            readonly property var spec: Elements.field(fieldId)
+            readonly property var spec: NativeData.elements.field(fieldId)
             objectName: "elementsControl-" + fieldId
             width: root.width
             height: item ? item.implicitHeight : 0

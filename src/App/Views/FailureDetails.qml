@@ -5,6 +5,7 @@ import LVRS 1.0 as LV
 
 LV.Modal {
     id: root
+    frameCornerRadius: 0
     objectName: "failureDetailsModal"
     property var report: ({})
     title: qsTr("Failure explanation")

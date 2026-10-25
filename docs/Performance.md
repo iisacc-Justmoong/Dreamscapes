@@ -849,3 +849,9 @@ dispatch measurements and the remaining native adoption/render/commit costs.
 
 동작 계약과 회귀 검증은 [GenerationReview.md](GenerationReview.md)에 있다.
 실제 사용자 선별 시간, GPU 생성 속도 및 p95 프레임 시간은 별도 측정 대상이다.
+
+## 타임라인의 완성 프레임 유지
+
+Dreamscapes의 표시 노드는 다음 프레임의 타일 준비 중에도 마지막 완성 텍스처를 유지한다. 비어 있는 중간 캐시를 화면에 반영하지 않으며, 준비된 프레임을 한 번에 교체한다. 전체 캔버스의 추가 비트맵 복사 없이 기존 장면 노드를 유지하고, 대기 중 팬·확대도 뷰포트 변환으로 처리한다. 실제 투명 프레임과 문서 교체는 각각 새 결과와 새 소유자이므로 이전 그림을 유지하지 않는다.
+
+재생 타이머는 현재 렌더링이 완료된 뒤 최신 벽시계·오디오 시각의 프레임을 요청한다. 이로써 느린 프레임을 매 틱 취소하는 요청 폭주를 방지하며, 문서 리비전·Undo·파일 쓰기는 발생시키지 않는다. 실제 화면 픽셀 및 원본 무변경 검증은 `Dreamscapes.CanvasPresentation`을 사용한다. 상세 계약과 측정 한계는 [CanvasFramePresentation.md](CanvasFramePresentation.md)에 있다.

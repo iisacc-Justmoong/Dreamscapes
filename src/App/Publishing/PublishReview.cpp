@@ -1,5 +1,6 @@
 #include "PublishReview.h"
 #include "../Views/Editor/EditorFrameExporter.h"
+#include <iiFileProviderStorage.h>
 #include <QUuid>
 #include <QtConcurrentRun>
 #include <algorithm>
@@ -182,7 +183,7 @@ bool PublishReview::exportFrames(const QUrl &folder) {
     m_export.setFuture(QtConcurrent::run([snapshot=std::move(snapshot),boards=std::move(boards),layers=std::move(layers),rows,destination,jpeg]() mutable {
         QVariantMap result;
         try {
-            if (!std::filesystem::create_directory(destination)) throw std::runtime_error("Cannot create the media export folder");
+            if (!iiFileProvider::native::createDirectory(destination)) throw std::runtime_error("Cannot create the media export folder");
             auto restored=std::make_shared<iiSharedCanvas::Document>(*snapshot.document);
             for (std::size_t i=0;i<boards.size();++i) restored->artboards[i].visible=boards[i];
             for (std::size_t i=0;i<layers.size();++i) iiSharedCanvas::layerProperties(restored->layers[i]).visible=layers[i];

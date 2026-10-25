@@ -14,6 +14,7 @@ class EditorTimelineViewport : public QObject {
     Q_PROPERTY(double viewportWidth READ viewportWidth WRITE setViewportWidth NOTIFY geometryChanged)
     Q_PROPERTY(double viewportHeight READ viewportHeight WRITE setViewportHeight NOTIFY geometryChanged)
     Q_PROPERTY(double verticalOffset READ verticalOffset WRITE setVerticalOffset NOTIFY geometryChanged)
+    Q_PROPERTY(int rulerHeight READ rulerHeight WRITE setRulerHeight NOTIFY geometryChanged)
     Q_PROPERTY(double contentX READ contentX WRITE setContentX NOTIFY geometryChanged)
     Q_PROPERTY(double zoom READ zoom WRITE setZoom NOTIFY geometryChanged)
     Q_PROPERTY(double contentWidth READ contentWidth NOTIFY geometryChanged)
@@ -38,6 +39,7 @@ public:
     double viewportWidth() const;
     double viewportHeight() const;
     double verticalOffset() const;
+    int rulerHeight() const;
     double contentX() const;
     double zoom() const;
     double contentWidth() const;
@@ -59,6 +61,7 @@ public:
     void setViewportWidth(double value);
     void setViewportHeight(double value);
     void setVerticalOffset(double value);
+    void setRulerHeight(int value);
     void setContentX(double value);
     void setZoom(double value);
     void setTrackLayout(const QVariantList &value);

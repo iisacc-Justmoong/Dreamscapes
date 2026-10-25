@@ -1,8 +1,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Layouts
 import QtQuick.Dialogs as Dialogs
-import "EditorToolDefinitions.js" as Definitions
 import LVRS 1.0 as LV
 import ".." as Views
 import Dreamscapes.Storage 1.0
@@ -60,7 +60,7 @@ Item {
     readonly property string selectedTool: toolToolbar.currentTool
     property bool desktopPanelExpanded: true
     // Retain the requested width when a smaller window temporarily clamps it.
-    readonly property real desktopPanelDefaultWidth: 304
+    readonly property real desktopPanelDefaultWidth: 354
     property real desktopPanelWidth: desktopPanelDefaultWidth
     readonly property real desktopPanelMinimumWidth: 280
     readonly property real desktopPanelMaximumWidth: Math.min(720,
@@ -175,7 +175,7 @@ Item {
         }
         if (tool === "fill") { operation = "Fill"; recipe = {"field-0": values["field-12"], "field-5": values["field-13"]} }
         if (tool === "retouch") recipe = {"field-0": values["field-5"], "field-5": values["field-6"]}
-        if (tool === "eraser") recipe = toolSheet.settingsByTool.generative || Definitions.defaults(Definitions.tool("generative"))
+        if (tool === "eraser") recipe = toolSheet.settingsByTool.generative || NativeData.tools.defaults(NativeData.tools.tool("generative"))
         const parameters = blankCanvas.generationParameters(operation, recipe)
         if (!Object.keys(parameters).length) { toolSheet.notice = blankCanvas.error; return }
         generationOperation = operation
@@ -189,7 +189,7 @@ Item {
         toolActionRequested(toolId, fieldId, values)
         toolSheet.notice = ""
         if (toolId === "elements" && fieldId === "image-fill") { requestSource("elements", values); return }
-        const definition = Definitions.tool(toolId)
+        const definition = NativeData.tools.tool(toolId)
         if (fieldId === "capabilities") {
             previewTool = "capabilities"
             previewData = {title: qsTr("Tool availability"), description: qsTr("Required document, device and runtime capabilities"), items: definition.fields.map(function(f) { const c = blankCanvas.toolControlState(toolId, f.id, values); return {label: f.label, description: c.reason || qsTr("Connected"), enabled: false} }).filter(function(f) { return f.description !== qsTr("Connected") })}
@@ -214,7 +214,7 @@ Item {
         else if (toolId === "generative" && ["field-3", "field-7", "field-10", "field-14"].indexOf(fieldId) >= 0 || toolId === "background" && fieldId === "field-15" && values["field-13"] === "Generate" || toolId === "fill" && fieldId === "field-15" || toolId === "retouch" && (fieldId === "field-7" || fieldId === "field-3" && values["field-2"] === "Generate") || toolId === "eraser" && fieldId === "field-7" && values["field-6"] === "Generate") submitGeneration(toolId, fieldId, values)
         else if (toolId === "background" && fieldId === "field-15" && values["field-13"] !== "Generate") requestSource(toolId, values)
         else if (toolId === "generative" && fieldId === "field-22") requestSource("reference", values)
-        else if (toolId === "layers" && fieldId === "field-3") submitGeneration("generative", "field-7", toolSheet.settingsByTool.generative || Definitions.defaults(Definitions.tool("generative")))
+        else if (toolId === "layers" && fieldId === "field-3") submitGeneration("generative", "field-7", toolSheet.settingsByTool.generative || NativeData.tools.defaults(NativeData.tools.tool("generative")))
         else if (!blankCanvas.executeToolAction(toolId, fieldId, values)) toolSheet.notice = blankCanvas.error
         else toolSheet.notice = blankCanvas.toolHint
     }
@@ -274,29 +274,29 @@ Item {
         }
     }
 
+    EditorViewBar {
+        id: viewBar
+        anchors.top: root.top; anchors.left: sidebar.right; anchors.right: root.right
+        visible: !root.mobileLayout
+        height: root.mobileLayout ? 0 : implicitHeight
+        canvas: root.blankCanvas
+        onPublishRequested: root.publishRequested()
+    }
     Item {
         id: workspace
         objectName: "editorWorkspace"
-        anchors.top: root.mobileLayout ? toolbar.bottom : parent.top
+        anchors.top: root.mobileLayout ? toolbar.bottom : viewBar.bottom
         anchors.bottom: timelineDock.top
         anchors.left: root.mobileLayout ? parent.left : sidebar.right
         anchors.right: root.mobileLayout ? parent.right : toolToolbar.left
         anchors.margins: root.mobileLayout ? LV.Theme.gap16 : 0
         clip: true
 
-        EditorViewBar {
-            id: viewBar
-            anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
-            visible: !root.mobileLayout
-            height: root.mobileLayout ? 0 : implicitHeight
-            canvas: root.blankCanvas
-            onPublishRequested: root.publishRequested()
-        }
         EditorDocumentControls {
             id: documentControls
             objectName: "editorDocumentControls"
             defaultSaveDirectory: root.generationRuntime ? root.generationRuntime.filesDirectory : ""
-            anchors.top: viewBar.bottom
+            anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: 8
@@ -535,6 +535,7 @@ Item {
             project: canvasProject
             canvas: blankCanvas
             navigationEnabled: !root.modalActive
+            sharedBorders: !root.mobileLayout
         }
     }
     Item {
@@ -552,13 +553,15 @@ Item {
             height: parent.height
             canvas: root.blankCanvas
             generation: root.generationRuntime
+            compactLayout: !root.mobileLayout
+            sharedBorders: !root.mobileLayout
             enabled: !root.modalActive
             onPreviewError: function(message) { toolSheet.notice = message }
         }
     }
     Loader {
         id: desktopDock
-        anchors.top: parent.top
+        anchors.top: viewBar.bottom
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         width: Math.min(root.desktopPanelMaximumWidth,
@@ -567,6 +570,7 @@ Item {
         active: !root.mobileLayout
         sourceComponent: EditorDesktopPanel {
             toolState: toolSheet
+            sharedBorders: true
             onCloseRequested: root.desktopPanelExpanded = false
             onActionRequested: function(toolId, fieldId, values) { root.handleToolAction(toolId, fieldId, values) }
         }
@@ -601,13 +605,14 @@ Item {
     EditorToolbar {
         id: toolToolbar
         anchors.right: !root.mobileLayout && root.desktopPanelExpanded ? desktopDock.left : parent.right
-        anchors.top: root.mobileLayout ? undefined : parent.top
+        anchors.top: root.mobileLayout ? undefined : viewBar.bottom
         anchors.bottom: root.mobileLayout ? parent.bottom : undefined
         anchors.rightMargin: root.mobileLayout ? LV.Theme.gap8 : 0
         anchors.bottomMargin: root.mobileLayout ? LV.Theme.gap8 : 0
         width: root.mobileLayout ? Math.max(0, root.width - LV.Theme.gap8 * 2) : implicitWidth
-        height: root.mobileLayout ? implicitHeight : Math.min(implicitHeight, root.height)
+        height: root.mobileLayout ? implicitHeight : Math.max(0, root.height - viewBar.height)
         mobileLayout: root.mobileLayout
+        sharedBorders: !root.mobileLayout
         onToolSelected: function(toolId) {
             if (toolId !== "layers") { blankCanvas.setLayerHistogramClipping(false, false); blankCanvas.cancelLayerColorSample() }
             root.toolSelected(toolId)
@@ -631,27 +636,7 @@ Item {
             const index = toolToolbar.tools.findIndex(function(tool) { return tool.key === toolSheet.toolId })
             if (index >= 0) toolToolbar.syncTool(index)
         }
-        onResetRequested: function(toolId, defaults) { if (!blankCanvas.resetTool(toolId, defaults)) notice = blankCanvas.error }
-        onValuesChanged: {
-            if (toolId === "elements") {
-                // Selection restoration can notify while this binding is being
-                // evaluated. Configure the final Elements draft after evaluation.
-                Qt.callLater(function() {
-                    if (toolSheet.toolId === "elements") blankCanvas.configureTool("elements", toolSheet.values)
-                })
-            } else blankCanvas.configureTool(toolId, values)
-        }
-        onValueEdited: function(toolId, fieldId, value) {
-            // The selected element can restore its accepted draft while an
-            // image is still being chosen. Retain the requested fill for import.
-            const imageFill = toolId === "elements" && fieldId === "field-2" && value === "Image"
-            const requestedValues = imageFill ? Object.assign({}, values, {"field-2": "Image"}) : null
-            // Explicit edits apply immediately, with this tool's complete draft.
-            if (toolId === "elements") blankCanvas.configureTool(toolId, values)
-            if (!blankCanvas.applyToolField(toolId, fieldId, value)) notice = blankCanvas.error
-            else notice = ""
-            if (imageFill) root.requestSource("elements", requestedValues)
-        }
+        onSourceRequested: (toolId, values) => root.requestSource(toolId, values)
         onActionRequested: function(toolId, fieldId, values) { root.handleToolAction(toolId, fieldId, values) }
     }
     Dialogs.FileDialog {
@@ -700,7 +685,7 @@ Item {
         target: root.generationRuntime
         function onSubmissionQueued(ids) { if (root.submitting) root.editorJobIds = ids.slice() }
     }
-    LV.Sheet {
+    Frames.PanelSheet {
         id: previewSheet
         objectName: "editorToolPreviewSheet"
         parent: root
@@ -803,7 +788,7 @@ Item {
         text: qsTr("Advanced generation")
         onClicked: advancedSheet.open()
     }
-    LV.Sheet {
+    Frames.PanelSheet {
         id: advancedSheet
         objectName: "editorAdvancedGenerationSheet"
         parent: root
@@ -850,5 +835,25 @@ Item {
         else if (toolSheet.visible) toolSheet.dismiss()
         else if (!root.mobileLayout && root.desktopPanelExpanded) root.desktopPanelExpanded = false
         else root.backRequested()
+    }
+    Item {
+        id: panelBounds
+        objectName: "editorPanelBounds"
+        anchors.left: sidebar.right; anchors.right: root.right
+        anchors.top: viewBar.bottom; anchors.bottom: root.bottom
+        visible: !root.mobileLayout
+        enabled: false
+    }
+    Item {
+        id: canvasColumnBounds
+        anchors.left: workspace.left; anchors.right: workspace.right
+        anchors.top: panelBounds.top; anchors.bottom: panelBounds.bottom
+        visible: !root.mobileLayout
+        enabled: false
+    }
+    readonly property Item editorPanelFrame: Frames.PanelFrame { parent: root; target: panelBounds; panelId: "editor-body" }
+    readonly property Item canvasPanelFrame: Frames.PanelFrame {
+        parent: root; target: canvasColumnBounds; panelId: "editor-canvas"
+        topEdge: false; bottomEdge: false; leftEdge: false
     }
 }

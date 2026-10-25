@@ -1,9 +1,9 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 import ".." as Views
-import "EditorToolDefinitions.js" as Definitions
 
 Column {
     id: root
@@ -30,7 +30,7 @@ Column {
     readonly property var presentedFields: {
         if (!definition) return []
         if (!engine) return definition.fields
-        return Definitions.applicableFields(definition, values).filter(function(field) {
+        return NativeData.tools.applicableFields(definition, values).filter(function(field) {
             return root.capability(field.id).supported
         })
     }
@@ -104,7 +104,7 @@ Column {
         width: parent.width
         spacing: root.sampleLayout ? 16 : 10
         Repeater {
-            model: Definitions.rows({fields: root.presentedFields}, root.sampleLayout || root.width < 340)
+            model: NativeData.tools.rows({fields: root.presentedFields}, root.sampleLayout || root.width < 340)
             Row {
                 id: row
                 required property var modelData
@@ -140,7 +140,7 @@ Column {
                 const slot = actionOptions.itemAt(i)
                 widths.push(slot ? slot.implicitWidth : 0)
             }
-            return Definitions.buttonRows(width, widths,
+            return NativeData.tools.buttonRows(width, widths,
                 root.sampleLayout ? root.definition.desktopActionColumns || 2 : actionOptions.count,
                 root.sampleLayout ? 22 : 24, spacing, root.sampleLayout)
         }

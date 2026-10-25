@@ -1,5 +1,6 @@
 #pragma once
 #include <iiFileProviderCoreIO.h>
+#include <iiFileProviderStorage.h>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <stdexcept>
@@ -11,7 +12,7 @@ inline QJsonObject persistFailureReport(QJsonObject report) {
     if (destination.isEmpty()) return report;
     try {
         const std::filesystem::path path(destination.toStdU16String());
-        std::filesystem::create_directories(path.parent_path());
+        iiFileProvider::native::createDirectories(path.parent_path());
         auto staged = iiFileProvider::core::AtomicFile::create(path);
         if (!staged) throw std::runtime_error("Cannot create an atomic failure report: " + staged.error().native.message());
         const auto bytes = QJsonDocument(report).toJson(QJsonDocument::Indented);

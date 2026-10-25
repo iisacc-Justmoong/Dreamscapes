@@ -77,9 +77,13 @@ void EditorTimelineModel::beginPlaybackClock(qulonglong id) {
 }
 void EditorTimelineModel::updatePlaybackPosition() {
     if(!m_playing||!m_playbackClockStarted||!m_canvas)return;
+    // Keep the in-flight frame instead of cancelling it on every timer tick.
+    // The next accepted frame follows the current wall/audio clock, dropping
+    // obsolete intermediate requests rather than accumulating playback delay.
     const auto usecs=m_audioClock&&m_playback?m_playback->processedUsecs():m_playbackClock.nsecsElapsed()/1000;
     const long double frame=m_playbackFirstFrame+std::floor(static_cast<long double>(std::max<qint64>(0,usecs))*fps()/1000000);
     const bool complete=frame>=totalFrames();
+    if(m_canvas->rendering()&&!complete)return;
     const auto target=quint32(std::clamp<long double>(frame,0,totalFrames()-1));
     const auto owner=QPointer<EditorTimelineModel>(this);m_advancingPlayback=true;
     m_canvas->setFrame(target);if(!owner)return;m_advancingPlayback=false;

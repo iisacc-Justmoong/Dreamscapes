@@ -1,20 +1,19 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Dialogs
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
 import ".." as Shared
-import "EditorGraphicDefinitions.js" as Panels
-import "EditorGraphicState.js" as State
 
 Column {
     id: root
     objectName: "editorGraphicPanel"
     required property var toolState
     readonly property string toolId: toolState.toolId
-    readonly property var viewCatalog: Panels.panelsFor(toolId)
+    readonly property var viewCatalog: NativeData.graphics.panelsFor(toolId)
     property string currentViewId: ""
-    readonly property var selectedView: Panels.byId(currentViewId)
+    readonly property var selectedView: NativeData.graphics.byId(currentViewId)
     readonly property var engine: toolState.engine
     readonly property bool modalActive: sourcePicker.visible || previewSheet.visible || operationSheet.visible || colorSheet.visible || collectionSheet.visible
     property url previewImage: ""
@@ -44,14 +43,14 @@ Column {
 
     function defaultView() {
         const family = toolId === "masking" ? "mask" : toolId === "auto-enhance" ? "adjust" : toolId
-        return Panels.catalog().defaults[family] || (viewCatalog.length ? viewCatalog[0].id : "")
+        return NativeData.graphics.catalog().defaults[family] || (viewCatalog.length ? viewCatalog[0].id : "")
     }
     function restoreView() {
         const saved = toolState.graphicViewsByTool[toolId]
-        currentViewId = saved && Panels.byId(saved) ? saved : defaultView()
+        currentViewId = saved && NativeData.graphics.byId(saved) ? saved : defaultView()
     }
     function selectView(id) {
-        const panel = Panels.byId(id)
+        const panel = NativeData.graphics.byId(id)
         if (!panel) return false
         const targetTool = panel.tool === "mask" ? "masking" : panel.tool === "adjust" ? "auto-enhance" : panel.tool
         const next = Object.assign({}, toolState.graphicViewsByTool)
@@ -70,11 +69,11 @@ Column {
     }
     function parameters(operation) {
         const drafts = toolState.values.graphicDrafts || {}
-        const currentDefaults = selectedView && selectedView.operation === operation ? Panels.defaultsFor(currentViewId) : {}
-        return State.nested(Object.assign({}, Panels.operationDefaults(operation), currentDefaults), drafts[operation] || {})
+        const currentDefaults = selectedView && selectedView.operation === operation ? NativeData.graphics.defaultsFor(currentViewId) : {}
+        return NativeData.graphicState.nested(Object.assign({}, NativeData.graphics.operationDefaults(operation), currentDefaults), drafts[operation] || {})
     }
     function parameterPath(row) {
-        let path = State.resolvedPath(row.sdkParameter || row.parameter || "", collectionIndices)
+        let path = NativeData.graphicState.resolvedPath(row.sdkParameter || row.parameter || "", collectionIndices)
         if (selectedView && selectedView.name.indexOf("PointColor") >= 0 && !row.collection) path = path.replace("points[0]", "points[" + (collectionIndices.points || 0) + "]")
         return path
     }
@@ -85,12 +84,12 @@ Column {
         const key = parameterPath(row)
         if (key && draft[key] !== undefined) return draft[key]
         if (key && !row.uiOnly) {
-            const found = State.getPath(State.nested(draft), key)
+            const found = NativeData.graphicState.getPath(NativeData.graphicState.nested(draft), key)
             if (found !== undefined) return found
         }
         if (row.collection) {
             const definition = collectionDefinition()
-            const found = definition && key.startsWith(definition.path + "[") ? State.getPath(collectionItems(), key.slice(definition.path.length)) : undefined
+            const found = definition && key.startsWith(definition.path + "[") ? NativeData.graphicState.getPath(collectionItems(), key.slice(definition.path.length)) : undefined
             if (found !== undefined) return found
         }
         return row.initial
@@ -100,16 +99,16 @@ Column {
         const field = rowsOf(selectedView.rows).find(function(row) { return Boolean(row.collection) })
         if (!field) return null
         let editor = null
-        Panels.catalog().panels.some(function(panel) {
+        NativeData.graphics.catalog().panels.some(function(panel) {
             editor = root.rowsOf(panel.rows).concat(panel.availableEditors || []).find(function(row) { return row.target === root.currentViewId && row.editor })
             return Boolean(editor)
         })
-        return {path: State.resolvedPath(field.collection.path, collectionIndices), minimum: editor && editor.minItems || 0, maximum: editor && editor.maxItems || 65536, initial: editor && editor.initial || []}
+        return {path: NativeData.graphicState.resolvedPath(field.collection.path, collectionIndices), minimum: editor && editor.minItems || 0, maximum: editor && editor.maxItems || 65536, initial: editor && editor.initial || []}
     }
     function collectionItems() {
         const definition = collectionDefinition()
-        const found = definition ? State.getPath(parameters(selectedView.operation), definition.path) : []
-        const items = Array.isArray(found) ? State.clone(found) : []
+        const found = definition ? NativeData.graphicState.getPath(parameters(selectedView.operation), definition.path) : []
+        const items = Array.isArray(found) ? NativeData.graphicState.clone(found) : []
         // The SDK represents an identity Camera Raw curve as an empty array.
         // Show editable endpoints without storing a draft until the user edits.
         if (!items.length && definition && definition.minimum >= 2) {
@@ -125,11 +124,11 @@ Column {
         let item = {}
         rowsOf(selectedView.rows).forEach(function(row) {
             if (!row.collection || row.initial === undefined || row.uiOnly || row.sourceArgument) return
-            const path = State.resolvedPath(row.parameter, collectionIndices)
+            const path = NativeData.graphicState.resolvedPath(row.parameter, collectionIndices)
             if (path.startsWith(definition.path + "[")) {
                 const suffix = path.slice(path.indexOf("]", definition.path.length) + 1).replace(/^\./, "")
-                if (/^\d+$/.test(State.pathParts(suffix)[0]) && !Object.keys(item).length) item = []
-                if (suffix) State.setPath(item, suffix, row.initial)
+                if (/^\d+$/.test(NativeData.graphicState.pathParts(suffix)[0]) && !Object.keys(item).length) item = []
+                if (suffix) item = NativeData.graphicState.withPath(item, suffix, row.initial)
             }
         })
         return item
@@ -158,7 +157,7 @@ Column {
             const output = (y(items[insert - 1]) + y(items[insert])) / 2
             items.splice(insert, 0, Array.isArray(template) ? [input, Math.round(output)] : {input: input, output: output})
             selected = insert
-        } else if (!items.length && Array.isArray(definition.initial) && definition.initial.length) { items.push(...State.clone(definition.initial)); selected = 0 }
+        } else if (!items.length && Array.isArray(definition.initial) && definition.initial.length) { items.push(...NativeData.graphicState.clone(definition.initial)); selected = 0 }
         else items.push(template)
         toolState.replaceGraphicCollection(selectedView.operation, definition.path, items)
         selectCollection(selected)
@@ -182,7 +181,7 @@ Column {
             const definition = collectionDefinition(), items = collectionItems()
             const index = collectionIndices[definition.path] || 0
             while (items.length <= index) items.push(collectionItem())
-            if (items.length < definition.minimum && Array.isArray(definition.initial) && definition.initial.length >= definition.minimum) items.splice(0, items.length, ...State.clone(definition.initial))
+            if (items.length < definition.minimum && Array.isArray(definition.initial) && definition.initial.length >= definition.minimum) items.splice(0, items.length, ...NativeData.graphicState.clone(definition.initial))
             while (items.length < definition.minimum) {
                 const endpoint = collectionItem()
                 if (Array.isArray(endpoint)) { endpoint[0] = 255; endpoint[1] = 255 }
@@ -199,7 +198,7 @@ Column {
     }
     function resetView() {
         if (!selectedView) return
-        const defaults = Panels.defaultsFor(currentViewId)
+        const defaults = NativeData.graphics.defaultsFor(currentViewId)
         rowsOf(selectedView.rows).forEach(function(row) { if (row.collection && row.initial !== undefined && !row.uiOnly && !row.sourceArgument) defaults[root.parameterPath(row)] = row.initial })
         toolState.resetGraphicView(selectedView.operation, defaults)
         resultMessage = ""
@@ -209,7 +208,7 @@ Column {
         const action = option.action || option.value || (row ? row.action : "") || ""
         if (action === "preview" || action === "apply") { execute(action); return }
         if (action === "reset") { resetView(); return }
-        if (action === "overview") { const overview = Panels.overviewFor(toolId); selectView(option.target || selectedView.parent || (overview ? overview.id : defaultView())); return }
+        if (action === "overview") { const overview = NativeData.graphics.overviewFor(toolId); selectView(option.target || selectedView.parent || (overview ? overview.id : defaultView())); return }
         if (option.target) { selectView(option.target); return }
         const api = option.api || (row ? row.api : "")
         if (row && row.uiOnly && api === "whiteBalancePreset") {
@@ -230,7 +229,7 @@ Column {
         if (row && row.editor === "hostColorPicker") {
             pickerRow = row; pickerApi = row.sourceArgument ? api : ""
             colorSheet.open()
-            const current = State.getPath(parameters(operationFor(row)), parameterPath(row)) || value(row)
+            const current = NativeData.graphicState.getPath(parameters(operationFor(row)), parameterPath(row)) || value(row)
             const color = Array.isArray(current) ? Qt.rgba(current[0], current[1], current[2], current.length > 3 ? current[3] : 1) : typeof current === "string" && current.charAt(0) === "#" ? current.split(" · ")[0] : "#808080"
             colorSheet.loadedContent.setColor(color)
             return
@@ -253,12 +252,12 @@ Column {
         if (!result.parameters || !Object.keys(result.parameters).length) return
         const target = api === "autoDevelopLight" ? "developLight" : api === "autoWhiteBalance" || api === "sampledWhiteBalance" || api === "whiteBalancePreset" ? "whiteBalance" : api === "autoBlackAndWhiteMix" || api === "samplePointColor" ? "developColor" : api === "estimateChromaticAberration" ? "correctOptics" : selectedView.operation
         const prefix = api === "samplePointColor" ? "points[" + (collectionIndices.points || 0) + "]" : ""
-        toolState.setGraphicValues(target, State.flatten(result.parameters, prefix))
+        toolState.setGraphicValues(target, NativeData.graphicState.flatten(result.parameters, prefix))
     }
     function statusFor(status) {
-        const family = Panels.normalizedTool(toolId) === "mask" ? "adjust" : Panels.normalizedTool(toolId)
-        const states = Panels.catalog().statusViews[family] || {}
-        return status ? Panels.byId(states[status]) : null
+        const family = NativeData.graphics.normalizedTool(toolId) === "mask" ? "adjust" : NativeData.graphics.normalizedTool(toolId)
+        const states = NativeData.graphics.catalog().statusViews[family] || {}
+        return status ? NativeData.graphics.byId(states[status]) : null
     }
     function helperContext() {
         return {tool: toolId, view: currentViewId, indices: collectionIndices,
@@ -345,7 +344,7 @@ Column {
     }
     function swatchColor() {
         if (!selectedView || !selectedView.sourceParameter) return "transparent"
-        const value = State.getPath(parameters(selectedView.operation), State.resolvedPath(selectedView.sourceParameter, collectionIndices))
+        const value = NativeData.graphicState.getPath(parameters(selectedView.operation), NativeData.graphicState.resolvedPath(selectedView.sourceParameter, collectionIndices))
         return Array.isArray(value) ? Qt.rgba(value[0] || 0, value[1] || 0, value[2] || 0, value.length > 3 ? value[3] : 1) : "transparent"
     }
     function curveChannel() { return selectedView ? selectedView.name.match(/Red|Green|Blue/) : null }
@@ -355,8 +354,8 @@ Column {
         const input = fields.find(function(field) { return field.parameter && /\.(input)$|\[\]\[0\]/.test(field.parameter) })
         if (!input) return row.points || [[0, 0], [1, 1]]
         let path = input.parameter.replace(/\[\d*\]\.(input)$/, "").replace(/\[\]\[0\]$/, "")
-        path = State.resolvedPath(path, collectionIndices)
-        let points = State.getPath(settings, path)
+        path = NativeData.graphicState.resolvedPath(path, collectionIndices)
+        let points = NativeData.graphicState.getPath(settings, path)
         if (!Array.isArray(points) || points.length < 2) return row.points || [[0, 0], [1, 1]]
         const scale = input.max === 255 ? 255 : 1
         return points.map(function(point) { return Array.isArray(point) ? [point[0] / scale, point[1] / scale] : [point.input / scale, point.output / scale] })
@@ -467,7 +466,7 @@ Column {
         nameFilters: [qsTr("Images (*.png *.jpg *.jpeg *.webp *.bmp *.tif *.tiff)"), qsTr("All files (*)")]
         onAccepted: root.toolState.setGraphicValue(root.sourceOperation, root.sourceParameter, selectedFile.toString())
     }
-    LV.Sheet {
+    Frames.PanelSheet {
         id: colorSheet
         objectName: "editorGraphicColorSheet"
         parent: root.toolState.parent
@@ -484,7 +483,7 @@ Column {
             onCanceled: colorSheet.close()
         }
     }
-    LV.Sheet {
+    Frames.PanelSheet {
         id: collectionSheet
         objectName: "editorGraphicCollectionSheet"
         parent: root.toolState.parent
@@ -502,7 +501,7 @@ Column {
             }
         }
     }
-    LV.Sheet {
+    Frames.PanelSheet {
         id: operationSheet
         objectName: "editorGraphicOperationSheet"
         parent: root.toolState.parent
@@ -517,7 +516,7 @@ Column {
             LV.Label { width: parent.width; text: root.resultMessage; wrapMode: Text.Wrap; style: caption }
         }
     }
-    LV.Sheet {
+    Frames.PanelSheet {
         id: previewSheet
         objectName: "editorGraphicPreviewSheet"
         parent: root.toolState.parent

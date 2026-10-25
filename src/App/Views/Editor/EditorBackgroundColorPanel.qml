@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
 import ".." as Shared
@@ -227,5 +228,5 @@ Column {
     }
     LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; visible:root.toolState.notice.length>0; width:parent.width; style:caption; color:LV.Theme.bodyColor; text:root.toolState.notice; wrapMode:Text.WordWrap; sizeToContentHeight:true }
     LV.ContextMenu { id:modeMenu; objectName:"backgroundPickerMenu"; showIconSlot:false; items:colorModel.modeNames.map(name=>({label:name})); onItemTriggered:index=>root.edit("backgroundPickerMode",index) }
-    LV.Sheet { id:stopSheet; parent:root.Window.window?root.Window.window.contentItem:null; title:qsTr("Gradient stop"); presentation:LV.Sheet.Mobile; topSafeInset:0; bottomSafeInset:0; contentComponent:Shared.ColorPicker { onAccepted:color=>{root.changeStop(root.selectedStop,"color",String(color));stopSheet.close()} onCanceled:stopSheet.close() } }
+    Frames.PanelSheet { id:stopSheet; parent:root.Window.window?root.Window.window.contentItem:null; title:qsTr("Gradient stop"); presentation:LV.Sheet.Mobile; topSafeInset:0; bottomSafeInset:0; contentComponent:Shared.ColorPicker { onAccepted:color=>{root.changeStop(root.selectedStop,"color",String(color));stopSheet.close()} onCanceled:stopSheet.close() } }
 }

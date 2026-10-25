@@ -1,5 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
+import ".." as Frames
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import LVRS 1.0 as LV
@@ -8,29 +10,36 @@ Item {
     id: root
     objectName: "quickGenerate"
 
+    readonly property alias nativeModel: nativeComposer
+    NativeGenerationComposer {
+        id: nativeComposer
+        objectName: "homeNativeComposer"
+        generation: root.generation
+        canvas: homePaint.canvas
+        prompt: root.prompt
+        onPromptRequested: text => root.prompt = text
+        onFocusPromptRequested: root.focusPrompt()
+        onDismissInputRequested: root.dismissInput()
+        onGenerateRequested: (prompt, type, ratio, count) => root.generateRequested(prompt, type, ratio, count)
+        onMediaActionRequested: action => root.mediaActionRequested(action)
+    }
     property string errorText: ""
     property alias prompt: promptField.text
-    property string mediaType: "Image"
-    property var defaultPrompts: ({})
-    property string appliedDefaultPrompt: ""
-    property bool promptDefaultsReady: false
-    function applyDefaultPrompt() {
-        if (prompt !== appliedDefaultPrompt) return
-        appliedDefaultPrompt = (defaultPrompts[mediaType] || {}).prompt || ""
-        prompt = appliedDefaultPrompt
-    }
-    onDefaultPromptsChanged: if (promptDefaultsReady) applyDefaultPrompt()
-    onMediaTypeChanged: if (promptDefaultsReady) applyDefaultPrompt()
-    Component.onCompleted: { promptDefaultsReady = true; applyDefaultPrompt() }
-    property string aspectRatio: "1:1"
-    property int generationCount: 1
-    property int videoDuration: 5
-    property int videoFps: 24
+    property alias mediaType: nativeComposer.mediaType
+    property alias defaultPrompts: nativeComposer.defaultPrompts
+    property alias appliedDefaultPrompt: nativeComposer.appliedDefaultPrompt
+    property alias promptDefaultsReady: nativeComposer.promptDefaultsReady
+    function applyDefaultPrompt() { nativeComposer.applyDefaultPrompt() }
+    Component.onCompleted: nativeComposer.promptDefaultsReady = true
+    property alias aspectRatio: nativeComposer.aspectRatio
+    property alias generationCount: nativeComposer.generationCount
+    property alias videoDuration: nativeComposer.videoDuration
+    property alias videoFps: nativeComposer.videoFps
     property var videoModels: []
     property string selectedVideoModel: ""
     signal videoModelSelected(string modelId)
-    property bool submitting: false
-    property bool generationPending: false
+    property alias submitting: nativeComposer.submitting
+    property alias generationPending: nativeComposer.generationPending
     readonly property var generationCounts: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
         15, 20, 25, 30, 40, 50, 100, 200, 500, 1000]
     property bool canvasEnabled: false
@@ -41,12 +50,8 @@ Item {
     onDesktopLayoutChanged: if (desktopLayout) desktopComposerLoaded = true
     property alias homePaint: homePaint
     readonly property bool hasCanvasInputs: homePaint.hasInputs
-    function addAttachment(source) {
-        return homePaint.addAttachment(source)
-    }
-    function generationParameters(model) {
-        return homePaint.generationParameters(prompt.trim(), model, aspectRatio, generationCount)
-    }
+    function addAttachment(source) { return nativeComposer.addAttachment(source) }
+    function generationParameters(model) { return nativeComposer.generationParameters(model) }
     property bool menusOpenUpward: false
     property real contentInset: LV.Theme.gap10
     readonly property var platformInputMethod: Qt.inputMethod
@@ -58,6 +63,8 @@ Item {
     function chooseAttachments() { attachmentDialog.open() }
     function openRatioMenu(button) { openMenu(ratioMenu, button) }
     function openCountMenu(button) { openMenu(countMenu, button) }
+    function openDurationMenu(button) { openMenu(durationMenu, button) }
+    function openFpsMenu(button) { openMenu(fpsMenu, button) }
 
     implicitWidth: 402
     implicitHeight: (desktopLayout && desktopComposer ? desktopComposer.implicitHeight : content.implicitHeight + contentInset * 2)
@@ -91,21 +98,7 @@ Item {
         platformInputMethod.hide()
     }
 
-    function submit() {
-        if (submitting || generationPending) return
-        const trimmedPrompt = prompt.trim()
-        if (trimmedPrompt.length === 0) {
-            focusPrompt()
-            return
-        }
-        dismissInput()
-        submitting = true
-        try {
-            generateRequested(trimmedPrompt, mediaType, aspectRatio, generationCount)
-        } finally {
-            submitting = false
-        }
-    }
+    function submit() { nativeComposer.submit() }
 
     function focusPrompt() {
         if (desktopLayout && desktopComposer) desktopComposer.focusPrompt()
@@ -426,4 +419,5 @@ Item {
             }
         }
     }
+    readonly property Item panelFrame: Frames.PanelFrame { parent: root; panelId: "quick-generation"; visible: !root.desktopLayout && width > 0 && height > 0 }
 }

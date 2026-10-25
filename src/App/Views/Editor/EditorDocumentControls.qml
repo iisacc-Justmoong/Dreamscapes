@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import LVRS 1.0 as LV
@@ -7,6 +8,7 @@ import ".." as Shared
 
 Item {
     id: root
+    readonly property Item panelFrame: Frames.PanelFrame { parent: root; panelId: "document-controls" }
     required property var canvas
     required property var project
     property var imageImporter: null
@@ -180,7 +182,7 @@ Item {
         onAccepted: root.project.saveDocumentAs(selectedFile)
         onVisibleChanged: if (!visible) Qt.callLater(function() { root.canvas.forceActiveFocus() })
     }
-    LV.Sheet {
+    Frames.PanelSheet {
         id: paintColorSheet
         objectName: "editorPaintColorSheet"
         parent: root.parent.parent
@@ -194,7 +196,7 @@ Item {
             onCanceled: paintColorSheet.close()
         }
     }
-    LV.Sheet {
+    Frames.PanelSheet {
         id: layersSheet
         objectName: "editorDocumentLayersSheet"
         parent: root.parent.parent

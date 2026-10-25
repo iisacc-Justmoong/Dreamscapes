@@ -57,6 +57,7 @@ QQuickItem *visualItem(QQuickItem *root,const QString &name) {
 class EditorLayerTimelineTests : public QObject {
     Q_OBJECT
 private slots:
+    void rulerHeightChangesOnlyViewGeometry();
     void readsNativeLayersAndTiming();
     void resolvesEachDynamicFrame();
     void vectorVideoAndMotionSources();
@@ -104,6 +105,19 @@ private slots:
     void responsiveLayout_data();
     void responsiveLayout();
 };
+void EditorLayerTimelineTests::rulerHeightChangesOnlyViewGeometry() {
+    EditorCanvas canvas;QVERIFY(canvas.loadProjectPage(fixture(),"Ruler geometry"));
+    EditorTimelineModel model;model.setCanvas(&canvas);
+    const auto revision=canvas.revision();const auto layers=canvas.document()->layers.size();
+    const auto path=canvas.filePath();const auto undo=model.canUndo();
+    const auto clips=model.clips();
+    model.setRulerHeight(32);
+    QCOMPARE(model.rulerHeight(),32);QCOMPARE(model.trackLayout().front().toMap()["top"].toInt(),32);
+    QCOMPARE(canvas.revision(),revision);QCOMPARE(canvas.filePath(),path);
+    QCOMPARE(canvas.document()->layers.size(),layers);QCOMPARE(model.clips(),clips);QCOMPARE(model.canUndo(),undo);
+    model.setRulerHeight(44);QCOMPARE(model.trackLayout().front().toMap()["top"].toInt(),44);
+    QCOMPARE(canvas.revision(),revision);QCOMPARE(model.clips(),clips);
+}
 void EditorLayerTimelineTests::readsNativeLayersAndTiming() {
     EditorCanvas canvas; QVERIFY(canvas.loadProjectPage(fixture(),"Fixture"));
     EditorTimelineModel model; model.setCanvas(&canvas);
@@ -1118,7 +1132,7 @@ void EditorLayerTimelineTests::rulerGeometry() {
     }
     model->seek(frames-1);
     auto *playhead=visualItem(timeline.data(),"editorTimelinePlayhead");QVERIFY(playhead);
-    QVERIFY(qAbs(playhead->mapToItem(lanes,QPointF()).x()-origin-(frames-1)*pixelsPerFrame)<.01);
+    QVERIFY(qAbs(playhead->mapToItem(lanes,QPointF(playhead->width()/2,0)).x()-origin-(frames-1)*pixelsPerFrame)<.01);
     QCOMPARE(encodeIisc(*canvas.document()).bytes,original);
     const auto capture=qEnvironmentVariable("DREAMSCAPES_CAPTURE_DIR");
     if(!capture.isEmpty()&&frames==1&&width==1568)QVERIFY(window.grabWindow().save(capture+"/single-frame-ruler.png"));
@@ -1156,10 +1170,10 @@ void EditorLayerTimelineTests::rulerReferenceStyle() {
     QTest::qWait(60);const auto image=window.grabWindow();QVERIFY(!image.isNull());const auto ratio=image.width()/1568.0;
     const auto pixel=[&](QQuickItem *item,QPointF point){const auto scene=item->mapToItem(window.contentItem(),point);return image.pixelColor(qRound(scene.x()*ratio),qRound(scene.y()*ratio));};
     QCOMPARE(pixel(baseline,{30,2}),QColor("#f0f000"));
-    QCOMPARE(pixel(marker,{4,4}),QColor("#4096f3"));
-    QCOMPARE(pixel(marker,{11,24}),QColor("#4096f3"));
+    QCOMPARE(pixel(marker,{4,4}),QColor("#548af7"));
+    QCOMPARE(pixel(marker,{11,24}),QColor("#548af7"));
     QCOMPARE(pixel(marker,{1,23}),window.color());
-    QCOMPARE(pixel(head,{1,50}),QColor("#4096f3"));
+    QCOMPARE(pixel(head,{1,50}),QColor("#548af7"));
     QCOMPARE(encodeIisc(*canvas.document()).bytes,original);
     const auto capture=qEnvironmentVariable("DREAMSCAPES_CAPTURE_DIR");if(!capture.isEmpty())QVERIFY(image.save(capture+"/reference-ruler.png"));
 }

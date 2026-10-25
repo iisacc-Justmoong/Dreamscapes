@@ -158,7 +158,10 @@ private slots:
         QTRY_COMPARE(output->starts.size(),std::size_t(1));QTest::qWait(60);QCOMPARE(model.playhead(),0);
         const auto id=output->starts.front();fake->event(id,EditorAudioOutput::State::Started);QVERIFY(!model.preparing());
         output->processed=fractional?33367:41667;model.updatePlaybackPosition();QCOMPARE(model.playhead(),1);QVERIFY(model.playing());
-        output->processed=fractional?66734:83334;model.updatePlaybackPosition();QCOMPARE(model.playhead(),2);QVERIFY(model.playing());
+        output->processed=fractional?66734:83334;model.updatePlaybackPosition();QCOMPARE(model.playhead(),1);QVERIFY(model.playing());
+        // The unfinished frame owns the renderer. Once ready, use the latest
+        // audio position instead of cancelling it for an intermediate request.
+        QTRY_VERIFY(!canvas.rendering());model.updatePlaybackPosition();QCOMPARE(model.playhead(),2);QVERIFY(model.playing());
         output->processed=fractional?100100:125000;model.updatePlaybackPosition();QCOMPARE(model.playhead(),2);QVERIFY(!model.playing());
         QCOMPARE(revisions.count(),0);QCOMPARE(projections.count(),0);QCOMPARE(encodeIisc(*canvas.document()).bytes,original);
     }

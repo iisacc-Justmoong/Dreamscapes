@@ -38,9 +38,14 @@ DocumentOpenResult prepareDocumentOpen(const DocumentOpenInput &input) {
     try {
         if(cancelled())return abandon();
         result.source=std::filesystem::absolute(input.source).lexically_normal();
-        iiFileProvider::native::SourceAccess access(result.source);
-        std::lock_guard lock(access); // SDK nested reads are explicitly supported.
-        result.stamp=stamp(result.source);
+        {
+            iiFileProvider::native::SourceAccess access(result.source);
+            std::lock_guard lock(access);
+            result.stamp=stamp(result.source);
+        }
+        // SDK decoders guard their own reads. Do not hold the original's token
+        // across managed publication: catalog intake owns a repository lease
+        // before reading that same original. The final stamp rejects changes.
         const auto utf8=result.source.filename().u8string();const std::string filename(utf8.begin(),utf8.end());
         const auto dot=filename.find_last_of('.');auto suffix=dot==std::string::npos?std::string{}:filename.substr(dot);
         for(auto &ch:suffix)ch=char(std::tolower(static_cast<unsigned char>(ch)));

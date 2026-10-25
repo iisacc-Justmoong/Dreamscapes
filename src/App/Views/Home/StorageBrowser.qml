@@ -1,13 +1,14 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
-import "StorageBrowserEntries.js" as Entries
 
 Item {
     id: root
+    readonly property Item panelFrame: Frames.PanelFrame { parent: root; panelId: "files" }
     objectName: "storageBrowser"
     property var container: null
     property var download: null
@@ -33,8 +34,8 @@ Item {
     readonly property string storageIdentity: container ? container.containerId + "|" + container.rootPath : ""
     readonly property string sectionTitle: section === "generation-history" ? qsTr("Generation History")
         : section === "published" ? qsTr("Published") : qsTr("Files")
-    readonly property var sectionFiles: available ? Entries.sectionFiles(mirroredAliases, section) : []
-    readonly property var entries: Entries.listing(sectionFiles, section, directory, query, sortOrder)
+    readonly property var sectionFiles: available ? NativeData.storage.sectionFiles(mirroredAliases, section) : []
+    readonly property var entries: NativeData.storage.listing(sectionFiles, section, directory, query, sortOrder)
     readonly property var selectedEntry: entries.find(file => file.key === selectedKey) || ({})
     signal backRequested()
     signal sectionRequested(string section)

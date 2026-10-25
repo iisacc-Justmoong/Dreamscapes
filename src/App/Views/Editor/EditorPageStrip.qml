@@ -1,9 +1,15 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import LVRS 1.0 as LV
 
 Item {
     id: root
+    property bool sharedBorders: false
+    readonly property Item panelFrame: Frames.PanelFrame {
+        parent: root; panelId: "pages"
+        rightEdge: !root.sharedBorders; bottomEdge: !root.sharedBorders; leftEdge: !root.sharedBorders
+    }
     objectName: "editorPageStrip"
     required property var project
     required property var canvas

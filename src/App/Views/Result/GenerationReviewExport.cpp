@@ -1,5 +1,6 @@
 #include "GenerationReviewExport.h"
 #include <iiSocietyHelper/MediaExport.h>
+#include <iiFileProviderStorage.h>
 #include <QDateTime>
 #include <QFileInfo>
 #include <QPointer>
@@ -42,7 +43,7 @@ bool GenerationReviewExport::start(const QVariantList& entries,const QUrl& folde
             const auto parent=std::filesystem::path(folder.toLocalFile().toStdU16String());
             if(!std::filesystem::is_directory(parent))throw std::runtime_error("The export folder does not exist.");
             const auto directory=parent/leaf.toStdU16String();
-            if(!std::filesystem::create_directory(directory))throw std::runtime_error("The export directory already exists.");
+            if(!iiFileProvider::native::createDirectory(directory))throw std::runtime_error("The export directory already exists.");
             result.directory=QUrl::fromLocalFile(QString::fromStdU16String(directory.u16string()));
             for(qsizetype index=0;index<entries.size();++index) {
                 const auto entry=entries[index].toMap();const bool video=entry.value("mediaType")=="Video";

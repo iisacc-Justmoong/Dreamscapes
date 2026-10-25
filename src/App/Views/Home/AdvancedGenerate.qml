@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import QtQuick.Dialogs as Dialogs
@@ -9,6 +10,7 @@ import Dreamscapes.Storage 1.0
 
 Item {
     id: root
+    readonly property Item panelFrame: Frames.PanelFrame { parent: root; panelId: "image-parameters" }
     objectName: "advancedGenerate"
     CanvasPreview { id: displayPreviews }
 
@@ -19,16 +21,9 @@ Item {
     property var vaes: []
     property var generation: null
     property bool expanded: true
-    property var invalidInputs: ({})
-    readonly property bool hasInvalidInputs: Object.keys(invalidInputs).length > 0
+    readonly property alias invalidInputs: draft.invalidInputs
+    readonly property alias hasInvalidInputs: draft.hasInvalidInputs
     readonly property var values: draft.parameters
-    onValuesChanged: {
-        // Collection delegates are rebuilt from the new authoritative snapshot.
-        const next = Object.assign({}, invalidInputs)
-        for (const key of Object.keys(next))
-            if (key.indexOf("control.") === 0 || key.indexOf("lora.") === 0) delete next[key]
-        invalidInputs = next
-    }
     readonly property real seed: values.seed
     readonly property int outputCount: values.outputCount
     readonly property var referenceImages: values.referenceImages
@@ -45,59 +40,28 @@ Item {
     implicitWidth: LV.Theme.scaleMetric(402)
     implicitHeight: 844
 
-    AdvancedImageParameters { id: draft; objectName: "advancedParameterStore" }
-    function edit(key, value) {
-        const patch = {}; patch[key] = value
-        const accepted = draft.updateParameters(patch)
-        recordValidity(key, accepted)
-        return accepted
+    AdvancedImageParameters {
+        id: draft
+        objectName: "advancedParameterStore"
+        generation: root.generation
+        onDraftRestored: root.draftRestored()
+        onPresetSaved: name => root.presetSaved(name)
+        onReferenceImageLimitReached: root.referenceImageLimitReached()
     }
-    function recordValidity(key, valid) {
-        const next = Object.assign({}, invalidInputs)
-        if (valid) delete next[key]; else next[key] = true
-        invalidInputs = next
-    }
-    function applyPromptDefaults() {
-        if (!generation || !generation.defaultGenerationPrompts) return
-        const defaults = generation.defaultGenerationPrompts.Image
-        if (defaults) draft.updateParameters({prompt: defaults.prompt, negativePrompt: defaults.negativePrompt})
-    }
+    function edit(key, value) { return draft.edit(key, value) }
+    function recordValidity(key, valid) { draft.recordValidity(key, valid) }
+    function applyPromptDefaults() { draft.applyPromptDefaults() }
     Component.onCompleted: applyPromptDefaults()
-    function resetDraft() { draft.reset(); applyPromptDefaults(); invalidInputs = ({}); draftRestored() }
-    function loadPreset(name) {
-        if (!draft.loadPreset(name)) return false
-        invalidInputs = ({}); draftRestored(); return true
-    }
-    function editNumber(key, text) {
-        if (String(text).trim() === "") return edit(key, Number.NaN)
-        return edit(key, Number(text))
-    }
-    function selectLearnedUpscaler(source) {
-        // Commit selection and source together; cancelling the dialog edits neither.
-        const accepted = draft.updateParameters({upscaler: "4x-ultra", upscalerModel: String(source)})
-        recordValidity("upscalerModel", accepted)
-        return accepted
-    }
-    function selectDetailer(source) {
-        const accepted = draft.updateParameters({detailer: true, detailerModel: String(source)})
-        recordValidity("detailerModel", accepted)
-        return accepted
-    }
-    function selectRefiner(source) {
-        const accepted = draft.updateParameters({refiner: true, refinerModel: String(source)})
-        recordValidity("refinerModel", accepted)
-        return accepted
-    }
-    function selectIPAdapter(id, model, vision) {
-        if (!String(model).length || !String(vision).length) return false
-        return draft.updateControlNet(id, {ipAdapter: true, ipAdapterModel: String(model), ipAdapterVision: String(vision)})
-    }
-    function selectPose(id, detector, model) {
-        if (!String(detector).length || !String(model).length) return false
-        return draft.updateControlNet(id, {process: "Pose", poseDetector: String(detector), poseModel: String(model)})
-    }
+    function resetDraft() { draft.resetDraft() }
+    function loadPreset(name) { return draft.loadDraftPreset(name) }
+    function editNumber(key, text) { return draft.editNumber(key, text) }
+    function selectLearnedUpscaler(source) { return draft.selectLearnedUpscaler(source) }
+    function selectDetailer(source) { return draft.selectDetailer(source) }
+    function selectRefiner(source) { return draft.selectRefiner(source) }
+    function selectIPAdapter(id, model, vision) { return draft.selectIPAdapter(id, model, vision) }
+    function selectPose(id, detector, model) { return draft.selectPose(id, detector, model) }
     function choosePose(id) {
-        const entry = values.controlNets.find(function(item) { return item.id === id })
+        const entry = draft.controlNet(id)
         if (!entry) return
         poseDetectorDialog.controlId = id
         poseDetectorDialog.selectedFile = entry.poseDetector || ""
@@ -105,32 +69,19 @@ Item {
         poseDetectorDialog.open()
     }
     function chooseIPAdapter(id) {
-        const entry = values.controlNets.find(function(item) { return item.id === id })
+        const entry = draft.controlNet(id)
         if (!entry) return
         ipModelDialog.controlId = id
         ipModelDialog.selectedFile = entry.ipAdapterModel || ""
         ipVisionDialog.selectedFile = entry.ipAdapterVision || ""
         ipModelDialog.open()
     }
-    function addReferenceImage(source) {
-        if (referenceImages.length >= maximumReferenceImages) { referenceImageLimitReached(); return false }
-        const document = generation ? generation.imageDocument(source) : source
-        return String(document).length > 0 && draft.addReferenceImage(String(document))
-    }
-    function selectControlImage(id, field, source) {
-        const document = generation ? generation.imageDocument(source) : source
-        if (!String(document).length) return false
-        const patch = {}; patch[field] = String(document)
-        return draft.updateControlNet(id, patch)
-    }
+    function addReferenceImage(source) { return draft.addReferenceDocument(source) }
+    function selectControlImage(id, field, source) { return draft.selectControlImage(id, field, source) }
     function removeReferenceImage(index) { return draft.removeReferenceImage(index) }
-    function addControlNet(process) { draft.addControlNet(process || "None"); return controlNetCount }
-    function addLora(source, name) { return draft.addLora(String(source), name || String(source).split("/").pop()).length > 0 }
-    function savePreset(name) {
-        if (hasInvalidInputs) return false
-        if (!draft.savePreset(name)) return false
-        presetSaved(String(name).trim()); return true
-    }
+    function addControlNet(process) { return draft.addControlDraft(process || "None") }
+    function addLora(source, name) { return draft.addLoraDraft(source, name || "") }
+    function savePreset(name) { return draft.saveDraftPreset(name) }
     function parameters() { return draft.parameters }
     function focusPrompt() { promptField.forceActiveFocus() }
 

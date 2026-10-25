@@ -247,6 +247,7 @@ signals:
     void interactionFeedbackChanged();
     void alignmentFeedbackChanged();
 protected:
+    QSGNode *updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data) override;
     void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
     bool event(QEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
@@ -258,6 +259,8 @@ protected:
     void hoverLeaveEvent(QHoverEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
 private:
+    // Rendering a different file, edit revision or artboard cannot retain an old presentation.
+    quint64 m_presentationEpoch = 0;
     struct AlignmentLayer {QString id;QRectF bounds;std::vector<dreamscapes::alignment::Point> anchors;std::vector<dreamscapes::alignment::Line> baselines;};
     std::unique_ptr<EditorViewOptions> m_viewOptions;
     std::vector<AlignmentLayer> m_alignmentLayers;

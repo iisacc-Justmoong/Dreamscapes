@@ -60,7 +60,7 @@ QVariantList visibleKeys(const std::vector<QVariantMap> &keys,int first,int last
 }
 class EditorTimelineViewport::Private {
 public:
-    int frames=1;
+    int frames=1,rulerHeight=44;
     double fps=24,width=0,height=0,vertical=0,offset=0,scale=1;
     QVariantList layout,visible,major,minor;
     QVariantMap preview,keyPreview;
@@ -103,6 +103,7 @@ double EditorTimelineViewport::frameRate() const {return d->fps;}
 double EditorTimelineViewport::viewportWidth() const {return d->width;}
 double EditorTimelineViewport::viewportHeight() const {return d->height;}
 double EditorTimelineViewport::verticalOffset() const {return d->vertical;}
+int EditorTimelineViewport::rulerHeight() const {return d->rulerHeight;}
 double EditorTimelineViewport::contentX() const {return d->offset;}
 double EditorTimelineViewport::zoom() const {return d->scale;}
 double EditorTimelineViewport::contentWidth() const {return std::max(1.0,d->width*d->scale);}
@@ -129,6 +130,7 @@ void EditorTimelineViewport::setFrameRate(double value) {if(!std::isfinite(value
 void EditorTimelineViewport::setViewportWidth(double value) {if(!std::isfinite(value))return;value=std::clamp(value,0.0,100000.0);if(d->width==value)return;d->width=value;d->offset=boundedScroll(d->offset);updatePresentation();emit geometryChanged();}
 void EditorTimelineViewport::setViewportHeight(double value) {if(!std::isfinite(value))return;value=std::clamp(value,0.0,100000.0);if(d->height==value)return;d->height=value;updatePresentation();emit geometryChanged();}
 void EditorTimelineViewport::setVerticalOffset(double value) {if(!std::isfinite(value))return;value=std::clamp(value,-100000.0,double(Maximum));if(d->vertical==value)return;d->vertical=value;updatePresentation();emit geometryChanged();}
+void EditorTimelineViewport::setRulerHeight(int value) {if(value<16||value>96||value==d->rulerHeight)return;d->rulerHeight=value;emit geometryChanged();}
 void EditorTimelineViewport::setContentX(double value) {if(!std::isfinite(value))return;value=boundedScroll(value);if(d->offset==value)return;d->offset=value;updatePresentation();emit geometryChanged();}
 void EditorTimelineViewport::setZoom(double value) {if(!std::isfinite(value)||value<=0)return;value=std::clamp(value,1.0,128.0);if(d->scale==value)return;d->scale=value;d->offset=boundedScroll(d->offset);updatePresentation();emit geometryChanged();}
 void EditorTimelineViewport::setTrackLayout(const QVariantList &value) {
@@ -235,7 +237,7 @@ QVariantList EditorTimelineViewport::curveKeys(const QString &id) const {
 }
 QVariantMap EditorTimelineViewport::hitTest(double position,double y) const {
     if(!std::isfinite(position)||!std::isfinite(y))return {};
-    if(y>=0 && y<44)return {{"kind","ruler"},{"frame",frameAt(position)}};
+    if(y>=0 && y<d->rulerHeight)return {{"kind","ruler"},{"frame",frameAt(position)}};
     const auto row=std::upper_bound(d->rows.begin(),d->rows.end(),y,[](double value,const Row &r){return value<r.top;});
     if(row==d->rows.begin())return {};
     const auto index=std::size_t(row-d->rows.begin()-1);const auto &track=d->rows[index];

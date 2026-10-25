@@ -1,11 +1,11 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
 import ".." as Views
-import "EditorToolDefinitions.js" as Definitions
 
 Item {
     id: root
@@ -55,10 +55,10 @@ Item {
         lastAdjustmentTool = "color"
     }
     function openAdjustment(entry) {
-        if (entry.key === "auto") { lastAdjustmentTool = "auto-enhance"; report(engine.executeToolAction("auto-enhance", "field-3", Definitions.defaults(Definitions.tool("auto-enhance")))); return }
+        if (entry.key === "auto") { lastAdjustmentTool = "auto-enhance"; report(engine.executeToolAction("auto-enhance", "field-3", NativeData.tools.defaults(NativeData.tools.tool("auto-enhance")))); return }
         if (entry.key === "mono") { editAdjustment("field-36", -100); return }
         adjustmentKey = entry.key
-        adjustmentValues = Object.assign({}, Definitions.defaults(Definitions.tool("color")), {"field-1": 0, "field-2": 0, "field-4": 0, "field-8": 0, "field-12": 0, "field-16": 0, "field-17": 0, "field-20": 0, "field-21": 0, "field-25": 0, "field-28": 0, "field-32": 0, "field-36": 0, "field-42": 0, "field-43": 0, "curveAmount": 0}, engine.toolValues("color"))
+        adjustmentValues = Object.assign({}, NativeData.tools.defaults(NativeData.tools.tool("color")), {"field-1": 0, "field-2": 0, "field-4": 0, "field-8": 0, "field-12": 0, "field-16": 0, "field-17": 0, "field-20": 0, "field-21": 0, "field-25": 0, "field-28": 0, "field-32": 0, "field-36": 0, "field-42": 0, "field-43": 0, "curveAmount": 0}, engine.toolValues("color"))
         adjustmentSheet.title = entry.label
         adjustmentSheet.open()
     }
@@ -341,7 +341,7 @@ Item {
             ColumnLayout { Layout.fillWidth: true; spacing: 8; Heading { label: qsTr("Tone") } ActionGrid { Layout.fillWidth: true; entries: root.adjustments.slice(0, 6) } }
             ColumnLayout { Layout.fillWidth: true; spacing: 8; Heading { label: qsTr("Color") } ActionGrid { Layout.fillWidth: true; entries: root.adjustments.slice(6) } }
             Item { Layout.fillHeight: true }
-            LV.LabelButton { objectName: "layerResetAdjustments"; text: qsTr("Reset adjustments"); tone: LV.AbstractButton.Borderless; enabled: Boolean(root.info.canAdjust); onClicked: root.report(root.engine.resetTool(root.lastAdjustmentTool, Definitions.defaults(Definitions.tool(root.lastAdjustmentTool)))) }
+            LV.LabelButton { objectName: "layerResetAdjustments"; text: qsTr("Reset adjustments"); tone: LV.AbstractButton.Borderless; enabled: Boolean(root.info.canAdjust); onClicked: root.report(root.engine.resetTool(root.lastAdjustmentTool, NativeData.tools.defaults(NativeData.tools.tool(root.lastAdjustmentTool)))) }
         }
     }
     Component {
@@ -431,7 +431,7 @@ Item {
     LV.ContextMenu { id: newMenu; showIconSlot: false; items: [{label: qsTr("Paint layer")}, {label: qsTr("Place image")}]; onItemTriggered: function(index) { if (index === 0) root.report(root.engine.addPaintLayer()); else root.toolState.actionRequested("file", "field-6", {}) } }
     LV.ContextMenu { id: adjustmentScopeMenu; showIconSlot: false; items: [{label: qsTr("Selected layer")}]; onItemTriggered: close() }
     LV.ContextMenu { id: sourceMenu; showIconSlot: false; items: [{label: qsTr("Composite")}, {label: qsTr("Selected layer"), enabled: Boolean(root.selected.id)}]; onItemTriggered: function(index) { root.composite = index === 0 } }
-    LV.Sheet {
+    Frames.PanelSheet {
         id: adjustmentSheet
         objectName: "layerAdjustmentSheet"
         presentation: LV.Sheet.Mobile; contentPadding: 16; topSafeInset: 0; bottomSafeInset: 0
@@ -442,7 +442,7 @@ Item {
                 EditorToolControl {
                     required property string modelData
                     width: parent.width
-                    field: modelData === "curveAmount" ? {id: "curveAmount", type: "Slider", label: qsTr("Curve amount"), initial: 0, minimum: -100, maximum: 100, step: 1, unit: "", decimals: 0} : Definitions.tool("color").fields.find(function(field) { return field.id === modelData })
+                    field: modelData === "curveAmount" ? {id: "curveAmount", type: "Slider", label: qsTr("Curve amount"), initial: 0, minimum: -100, maximum: 100, step: 1, unit: "", decimals: 0} : NativeData.tools.tool("color").fields.find(function(field) { return field.id === modelData })
                     value: root.adjustmentValues[modelData] === undefined ? field.initial : root.adjustmentValues[modelData]
                     onEdited: function(value) { root.editAdjustment(modelData, value) }
                     onRequested: { const success = root.engine.executeToolAction("color", modelData, root.adjustmentValues); root.report(success); if (success && modelData === "field-31") { adjustmentSheet.close(); if (root.toolState.visible) root.toolState.close() } }

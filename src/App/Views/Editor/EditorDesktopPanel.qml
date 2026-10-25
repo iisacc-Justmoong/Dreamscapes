@@ -1,11 +1,18 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
+import ".." as Frames
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
-import "EditorCompactDefinitions.js" as Compact
 
 Rectangle {
     id: root
+    property bool sharedBorders: false
+    readonly property Item panelFrame: Frames.PanelFrame {
+        parent: root; panelId: "editor-inspector"
+        topEdge: !root.sharedBorders; rightEdge: !root.sharedBorders
+        bottomEdge: !root.sharedBorders; leftEdge: !root.sharedBorders
+    }
     objectName: "editorDesktopPanel"
     required property var toolState
     readonly property var layerPresenter: layerLoader.item
@@ -17,7 +24,7 @@ Rectangle {
     signal closeRequested()
     signal actionRequested(string toolId, string fieldId, var values)
     color: "transparent"
-    radius: LV.Theme.radiusXl
+    radius: 0
     readonly property real contentInset: LV.Theme.gap12
     border.width: 0
     border.color: "transparent"
@@ -100,7 +107,7 @@ Rectangle {
             id: compactLoader
             width: viewport.width
             height: item ? (item as Item).implicitHeight : 0
-            active: Boolean(Compact.tool(root.toolState.toolId))
+            active: Boolean(NativeData.compact.tool(root.toolState.toolId))
             sourceComponent: EditorCompactPanel { toolState: root.toolState }
         }
         Loader {

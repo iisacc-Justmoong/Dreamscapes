@@ -1,0 +1,222 @@
+{
+  "fileKey": "bn8O4AHKr1X9DWnhR1TgEy",
+  "frameNodeId": "353:22614",
+  "assets": [
+    {
+      "file": "tool-elements.svg",
+      "nodeId": "1483:73320",
+      "width": 18,
+      "height": 18,
+      "sha256": "becf4a8d648b4db2d58f368df187da311b5aaf2807c4259c9742ca242eaf2d0e",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-text.svg",
+      "nodeId": "1483:73356",
+      "width": 18,
+      "height": 18,
+      "sha256": "cab4a9037e997a7c80c73ac89c03515c13c43be7609c2018063fc68a9b9b37f8",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-camera-photo.svg",
+      "nodeId": "1483:73371",
+      "width": 18,
+      "height": 18,
+      "sha256": "6c61240e14c1c5b526f96694190fb0678a6130c1326eb4ee4210b576dab3451a",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-file.svg",
+      "nodeId": "1483:73388",
+      "width": 18,
+      "height": 18,
+      "sha256": "029806fac5fe9c6886d05234934622a19ece7d93a73d352a83b40478d0c609cd",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-background.svg",
+      "nodeId": "1483:73405",
+      "width": 18,
+      "height": 18,
+      "sha256": "98aed8d9ae65dcfd077509136e96d8a7f798fcbbdcd7939029ec7f345ef4714c",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-audio-track.svg",
+      "nodeId": "1483:73424",
+      "width": 18,
+      "height": 18,
+      "sha256": "0a03c7695d955f8f42eaf4c0eb10316f88155214050b25a38d3d83deaae80b4e",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-canvas.svg",
+      "nodeId": "1483:73443",
+      "width": 18,
+      "height": 18,
+      "sha256": "c03375faa5fae31faf5eb08302ccba7d22b919e0bcf2d162b0a1ab678e34260b",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-generative.svg",
+      "nodeId": "1483:73460",
+      "width": 18,
+      "height": 18,
+      "sha256": "769dca2aded8de62941b5db11860b59ef2c518f3058d8232f5d97dcca922bee9",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-layers.svg",
+      "nodeId": "1483:73475",
+      "width": 18,
+      "height": 18,
+      "sha256": "6ad2d52d5fb1ba71da11ee4da790cd0ba3115e28edac5b2e4a2e9ec25b9c1934",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-select.svg",
+      "nodeId": "1483:73492",
+      "width": 18,
+      "height": 18,
+      "sha256": "21dac3fa20e9293d9e19e2d16ef64d080d5368551360b4afd66ef41a0ada0eee",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-color.svg",
+      "nodeId": "1483:73509",
+      "width": 18,
+      "height": 18,
+      "sha256": "8879900e0ceb1d48c2c2ad980ffbaedde6bf3d064bcc00068a360008b3d08c8d",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-effects.svg",
+      "nodeId": "1483:73528",
+      "width": 18,
+      "height": 18,
+      "sha256": "d072dec903152a6ae0978c1491e34c8178adcbb5d693f9d0db82ba6c3818cc89",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-retouch.svg",
+      "nodeId": "1483:73543",
+      "width": 18,
+      "height": 18,
+      "sha256": "566c64e7ff476c6fad502dcaace2c14f1606f66dc28436e585a376b0182d83df",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-fill.svg",
+      "nodeId": "1483:73560",
+      "width": 18,
+      "height": 18,
+      "sha256": "18ad3f5ebb67ded7b847c0b0912a4113495ad3022931d55f915c47f6b2ca1add",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-brush.svg",
+      "nodeId": "1483:73577",
+      "width": 18,
+      "height": 18,
+      "sha256": "eab89da7dc7171409d1c2babaa783ae35035a265889b996f1446f33af631ba62",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-auto-enhance.svg",
+      "nodeId": "1483:73594",
+      "width": 18,
+      "height": 18,
+      "sha256": "4e2a592736e80d58b6949eb735df42d0f4f20db50031558236de2f23c28e82ce",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-masking.svg",
+      "nodeId": "1483:73611",
+      "width": 18,
+      "height": 18,
+      "sha256": "ca2904575c85eea7bab392ec9a22b08c5a3304b2bdb387f6e6a72fbad5729ee0",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "tool-eraser.svg",
+      "nodeId": "1483:73630",
+      "width": 18,
+      "height": 18,
+      "sha256": "21992c398cc0e265a48f101bf3ea003647df38c1a7563d120448fe360e82a789",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "timeline-previous.svg",
+      "nodeId": "1484:73768",
+      "width": 18,
+      "height": 18,
+      "sha256": "ca31a1a48447847146ed50132783460e5c9944da0f8bb01f98f49302ece74fc8",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "timeline-play.svg",
+      "nodeId": "1484:73781",
+      "width": 18,
+      "height": 18,
+      "sha256": "6e9e163052f896d0db3c574ccd73c7c0df333211b0a9c54f2e46eeabdf704dfa",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "timeline-next.svg",
+      "nodeId": "1484:73794",
+      "width": 18,
+      "height": 18,
+      "sha256": "83bcd964f1b9ac5d9193c920180b8987849dcd8d73ee2e8494cd776a6577bc09",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "timeline-split.svg",
+      "nodeId": "1484:73807",
+      "width": 18,
+      "height": 18,
+      "sha256": "4c99a94c30aea1c542da732877dce88343325e8f46f0c9f1bfae9a124e5293cb",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "timeline-delete.svg",
+      "nodeId": "1484:73827",
+      "width": 18,
+      "height": 18,
+      "sha256": "198df9cf3b488b90640ac5af19375fbfd8f360a9264c03081766016cc6b7ce98",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "timeline-fit.svg",
+      "nodeId": "1484:73847",
+      "width": 18,
+      "height": 18,
+      "sha256": "805d9e1d23f506076907852a316046d199ff04498e6d42d15e4088d8af6886b1",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "timeline-more.svg",
+      "nodeId": "1484:73862",
+      "width": 18,
+      "height": 18,
+      "sha256": "7ffa87b89315f0a1ce16d978f71cb030e5c3336d6b8898790e19bc877dcd6982",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "timeline-add-layer.svg",
+      "nodeId": "1484:74061",
+      "width": 18,
+      "height": 18,
+      "sha256": "5115dda3d2508b68e4dddb232b4b5c6d96be972cafb4f13d2e82befaefc5277c",
+      "slot": "native LVRS IconButton 18px"
+    },
+    {
+      "file": "timeline-playhead.svg",
+      "nodeId": "1484:74316",
+      "width": 22,
+      "height": 26,
+      "sha256": "d0e86e584b0c2d5df8ac9830cb0a4591faa5e4f3cbd632732e785a52e920564a",
+      "slot": "22x26px playhead"
+    }
+  ]
+}

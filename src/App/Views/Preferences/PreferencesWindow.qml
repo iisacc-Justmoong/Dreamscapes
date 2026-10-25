@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 import "../Home"
@@ -357,6 +358,7 @@ LV.ApplicationWindow {
             }
         }
         LV.VStack {
+            id: accountDetails
             objectName: "preferencesAccountDetails"
             visible: preferences.currentCategory === "Account"
             Layout.fillWidth: true
@@ -379,6 +381,7 @@ LV.ApplicationWindow {
             LV.Spacer {}
         }
         LV.VStack {
+            id: categoryDetails
             objectName: "preferencesCategoryDetails"
             visible: preferences.currentCategory !== "Account" && preferences.currentCategory !== "Storage" && !preferences.generationCategory
             Layout.fillWidth: true
@@ -396,6 +399,8 @@ LV.ApplicationWindow {
             LV.Spacer {}
         }
     }
+    readonly property Item accountPanelFrame: Frames.PanelFrame { parent: preferences.contentItem; target: accountDetails; panelId: "preferences-account" }
+    readonly property Item categoryPanelFrame: Frames.PanelFrame { parent: preferences.contentItem; target: categoryDetails; panelId: "preferences-category" }
     Shortcut { sequence: "Escape"; enabled: preferences.visible; onActivated: locationDialog.open ? locationDialog.cancel() : preferences.close() }
     Shortcut { sequences: [StandardKey.Close]; enabled: preferences.visible; onActivated: preferences.close() }
 }

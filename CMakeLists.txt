@@ -100,7 +100,32 @@ target_include_directories(DreamscapesNativeGeneration PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Generation"
     "$<TARGET_PROPERTY:iiLocalDiffusion::iiLocalDiffusion,INTERFACE_INCLUDE_DIRECTORIES>")
 target_link_libraries(DreamscapesNativeGeneration PUBLIC iiFileProvider::Native iiImageCodec::iiImageCodec)
+add_library(DreamscapesViewModelsNative STATIC
+    src/App/ViewModels/Native/ViewValue.cpp
+    src/App/ViewModels/Native/ViewCatalog.cpp
+    src/App/ViewModels/Native/VideoTimeline.cpp
+    src/App/ViewModels/Native/EditorToolState.cpp
+    src/App/ViewModels/Native/GenerationPresentation.cpp
+    src/App/ViewModels/Native/GenerationDraft.cpp)
+set_target_properties(DreamscapesViewModelsNative PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+target_compile_features(DreamscapesViewModelsNative PUBLIC cxx_std_23)
+target_include_directories(DreamscapesViewModelsNative PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(DreamscapesViewModelsNative PUBLIC iiSDKCore::Runtime iiJson::iiJson)
+add_library(DreamscapesViewModels STATIC src/App/ViewModels/ViewData.h src/App/ViewModels/ViewData.cpp
+    src/App/ViewModels/VideoTimelineModel.h src/App/ViewModels/VideoTimelineModel.cpp
+    src/App/ViewModels/GenerationProjection.h src/App/ViewModels/GenerationProjection.cpp)
+target_link_libraries(DreamscapesViewModels PUBLIC DreamscapesViewModelsNative Qt6::Qml)
+target_include_directories(DreamscapesViewModels PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 add_library(DreamscapesGeneration STATIC)
+target_link_libraries(DreamscapesGeneration PUBLIC DreamscapesViewModels)
+set(_native_view_catalogs tools text text-definition photo file compact elements graphic view-options field-groups)
+set(_native_view_catalog_files)
+foreach(_catalog IN LISTS _native_view_catalogs)
+    set(_path "resources/viewmodels/${_catalog}.json")
+    set_source_files_properties("${_path}" PROPERTIES QT_RESOURCE_ALIAS "${_catalog}.json")
+    list(APPEND _native_view_catalog_files "${_path}")
+endforeach()
+qt_add_resources(DreamscapesViewModels native_view_catalogs PREFIX "/viewmodels" FILES ${_native_view_catalog_files})
 target_link_libraries(DreamscapesGeneration PRIVATE DreamscapesNativeGeneration)
 # Publication uses the same immutable, cross-platform brand asset as the app.
 set(_watermark_icon "${CMAKE_CURRENT_SOURCE_DIR}/resources/Appicon/generated/common/Dreamscapes.png")
@@ -125,12 +150,17 @@ qt_add_qml_module(DreamscapesGeneration
     URI Dreamscapes.Storage VERSION 1.0 NO_PLUGIN
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Dreamscapes/Storage"
     SOURCES src/App/Views/Home/SocietyTypes.h
+        src/App/ViewModels/WorkspaceSession.h src/App/ViewModels/WorkspaceSession.cpp
+        src/App/Generation/VideoDraftModel.h src/App/Generation/VideoDraftModel.cpp
+        src/App/Generation/GenerationComposerModel.h src/App/Generation/GenerationComposerModel.cpp
         src/App/StorageViewTypes.h src/App/StorageViewTypes.cpp
         src/App/Views/Home/HomeCanvas.h src/App/Views/Home/HomeCanvas.cpp
         src/App/Views/Home/CanvasPresets.h src/App/Views/Home/CanvasPresets.cpp
         src/App/Views/Home/CanvasPreview.h src/App/Views/Home/CanvasPreview.cpp
+        src/App/Views/Home/HomeFileDetails.h src/App/Views/Home/HomeFileDetails.cpp
         src/App/Views/Home/ImageOpenRequest.h src/App/Views/Home/ImageOpenRequest.cpp
         src/App/Views/ColorManagerModel.h src/App/Views/ColorManagerModel.cpp
+        src/App/Views/Editor/EditorToolStateModel.h src/App/Views/Editor/EditorToolStateModel.cpp
         src/App/Views/Editor/EditorCanvas.h src/App/Views/Editor/EditorCanvas.cpp
         src/App/Views/Editor/EditorCanvasViewport.cpp
         src/App/Views/Editor/EditorCanvasAlignment.cpp
@@ -146,6 +176,7 @@ qt_add_qml_module(DreamscapesGeneration
         src/App/Views/Editor/EditorTimelineViewport.h src/App/Views/Editor/EditorTimelineViewport.cpp
         src/App/Views/Editor/EditorTimelineThumbnails_p.h
         src/App/Views/Editor/EditorCanvasDocument.cpp src/App/Views/Editor/EditorCanvasTools.cpp
+        src/App/Views/Editor/EditorCanvasPresentation.cpp
         src/App/Views/Editor/EditorArtboards.cpp
         src/App/Views/Editor/EditorShapes.cpp src/App/Views/Editor/EditorPixelTools.cpp
         src/App/Views/Editor/EditorElementTransform.cpp
@@ -281,6 +312,8 @@ lvrs_add_qml_app(
         src/App/Main.qml
         src/App/Views/FailureDetails.qml
         src/App/Views/PanelRow.qml
+        src/App/Views/PanelFrame.qml
+        src/App/Views/PanelSheet.qml
         src/App/Views/ColorPicker.qml
         src/App/Views/Preferences/PreferencesWindow.qml
         src/App/Views/Preferences/ModelPreferenceCombo.qml
@@ -297,11 +330,15 @@ lvrs_add_qml_app(
         src/App/Views/Home/FileCarousel.qml
         src/App/Views/Home/PublishedList.qml
         src/App/Views/Home/MobileHome.qml
+
+        src/App/Views/Home/HomeRecentFiles.qml
+        src/App/Views/Home/HomeSelectedFile.qml
+        src/App/Views/Home/HomeRecentGenerations.qml
         src/App/Views/Home/HomeContentRow.qml
         src/App/Views/Home/StorageBrowser.qml
-        src/App/Views/Home/StorageBrowserEntries.js
+
         src/App/Views/Home/ImageSelectionBar.qml
-        src/App/Views/Home/ImageSelection.js
+
         src/App/Views/Home/HomePromptStarters.qml
         src/App/Views/Home/DesktopHome.qml
         src/App/Views/Home/DesktopHomeSidebar.qml
@@ -323,15 +360,15 @@ lvrs_add_qml_app(
         src/App/Views/Editor/EditorPageDeck.qml
         src/App/Views/Editor/EditorPageStrip.qml
         src/App/Views/Editor/EditorToolbar.qml
-        src/App/Views/Editor/EditorToolDefinitions.js
+
         src/App/Views/Editor/EditorToolControl.qml
         src/App/Views/Editor/EditorCompactPanel.qml
-        src/App/Views/Editor/EditorCompactDefinitions.js
+
         src/App/Views/Editor/EditorButtonState.qml
         src/App/Views/Editor/EditorViewBar.qml
         src/App/Views/Editor/EditorViewOptionsPanel.qml
         src/App/Views/Editor/EditorViewOptionRow.qml
-        src/App/Views/Editor/EditorViewOptionDefinitions.js
+
         src/App/Views/Editor/EditorCanvasRulers.qml
         src/App/Views/Editor/EditorBackgroundPanel.qml
         src/App/Views/Editor/EditorBackgroundParameter.qml
@@ -341,20 +378,19 @@ lvrs_add_qml_app(
         src/App/Views/Editor/EditorBackgroundRemovePanel.qml
         src/App/Views/Editor/EditorBackgroundReplacePanel.qml
         src/App/Views/Editor/EditorToolPanel.qml
-        src/App/Views/Editor/EditorFileDefinitions.js
+
         src/App/Views/Editor/EditorFilePanel.qml
         src/App/Views/Editor/EditorDesktopPanel.qml
         src/App/Views/Editor/EditorCameraPhotoPanel.qml
         src/App/Views/Editor/EditorCaptureRegion.qml
-        src/App/Views/Editor/EditorCameraPhotoDefinitions.js
+
         src/App/Views/Editor/EditorElementsPanel.qml
         src/App/Views/Editor/EditorElementTransform.qml
-        src/App/Views/Editor/EditorElementsDefinitions.js
+
         src/App/Views/Editor/EditorLayersPanel.qml
         src/App/Views/Editor/EditorTextPanel.qml
-        src/App/Views/Editor/EditorTextDefinitions.js
-        src/App/Views/Editor/EditorGraphicDefinitions.js
-        src/App/Views/Editor/EditorGraphicState.js
+
+
         src/App/Views/Editor/EditorGraphicPanel.qml
         src/App/Views/Editor/EditorGraphicRow.qml
         src/App/Views/Editor/EditorDocumentControls.qml
@@ -582,6 +618,17 @@ if(ANDROID AND DREAMSCAPES_BUILD_ANDROID_PHOTO_TESTS)
         "$<TARGET_FILE:iiSocietyContainer::iiSocietyContainer>")
 endif()
 if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+    add_executable(DreamscapesNativeViewModelTests tests/tst_nativeviewmodels.cpp)
+    set_target_properties(DreamscapesNativeViewModelTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF MACOSX_BUNDLE OFF)
+    target_link_libraries(DreamscapesNativeViewModelTests PRIVATE DreamscapesViewModelsNative)
+    target_compile_definitions(DreamscapesNativeViewModelTests PRIVATE DREAMSCAPES_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME Dreamscapes.NativeViewModels COMMAND DreamscapesNativeViewModelTests)
+    qt_add_executable(DreamscapesViewModelBridgeTests tests/tst_viewmodelbridge.cpp)
+    set_target_properties(DreamscapesViewModelBridgeTests PROPERTIES MACOSX_BUNDLE OFF)
+    target_link_libraries(DreamscapesViewModelBridgeTests PRIVATE DreamscapesViewModels Qt6::Test Qt6::Quick)
+    target_compile_definitions(DreamscapesViewModelBridgeTests PRIVATE DREAMSCAPES_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME Dreamscapes.ViewModelBridge COMMAND DreamscapesViewModelBridgeTests)
+    set_tests_properties(Dreamscapes.ViewModelBridge PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 120)
     add_executable(DreamscapesNativeGenerationTests tests/tst_nativegeneration.cpp)
     set_target_properties(DreamscapesNativeGenerationTests PROPERTIES MACOSX_BUNDLE FALSE AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
     target_link_libraries(DreamscapesNativeGenerationTests PRIVATE DreamscapesNativeGeneration)
@@ -730,6 +777,17 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_test(NAME Dreamscapes.ReviewWorkspace COMMAND DreamscapesReviewGuiTests)
     set_tests_properties(Dreamscapes.ReviewWorkspace PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 180)
+    qt_add_executable(DreamscapesPanelFrameTests tests/tst_panelframes.cpp)
+    target_include_directories(DreamscapesPanelFrameTests PRIVATE src)
+    target_link_libraries(DreamscapesPanelFrameTests PRIVATE DreamscapesGeneration
+        Qt6::Test Qt6::Widgets Qt6::Quick Qt6::QuickControls2 Qt6::QuickDialogs2)
+    target_compile_definitions(DreamscapesPanelFrameTests PRIVATE
+        DREAMSCAPES_QML_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/src/App"
+        DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    lvrs_configure_qml_app(DreamscapesPanelFrameTests NO_PLATFORM_RUNTIME_TARGETS)
+    add_test(NAME Dreamscapes.PanelFrames COMMAND DreamscapesPanelFrameTests)
+    set_tests_properties(Dreamscapes.PanelFrames PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 240)
     add_test(NAME Dreamscapes.FailureDetails COMMAND DreamscapesGuiTests failureDetailsShowFullTextAndScroll)
     set_tests_properties(Dreamscapes.FailureDetails PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 60)
@@ -875,7 +933,7 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1"
         TIMEOUT 240)
     add_test(NAME Dreamscapes.DesktopHome COMMAND DreamscapesGuiTests
-        desktopHomeContinuousRowsAndPromptStarters desktopHomeSidebarReflowsAndRoutes
+        desktopHomeContinuousRowsAndPromptStarters desktopHomeSelectionIsPresentationOnly desktopHomeSidebarReflowsAndRoutes
         desktopHomeSidebarMatchesFigmaAndScrolls
         desktopHomeSearchesSocietyAndUpdates desktopHomeRendersFigmaFrame
         historyAppearsBelowQuickGenerateAndScrolls historyShowsAnEmptyState
@@ -1060,6 +1118,12 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     target_link_libraries(DreamscapesEditorCanvasTests PRIVATE DreamscapesGeneration Qt6::Test)
     target_compile_definitions(DreamscapesEditorCanvasTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
     add_test(NAME Dreamscapes.EditorCanvas COMMAND DreamscapesEditorCanvasTests)
+    qt_add_executable(DreamscapesCanvasPresentationTests tests/tst_canvaspresentation.cpp)
+    target_link_libraries(DreamscapesCanvasPresentationTests PRIVATE DreamscapesGeneration Qt6::Test)
+    target_compile_definitions(DreamscapesCanvasPresentationTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    add_test(NAME Dreamscapes.CanvasPresentation COMMAND DreamscapesCanvasPresentationTests)
+    set_tests_properties(Dreamscapes.CanvasPresentation PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 60)
     qt_add_executable(DreamscapesEditorFileInfoTests tests/tst_editorfileinfo.cpp)
     set_target_properties(DreamscapesEditorFileInfoTests PROPERTIES MACOSX_BUNDLE FALSE)
     target_link_libraries(DreamscapesEditorFileInfoTests PRIVATE DreamscapesGeneration Qt6::Test)
@@ -1215,7 +1279,7 @@ endif()
 if(NOT IOS AND NOT ANDROID AND NOT EMSCRIPTEN)
 add_executable(DreamscapesFailureAgent src/App/Generation/failure_agent_main.cpp)
 target_link_libraries(DreamscapesFailureAgent PRIVATE iiMultimodalAgent::iiMultimodalAgent iiMultimodalAgent::FailureDiagnostics)
-target_link_libraries(DreamscapesFailureAgent PRIVATE iiFileProvider::CoreIO)
+target_link_libraries(DreamscapesFailureAgent PRIVATE iiFileProvider::CoreIO iiFileProvider::Native)
 target_include_directories(DreamscapesFailureAgent PRIVATE src/App/Generation)
 set_target_properties(DreamscapesFailureAgent PROPERTIES MACOSX_BUNDLE FALSE)
 if(APPLE AND dreamscapes_diffusion_prefix)
@@ -1247,6 +1311,19 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/single-app/SingleApp.cmake")
 product_plain_executables("${CMAKE_SOURCE_DIR}" Dreamscapes)
 cmake_language(DEFER CALL product_single_app Dreamscapes "bin")
 
+# FindOpenSSL imports UNKNOWN_LIBRARY targets, which the shared-runtime inventory
+# cannot classify. Offer the configured dylibs explicitly; only dependencies
+# actually used by the app/helpers are copied, even after a clean bundle rebuild.
+if(APPLE AND NOT IOS)
+    foreach(_openssl_component IN ITEMS Crypto SSL)
+        string(TOUPPER "${_openssl_component}" _openssl_upper)
+        set(_openssl_runtime "${OPENSSL_${_openssl_upper}_LIBRARY}")
+        if(TARGET OpenSSL::${_openssl_component} AND EXISTS "${_openssl_runtime}" AND _openssl_runtime MATCHES "\\.dylib$")
+            add_library(DreamscapesOpenSSL${_openssl_component}Runtime SHARED IMPORTED)
+            set_target_properties(DreamscapesOpenSSL${_openssl_component}Runtime PROPERTIES IMPORTED_LOCATION "${_openssl_runtime}")
+        endif()
+    endforeach()
+endif()
 product_deploy_app(Dreamscapes "src/App" COMPACT QUICK_STYLE Basic EMBEDDED_RESOURCES_MODULES LVRS)
 
 if(WIN32 AND BUILD_TESTING)

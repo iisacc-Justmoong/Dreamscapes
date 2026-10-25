@@ -1,9 +1,9 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 import ".." as Views
-import "EditorToolDefinitions.js" as Definitions
 
 // Layout only: all visible controls are unmodified LVRS primitives.
 Item {
@@ -191,7 +191,7 @@ Item {
                     return {height: columns ? Math.ceil(widths.length / columns) * 30 - 8 : 0,
                         items: widths.map(function(natural, index) { return {x: (index % columns) * (slotWidth + spacing), y: Math.floor(index / columns) * 30, width: slotWidth} })}
                 }
-                return Definitions.buttonRows(width, widths, root.sampleLayout ? maximumColumns : options.count,
+                return NativeData.tools.buttonRows(width, widths, root.sampleLayout ? maximumColumns : options.count,
                     root.sampleLayout ? 22 : 24, spacing, root.sampleLayout)
             }
             implicitHeight: layout.height + (root.compactLayout ? 6 : 0)
@@ -269,13 +269,13 @@ Item {
                 fieldMinHeight: root.sampleLayout ? 22 : 26
                 clearButtonVisible: false
                 property bool textModified: false
-                text: Definitions.formatted(root.field, root.value, root.sampleLayout)
+                text: NativeData.tools.formatted(root.field, root.value, root.sampleLayout)
                 Accessible.name: root.field.label + " value"
                 function commit() {
                     textModified = false
-                    const next = Definitions.parsed(root.field, text)
+                    const next = NativeData.tools.parsed(root.field, text)
                     if (next !== null) root.edited(next)
-                    text = Qt.binding(function() { return Definitions.formatted(root.field, root.value, root.sampleLayout) })
+                    text = Qt.binding(function() { return NativeData.tools.formatted(root.field, root.value, root.sampleLayout) })
                 }
                 onAccepted: commit()
                 onTextEdited: textModified = true

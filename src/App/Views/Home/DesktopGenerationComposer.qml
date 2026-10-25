@@ -11,88 +11,42 @@ Rectangle {
     required property var composer
     property var generation: null
     property var parameterStore: homeDraft
-    property int shortSide: 1024
-    property real seed: -1
-    property string negativePrompt: ""
-    property string appliedNegativePrompt: ""
-    property bool loadedPreset: false
-    property string errorText: ""
-    readonly property bool wide: width >= 820
-    readonly property bool video: composer.mediaType === "Video"
-    readonly property var modelChoices: !generation ? [] : video ? generation.videoModels : generation.models
-    readonly property string selectedModel: !generation ? "" : video ? generation.selectedVideoModel : generation.selectedModel
-    readonly property string selectedModelName: (modelChoices.find(m => m.id === selectedModel) || {}).name || selectedModel
-    readonly property var outputSize: video
-        ? ({"1:1": {width:512,height:512}, "4:3":{width:640,height:480}, "3:4":{width:480,height:640},
-            "16:9":{width:1024,height:576}, "9:16":{width:576,height:1024}})[composer.aspectRatio] || ({width:512,height:512})
-        : sizeFor(shortSide)
-    readonly property bool usesExplicitParameters: loadedPreset || shortSide !== 1024 || negativePrompt !== appliedNegativePrompt
+    property alias shortSide: nativeComposer.shortSide
+    property alias seed: nativeComposer.seed
+    property alias negativePrompt: nativeComposer.negativePrompt
+    property alias appliedNegativePrompt: nativeComposer.appliedNegativePrompt
+    property alias loadedPreset: nativeComposer.loadedPreset
+    property alias errorText: nativeComposer.errorText
+    readonly property bool wide: width >= 1000
+    property alias selectedPresetName: nativeComposer.selectedPresetName
+    readonly property alias video: nativeComposer.video
+    readonly property alias modelChoices: nativeComposer.modelChoices
+    readonly property alias selectedModel: nativeComposer.selectedModel
+    readonly property alias selectedModelName: nativeComposer.selectedModelName
+    readonly property alias outputSize: nativeComposer.outputSize
+    readonly property alias usesExplicitParameters: nativeComposer.usesExplicitParameters
+    NativeGenerationComposer {
+        id: nativeComposer
+        objectName: "desktopNativeComposer"
+        sharedModel: root.composer.nativeModel
+        generation: root.generation
+        canvas: root.composer.homePaint.canvas
+        parameterStore: root.parameterStore
+        onMediaActionRequested: action => root.composer.mediaActionRequested(action)
+    }
     readonly property var attachments: composer.homePaint.canvas.attachments
-    color: LV.Theme.panelBackground03
-    radius: LV.Theme.radiusLg
+    color: "transparent"
+    radius: 0
     border.color: LV.Theme.panelBackground10
-    border.width: 1
-    implicitHeight: Math.max(wide ? 300 : 0, layout.implicitHeight + LV.Theme.gap16 * 2)
+    border.width: 0
+    implicitHeight: layout.implicitHeight + LV.Theme.gap12 * 2
 
     AdvancedImageParameters { id: homeDraft; objectName: "homeParameterStore" }
-    function sizeFor(shorter) {
-        const parts = composer.aspectRatio.split(":").map(Number)
-        const scale = shorter / Math.min(parts[0], parts[1])
-        return {width: Math.round(parts[0] * scale / 8) * 8, height: Math.round(parts[1] * scale / 8) * 8}
-    }
-    function applyNegativeDefault() {
-        const next = (composer.defaultPrompts[composer.mediaType] || {}).negativePrompt || ""
-        if (negativePrompt === appliedNegativePrompt) negativePrompt = next
-        appliedNegativePrompt = next
-    }
-    Component.onCompleted: applyNegativeDefault()
-    Connections {
-        target: root.composer
-        function onDefaultPromptsChanged() { root.applyNegativeDefault() }
-        function onMediaTypeChanged() { root.applyNegativeDefault() }
-    }
-    function parameters(model, includeInputs) {
-        const next = Object.assign({}, parameterStore.parameters, {
-            prompt: composer.prompt.trim(), negativePrompt: negativePrompt, model: model,
-            width: outputSize.width, height: outputSize.height,
-            outputCount: composer.generationCount, seed: seed, referenceImages: []
-        })
-        if (includeInputs && composer.hasCanvasInputs) {
-            const inputs = composer.homePaint.generationParameters(composer.prompt.trim(), model, composer.aspectRatio, composer.generationCount)
-            if (!Object.keys(inputs).length) return ({})
-            next.referenceImages = inputs.referenceImages || []
-        }
-        return next
-    }
-    function savePreset(name) {
-        if (!parameterStore.updateParameters(parameters(selectedModel, false)) || !parameterStore.savePreset(name)) {
-            errorText = parameterStore.errorString
-            return false
-        }
-        errorText = ""
-        return true
-    }
-    function loadPreset(name) {
-        if (!parameterStore.loadPreset(name)) { errorText = parameterStore.errorString; return false }
-        const p = parameterStore.parameters
-        composer.prompt = p.prompt
-        composer.generationCount = p.outputCount
-        seed = p.seed
-        negativePrompt = p.negativePrompt
-        const ratio = p.width / p.height
-        const standard = ["1:1","4:3","3:4","16:9","9:16"].find(r => {
-            const a = r.split(":").map(Number); return Math.abs(a[0] / a[1] - ratio) < .01
-        })
-        composer.aspectRatio = standard || String(p.width) + ":" + String(p.height)
-        shortSide = Math.min(p.width, p.height)
-        loadedPreset = true
-        if (generation && modelChoices.some(m => m.id === p.model)) {
-            if (video) generation.selectedVideoModel = p.model
-            else generation.selectedModel = p.model
-        }
-        errorText = ""
-        return true
-    }
+    function sizeFor(shorter) { return nativeComposer.sizeFor(shorter) }
+    function applyNegativeDefault() { nativeComposer.applyNegativeDefault() }
+    function parameters(model, includeInputs) { return nativeComposer.parameters(model, includeInputs) }
+    function savePreset(name) { return nativeComposer.savePreset(name) }
+    function loadPreset(name) { return nativeComposer.loadPreset(name) }
     function focusPrompt() { promptEditor.editorItem.forceActiveFocus() }
     function dismissInput() {
         modelMenu.close(); resolutionMenu.close(); loadMenu.close()
@@ -109,6 +63,10 @@ Rectangle {
     // and avoid feeding RichText's serialized HTML back into the shared draft.
     component PromptEditor: LV.TextEditor {
         id: field
+        property bool compact: false
+        fieldMinHeight: compact ? LV.Theme.controlHeightSm : LV.Theme.controlHeightMd * 4
+        editorHeight: compact ? Math.max(fieldMinHeight, Math.min(160, Math.ceil(contentHeight) + insetVertical * 2)) : fieldMinHeight
+        insetVertical: compact ? LV.Theme.gap2 : LV.Theme.gap8
         property string value: ""
         property bool initialized: false
         readonly property alias inputItem: field.editorItem
@@ -163,78 +121,94 @@ Rectangle {
         }
     }
 
-    GridLayout {
+    function chooseMedia(type) { nativeComposer.chooseMedia(type) }
+    LV.VStack { alignment: Qt.AlignLeft;
         id: layout
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.margins: LV.Theme.gap16
-        columns: root.wide ? 2 : 1
-        columnSpacing: LV.Theme.gap20
-        rowSpacing: LV.Theme.gap20
-
-        LV.VStack {
+        anchors.margins: LV.Theme.gap12
+        spacing: LV.Theme.gap8
+        GridLayout {
             Layout.fillWidth: true
-            Layout.minimumWidth: 0
-            Layout.alignment: Qt.AlignTop
-            spacing: LV.Theme.gap12
-            alignment: Qt.AlignLeft
-            Flickable {
-                id: modesViewport
+            columns: root.wide ? (root.composer.prompt.length ? 7 : 6) : root.width < 400 ? 1 : 2
+            columnSpacing: LV.Theme.gap8
+            rowSpacing: LV.Theme.gap8
+            LV.LabelMenuButton { tone: LV.AbstractButton.Default;
+                id: mediaButton
+                objectName: "homeMediaButton"
+                text: root.composer.mediaType
+                Layout.preferredWidth: 88
+                onClicked: root.composer.openMenu(homeMediaMenu, this)
+            }
+            PromptEditor {
+                id: promptEditor
+                objectName: root.composer.desktopLayout ? "promptField" : "inactiveDesktopPromptField"
+                compact: true
                 Layout.fillWidth: true
-                Layout.preferredHeight: modes.implicitHeight
-                contentWidth: modes.implicitWidth
-                contentHeight: height
-                flickableDirection: Flickable.HorizontalFlick
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
+                Layout.minimumWidth: 0
+                value: root.composer.prompt
+                placeholderText: qsTr("Describe what to create…")
+                Accessible.name: qsTr("Prompt")
+                onEdited: function(value) { root.composer.prompt = value }
+            }
+            LV.IconButton { tone: LV.AbstractButton.Default;
+                objectName: "homeClearPrompt"
+                visible: root.composer.prompt.length > 0
+                iconName: "generalremove"
+                Accessible.name: qsTr("Clear prompt")
+                onClicked: root.composer.prompt = ""
+            }
+            LV.IconButton { tone: LV.AbstractButton.Default;
+                objectName: root.composer.desktopLayout ? "homeAttachButton" : "inactiveDesktopAttachButton"
+                iconName: "generaladd"
+                Accessible.name: qsTr("Attach reference images")
+                onClicked: root.composer.chooseAttachments()
+            }
+            LV.LabelButton { tone: LV.AbstractButton.Default; objectName: "homePaintButton"; text: qsTr("Paint canvas"); onClicked: root.composer.paintRequested() }
+            LV.LabelMenuButton { tone: LV.AbstractButton.Default;
+                objectName: "homeNegativePromptButton"
+                text: qsTr("Negative prompt")
+                onClicked: root.openPopup(negativePopover, this)
+            }
+            LV.LabelButton {
+                objectName: root.composer.desktopLayout ? "generateButton" : "inactiveDesktopGenerateButton"
+                text: root.video
+                    ? (root.composer.generationCount === 1 ? qsTr("Generate 1 video") : qsTr("Generate %1 videos").arg(root.composer.generationCount))
+                    : (root.composer.generationCount === 1 ? qsTr("Generate 1 image") : qsTr("Generate %1 images").arg(root.composer.generationCount))
+                tone: LV.AbstractButton.Primary
+                enabled: !root.composer.submitting && !root.composer.generationPending
+                onClicked: root.composer.submit()
+            }
+        }
+        GridLayout {
+            objectName: "homeGenerationSettings"
+            Layout.fillWidth: true
+            columns: root.wide ? 7 : root.width >= 600 ? 3 : 2
+            columnSpacing: LV.Theme.gap8
+            rowSpacing: LV.Theme.gap8
+            Setting { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.preferredWidth: 327; label: qsTr("Model"); controlName: "homeModelButton"; value: root.selectedModelName || qsTr("Choose model"); controlEnabled: root.modelChoices.length > 0; onActivated: control => root.composer.openMenu(modelMenu, control) }
+            Setting { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.preferredWidth: 88; label: qsTr("Aspect ratio"); controlName: "aspectRatioButton"; value: root.composer.aspectRatio; onActivated: control => root.composer.openRatioMenu(control) }
+            Setting { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.preferredWidth: 144; label: qsTr("Resolution"); controlName: "homeResolutionButton"; value: root.outputSize.width + " × " + root.outputSize.height; controlEnabled: !root.video; onActivated: control => root.composer.openMenu(resolutionMenu, control) }
+            Setting { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.preferredWidth: 96; label: qsTr("Batch size"); controlName: "generationCountButton"; value: qsTr("%1 %2").arg(root.composer.generationCount).arg(root.video ? root.composer.generationCount === 1 ? qsTr("video") : qsTr("videos") : root.composer.generationCount === 1 ? qsTr("image") : qsTr("images")); onActivated: control => root.composer.openCountMenu(control) }
+            Setting { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.preferredWidth: 120; label: qsTr("Seed"); controlName: "homeSeedButton"; value: root.seed < 0 ? qsTr("Random") : String(root.seed); onActivated: control => root.openPopup(seedPopover, control) }
+            LV.VStack { alignment: Qt.AlignLeft;
+                Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.preferredWidth: 228; Layout.columnSpan: !root.wide && root.width < 600 ? 2 : 1; spacing: LV.Theme.gap4
+                LV.Label { text: qsTr("Preset"); style: caption; color: LV.Theme.descriptionColor }
                 LV.HStack {
-                    id: modes
-                    spacing: LV.Theme.gap6
-                    Repeater {
-                        model: ["Image", "Video", "Audio", "Board"]
-                        delegate: LV.LabelButton {
-                            required property string modelData
-                            objectName: "homeMedia" + modelData
-                            text: modelData
-                            tone: LV.AbstractButton.Default
-                            checked: root.composer.mediaType === modelData
-                            onClicked: {
-                                if (modelData === "Image" || modelData === "Video") root.composer.mediaType = modelData
-                                else root.composer.mediaActionRequested(modelData.toLowerCase())
-                            }
-                        }
-                    }
+                    Layout.fillWidth: true; spacing: LV.Theme.gap4
+                    LV.LabelMenuButton { tone: LV.AbstractButton.Default; objectName: "homeLoadPreset"; Layout.fillWidth: true; Layout.minimumWidth: 0; text: root.selectedPresetName || qsTr("Load preset"); onClicked: root.composer.openMenu(loadMenu, this) }
+                    LV.LabelButton { tone: LV.AbstractButton.Default; objectName: "homeSavePreset"; text: qsTr("Save"); onClicked: root.openPopup(presetPopover, this) }
                 }
             }
-            LV.VStack {
-                Layout.fillWidth: true
-                spacing: LV.Theme.gap6
-                LV.HStack {
-                    Layout.fillWidth: true
-                    LV.Label { text: qsTr("PROMPT"); style: caption; color: LV.Theme.descriptionColor }
-                    Item { Layout.fillWidth: true }
-                    LV.LabelButton {
-                        text: qsTr("Clear")
-                        tone: LV.AbstractButton.Borderless
-                        onClicked: root.composer.prompt = ""
-                    }
-                }
-                PromptEditor {
-                    id: promptEditor
-                    objectName: root.composer.desktopLayout ? "promptField" : "inactiveDesktopPromptField"
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                    value: root.composer.prompt
-                    placeholderText: qsTr("Describe what to create…")
-                    Accessible.name: qsTr("Prompt")
-                    onEdited: function(value) { root.composer.prompt = value }
-                }
+            LV.VStack { alignment: Qt.AlignLeft;
+                Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.preferredWidth: 152; Layout.columnSpan: !root.wide && root.width < 600 ? 2 : 1; spacing: LV.Theme.gap4
+                LV.Label { text: qsTr("More controls"); style: caption; color: LV.Theme.descriptionColor }
+                LV.LabelButton { tone: LV.AbstractButton.Default; objectName: "homeAdvancedParameters"; text: qsTr("Advanced parameters"); onClicked: root.composer.advancedRequested(root.parameters(root.selectedModel, true)) }
             }
-            LV.HStack {
-                Layout.fillWidth: true
-                Layout.preferredHeight: LV.Theme.scaleMetric(44)
-                spacing: LV.Theme.gap8
+            Setting { visible: root.video; Layout.fillWidth: true; Layout.minimumWidth: 0; label: qsTr("Duration"); controlName: "homeVideoDuration"; value: qsTr("%1 s").arg(root.composer.videoDuration); onActivated: control => root.composer.openDurationMenu(control) }
+            Setting { visible: root.video; Layout.fillWidth: true; Layout.minimumWidth: 0; label: qsTr("Frame rate"); controlName: "homeVideoFps"; value: qsTr("%1 FPS").arg(root.composer.videoFps); onActivated: control => root.composer.openFpsMenu(control) }
+        }
                 Flickable {
                     id: references
                     objectName: root.composer.desktopLayout ? "homeAttachmentsSlot" : "inactiveDesktopAttachmentsSlot"
@@ -273,7 +247,7 @@ Rectangle {
                                         asynchronous: true
                                         clip: true
                                     }
-                                    LV.VStack {
+                                    LV.VStack { alignment: Qt.AlignLeft;
                                         Layout.fillWidth: true
                                         Layout.minimumWidth: 0
                                         spacing: 0
@@ -302,119 +276,9 @@ Rectangle {
                         }
                     }
                 }
-                Item { visible: !references.visible; Layout.fillWidth: true }
-                LV.IconButton {
-                    objectName: root.composer.desktopLayout ? "homeAttachButton" : "inactiveDesktopAttachButton"
-                    iconName: "generaladd"
-                    tone: LV.AbstractButton.Default
-                    Accessible.name: qsTr("Attach reference images")
-                    onClicked: root.composer.chooseAttachments()
-                }
-            }
-            Flickable {
-                id: footerViewport
-                objectName: root.composer.desktopLayout ? "quickGenerateActions" : "inactiveDesktopActions"
-                Layout.fillWidth: true
-                Layout.preferredHeight: footer.implicitHeight
-                contentWidth: Math.max(width, footer.implicitWidth)
-                contentHeight: height
-                flickableDirection: Flickable.HorizontalFlick
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-                LV.HStack {
-                    id: footer
-                    width: Math.max(footerViewport.width, implicitWidth)
-                    spacing: LV.Theme.gap8
-                    LV.LabelButton { text: qsTr("Paint canvas"); tone: LV.AbstractButton.Default; onClicked: root.composer.paintRequested() }
-                    LV.LabelMenuButton {
-                        id: negativeButton
-                        objectName: "homeNegativePromptButton"
-                        text: qsTr("Negative prompt")
-                        tone: LV.AbstractButton.Default
-                        onClicked: root.openPopup(negativePopover, this)
-                    }
-                    Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
-                    LV.LabelButton { text: qsTr("Load preset"); tone: LV.AbstractButton.Borderless; onClicked: root.composer.openMenu(loadMenu, this) }
-                    LV.LabelButton { id: saveButton; text: qsTr("Save preset"); tone: LV.AbstractButton.Borderless; onClicked: root.openPopup(presetPopover, this) }
-                }
-            }
-        }
-
-        LV.VStack {
-            Layout.fillWidth: true
-            Layout.minimumWidth: root.wide ? 288 : 0
-            Layout.maximumWidth: root.wide ? 288 : Infinity
-            Layout.preferredWidth: root.wide ? 288 : -1
-            Layout.alignment: Qt.AlignTop
-            spacing: LV.Theme.gap10
-            alignment: Qt.AlignLeft
-            LV.Label { text: qsTr("Generation setup"); style: header2 }
-            Setting {
-                Layout.fillWidth: true
-                label: qsTr("Model"); controlName: "homeModelButton"
-                value: root.selectedModelName || qsTr("Choose model")
-                controlEnabled: root.modelChoices.length > 0
-                onActivated: control => root.composer.openMenu(modelMenu, control)
-            }
-            LV.HStack {
-                Layout.fillWidth: true
-                spacing: LV.Theme.gap8
-                Setting {
-                    Layout.fillWidth: true; Layout.minimumWidth: 0
-                    Layout.preferredWidth: 1
-                    label: qsTr("Aspect ratio"); controlName: "aspectRatioButton"; value: root.composer.aspectRatio
-                    onActivated: control => root.composer.openRatioMenu(control)
-                }
-                Setting {
-                    Layout.fillWidth: true; Layout.minimumWidth: 0
-                    Layout.preferredWidth: 1
-                    label: qsTr("Resolution"); controlName: "homeResolutionButton"
-                    value: root.outputSize.width + " × " + root.outputSize.height
-                    controlEnabled: !root.video
-                    onActivated: control => root.composer.openMenu(resolutionMenu, control)
-                }
-            }
-            LV.HStack {
-                Layout.fillWidth: true
-                spacing: LV.Theme.gap8
-                Setting {
-                    Layout.fillWidth: true; Layout.minimumWidth: 0
-                    Layout.preferredWidth: 1
-                    label: qsTr("Batch size"); controlName: "generationCountButton"
-                    value: qsTr("%1 %2").arg(root.composer.generationCount).arg(root.video
-                        ? root.composer.generationCount === 1 ? qsTr("video") : qsTr("videos")
-                        : root.composer.generationCount === 1 ? qsTr("image") : qsTr("images"))
-                    onActivated: control => root.composer.openCountMenu(control)
-                }
-                Setting {
-                    Layout.fillWidth: true; Layout.minimumWidth: 0
-                    Layout.preferredWidth: 1
-                    label: qsTr("Seed"); controlName: "homeSeedButton"
-                    value: root.seed < 0 ? qsTr("Random") : String(root.seed)
-                    onActivated: control => root.openPopup(seedPopover, control)
-                }
-            }
-            LV.LabelButton {
-                objectName: "homeAdvancedParameters"
-                text: qsTr("Advanced parameters")
-                tone: LV.AbstractButton.Borderless
-                onClicked: root.composer.advancedRequested(root.parameters(root.selectedModel, true))
-            }
-            LV.HStack {
-                Layout.fillWidth: true
-                Item { Layout.fillWidth: true }
-                LV.LabelButton {
-                    objectName: root.composer.desktopLayout ? "generateButton" : "inactiveDesktopGenerateButton"
-                    text: root.video
-                        ? (root.composer.generationCount === 1 ? qsTr("Generate 1 video") : qsTr("Generate %1 videos").arg(root.composer.generationCount))
-                        : (root.composer.generationCount === 1 ? qsTr("Generate 1 image") : qsTr("Generate %1 images").arg(root.composer.generationCount))
-                    tone: LV.AbstractButton.Primary
-                    enabled: !root.composer.submitting && !root.composer.generationPending
-                    onClicked: root.composer.submit()
-                }
-            }
-        }
+        LV.Label { Layout.fillWidth: true; visible: root.errorText.length > 0; text: root.errorText; style: caption; color: LV.Theme.accentRed; wrapMode: Text.Wrap }
     }
+    LV.ContextMenu { id: homeMediaMenu; objectName: "homeMediaMenu"; showIconSlot: false; items: ["Image", "Video", "Audio", "Board"]; selectedIndex: items.indexOf(root.composer.mediaType); onItemTriggered: function(index, entry) { root.chooseMedia(String(entry)) } }
 
     LV.ContextMenu {
         id: modelMenu
@@ -449,7 +313,7 @@ Rectangle {
         parent: root.Window.window ? root.Window.window.contentItem : root
         width: Math.min(500, parent.width - LV.Theme.gap16)
         height: negativeContent.implicitHeight + padding * 2
-        contentItem: LV.VStack {
+        contentItem: LV.VStack { alignment: Qt.AlignLeft;
             id: negativeContent
             spacing: LV.Theme.gap8
             LV.Label { text: qsTr("Negative prompt"); style: header2 }
@@ -463,7 +327,7 @@ Rectangle {
         width: Math.min(320, parent.width - LV.Theme.gap16)
         height: seedContent.implicitHeight + padding * 2
         onOpened: seedField.text = root.seed < 0 ? "" : String(root.seed)
-        contentItem: LV.VStack {
+        contentItem: LV.VStack { alignment: Qt.AlignLeft;
             id: seedContent
             spacing: LV.Theme.gap8
             LV.Label { text: qsTr("Seed"); style: header2 }
@@ -488,7 +352,7 @@ Rectangle {
         parent: root.Window.window ? root.Window.window.contentItem : root
         width: Math.min(320, parent.width - LV.Theme.gap16)
         height: presetContent.implicitHeight + padding * 2
-        contentItem: LV.VStack {
+        contentItem: LV.VStack { alignment: Qt.AlignLeft;
             id: presetContent
             spacing: LV.Theme.gap8
             LV.Label { text: qsTr("Save preset"); style: header2 }

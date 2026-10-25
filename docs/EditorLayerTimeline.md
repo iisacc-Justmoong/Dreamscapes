@@ -1,5 +1,10 @@
 # Native editor layer timeline
 
+데스크톱의 현재 표시 구조는 [간소화된 에디터 레이아웃](EditorCompactLayout.md)을
+따른다. 기본 타임라인은 높이 180px이며 재생·분할·삭제·맞춤만 한 줄에 표시한다.
+아래에 설명된 편집 도구, 키프레임·커브, 정밀 범위, 필터, 스냅 및 FPS 조작은
+`More`의 `Timeline options`에 그대로 존재한다. 모바일의 기존 조작 구조는 유지한다.
+
 The editor implements the finalized Figma `1065:90081` layout. The design's
 Shot terminology is replaced with **Layer**. `EditorTimelineModel` reads the
 open native IISC document; the Video generation workspace retains its separate

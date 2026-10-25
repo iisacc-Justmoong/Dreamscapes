@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
@@ -232,4 +233,5 @@ Item {
             }
         }
     }
+    readonly property Item canvasPanelFrame: Frames.PanelFrame { parent: canvas; panelId: "image-preview" }
 }

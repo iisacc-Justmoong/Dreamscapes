@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import ".." as Frames
 import QtQuick.Layouts
 import QtQuick.Window
 import QtQuick.Controls as Controls
@@ -650,4 +651,7 @@ Item {
         z: 4
         onCloseRequested: root.goBack()
     }
+    readonly property Item resultsPanelFrame: Frames.PanelFrame { parent: resultsArea; panelId: "review-results" }
+    readonly property Item actionsPanelFrame: Frames.PanelFrame { parent: actionViewport; panelId: "review-actions" }
+    readonly property Item toolbarPanelFrame: Frames.PanelFrame { parent: toolbar; panelId: "review-header" }
 }

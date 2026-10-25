@@ -2,8 +2,12 @@
 #include "App/Views/Editor/EditorProject.h"
 #include "App/Views/Editor/EditorProjectCodec.h"
 #include <SocietyDrive.h>
+#include <SharedStorage.h>
+#include <TemporaryLease.h>
 #include <iiFileProvider.h>
+#include <iiFileProviderPresentation.h>
 #include <QElapsedTimer>
+#include <QImage>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTimer>
@@ -11,6 +15,7 @@
 #include <atomic>
 #include <mutex>
 #include <semaphore>
+#include <thread>
 
 namespace {
 struct Gate {
@@ -52,6 +57,41 @@ private slots:
     void initTestCase() {
         QVERIFY(m_storage.isValid());QVERIFY(iiSocietyContainer::SocietyDrive::create(m_storage.path()));
         qputenv("SOCIETY_CONTAINER_PATH",m_storage.path().toUtf8());
+    }
+    void bitmapPublicationDoesNotHoldTheOriginalReadLock() {
+        const auto path=m_storage.filePath("Files/publication-lock.png");
+        QImage image(16,12,QImage::Format_RGB32);image.fill(Qt::red);QVERIFY(image.save(path));
+        const auto bytes=iiFileProvider::File::read(path);
+        const auto storage=iiSocietyContainer::SharedStorage::open(m_storage.path());QVERIFY(storage);
+        auto repository=storage->fileRepository();QVERIFY(repository);
+        const auto package=iiSocietyContainer::FileRepository::packagePath(
+            std::filesystem::path(m_storage.path().toStdU16String()),storage->drive().identifier().toStdString());
+        // A catalog intake owns this lease before requesting the original's
+        // presentation. Import must release the source before waiting to publish.
+        auto lease=std::make_unique<iiFileProvider::TemporaryLease>(package/"operations",iiFileProvider::TemporaryLease::Mode::TryExclusive);
+        QVERIFY(lease->locked());
+        EditorProject project;EditorDocumentOpenRequest request;request.setProject(&project);
+        QSignalSpy ready(&request,&EditorDocumentOpenRequest::ready);
+        QVERIFY(request.start(QUrl::fromLocalFile(path)));
+        const QDir files(m_storage.filePath("Files"));
+        QElapsedTimer elapsed;elapsed.start();
+        while(files.entryList({"publication-lock.png.*.iisc"},QDir::Files).isEmpty()&&elapsed.elapsed()<5000)QTest::qWait(10);
+        const bool published=!files.entryList({"publication-lock.png.*.iisc"},QDir::Files).isEmpty();
+        std::atomic_bool readerAcquired=false;
+        std::jthread reader([&] {
+            iiFileProvider::native::SourceAccess access(std::filesystem::path(path.toStdU16String()));
+            std::lock_guard lock(access);readerAcquired=true;
+        });
+        elapsed.restart();while(!readerAcquired&&elapsed.elapsed()<1000)QTest::qWait(10);
+        const bool readableDuringPublication=readerAcquired.load();
+        lease.reset(); // Always unblock the worker before asserting or joining.
+        reader.join();
+        QVERIFY(published);
+        QVERIFY2(readableDuringPublication,"The source lock was held while waiting for the catalog publication lease");
+        QTRY_COMPARE_WITH_TIMEOUT(ready.count(),1,30000);
+        QCOMPARE(iiFileProvider::File::read(path),bytes);
+        QCOMPARE(project.currentCanvas()->canvasWidth(),16);
+        QCOMPARE(project.currentCanvas()->canvasHeight(),12);
     }
     void preparedValuesRetainStorageBindingAndConflictChecksWithoutRescanning() {
         const auto path=native("prepared %20 #",16,true);QVERIFY(!path.isEmpty());const auto bytes=iiFileProvider::File::read(path);

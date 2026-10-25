@@ -1,17 +1,61 @@
 #include <iiFileProviderDevice.h>
 #include "AdvancedImageParameters.h"
+#include "GenerationController.h"
+#include "../ViewModels/ViewData.h"
 #include <Generation/NativePose.hpp>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QStandardPaths>
 #include <QUuid>
+#include <cmath>
 
 AdvancedImageParameters::AdvancedImageParameters(QObject *parent)
     : AdvancedImageParameters(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
         + "/advanced-image-presets.json", parent) {}
 AdvancedImageParameters::AdvancedImageParameters(QString presetFile, QObject *parent)
-    : QObject(parent), m_presetFile(std::move(presetFile)) { readPresets(&m_presets); }
+    : QObject(parent), m_presetFile(std::move(presetFile)) {
+    readPresets(&m_presets);
+    connect(this, &AdvancedImageParameters::parametersChanged, this, [this] { validity({{}, true, false, true}); });
+}
+void AdvancedImageParameters::validity(dreamscapes::vm::ValidityEdit edit) {
+    const auto reply = m_validity.commands().send(edit); if (!reply) return;
+    const auto next = dreamscapes::viewValue(*reply).toMap();
+    if (next != m_invalidInputs) { m_invalidInputs = next; emit invalidInputsChanged(); }
+}
+void AdvancedImageParameters::recordValidity(const QString &key, bool valid) { validity({key.toStdString(), valid}); }
+bool AdvancedImageParameters::updateDraft(const QVariantMap &patch, const QString &key) { const auto accepted = updateParameters(patch); recordValidity(key, accepted); return accepted; }
+bool AdvancedImageParameters::edit(const QString &key, const QVariant &value) { return updateDraft({{key, value}}, key); }
+bool AdvancedImageParameters::editNumber(const QString &key, const QString &text) {
+    bool valid = false; const auto value = text.trimmed().toDouble(&valid);
+    if (!valid || !std::isfinite(value)) { recordValidity(key, false); return false; }
+    return edit(key, value);
+}
+void AdvancedImageParameters::applyPromptDefaults() {
+    const auto *generation = qobject_cast<GenerationController *>(m_generation.data()); if (!generation) return;
+    const auto defaults = generation->defaultGenerationPrompts().value("Image").toMap();
+    if (!defaults.isEmpty()) updateParameters({{"prompt", defaults.value("prompt")}, {"negativePrompt", defaults.value("negativePrompt")}});
+}
+void AdvancedImageParameters::resetDraft() { reset(); applyPromptDefaults(); validity({{}, true, true}); emit draftRestored(); }
+bool AdvancedImageParameters::loadDraftPreset(const QString &name) { if (!loadPreset(name)) return false; validity({{}, true, true}); emit draftRestored(); return true; }
+bool AdvancedImageParameters::saveDraftPreset(const QString &name) { if (hasInvalidInputs() || !savePreset(name)) return false; emit presetSaved(name.trimmed()); return true; }
+bool AdvancedImageParameters::selectLearnedUpscaler(const QUrl &source) { return updateDraft({{"upscaler", "4x-ultra"}, {"upscalerModel", source.toString()}}, "upscalerModel"); }
+bool AdvancedImageParameters::selectDetailer(const QUrl &source) { return updateDraft({{"detailer", true}, {"detailerModel", source.toString()}}, "detailerModel"); }
+bool AdvancedImageParameters::selectRefiner(const QUrl &source) { return updateDraft({{"refiner", true}, {"refinerModel", source.toString()}}, "refinerModel"); }
+bool AdvancedImageParameters::selectIPAdapter(const QString &id, const QUrl &model, const QUrl &vision) { return !model.isEmpty() && !vision.isEmpty() && updateControlNet(id, {{"ipAdapter", true}, {"ipAdapterModel", model.toString()}, {"ipAdapterVision", vision.toString()}}); }
+bool AdvancedImageParameters::selectPose(const QString &id, const QUrl &detector, const QUrl &model) { return !detector.isEmpty() && !model.isEmpty() && updateControlNet(id, {{"process", "Pose"}, {"poseDetector", detector.toString()}, {"poseModel", model.toString()}}); }
+QVariantMap AdvancedImageParameters::controlNet(const QString &id) const { for (const auto &value : parameters().value("controlNets").toList()) if (value.toMap().value("id").toString() == id) return value.toMap(); return {}; }
+bool AdvancedImageParameters::addReferenceDocument(const QUrl &source) {
+    if (parameters().value("referenceImages").toList().size() >= 20) { emit referenceImageLimitReached(); return false; }
+    auto *generation = qobject_cast<GenerationController *>(m_generation.data()); const auto document = generation ? generation->imageDocument(source) : source;
+    return !document.isEmpty() && addReferenceImage(document.toString());
+}
+bool AdvancedImageParameters::selectControlImage(const QString &id, const QString &field, const QUrl &source) {
+    auto *generation = qobject_cast<GenerationController *>(m_generation.data()); const auto document = generation ? generation->imageDocument(source) : source;
+    return !document.isEmpty() && updateControlNet(id, {{field, document.toString()}});
+}
+int AdvancedImageParameters::addControlDraft(const QString &process) { addControlNet(process.isEmpty() ? QStringLiteral("None") : process); return parameters().value("controlNets").toList().size(); }
+bool AdvancedImageParameters::addLoraDraft(const QUrl &source, const QString &name) { return !addLora(source.toString(), name.isEmpty() ? source.fileName() : name).isEmpty(); }
 QVariantMap AdvancedImageParameters::parameters() const { return dreamscapes::imageParametersToMap(m_parameters); }
 QVariantList AdvancedImageParameters::schema() const { return dreamscapes::imageParameterSchema(); }
 QStringList AdvancedImageParameters::presets() const { return m_presets.keys(); }

@@ -1,0 +1,1084 @@
+.pragma library
+
+// Figma 1000:72907 / 1000:72178 / 1000:71361. Labels and bindings only.
+var views = [
+    {
+        "id": "information",
+        "name": "Information",
+        "figmaNode": "1000:72907",
+        "icon": "document-properties",
+        "sections": [
+            {
+                "name": "File",
+                "rows": [
+                    {
+                        "key": "EditorCanvas.documentName",
+                        "label": "Name"
+                    },
+                    {
+                        "key": "Alias.name",
+                        "label": "File alias name"
+                    },
+                    {
+                        "key": "Document.formatVersion.major/minor",
+                        "label": "Native format"
+                    },
+                    {
+                        "key": "Derived.storageFormat",
+                        "label": "Storage format"
+                    },
+                    {
+                        "key": "Alias.size",
+                        "label": "File size"
+                    },
+                    {
+                        "key": "Alias.modified",
+                        "label": "File modified"
+                    },
+                    {
+                        "key": "Alias.isImage",
+                        "label": "Source is an image"
+                    }
+                ]
+            },
+            {
+                "name": "Generation",
+                "rows": [
+                    {
+                        "key": "StableDiffusionMetadata.positivePrompt",
+                        "label": "Positive prompt"
+                    },
+                    {
+                        "key": "StableDiffusionMetadata.negativePrompt",
+                        "label": "Negative prompt"
+                    },
+                    {
+                        "key": "StableDiffusionMetadata.outputExtent.width/height",
+                        "label": "Output dimensions"
+                    },
+                    {
+                        "key": "StableDiffusionMetadata.batchSize",
+                        "label": "Batch size"
+                    },
+                    {
+                        "key": "StableDiffusionMetadata.clipSkip",
+                        "label": "CLIP skip"
+                    },
+                    {
+                        "key": "StableDiffusionMetadata.software",
+                        "label": "Software"
+                    },
+                    {
+                        "key": "StableDiffusionMetadata.softwareVersion",
+                        "label": "Software version"
+                    },
+                    {
+                        "key": "StableDiffusionMetadata.createdAt",
+                        "label": "Generated at"
+                    },
+                    {
+                        "key": "Document.stableDiffusionMetadata",
+                        "label": "Generation metadata"
+                    },
+                    {
+                        "key": "StableDiffusionMetadata.positivePrompt/negativePrompt",
+                        "label": "Recorded prompts"
+                    },
+                    {
+                        "key": "StableDiffusionMetadata.samplingPasses",
+                        "label": "Sampling passes"
+                    },
+                    {
+                        "key": "StableDiffusionMetadata.models",
+                        "label": "Model resources"
+                    },
+                    {
+                        "key": "StableDiffusionMetadata.loras",
+                        "label": "LoRAs"
+                    }
+                ]
+            },
+            {
+                "name": "Sampling pass 01",
+                "rows": [
+                    {
+                        "key": "StableDiffusionSamplingPass.nodeId",
+                        "label": "Node ID"
+                    },
+                    {
+                        "key": "StableDiffusionSamplingPass.seed",
+                        "label": "Seed"
+                    },
+                    {
+                        "key": "StableDiffusionSamplingPass.steps",
+                        "label": "Steps"
+                    },
+                    {
+                        "key": "StableDiffusionSamplingPass.cfgScale",
+                        "label": "CFG scale"
+                    },
+                    {
+                        "key": "StableDiffusionSamplingPass.samplerName",
+                        "label": "Sampler"
+                    },
+                    {
+                        "key": "StableDiffusionSamplingPass.scheduler",
+                        "label": "Scheduler"
+                    },
+                    {
+                        "key": "StableDiffusionSamplingPass.denoiseStrength",
+                        "label": "Denoise strength"
+                    },
+                    {
+                        "key": "StableDiffusionSamplingPass.startStep",
+                        "label": "Start step"
+                    },
+                    {
+                        "key": "StableDiffusionSamplingPass.endStep",
+                        "label": "End step"
+                    }
+                ]
+            },
+            {
+                "name": "Model resource 01",
+                "rows": [
+                    {
+                        "key": "StableDiffusionModelResource.role",
+                        "label": "Role"
+                    },
+                    {
+                        "key": "StableDiffusionModelResource.name",
+                        "label": "Name"
+                    },
+                    {
+                        "key": "StableDiffusionModelResource.hash",
+                        "label": "Hash"
+                    },
+                    {
+                        "key": "StableDiffusionModelResource.hashType",
+                        "label": "Hash type"
+                    },
+                    {
+                        "key": "StableDiffusionModelResource.uri",
+                        "label": "Resource URI"
+                    }
+                ]
+            },
+            {
+                "name": "LoRA 01",
+                "rows": [
+                    {
+                        "key": "StableDiffusionLora.name",
+                        "label": "Name"
+                    },
+                    {
+                        "key": "StableDiffusionLora.hash",
+                        "label": "Hash"
+                    },
+                    {
+                        "key": "StableDiffusionLora.modelStrength",
+                        "label": "Model strength"
+                    },
+                    {
+                        "key": "StableDiffusionLora.clipStrength",
+                        "label": "CLIP strength"
+                    }
+                ]
+            },
+            {
+                "name": "Original metadata",
+                "rows": [
+                    {
+                        "key": "StableDiffusionMetadata.generationParametersText",
+                        "label": "Generation text"
+                    },
+                    {
+                        "key": "ComfyUiMetadata.promptJson",
+                        "label": "ComfyUI prompt JSON"
+                    },
+                    {
+                        "key": "ComfyUiMetadata.workflowJson",
+                        "label": "ComfyUI workflow JSON"
+                    },
+                    {
+                        "key": "ComfyUiMetadata.extraPngInfo[].key/value",
+                        "label": "Extra PNG information"
+                    },
+                    {
+                        "key": "StableDiffusionMetadata.extraParameters[].key/value",
+                        "label": "Extra parameters"
+                    },
+                    {
+                        "key": "ComfyUiMetadata.promptJson/workflowJson",
+                        "label": "ComfyUI metadata"
+                    },
+                    {
+                        "key": "StableDiffusionMetadata.extraParameters",
+                        "label": "Extra parameter entries"
+                    }
+                ]
+            },
+            {
+                "name": "Editing history",
+                "rows": [
+                    {
+                        "key": "Authorship.schemaVersion",
+                        "label": "Authorship schema"
+                    },
+                    {
+                        "key": "Authorship.revision",
+                        "label": "Authorship revision"
+                    },
+                    {
+                        "key": "Authorship.modifiedAt",
+                        "label": "Last recorded change"
+                    },
+                    {
+                        "key": "Authorship.firstEditor",
+                        "label": "First editor"
+                    },
+                    {
+                        "key": "Authorship.participants",
+                        "label": "Participants"
+                    },
+                    {
+                        "key": "Authorship.lastAuthor",
+                        "label": "Last editor"
+                    },
+                    {
+                        "key": "Authorship.authors[].key",
+                        "label": "Editor identity key"
+                    },
+                    {
+                        "key": "Authorship.authors[].firstChangedAt",
+                        "label": "First change by author"
+                    },
+                    {
+                        "key": "Authorship.authors[].lastChangedAt",
+                        "label": "Last change by author"
+                    },
+                    {
+                        "key": "Authorship.isEmpty",
+                        "label": "Authorship empty"
+                    },
+                    {
+                        "key": "Authorship.links",
+                        "label": "File links"
+                    }
+                ]
+            },
+            {
+                "name": "First editor · Account",
+                "rows": [
+                    {
+                        "key": "FileAuthor.SchemaVersion",
+                        "label": "Author schema"
+                    },
+                    {
+                        "key": "IisaccAccount.sub",
+                        "label": "Account subject"
+                    },
+                    {
+                        "key": "IisaccAccount.userId",
+                        "label": "User ID"
+                    },
+                    {
+                        "key": "IisaccAccount.displayName",
+                        "label": "Display name"
+                    },
+                    {
+                        "key": "IisaccAccount.email",
+                        "label": "Account email"
+                    },
+                    {
+                        "key": "IisaccAccount.societyCloudMembership",
+                        "label": "Recorded membership"
+                    },
+                    {
+                        "key": "IisaccAccount.avatarUrl",
+                        "label": "Avatar URL"
+                    },
+                    {
+                        "key": "AuthorMetadata.serviceOrigin",
+                        "label": "Service origin"
+                    },
+                    {
+                        "key": "AuthorMetadata.capturedAt",
+                        "label": "Snapshot captured"
+                    }
+                ]
+            },
+            {
+                "name": "Author details",
+                "rows": [
+                    {
+                        "key": "AuthorDetails.fullName",
+                        "label": "Full name"
+                    },
+                    {
+                        "key": "AuthorDetails.givenName",
+                        "label": "Given name"
+                    },
+                    {
+                        "key": "AuthorDetails.additionalName",
+                        "label": "Additional name"
+                    },
+                    {
+                        "key": "AuthorDetails.familyName",
+                        "label": "Family name"
+                    },
+                    {
+                        "key": "AuthorDetails.pseudonym",
+                        "label": "Pseudonym"
+                    },
+                    {
+                        "key": "AuthorDetails.biography",
+                        "label": "Biography"
+                    },
+                    {
+                        "key": "AuthorDetails.organization",
+                        "label": "Organization"
+                    },
+                    {
+                        "key": "AuthorDetails.organizationId",
+                        "label": "Organization ID"
+                    },
+                    {
+                        "key": "AuthorDetails.department",
+                        "label": "Department"
+                    },
+                    {
+                        "key": "AuthorDetails.team",
+                        "label": "Team"
+                    },
+                    {
+                        "key": "AuthorDetails.jobTitle",
+                        "label": "Job title"
+                    },
+                    {
+                        "key": "AuthorDetails.contactEmail",
+                        "label": "Contact email"
+                    },
+                    {
+                        "key": "AuthorDetails.phoneNumber",
+                        "label": "Phone"
+                    },
+                    {
+                        "key": "AuthorDetails.locale",
+                        "label": "Locale"
+                    },
+                    {
+                        "key": "AuthorDetails.timeZone",
+                        "label": "Time zone"
+                    },
+                    {
+                        "key": "AuthorDetails.countryCode",
+                        "label": "Country code"
+                    },
+                    {
+                        "key": "AuthorDetails.region",
+                        "label": "Region"
+                    },
+                    {
+                        "key": "AuthorDetails.city",
+                        "label": "City"
+                    },
+                    {
+                        "key": "AuthorLink.relation",
+                        "label": "Profile link relation"
+                    },
+                    {
+                        "key": "AuthorLink.label",
+                        "label": "Profile link label"
+                    },
+                    {
+                        "key": "AuthorLink.url",
+                        "label": "Profile link URL"
+                    },
+                    {
+                        "key": "AuthorIdentifier.scheme",
+                        "label": "Identifier scheme"
+                    },
+                    {
+                        "key": "AuthorIdentifier.value",
+                        "label": "Identifier value"
+                    }
+                ]
+            },
+            {
+                "name": "File attribution",
+                "rows": [
+                    {
+                        "key": "FileAttribution.roles",
+                        "label": "Roles"
+                    },
+                    {
+                        "key": "FileAttribution.credit",
+                        "label": "Credit"
+                    },
+                    {
+                        "key": "FileAttribution.copyrightNotice",
+                        "label": "Copyright"
+                    },
+                    {
+                        "key": "FileAttribution.licenseIdentifier",
+                        "label": "License identifier"
+                    },
+                    {
+                        "key": "FileAttribution.licenseUrl",
+                        "label": "License URL"
+                    },
+                    {
+                        "key": "FileAttribution.documentId",
+                        "label": "Document ID"
+                    },
+                    {
+                        "key": "FileAttribution.projectId",
+                        "label": "Project ID"
+                    },
+                    {
+                        "key": "FileAttribution.workspaceId",
+                        "label": "Workspace ID"
+                    },
+                    {
+                        "key": "FileAttribution.createdAt",
+                        "label": "Created at (recorded)"
+                    },
+                    {
+                        "key": "FileAttribution.modifiedAt",
+                        "label": "Modified at (recorded)"
+                    }
+                ]
+            },
+            {
+                "name": "Recorded device",
+                "rows": [
+                    {
+                        "key": "AuthorDevice.id",
+                        "label": "Device ID"
+                    },
+                    {
+                        "key": "AuthorDevice.type",
+                        "label": "Type"
+                    },
+                    {
+                        "key": "AuthorDevice.name",
+                        "label": "Name"
+                    },
+                    {
+                        "key": "AuthorDevice.platform",
+                        "label": "Platform"
+                    },
+                    {
+                        "key": "AuthorDevice.osVersion",
+                        "label": "OS version"
+                    },
+                    {
+                        "key": "AuthorDevice.appId",
+                        "label": "App ID"
+                    },
+                    {
+                        "key": "AuthorDevice.appVersion",
+                        "label": "App version"
+                    },
+                    {
+                        "key": "AuthorMetadata.device",
+                        "label": "Recorded device"
+                    }
+                ]
+            },
+            {
+                "name": "File links",
+                "rows": [
+                    {
+                        "key": "FileLink.name",
+                        "label": "Link name"
+                    },
+                    {
+                        "key": "FileLink.urlText",
+                        "label": "Link URL"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": "contents",
+        "name": "Contents",
+        "figmaNode": "1000:72178",
+        "icon": "panel-preserve-layers",
+        "sections": [
+            {
+                "name": "Canvas",
+                "rows": [
+                    {
+                        "key": "Document.canvasMode",
+                        "label": "Canvas mode"
+                    },
+                    {
+                        "key": "Document.extent.width/height",
+                        "label": "Pixel dimensions"
+                    },
+                    {
+                        "key": "canvasOrigin(Document)",
+                        "label": "Canvas origin"
+                    },
+                    {
+                        "key": "documentViewRegion(Document)",
+                        "label": "Document bounds"
+                    },
+                    {
+                        "key": "Document.extent/Document.layers/Document.timeline",
+                        "label": "Document contents"
+                    }
+                ]
+            },
+            {
+                "name": "Canvas creation",
+                "rows": [
+                    {
+                        "key": "EditorCanvas.specification.width/height",
+                        "label": "Creation dimensions"
+                    },
+                    {
+                        "key": "EditorCanvas.specification.unit",
+                        "label": "Creation units"
+                    },
+                    {
+                        "key": "EditorCanvas.specification.ppi",
+                        "label": "Creation resolution"
+                    },
+                    {
+                        "key": "EditorCanvas.specification.background",
+                        "label": "Initial background"
+                    },
+                    {
+                        "key": "EditorCanvas.specification.name",
+                        "label": "Creation name"
+                    },
+                    {
+                        "key": "EditorCanvas.specification.sourceCount",
+                        "label": "Imported sources"
+                    },
+                    {
+                        "key": "EditorCanvas.specification.unit/ppi",
+                        "label": "Creation units / PPI"
+                    }
+                ]
+            },
+            {
+                "name": "Artboards",
+                "rows": [
+                    {
+                        "key": "Artboard.id",
+                        "label": "Artboard ID"
+                    },
+                    {
+                        "key": "Artboard.name",
+                        "label": "Name"
+                    },
+                    {
+                        "key": "Artboard.region.origin.x/y",
+                        "label": "Stored position"
+                    },
+                    {
+                        "key": "Artboard.region.extent.width/height",
+                        "label": "Dimensions"
+                    },
+                    {
+                        "key": "Artboard.backgroundArgb",
+                        "label": "Background"
+                    },
+                    {
+                        "key": "Artboard.visible",
+                        "label": "Visible"
+                    },
+                    {
+                        "key": "Document.artboards",
+                        "label": "Artboard collection"
+                    },
+                    {
+                        "key": "EditorProject.canvasCount",
+                        "label": "Displayed canvases"
+                    },
+                    {
+                        "key": "EditorProject.currentIndex",
+                        "label": "Current artboard"
+                    },
+                    {
+                        "key": "Document.artboards.count",
+                        "label": "Artboards"
+                    },
+                    {
+                        "key": "EditorCanvas.activeArtboardIndex",
+                        "label": "Artboard index"
+                    },
+                    {
+                        "key": "EditorCanvas.editingWidth/Height",
+                        "label": "Editing dimensions"
+                    },
+                    {
+                        "key": "EditorCanvas.editingOrigin",
+                        "label": "Editing origin"
+                    },
+                    {
+                        "key": "EditorCanvas.pagePresentation",
+                        "label": "Page presentation"
+                    }
+                ]
+            },
+            {
+                "name": "Layers",
+                "rows": [
+                    {
+                        "key": "Document.layers/Document.assets",
+                        "label": "Layers / assets"
+                    },
+                    {
+                        "key": "Document.layers.count",
+                        "label": "Layers"
+                    },
+                    {
+                        "key": "LayerKind.StaticBitmap",
+                        "label": "Static bitmap layers"
+                    },
+                    {
+                        "key": "LayerKind.StaticVector",
+                        "label": "Static vector layers"
+                    },
+                    {
+                        "key": "LayerKind.DynamicBitmap",
+                        "label": "Dynamic bitmap layers"
+                    },
+                    {
+                        "key": "LayerKind.DynamicVector",
+                        "label": "Dynamic vector layers"
+                    },
+                    {
+                        "key": "VideoLayer.count",
+                        "label": "Video layers"
+                    },
+                    {
+                        "key": "LayerRole.ControlNet.count",
+                        "label": "Conditioning layers"
+                    },
+                    {
+                        "key": "SemanticSegmentLayer.count",
+                        "label": "Semantic layers"
+                    }
+                ]
+            },
+            {
+                "name": "Visual assets",
+                "rows": [
+                    {
+                        "key": "Document.assets.count",
+                        "label": "Visual assets"
+                    },
+                    {
+                        "key": "RasterAsset.count",
+                        "label": "Bitmap assets"
+                    },
+                    {
+                        "key": "VectorAsset.count",
+                        "label": "Vector assets"
+                    },
+                    {
+                        "key": "ChunkedRasterAsset.count",
+                        "label": "Chunked bitmap assets"
+                    },
+                    {
+                        "key": "PoseAsset.count",
+                        "label": "Pose assets"
+                    },
+                    {
+                        "key": "DepthAsset.count",
+                        "label": "Depth assets"
+                    },
+                    {
+                        "key": "LineArtAsset.count",
+                        "label": "Line art assets"
+                    },
+                    {
+                        "key": "CannyAsset.count",
+                        "label": "Canny assets"
+                    },
+                    {
+                        "key": "ScribbleAsset.count",
+                        "label": "Scribble assets"
+                    },
+                    {
+                        "key": "MlsdAsset.count",
+                        "label": "MLSD assets"
+                    },
+                    {
+                        "key": "NormalMapAsset.count",
+                        "label": "Normal map assets"
+                    },
+                    {
+                        "key": "ShuffleAsset.count",
+                        "label": "Shuffle assets"
+                    },
+                    {
+                        "key": "TileAsset.count",
+                        "label": "Tile assets"
+                    },
+                    {
+                        "key": "ReferenceAsset.count",
+                        "label": "Reference assets"
+                    },
+                    {
+                        "key": "IpAdapterAsset.count",
+                        "label": "IP-Adapter assets"
+                    }
+                ]
+            },
+            {
+                "name": "Animation and audio",
+                "rows": [
+                    {
+                        "key": "Frame.keyframes.count",
+                        "label": "Content keyframes"
+                    },
+                    {
+                        "key": "Document.frames.count",
+                        "label": "Stored keyframe frames"
+                    },
+                    {
+                        "key": "LayerProperties.motion.count",
+                        "label": "Motion keyframes"
+                    },
+                    {
+                        "key": "Document.audioAssets.count",
+                        "label": "Audio assets"
+                    },
+                    {
+                        "key": "Document.audioTracks.count",
+                        "label": "Audio tracks"
+                    },
+                    {
+                        "key": "AudioTrackLayer.clips.count",
+                        "label": "Audio clips"
+                    }
+                ]
+            },
+            {
+                "name": "Timeline",
+                "rows": [
+                    {
+                        "key": "Document.timeline",
+                        "label": "Timeline"
+                    },
+                    {
+                        "key": "Document.timeline.frameRate.numerator/denominator",
+                        "label": "Frame rate"
+                    },
+                    {
+                        "key": "Document.timeline.frameCount",
+                        "label": "Frames"
+                    },
+                    {
+                        "key": "Document.timeline.derivedDuration",
+                        "label": "Duration"
+                    },
+                    {
+                        "key": "EditorCanvas.frame",
+                        "label": "Current frame"
+                    }
+                ]
+            },
+            {
+                "name": "Sparse canvas content",
+                "rows": [
+                    {
+                        "key": "ChunkedRasterAsset.chunks.count",
+                        "label": "Allocated chunks"
+                    },
+                    {
+                        "key": "ChunkedRasterAsset.id",
+                        "label": "Chunked asset ID"
+                    },
+                    {
+                        "key": "Document.infiniteCanvas.origin.x/y",
+                        "label": "Infinite canvas origin"
+                    },
+                    {
+                        "key": "Document.infiniteCanvas.chunkSize",
+                        "label": "Infinite chunk size"
+                    },
+                    {
+                        "key": "RasterChunk.column/row",
+                        "label": "Chunk coordinate"
+                    },
+                    {
+                        "key": "RasterChunk.pixels.width/height",
+                        "label": "Chunk dimensions"
+                    },
+                    {
+                        "key": "Derived.bitmapPixelModel",
+                        "label": "Bitmap pixel model"
+                    }
+                ]
+            },
+            {
+                "name": "Video asset",
+                "rows": [
+                    {
+                        "key": "VideoAsset.count",
+                        "label": "Video assets"
+                    },
+                    {
+                        "key": "VideoAsset.id",
+                        "label": "Asset ID"
+                    },
+                    {
+                        "key": "VideoAsset.frameRate.numerator/denominator",
+                        "label": "Source frame rate"
+                    },
+                    {
+                        "key": "VideoAsset.frames.count",
+                        "label": "Source frames"
+                    },
+                    {
+                        "key": "VideoAsset.frames[].width/height",
+                        "label": "Frame dimensions"
+                    },
+                    {
+                        "key": "VideoPlayback.sourceInFrame",
+                        "label": "Source in-frame"
+                    },
+                    {
+                        "key": "VideoPlayback.sourceOutFrame",
+                        "label": "Source out-frame"
+                    },
+                    {
+                        "key": "VideoPlayback.endBehavior",
+                        "label": "End behavior"
+                    },
+                    {
+                        "key": "LayerProperties.frameRange.firstFrame/lastFrame",
+                        "label": "Timeline frame range"
+                    }
+                ]
+            },
+            {
+                "name": "Audio asset",
+                "rows": [
+                    {
+                        "key": "AudioAsset.id",
+                        "label": "Asset ID"
+                    },
+                    {
+                        "key": "AudioAsset.sampleRate",
+                        "label": "Sample rate"
+                    },
+                    {
+                        "key": "AudioAsset.channelCount",
+                        "label": "Channels"
+                    },
+                    {
+                        "key": "AudioAsset.samples.count",
+                        "label": "PCM sample count"
+                    },
+                    {
+                        "key": "AudioAsset.derivedDuration",
+                        "label": "Source duration"
+                    }
+                ]
+            },
+            {
+                "name": "Audio track",
+                "rows": [
+                    {
+                        "key": "AudioTrackLayer.id",
+                        "label": "Track ID"
+                    },
+                    {
+                        "key": "AudioTrackLayer.name",
+                        "label": "Name"
+                    },
+                    {
+                        "key": "AudioTrackLayer.muted",
+                        "label": "Muted"
+                    },
+                    {
+                        "key": "AudioTrackLayer.gainDb",
+                        "label": "Track gain"
+                    }
+                ]
+            },
+            {
+                "name": "Audio clip",
+                "rows": [
+                    {
+                        "key": "AudioClip.id",
+                        "label": "Clip ID"
+                    },
+                    {
+                        "key": "AudioClip.name",
+                        "label": "Name"
+                    },
+                    {
+                        "key": "AudioClip.assetId",
+                        "label": "Audio asset ID"
+                    },
+                    {
+                        "key": "AudioClip.startFrame",
+                        "label": "Timeline start"
+                    },
+                    {
+                        "key": "AudioClip.durationFrames",
+                        "label": "Duration"
+                    },
+                    {
+                        "key": "AudioClip.sourceOffsetSamples",
+                        "label": "Source offset"
+                    },
+                    {
+                        "key": "AudioClip.gainDb",
+                        "label": "Clip gain"
+                    },
+                    {
+                        "key": "AudioClip.enabled",
+                        "label": "Enabled"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": "storage",
+        "name": "Storage",
+        "figmaNode": "1000:71361",
+        "icon": "panel-file-location",
+        "sections": [
+            {
+                "name": "Availability and synchronization",
+                "rows": [
+                    {
+                        "key": "EditorCanvas.documentReady",
+                        "label": "Document ready"
+                    },
+                    {
+                        "key": "EditorProject.modified",
+                        "label": "Unsaved changes"
+                    },
+                    {
+                        "key": "EditorCanvas.documentSynchronized",
+                        "label": "File synchronized"
+                    },
+                    {
+                        "key": "Alias.exists",
+                        "label": "File exists"
+                    },
+                    {
+                        "key": "Alias.available",
+                        "label": "Available locally"
+                    },
+                    {
+                        "key": "DocumentFile.revision",
+                        "label": "Stored doc revision"
+                    },
+                    {
+                        "key": "EditorCanvas.revision",
+                        "label": "Editor revision"
+                    }
+                ]
+            },
+            {
+                "name": "Storage location",
+                "rows": [
+                    {
+                        "key": "EditorCanvas.filePath",
+                        "label": "Document file path"
+                    },
+                    {
+                        "key": "EditorCanvas.fileAlias",
+                        "label": "File association"
+                    },
+                    {
+                        "key": "Alias.metadata2",
+                        "label": "Storage"
+                    },
+                    {
+                        "key": "Alias.containerId",
+                        "label": "Container ID"
+                    },
+                    {
+                        "key": "Alias.id",
+                        "label": "File identity"
+                    },
+                    {
+                        "key": "Alias.key",
+                        "label": "Logical file key"
+                    },
+                    {
+                        "key": "Alias.section",
+                        "label": "Section"
+                    },
+                    {
+                        "key": "Alias.relativePath",
+                        "label": "Relative path"
+                    },
+                    {
+                        "key": "Alias.path/EditorCanvas.filePath/DocumentFile.filePath",
+                        "label": "Local file path"
+                    },
+                    {
+                        "key": "Alias.folderPath",
+                        "label": "Folder"
+                    },
+                    {
+                        "key": "Alias.source",
+                        "label": "Document source"
+                    },
+                    {
+                        "key": "Alias.version",
+                        "label": "File version (SHA-256)"
+                    },
+                    {
+                        "key": "Alias.history",
+                        "label": "Generation history"
+                    },
+                    {
+                        "key": "Alias.containerId/Alias.key",
+                        "label": "Container / file key"
+                    },
+                    {
+                        "key": "Alias.path",
+                        "label": "Alias file path"
+                    }
+                ]
+            },
+            {
+                "name": "Preview sources",
+                "rows": [
+                    {
+                        "key": "Alias.previewSource",
+                        "label": "Preview source"
+                    },
+                    {
+                        "key": "Alias.thumbnailSource",
+                        "label": "Thumbnail source"
+                    }
+                ]
+            },
+            {
+                "name": "File access",
+                "rows": [
+                    {
+                        "key": "EditorCanvas.error",
+                        "label": "Message"
+                    },
+                    {
+                        "key": "FileSystem.readCanvas.source",
+                        "label": "Read source"
+                    }
+                ]
+            }
+        ]
+    }
+];
+
+function view(id) { return views.find(function(v) { return v.id === id }) || views[0] }
+function definition() { return {key: "file", title: "File", number: 5, figmaNode: views[0].figmaNode, views: views, fields: []} }

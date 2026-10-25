@@ -13,8 +13,6 @@ import "Views/Editor"
 import "Views/Publishing"
 import "Views/Preferences"
 import "Views"
-import "Views/Home/ImageSelection.js" as ImageSelection
-import "Views/Home/StorageBrowserEntries.js" as StorageEntries
 
 LV.ApplicationWindow {
     id: window
@@ -115,9 +113,29 @@ LV.ApplicationWindow {
         else agentQuestions.source = ""
     }
     Loader { id: agentQuestions }
-    property bool resultVisible: false
-    property bool editorVisible: false
-    property bool publishVisible: false
+    NativeWorkspaceSession {
+        id: nativeSession
+        objectName: "nativeWorkspaceSession"
+        generation: window.generationBackend
+        imageOpen: window.fileOpenRequest
+        onEditorRequested: { editorLoader.active = true; nativeSession.editor = editorLoader.item }
+        onInputsDismissRequested: { quickGenerate.dismissInput(); modelMenu.close() }
+        onCanvasFocusRequested: if (window.editorView) window.editorView.forceActiveFocus()
+        onReviewResetRequested: resultView.resetPresentation()
+        onReviewFocusRequested: Qt.callLater(resultView.focusResults)
+        onHomeRequested: { desktopHome.showHome(); mobileHome.showHome() }
+        onNewCanvasRequested: newCanvasDialog.begin()
+        onOpenFileDialogRequested: homeOpenDialog.open()
+        onManualResultRequested: file => Qt.callLater(() => resultView.showEntry(file))
+        onPromptCompletionRequested: (prompt, ratio) => { quickGenerate.prompt = prompt; quickGenerate.aspectRatio = ratio }
+        onStorageRequested: section => {
+            storageBrowserLoader.opened = true
+            desktopHome.selectedAction = section === "generation-history" ? "history" : section === "published" ? "published" : "files"
+        }
+    }
+    property alias resultVisible: nativeSession.resultVisible
+    property alias editorVisible: nativeSession.editorVisible
+    property alias publishVisible: nativeSession.publishVisible
     readonly property var publishView: publishLoader.item
     function openPublish() {
         if (!editorVisible || !editorView || editorView.modalActive || editorView.documentOpening || editorView.imageImportRequest.active) return false
@@ -136,27 +154,24 @@ LV.ApplicationWindow {
     }
     onResultVisibleChanged: cancelFileOpen()
     onEditorVisibleChanged: { cancelFileOpen(); if (!editorVisible) publishVisible = false }
-    property string storageBrowserSection: ""
-    property string pendingFileKey: ""
-    property string pendingFileSection: ""
-    property string pendingFileContainerId: ""
-    property var pendingCanvasOpen: null
+    property alias storageBrowserSection: nativeSession.storageBrowserSection
+    property alias pendingFileKey: nativeSession.pendingFileKey
+    property alias pendingFileSection: nativeSession.pendingFileSection
+    property alias pendingFileContainerId: nativeSession.pendingFileContainerId
+    property alias pendingCanvasOpen: nativeSession.pendingCanvasOpen
     readonly property bool storageBrowserVisible: storageBrowserSection.length > 0 && !resultVisible && !editorVisible
     onStorageBrowserVisibleChanged: if (!storageBrowserVisible) cancelFileOpen()
     onStorageBrowserSectionChanged: if (imageOpen.active || (editorView && (editorView.imageImportRequest.active || editorView.documentOpening)) || (pendingFileSection && pendingFileSection !== storageBrowserSection)) cancelFileOpen()
     readonly property var editorView: editorLoader.item
-    function ensureEditor() {
-        editorLoader.active = true
-        return editorLoader.item
-    }
-    property url canvasImageSource: ""
-    property var canvasSpecification: ({})
-    property var canvasGenerationResult: ({})
-    property var canvasGenerationResults: []
-    property var currentResult: ({})
-    property var resultJobIds: []
-    property string generationRequestError: ""
-    readonly property var generationHistoryEntries: ImageSelection.historyImages(historyModel.generationHistory).map(function(file) {
+    function ensureEditor() { return nativeSession.ensureEditor() }
+    property alias canvasImageSource: nativeSession.canvasImageSource
+    property alias canvasSpecification: nativeSession.canvasSpecification
+    property alias canvasGenerationResult: nativeSession.canvasGenerationResult
+    property alias canvasGenerationResults: nativeSession.canvasGenerationResults
+    property alias currentResult: nativeSession.currentResult
+    property alias resultJobIds: nativeSession.resultJobIds
+    property alias generationRequestError: nativeSession.generationRequestError
+    readonly property var generationHistoryEntries: NativeData.selection.historyImages(historyModel.generationHistory).map(function(file) {
         if (/\.iisc$/i.test(file.name || "")) return generation.storedImage(file)
         if (!/^[0-9a-f-]{36}-poster\.png$/.test(file.name || "")) return file
         const video = Object.assign({},file)
@@ -168,70 +183,27 @@ LV.ApplicationWindow {
         return video
     })
     readonly property alias generationBackend: generation
-    readonly property var submissionJobs: generation.jobs.filter(function(job) { return resultJobIds.indexOf(job.id) >= 0 })
-    readonly property var submissionResults: generation.connected
-        ? generation.completedResults.filter(function(result) { return resultJobIds.indexOf(result.id) >= 0 }) : []
-    readonly property var reviewResults: {
-        const entries = generation.connected ? generation.completedResults : []
-        if (resultJobIds.length || !currentResult.imageSource) return entries
-        const source = (currentResult.documentSource || currentResult.mediaSource || currentResult.imageSource).toString()
-        return entries.some(entry => (entry.documentSource || entry.mediaSource || entry.imageSource || "").toString() === source)
-            ? entries : entries.concat([currentResult])
+    NativeGenerationProjection {
+        id: generationProjection
+        jobs: generation.jobs
+        results: generation.completedResults
+        currentResult: window.currentResult
+        requestIds: window.resultJobIds
+        connected: generation.connected
+        busy: generation.busy
+        inferenceStatus: generation.inferenceStatus
+        previewStep: generation.previewStep
+        previewTotalSteps: generation.previewTotalSteps
     }
-    readonly property var reviewActiveJob: generation.jobs.find(job => ["running","connecting-host","downloading"].indexOf(job.state) >= 0) || ({})
-    readonly property bool reviewPending: generation.jobs.some(job => ["queued","running","connecting-host","downloading"].indexOf(job.state) >= 0)
-    readonly property var activeGeneration: submissionJobs.find(function(job) { return job.state === "running" || job.state === "connecting-host" || job.state === "downloading" }) || ({})
-    readonly property bool generationPending: submissionJobs.some(function(job) {
-        return job.state === "queued" || job.state === "running" || job.state === "connecting-host" || job.state === "downloading"
-    })
+    readonly property alias submissionJobs: generationProjection.submissionJobs
+    readonly property alias submissionResults: generationProjection.submissionResults
+    readonly property alias reviewResults: generationProjection.reviewResults
+    readonly property alias reviewActiveJob: generationProjection.reviewActiveJob
+    readonly property alias reviewPending: generationProjection.reviewPending
+    readonly property alias activeGeneration: generationProjection.activeGeneration
+    readonly property alias generationPending: generationProjection.generationPending
+    readonly property alias generationStatusText: generationProjection.generationStatusText
     onSubmissionResultsChanged: presentLatestResult()
-    property int generationElapsedSeconds: 0
-    readonly property string generationStatusText: {
-        if (!activeGeneration.id) {
-            if (generationPending) return generation.busy ? qsTr("Queued")
-                : generation.inferenceStatus.state === "checking-model" ? qsTr("Checking model…")
-                : generation.inferenceStatus.state === "preparing" || generation.inferenceStatus.state === "loading"
-                    ? qsTr("Preparing model…") : qsTr("Queued")
-            const last = submissionJobs[0]
-            return last && (last.state === "cancelled" || last.state === "interrupted") ? stateLabel(last.state) : ""
-        }
-        const phase = generation.inferenceStatus.state
-        const labels = { "interpolating": qsTr("Interpolating video frames…"), "encoding-video": qsTr("Encoding video…"), "complete": qsTr("Saving video…"), "preparing-model": qsTr("Preparing model for faster generation…"),
-            "waiting-host": qsTr("Connecting to Society host…"),
-            "remote-queued": qsTr("Queued on Society host…"),
-            "remote-running": qsTr("Generating on Society host…"),
-            "remote-cancelling": qsTr("Stopping generation on host…"),
-            "receiving-image": qsTr("Receiving generated image…"),
-            "downloading-model": qsTr("Downloading model… %1%").arg(Math.floor(100 * (generation.inferenceStatus.completedBytes || 0)
-                / Math.max(1, generation.inferenceStatus.totalBytes || 1))),
-            "checking-model": qsTr("Checking model… %1%").arg(Math.floor(100 * (generation.inferenceStatus.completedBytes || 0)
-                / Math.max(1, generation.inferenceStatus.totalBytes || 1))),
-            "loading": qsTr("Loading model…"), "encoding": qsTr("Preparing prompt…"),
-            "decoding": window.activeGeneration.mediaType === "Video" ? qsTr("Rendering video frames…") : qsTr("Rendering image…"), "cancelling": qsTr("Stopping generation…"),
-            "paused": qsTr("Paused — return to Dreamscapes to continue"),
-            "waiting-engine": qsTr("Waiting for image engine…") }
-        const finishedSteps = generation.previewTotalSteps > 0 && generation.previewStep === generation.previewTotalSteps
-        const label = phase === "cancelling" || phase === "paused" ? labels[phase]
-            : phase === "decoding" || (finishedSteps && generation.inferenceStatus.backend === "native")
-                ? labels.decoding
-            : window.activeGeneration.mediaType === "Video" && (phase === "interpolating" || phase === "encoding-video" || phase === "complete") ? labels[phase]
-            : generation.previewTotalSteps > 0
-                ? (generation.inferenceStatus.total > 0 && generation.inferenceStatus.total < (window.activeGeneration.steps || 0)
-                    ? qsTr("Refining %1 / %2") : qsTr("Denoising %1 / %2"))
-                    .arg(generation.previewStep).arg(generation.previewTotalSteps)
-            : labels[phase] || (generation.previewStep > 0
-            ? qsTr("Denoising %1 / %2").arg(generation.previewStep).arg(generation.previewTotalSteps)
-            : qsTr("Preparing generation…"))
-        return label + qsTr(" · %1 s").arg(generationElapsedSeconds)
-    }
-    Timer {
-        interval: 1000
-        repeat: true
-        running: !!window.activeGeneration.id
-        triggeredOnStart: true
-        onTriggered: window.generationElapsedSeconds = Math.max(0,
-            Math.floor((Date.now() - Date.parse(window.activeGeneration.startedAt || new Date().toISOString())) / 1000))
-    }
     // Qt 6.8 exposes QInputMethod as QObject in its QML type metadata.
     readonly property var platformInputMethod: Qt.inputMethod
     readonly property real keyboardBottomInset: platformInputMethod.visible && platformInputMethod.keyboardRectangle.height > 0
@@ -270,58 +242,10 @@ LV.ApplicationWindow {
 
     signal generateRequested(string prompt, string mediaType, string aspectRatio, int count)
 
-    function openCanvas(imageSource, generationResult) {
-        cancelFileOpen()
-        ensureEditor()
-        imageSource = generationResult && generationResult.documentSource || imageSource
-        quickGenerate.dismissInput()
-        modelMenu.close()
-        if (imageSource) {
-            const intent = { source: imageSource.toString(), result: generationResult || ({}) }
-            pendingCanvasOpen = intent
-            if (!editorView.openDocumentSource(imageSource)) {
-                if (pendingCanvasOpen === intent) pendingCanvasOpen = null
-                generationRequestError = editorView.documentError
-                return false
-            }
-            generationRequestError = ""
-            return true
-        }
-        if (!editorView.createBlankCanvas({width: 1024, height: 1024, unit: "px", ppi: 300, background: "White", name: qsTr("Untitled Canvas")})) {
-            generationRequestError = editorView.documentError
-            return false
-        }
-        return finishCanvasOpen("", generationResult)
-    }
-    function finishCanvasOpen(imageSource, generationResult) {
-        publishVisible = false
-        canvasImageSource = imageSource || ""
-        canvasGenerationResult = generationResult || ({})
-        canvasGenerationResults = generationResult && imageSource ? [generationResult] : []
-        canvasSpecification = ({})
-        generationRequestError = ""
-        editorVisible = true
-        editorView.forceActiveFocus()
-        return true
-    }
-    function openImages(entries) {
-        if (!entries || !entries.length) return false
-        const images = entries.filter(entry => ImageSelection.isImage(entry))
-        if (images.length !== entries.length) {
-            generationRequestError = qsTr("Select images to open in the editor.")
-            return false
-        }
-        cancelFileOpen()
-        const unavailable = images.find(entry => entry.available === false)
-        if (unavailable && unavailable.section && (!storageBrowserVisible || storageBrowserSection !== unavailable.section))
-            showStorage(unavailable.section)
-        if (!imageOpen.start(images)) return false
-        pendingFileKey = ""
-        pendingFileSection = ""
-        pendingFileContainerId = ""
-        generationRequestError = ""
-        return true
-    }
+    function openCanvas(imageSource, generationResult) { return nativeSession.openCanvas(imageSource, generationResult || {}) }
+    function finishCanvasOpen(imageSource, generationResult) { return nativeSession.finishCanvasOpen(imageSource, generationResult || {}) }
+    function openImages(entries) { return nativeSession.openImages(entries) }
+    readonly property alias fileOpenRequest: imageOpen
     ImageOpenRequest {
         id: imageOpen
         objectName: "imageOpenRequest"
@@ -332,106 +256,18 @@ LV.ApplicationWindow {
         onFailed: function(message) { window.generationRequestError = message; generation.explainOperationFailure("Open canvas", message) }
         onRejected: function(message) { window.generationRequestError = message }
     }
-    function openPreparedImages(images, sources) {
-        resultView.rememberGalleryPosition()
-        ensureEditor()
-        // Rejection is delivered by the command's signal; its existing operation
-        // and document error states deliberately remain independent.
-        if (!editorView.openImages(sources, images)) return false
-        generationRequestError = ""
-        return true
-    }
-    function finishPreparedImages(images, sources) {
-        quickGenerate.dismissInput()
-        modelMenu.close()
-        canvasImageSource = sources[0]
-        canvasGenerationResult = images[0] || ({})
-        canvasGenerationResults = images.slice()
-        canvasSpecification = ({})
-        generationRequestError = ""
-        editorVisible = true
-        editorView.forceActiveFocus()
-        return true
-    }
-    function openHomeFileDialog() {
-        cancelFileOpen()
-        quickGenerate.dismissInput()
-        modelMenu.close()
-        homeOpenDialog.open()
-    }
-    function closeCanvas() {
-        cancelFileOpen()
-        editorVisible = false
-    }
-    function openNewCanvas() {
-        cancelFileOpen()
-        quickGenerate.dismissInput()
-        modelMenu.close()
-        newCanvasDialog.begin()
-    }
+    function openPreparedImages(images, sources) { return nativeSession.openPreparedImages(images, sources) }
+    function finishPreparedImages(images, sources) { return nativeSession.finishPreparedImages(images, sources) }
+    function openHomeFileDialog() { nativeSession.openHomeFileDialog() }
+    function closeCanvas() { nativeSession.closeCanvas() }
+    function openNewCanvas() { nativeSession.openNewCanvas() }
 
-    function presentLatestResult() {
-        // Manual file views have no submission owner. Unrelated job updates
-        // must never replace the file the user explicitly opened.
-        if (!resultJobIds.length) return
-        const result = submissionResults.length > 0 ? submissionResults[submissionResults.length - 1] : ({})
-        const source = result.imageSource ? result.imageSource.toString() : ""
-        if (source === (currentResult.imageSource ? currentResult.imageSource.toString() : ""))
-            return
-        currentResult = result
-        if (resultVisible && source.length > 0) {
-            // A completion may fill an empty input, but never overwrite a draft.
-            if (quickGenerate.prompt.trim().length === 0) {
-                quickGenerate.prompt = result.prompt || ""
-                quickGenerate.aspectRatio = result.aspectRatio || "1:1"
-            }
-        }
-    }
-    function dismissResult() {
-        resultVisible = false
-        resultJobIds = []
-        currentResult = ({})
-        generationRequestError = ""
-        resultView.resetPresentation()
-    }
-    function cancelSubmission() {
-        const pendingJobs = submissionJobs.filter(job => ["queued", "running", "connecting-host", "downloading"].indexOf(job.state) >= 0)
-        // Retire the queued tail before an active worker can release the queue.
-        pendingJobs.filter(job => job.state === "queued").forEach(job => generation.cancel(job.id))
-        pendingJobs.filter(job => job.state !== "queued").forEach(job => generation.cancel(job.id))
-        quickGenerate.dismissInput()
-        dismissResult()
-        desktopHome.showHome()
-        mobileHome.showHome()
-    }
-    function showSubmission(jobIds) {
-        cancelFileOpen()
-        storageBrowserSection = ""
-        editorVisible = false
-        resultView.resetPresentation()
-        generationRequestError = ""
-        currentResult = ({})
-        resultJobIds = jobIds.slice()
-        quickGenerate.dismissInput()
-        modelMenu.close()
-        resultVisible = true
-        Qt.callLater(resultView.focusResults)
-    }
-    function openGenerationReview() {
-        cancelFileOpen()
-        storageBrowserSection = ""
-        editorVisible = false
-        quickGenerate.dismissInput()
-        modelMenu.close()
-        resultVisible = true
-        Qt.callLater(resultView.focusResults)
-    }
-    function stateLabel(state) {
-        const labels = { "queued": qsTr("Queued"), "running": qsTr("Generating"), "completed": qsTr("Completed"),
-            "failed": qsTr("Failed"), "cancelled": qsTr("Cancelled"), "interrupted": qsTr("Interrupted"), "downloading": qsTr("Downloading model"),
-            "connecting-host": qsTr("Connecting to Society host") }
-        return labels[state] || state
-    }
+    function presentLatestResult() { nativeSession.presentLatestResult(submissionResults, quickGenerate.prompt) }
+    function dismissResult() { nativeSession.dismissResult() }
+    function cancelSubmission() { nativeSession.cancelSubmission() }
+    function showSubmission(jobIds) { nativeSession.showSubmission(jobIds) }
+    function openGenerationReview() { nativeSession.openGenerationReview() }
+    function stateLabel(state) { return generationProjection.stateLabel(state) }
     Component.onCompleted: {
         generation.connectStorage(initialContainerPath)
     }
@@ -529,115 +365,25 @@ LV.ApplicationWindow {
         id: newCanvasDialog
         availableArea: appContent
         onCanvasRequested: function(specification) {
-            window.ensureEditor()
-            if (!editorView.createBlankCanvas(specification)) {
+            if (!nativeSession.createCanvas(specification)) {
                 creationError = qsTr("Could not create the canvas. Adjust its dimensions and try again.")
                 return
             }
-            window.canvasSpecification = specification
-            window.canvasImageSource = ""
-            window.canvasGenerationResult = ({})
-            window.canvasGenerationResults = []
-            window.generationRequestError = ""
-            window.editorVisible = true
             close()
-            editorView.forceActiveFocus()
         }
     }
     function openSociety() {
         window.generationRequestError = Qt.openUrlExternally("society://")
             ? "" : qsTr("Could not open Society. Open Society on this device and try again.")
     }
-    function reportUnavailableAction(action) {
-        generationRequestError = action === "audio"
-            ? qsTr("Audio generation is not available yet. Your prompt is preserved.")
-            : action === "board" ? qsTr("Board creation is not available yet. Your prompt is preserved.")
-            : qsTr("This action is not available on this device.")
-        return false
-    }
-    function openHomeFile(file) {
-        imageOpen.cancel()
-        if (!file || typeof file !== "object") {
-            generationRequestError = qsTr("Choose a file to open.")
-            return false
-        }
-        if (file.exists === false) {
-            generationRequestError = qsTr("This file is no longer available.")
-            return false
-        }
-        if (file.available === false) {
-            const section = file.section || "files"
-            if (!file.key || !file.containerId) {
-                generationRequestError = qsTr("The file's drive information is missing. Refresh files and try again.")
-                return false
-            }
-            if (!storageBrowserVisible || storageBrowserSection !== section) showStorage(section)
-            pendingFileKey = file.key
-            pendingFileSection = section
-            pendingFileContainerId = file.containerId
-            generationRequestError = ""
-            if (generation.fileDownload.start(file.key, file.containerId)) return true
-            pendingFileKey = ""
-            pendingFileSection = ""
-            pendingFileContainerId = ""
-            generationRequestError = qsTr("The file download could not be started. Refresh files and try again.")
-            return false
-        }
-        cancelFileOpen()
-        if (file.mediaType === "Video") {
-            editorVisible = false
-            dismissResult()
-            currentResult = file
-            resultVisible = true
-            Qt.callLater(function() { resultView.showEntry(file) })
-            return true
-        }
-        const name = String(file.name || file.path || "")
-        if (/\.iiscp?$/i.test(name) || file.isImage === true || (file.isImage === undefined && ImageSelection.isImage(file))) {
-            const source = file.source || (file.path ? window.ensureEditor().localFileSource(String(file.path)) : ImageSelection.source(file))
-            return window.openCanvas(source, file)
-        }
-        if (file.source && Qt.openUrlExternally(file.source)) return true
-        generationRequestError = qsTr("This file could not be opened on this device.")
-        return false
-    }
-    function cancelFileOpen() {
-        const key = pendingFileKey
-        const containerId = pendingFileContainerId
-        imageOpen.cancel()
-        if (editorView) { editorView.imageImportRequest.cancel(); editorView.cancelDocumentOpen() }
-        pendingCanvasOpen = null
-        ImageSelection.cancelOwnedDownload(generation.fileDownload, key, containerId)
-        pendingFileKey = ""
-        pendingFileSection = ""
-        pendingFileContainerId = ""
-    }
+    function reportUnavailableAction(action) { return nativeSession.reportUnavailableAction(action) }
+    function openHomeFile(file) { return nativeSession.openHomeFile(file) }
+    function cancelFileOpen() { nativeSession.cancelFileOpen() }
     Connections {
         target: generation.fileDownload
-        function onReady(file) {
-            if (!window.storageBrowserVisible || window.pendingFileKey !== file.key || window.pendingFileContainerId !== file.containerId
-                || window.societyContainer.containerId !== file.containerId
-                || window.pendingFileSection !== window.storageBrowserSection) return
-            const fresh = StorageEntries.sectionFiles(window.societyContainer.aliases, window.pendingFileSection)
-                .find(entry => entry.key === file.key)
-            window.pendingFileKey = ""
-            window.pendingFileSection = ""
-            window.pendingFileContainerId = ""
-            if (fresh && fresh.available) window.openHomeFile(fresh)
-        }
+        function onReady(file) { nativeSession.downloaded(file) }
     }
-    function showStorage(section) {
-        if (["files", "published", "generation-history"].indexOf(section) < 0) return
-        cancelFileOpen()
-        quickGenerate.dismissInput()
-        modelMenu.close()
-        editorVisible = false
-        resultVisible = false
-        generationRequestError = ""
-        storageBrowserSection = section
-        storageBrowserLoader.opened = true
-        desktopHome.selectedAction = section === "generation-history" ? "history" : section === "published" ? "published" : "files"
-    }
+    function showStorage(section) { nativeSession.showStorage(section) }
 
     Item {
         id: appContent
@@ -691,6 +437,7 @@ LV.ApplicationWindow {
             recentPublished: historyModel.recentPublished
             generationHistory: window.generationHistoryEntries
             jobs: generation.jobs
+            modelName: quickGenerate.desktopComposer ? quickGenerate.desktopComposer.selectedModelName : ""
             generationStatus: window.generationStatusText
             loading: historyModel.loading
             errorText: window.generationRequestError || historyModel.errorString
@@ -836,13 +583,8 @@ LV.ApplicationWindow {
                 canvasSpecification: window.canvasSpecification
                 onImagesImported: function(images, sources, attached) { if (!attached) window.finishPreparedImages(images, sources) }
                 onImageImportFailed: function(message) { window.generationRequestError = message }
-                onDocumentOpened: function(source) {
-                    const intent = window.pendingCanvasOpen
-                    const result = intent && intent.source === source.toString() ? intent.result : ({})
-                    window.pendingCanvasOpen = null
-                    window.finishCanvasOpen(source, result)
-                }
-                onDocumentOpenFailed: function(message) { window.pendingCanvasOpen = null; window.generationRequestError = message }
+                onDocumentOpened: source => nativeSession.documentOpened(source)
+                onDocumentOpenFailed: message => nativeSession.documentOpenFailed(message)
                 onDocumentOpenCancelled: window.pendingCanvasOpen = null
                 onBackRequested: window.closeCanvas()
                 onPublishRequested: window.openPublish()

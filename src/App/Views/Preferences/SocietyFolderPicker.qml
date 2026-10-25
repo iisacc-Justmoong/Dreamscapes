@@ -6,6 +6,7 @@ import LVRS 1.0 as LV
 
 LV.Modal {
     id: root
+    frameCornerRadius: 0
     objectName: "preferencesFolderPicker"
     title: qsTr("Choose a Society drive folder")
     showIcon: false

@@ -426,8 +426,6 @@ def _deploy_locked(args, app):
               "embeddedResourceModules": args.embedded_resources_module,
               "runtimePlugins": [plugin.name for plugin in runtime_plugins]}
     complete_frameworks(app, qt)
-    if args.compact:
-        report["removedNativeEntries"] = prune_native(app, runtime_plugins)
     # Stage plugin/framework-specific non-Qt libraries too. Each executable's
     # dependency graph is resolved before relocation, with selected SDKs first.
     extra_sources = {}
@@ -443,6 +441,8 @@ def _deploy_locked(args, app):
             shutil.copy2(source, target)
     complete_frameworks(app, qt)
     if args.compact:
+        # The plugin closure must exist before pruning validates every link.
+        report["removedNativeEntries"] = prune_native(app, runtime_plugins)
         report["removedFrameworkDevelopmentEntries"] = prune_framework_development_files(app)
     localize(app)
     if args.compact and args.configuration in ("Release", "MinSizeRel"):
