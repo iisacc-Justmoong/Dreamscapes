@@ -5,7 +5,8 @@
 #include <QImage>
 #include <QSignalSpy>
 #include <QTemporaryDir>
-#include <QJSEngine>
+#include "App/ViewModels/Native/ImageSelection.h"
+#include "App/ViewModels/ViewData.h"
 #include <QtTest>
 
 namespace {
@@ -34,14 +35,13 @@ class ImageOpenTests : public QObject {
     Q_OBJECT
 private slots:
     void viewCancellationOnlyStopsItsOwnedDownload() {
-        QFile script(QFINDTESTDATA("../src/App/Views/Home/ImageSelection.js"));QVERIFY(script.open(QIODevice::ReadOnly));
-        auto text=QString::fromUtf8(script.readAll());text.remove(".pragma library");QJSEngine engine;
-        auto operation=engine.evaluate("(function(){"+text+";return cancelOwnedDownload;})()");QVERIFY2(operation.isCallable(),qPrintable(operation.toString()));
-        auto download=engine.evaluate("({active:true,state:{key:'files/one.iisc',containerId:'drive-a'},calls:0,cancel:function(){this.calls++}})");
-        const auto invoke=[&](const QString &key,const QString &id){return operation.call({download,QJSValue(key),QJSValue(id)}).toBool();};
-        QVERIFY(!invoke("",""));QVERIFY(!invoke("files/two.iisc","drive-a"));QVERIFY(!invoke("files/one.iisc","drive-b"));
-        QCOMPARE(download.property("calls").toInt(),0);QVERIFY(invoke("files/one.iisc","drive-a"));QCOMPARE(download.property("calls").toInt(),1);
-        download.setProperty("active",false);QVERIFY(!invoke("files/one.iisc","drive-a"));QCOMPARE(download.property("calls").toInt(),1);
+        using dreamscapes::vm::ownsDownload;
+        const auto state = dreamscapes::nativeValue(QVariantMap{{"key", "files/one.iisc"}, {"containerId", "drive-a"}});
+        QVERIFY(!ownsDownload(true, state, "", ""));
+        QVERIFY(!ownsDownload(true, state, "files/two.iisc", "drive-a"));
+        QVERIFY(!ownsDownload(true, state, "files/one.iisc", "drive-b"));
+        QVERIFY(ownsDownload(true, state, "files/one.iisc", "drive-a"));
+        QVERIFY(!ownsDownload(false, state, "files/one.iisc", "drive-a"));
     }
     void originalPriorityAndDeferredAdoption() {
         ImageOpenRequest request;QSignalSpy ready(&request,&ImageOpenRequest::ready),changed(&request,&ImageOpenRequest::changed);

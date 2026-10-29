@@ -93,6 +93,15 @@ private slots:
         QCOMPARE(canvas->revision(),revision); QCOMPARE(fileChanges.size(),0);
         QCOMPARE(iiSharedCanvas::encodeIisc(*canvas->document()).bytes,bytes);
     }
+    void tagAndCoverProjectionIsReadOnly() {
+        iiSharedCanvas::Document document;document.extent={64,32};
+        document.artboards={{"first","First",{{0,0},{64,32}},0xff102030u},{"second","Second",{{0,0},{64,32}},0xff102030u}};
+        iiSharedCanvas::PublicationMetadata metadata;metadata.coverArtboardId="second";metadata.settings={{"tags",std::string(" one, ,two, three ")}};document.publicationMetadata=metadata;
+        EditorProject project;QVERIFY(project.currentCanvas()->loadProjectPage(document,"Source"));PublishDraft draft;draft.begin(&project);
+        const auto revision=project.currentCanvas()->revision();const auto before=iiSharedCanvas::encodeIisc(*project.currentCanvas()->document()).bytes;
+        QCOMPARE(draft.tags(),QStringList({"one","two","three"}));QCOMPARE(draft.coverPage(),1);
+        QCOMPARE(project.currentCanvas()->revision(),revision);QVERIFY(iiSharedCanvas::encodeIisc(*project.currentCanvas()->document()).bytes==before);
+    }
     void actualCanvasesAndDraftChangesStaySeparate() {
         QTemporaryDir directory(DREAMSCAPES_TEST_DIRECTORY "/post-source-XXXXXX"); QVERIFY(directory.isValid());
         QVariantList sources;

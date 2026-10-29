@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import ".." as Frames
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
@@ -9,53 +10,47 @@ Item {
     id: root
     objectName: "imageGenerationWorkspace"
     required property var generation
-    property var jobIds: []
-    property string requestError: ""
-    property bool invalidInputSubmission: false
-    property string selectedResultId: ""
-    property string selectedImageSource: ""
-    property bool submitting: false
+    NativeGenerationSubmission {
+        id: nativeSubmission
+        objectName: "imageNativeSubmission"
+        generation: root.generation
+        mediaType: "Image"
+        imageParameters: panel.parameterStore
+        onSelectionResetRequested: imageSelection.reset()
+    }
+    property alias jobIds: nativeSubmission.jobIds
+    property alias requestError: nativeSubmission.requestError
+    property alias invalidInputSubmission: nativeSubmission.invalidInputSubmission
+    property alias selectedResultId: nativeSubmission.selectedResultId
+    property alias selectedImageSource: nativeSubmission.selectedImageSource
+    property alias submitting: nativeSubmission.submitting
     readonly property alias parameterPanel: panel
-    readonly property var jobs: generation.jobs.filter(job => root.jobIds.indexOf(job.id) >= 0)
-    readonly property var results: generation.connected
-        ? generation.completedResults.filter(result => root.jobIds.indexOf(result.id) >= 0) : []
-    readonly property var activeJob: jobs.find(job => ["running", "connecting-host", "downloading"].indexOf(job.state) >= 0) || ({})
-    readonly property bool pending: jobs.some(job => ["queued", "running", "connecting-host", "downloading"].indexOf(job.state) >= 0)
-    readonly property var selectedResult: results.find(result => result.imageSource.toString() === root.selectedImageSource)
-        || results.find(result => result.id === root.selectedResultId) || results[results.length - 1] || ({})
+    NativeGenerationProjection {
+        id: generationProjection
+        jobs: root.generation.jobs
+        results: root.generation.completedResults
+        connected: root.generation.connected
+        requestIds: root.jobIds
+        selectedResultId: root.selectedResultId
+        selectedImageSource: root.selectedImageSource
+    }
+    readonly property alias jobs: generationProjection.submissionJobs
+    readonly property alias results: generationProjection.submissionResults
+    readonly property alias activeJob: generationProjection.activeGeneration
+    readonly property alias pending: generationProjection.generationPending
+    readonly property alias selectedResult: generationProjection.selectedResult
     readonly property int canvasPixelWidth: panel.values.width
     readonly property int canvasPixelHeight: panel.values.height
     readonly property bool showingPreview: !!activeJob.id && generation.previewJobId === activeJob.id
         && generation.previewImage.toString().length > 0
     readonly property url imageSource: showingPreview
         ? generation.previewImage : selectedResult.imageSource || ""
-    readonly property string failure: requestError || (jobs.find(job => job.state === "failed") || {}).error || ""
+    readonly property string failure: requestError || generationProjection.failure
     signal editImageRequested(url source, var result)
     signal editImagesRequested(var images)
 
-    function submit() {
-        requestError = ""
-        invalidInputSubmission = panel.hasInvalidInputs
-        if (invalidInputSubmission) { requestError = qsTr("Correct invalid parameter input before generating."); return }
-        submitting = true
-        const firstId = generation.enqueueAdvanced(panel.parameters())
-        submitting = false
-        if (firstId.length === 0) requestError = generation.errorString
-        else { selectedResultId = ""; selectedImageSource = ""; imageSelection.reset() }
-    }
-    function cancelBatch() {
-        jobs.forEach(job => { if (["queued", "running", "connecting-host", "downloading"].indexOf(job.state) >= 0) generation.cancel(job.id) })
-    }
-
-    // Own the accepted batch here, before the deferred worker starts. The app
-    // shell routes every accepted submission into the shared review workspace.
-    Connections {
-        target: root.generation
-        function onSubmissionQueued(ids) {
-            if (root.submitting) root.jobIds = ids.slice()
-        }
-    }
-
+    function submit() { nativeSubmission.submit() }
+    function cancelBatch() { nativeSubmission.cancelBatch() }
     // The canvas and parameter viewport have independent vertical extents.
     // Narrow desktop windows retain both regions in a horizontal workspace.
     Flickable {
@@ -197,12 +192,6 @@ Item {
                     Layout.fillHeight: true
                     models: root.generation.models
                     vaes: root.generation.vaes
-                    onHasInvalidInputsChanged: {
-                        if (!hasInvalidInputs && root.invalidInputSubmission) {
-                            root.invalidInputSubmission = false
-                            root.requestError = ""
-                        }
-                    }
                 }
                 LV.HStack {
                     Layout.fillWidth: true

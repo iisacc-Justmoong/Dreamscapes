@@ -1,0 +1,3488 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:a79e68d2e594ee98f578e34e1f66f5d2ce381731773dc31ffb5ff468637ce521",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/Performance.md",
+    "sha256": "078f30e73acb7dbec7d4fc1548460557f3417f9afd3d81e5e0f3d57e1fa84522",
+    "bytes": 71853,
+    "line_count": 931,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "Runtime size and UI responsiveness",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Runtime size and UI responsiveness\n",
+      "level": 1,
+      "title": "Runtime size and UI responsiveness"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 5,
+      "raw": "결과 검토의 포커스·선택·리뷰 변경은 필요한 행과 역할만 알린다. 포커스 이동과\n개수 조회의 불필요한 전체 순회·정렬 제거는 [검토 모델 성능](ReviewModelPerformance.md)에\n계약과 검증 방법을 기록한다.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 7,
+      "end_line": 12,
+      "raw": "Layer histogram presentation now uses a view-owned C++ worker and a bounded\nnative summary cache. Hidden panels and live strokes defer its work, channel\nswitching reuses the same result, and property reads do not render or scan\npixels. Native compositing retains the full resolution and encoded-byte\nstatistics. See [LayerHistogram](LayerHistogram.md) for the blocking reproduction,\nownership tests and the remaining initial snapshot-capture boundary.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 13,
+      "end_line": 13,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 14,
+      "end_line": 22,
+      "raw": "External image/video Save to File uses a worker-owned media copy and publishes\nits completion on the GUI owner. Accepted work no longer constructs a Society\nFileSystem, opens the default drive, starts its observer or synchronizes its\nmirror. UI actions observe `ImageFileExporter.busy`; the selected source is\ncaptured before the system save dialog opens. Closing the view does not wait for\nan accepted copy. The SDK's stateless media-export GUI adapter preserves provider\nvalidation, original bytes and Android document-URL support. Gated worker/input,\ndestroyed-owner and drive-manifest tests verify these boundaries separately from\nwhole-application frame rate or physical mobile execution.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 23,
+      "end_line": 23,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 24,
+      "end_line": 29,
+      "raw": "Photo-library commands likewise retain their operation before publishing busy\nstate. First-reply gating and queued GUI delivery prevent an obsolete callback\nfrom changing a newer save. Completion precedes idle notification so observers\ncan close/reuse the owner safely. These are lifetime and ordering improvements;\nthe native PhotoKit/MediaStore import adapters and their permission policy are\nunchanged. See [PhotoLibraryExport](PhotoLibraryExport.md).\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 31,
+      "end_line": 35,
+      "raw": "Video duration/FPS edits validate their shot/condition plan before publishing\ndraft values or undo history. Invalid edits no longer checkpoint a partial draft\nand invoke Undo to compensate. Planning uses metadata copies without another\nJSON encode/decode of the shot list; the existing accepted-edit history snapshot\nremains. This does not enqueue generation or write a native canvas file.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 36,
+      "end_line": 36,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 37,
+      "end_line": 40,
+      "raw": "Dreamscapes deploys the runtime dependency closure used by its executable, QML\nplugins and plain helpers. It does not ship the complete Qt SDK. The macOS\napplication selects the Basic Controls style in `main.cpp`; its deployment\nselects the same style through `product_deploy_app(COMPACT QUICK_STYLE Basic)`.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 41,
+      "end_line": 41,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 42,
+      "end_line": 52,
+      "raw": "Compact deployment excludes unrelated child QML modules, unselected Controls\nstyles, designer metadata, QML tooling type descriptions and debug symbol\nbundles. LVRS fonts, icons and image resources are embedded in `libLVRS`; their\nduplicate filesystem copies are excluded while license files and runtime QML\nremain. Native libraries outside the executable/plugin/helper dependency closure\nare removed. Release binaries retain the application's architectures and public\nsymbols while local/debug symbols are stripped. Signing happens after all these\nchanges. Missing libraries or incompatible architectures fail deployment.\nQt framework `Headers`, `PrivateHeaders` and `Modules` directories and their\naliases are also excluded before signing. Runtime resources, binaries and\nlicenses remain, reducing the number of files that runtime validation must scan.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 53,
+      "end_line": 53,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 54,
+      "end_line": 56,
+      "raw": "`iiCSMIDI`, `iiLicenseManager` and `iiUpdateManager` are no longer direct product\ndependencies because the application does not call them. A dependency required\ntransitively by an active SDK still belongs to the runtime closure.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 57,
+      "end_line": 57,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "heading",
+      "start_line": 58,
+      "end_line": 58,
+      "raw": "## Apple inference profile\n",
+      "level": 2,
+      "title": "Apple inference profile"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 59,
+      "end_line": 59,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 60,
+      "end_line": 60,
+      "raw": "Build the product-owned macOS inference runtime before the release application:\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 61,
+      "end_line": 61,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "fenced_code",
+      "start_line": 62,
+      "end_line": 65,
+      "raw": "```sh\npython3 scripts/build-macos-runtime.py --jobs 8\ncmake --build build --target Dreamscapes --parallel 8\n```\n",
+      "language": "sh",
+      "code": "python3 scripts/build-macos-runtime.py --jobs 8\ncmake --build build --target Dreamscapes --parallel 8\n",
+      "closed": true
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 66,
+      "end_line": 66,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 67,
+      "end_line": 73,
+      "raw": "The script builds the iiLocalDiffusion checkout under\n`build/apple-runtime/build`, installs it into\n`build/runtime-sdk/iiLocalDiffusion-apple`, runs its compute/native backend tests,\nchecks the dylib links and configures the application to use that package. All\nbuild outputs remain below `build/`. `--sdk-source` selects another SDK checkout;\n`--configure-only` prepares the SDK without building or changing the app cache.\nThe existing app build's iiFileProvider package selection is retained.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 74,
+      "end_line": 74,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 75,
+      "end_line": 81,
+      "raw": "This profile disables the optional LibTorch backend used for AMD ROCm or an\nalternative CPU implementation. MLX CPU, Metal, Core ML, native diffusion and\nONNX pose support remain enabled. Windows/Linux backend selections are unchanged.\nFetched native sources that require compatibility patches are copied into the\nproduct build first; shared SDK source trees and global installations are not\nmodified. The private copies explicitly include their standard library headers\nand prefer matching jaccl headers over an unrelated installed include path.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 82,
+      "end_line": 82,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 83,
+      "end_line": 84,
+      "raw": "The recipe does not download model weights or generate content. Backend tests\nand launch checks do not prove trained-model output quality.\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 85,
+      "end_line": 85,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "heading",
+      "start_line": 86,
+      "end_line": 86,
+      "raw": "## 폐기한 추론 런타임\n",
+      "level": 2,
+      "title": "폐기한 추론 런타임"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 87,
+      "end_line": 87,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "paragraph",
+      "start_line": 88,
+      "end_line": 88,
+      "raw": "ONNX·자동 Pose·Laya 경로를 제거하였다. 현재 계약은 [런타임 폐기](RuntimeRetirement.md)를 따른다.\n"
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 89,
+      "end_line": 89,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "heading",
+      "start_line": 90,
+      "end_line": 90,
+      "raw": "## 패키지 검사 부모 실행기의 의존성\n",
+      "level": 2,
+      "title": "패키지 검사 부모 실행기의 의존성"
+    },
+    {
+      "id": "b000036",
+      "kind": "blank",
+      "start_line": 91,
+      "end_line": 91,
+      "raw": "\n"
+    },
+    {
+      "id": "b000037",
+      "kind": "paragraph",
+      "start_line": 92,
+      "end_line": 95,
+      "raw": "`Dreamscapes.PackagedApplication`의 부모 프로세스는 실제 앱을 실행하고 Helper\n상호 발견을 확인한다. 기존의 전체 GUI 실행기는 앱 실행 전에 에디터·QML·추론\n라이브러리까지 초기화했다. 2026-10-27 프로파일에서는 자식 앱을 실행하기까지\n약 52초를 사용했다. 이 비용을 실제 배포 앱의 루트 생성 시간과 구분한다.\n"
+    },
+    {
+      "id": "b000038",
+      "kind": "blank",
+      "start_line": 96,
+      "end_line": 96,
+      "raw": "\n"
+    },
+    {
+      "id": "b000039",
+      "kind": "paragraph",
+      "start_line": 97,
+      "end_line": 102,
+      "raw": "부모를 Qt Core 기반의 `DreamscapesPackagedApplicationTests`로 분리한다.\n기존 검사 함수의 본문과 환경 값을 보존하며 실제 앱의 루트 생성, 두 Helper의\n상호 발견, 앱 ID, 단일 창과 리소스 오류를 계속 확인한다. 전체 CTest 제한은\n120초, 함수 내부 루트·상호 발견 대기는 각각 90초·15초이다. SDK 설정 파일,\n임시 디렉터리와 생성기 fixture도 동일하게 전달한다. 소스 GUI fixture의 타입\n등록은 이 실제 배포 진입점의 검증 조건에 포함하지 않는다.\n"
+    },
+    {
+      "id": "b000040",
+      "kind": "blank",
+      "start_line": 103,
+      "end_line": 103,
+      "raw": "\n"
+    },
+    {
+      "id": "b000041",
+      "kind": "paragraph",
+      "start_line": 104,
+      "end_line": 105,
+      "raw": "`Dreamscapes.DependencyBoundary`는 생성된 링크 선언과 실제 부모 실행 파일에\n에디터·QML·위젯·LVRS·추론 모듈의 직접 참조가 없는지 확인한다.\n"
+    },
+    {
+      "id": "b000042",
+      "kind": "blank",
+      "start_line": 106,
+      "end_line": 106,
+      "raw": "\n"
+    },
+    {
+      "id": "b000043",
+      "kind": "paragraph",
+      "start_line": 107,
+      "end_line": 111,
+      "raw": "GUI 회귀 목록의 `-functions` 조회는 QObject 메타데이터만 사용한다. 이 경로는\nQt Core 애플리케이션에서 실제 QtTest 목록을 반환하며, QApplication·QML 타입·\n스토리지 fixture를 초기화하지 않는다. 일반 GUI 함수 실행의 기존 부트스트랩은\n유지한다. 변경 전후 실제 실행 파일의 함수 목록을 비교하고,\n`Dreamscapes.GuiRegistry`로 모든 함수가 CTest 그룹에 포함되는지도 확인한다.\n"
+    },
+    {
+      "id": "b000044",
+      "kind": "blank",
+      "start_line": 112,
+      "end_line": 112,
+      "raw": "\n"
+    },
+    {
+      "id": "b000045",
+      "kind": "heading",
+      "start_line": 113,
+      "end_line": 113,
+      "raw": "## 2026-10-27 최종 최적화 검증\n",
+      "level": 2,
+      "title": "2026-10-27 최종 최적화 검증"
+    },
+    {
+      "id": "b000046",
+      "kind": "blank",
+      "start_line": 114,
+      "end_line": 114,
+      "raw": "\n"
+    },
+    {
+      "id": "b000047",
+      "kind": "paragraph",
+      "start_line": 115,
+      "end_line": 119,
+      "raw": "macOS arm64 Release에서 전체 제품 빌드와 배포를 완료했다. 이후 변경한 GUI\n함수 목록 조회 경로도 다시 빌드했다. 실제 배포 후보의 패키지 시작 검사는\n최종 전체 CTest 안에서 83.98초에 통과했다. 부모 실행기의 불필요한 직접\n라이브러리·프레임워크 참조 27개를 제거했으며 검사 본문과 120초 제한을\n유지했다. 이 시간은 루트 생성과 Helper 상호 발견을 포함한 검사 전체 시간이다.\n"
+    },
+    {
+      "id": "b000048",
+      "kind": "blank",
+      "start_line": 120,
+      "end_line": 120,
+      "raw": "\n"
+    },
+    {
+      "id": "b000049",
+      "kind": "paragraph",
+      "start_line": 121,
+      "end_line": 126,
+      "raw": "최종 전체 CTest는 127개 묶음 중 103개 통과, 24개 실패이고 총 3793초이다.\nViewCatalog, ViewModelAdapters, ReviewSelectionCore, ReviewModel,\nReviewWorkspace, ReviewExport, NativeViewBoundary, DependencyBoundary,\nGuiRegistry와 PackagedApplication은 통과했다. NativeViewBoundary는 원래\n30초 제한 안에서 9.79초에 완료했다. 목록·카탈로그의 독립 측정과 이 전체\n회귀 결과를 구분한다.\n"
+    },
+    {
+      "id": "b000050",
+      "kind": "blank",
+      "start_line": 127,
+      "end_line": 127,
+      "raw": "\n"
+    },
+    {
+      "id": "b000051",
+      "kind": "paragraph",
+      "start_line": 128,
+      "end_line": 132,
+      "raw": "이전 전체 실행의 104개 통과·23개 실패와 비교하면 NativeViewBoundary,\nPackagedApplication, HomeCanvasPreviews, FrameExporterHost와 EditorCanvasGui는\n이번에 통과했다. EditorElements, PromptFields, GraphicCommand, TypedMaskInput,\nEditorTools와 NewCanvasGui는 이전 전체 실행에서 통과했으나 이번에는 실패했다.\n따라서 모든 실패를 기존 문제나 실행 환경 문제로 일괄 분류하지 않는다.\n"
+    },
+    {
+      "id": "b000052",
+      "kind": "blank",
+      "start_line": 133,
+      "end_line": 133,
+      "raw": "\n"
+    },
+    {
+      "id": "b000053",
+      "kind": "paragraph",
+      "start_line": 134,
+      "end_line": 137,
+      "raw": "EditorElements의 모바일 캔버스 레이어 선택 실패는 동일한 소스·단언과\n설정된 CTest 환경을 사용한 단일 데이터 행 실행에서 62.96초에 통과했다.\n단일 행 통과는 전체 EditorElements 묶음의 실패 기록을 대체하지 않는다.\n원래 제한 시간을 늘리거나 실패 단언을 완화하지 않았다.\n"
+    },
+    {
+      "id": "b000054",
+      "kind": "blank",
+      "start_line": 138,
+      "end_line": 138,
+      "raw": "\n"
+    },
+    {
+      "id": "b000055",
+      "kind": "paragraph",
+      "start_line": 139,
+      "end_line": 143,
+      "raw": "공통 ONNX 로더·설치 위치 변경 소비자, 실제 Pose·Laya 추론과 취소·캐시\n계약은 별도 SDK 검사로 확인했다. 두 제품의 배포 번들에서도 Piper를 먼저\n로딩한 뒤 실제 ONNX API와 Pose 추론이 통과했다. 음성 기능이 사용하는\nONNX 1.22와 선택적 Pose·의사결정 백엔드는 함께 보존한다. 다른 플랫폼의\n실행 결과로 확대하지 않으며, 이 검증의 대상은 macOS arm64이다.\n"
+    },
+    {
+      "id": "b000056",
+      "kind": "blank",
+      "start_line": 144,
+      "end_line": 144,
+      "raw": "\n"
+    },
+    {
+      "id": "b000057",
+      "kind": "paragraph",
+      "start_line": 145,
+      "end_line": 150,
+      "raw": "전체 원자료는 `build/optimization-20261027/full-ctest-lazy-onnx-final.xml`과\n`full-ctest-lazy-onnx-final.log`에 있다. 실패 비교는\n`whole-regression-lazy-comparison.json`, 모바일 행 재검사는\n`canvas-route-isolated.json`과 `canvas-route-isolated.log`에 보존한다.\n빌드 후보는 `build/bin/Dreamscapes.app`이고 버전·빌드는 모두 0.1.1이다.\n설치 앱 교체와 기존 사용자 프로세스 재시작은 수행하지 않았다.\n"
+    },
+    {
+      "id": "b000058",
+      "kind": "blank",
+      "start_line": 151,
+      "end_line": 151,
+      "raw": "\n"
+    },
+    {
+      "id": "b000059",
+      "kind": "heading",
+      "start_line": 152,
+      "end_line": 152,
+      "raw": "## UI lifecycle and invalidation\n",
+      "level": 2,
+      "title": "UI lifecycle and invalidation"
+    },
+    {
+      "id": "b000060",
+      "kind": "blank",
+      "start_line": 153,
+      "end_line": 153,
+      "raw": "\n"
+    },
+    {
+      "id": "b000061",
+      "kind": "paragraph",
+      "start_line": 154,
+      "end_line": 161,
+      "raw": "View state and document/file state have separate notification contracts.\n`EditorCanvas::layerStateChanged` updates selection and inspector values;\n`editingGeometryChanged` updates the active work area; `fileViewInformationChanged`\nupdates the small frame/artboard/presentation context. Those actions do not emit\n`documentInfoChanged` or `fileInformationChanged`, advance a document revision,\ncreate history, serialize a canvas, or reopen its storage. File panel rows retain\nall parameters and read the view-context map only for the relevant fields.\nLock/alpha protection in the editing session uses layer notifications as well.\n"
+    },
+    {
+      "id": "b000062",
+      "kind": "blank",
+      "start_line": 162,
+      "end_line": 162,
+      "raw": "\n"
+    },
+    {
+      "id": "b000063",
+      "kind": "paragraph",
+      "start_line": 163,
+      "end_line": 167,
+      "raw": "`EditorProject::navigationChanged` selects an artboard in the existing canvas.\n`currentCanvasChanged` means that the owned canvas object actually changed, so\npage navigation no longer mounts the canvas or reconfigures its tool. File Alias\navailability only notifies observers when its values change. Inspector reveal\navailability uses that Alias snapshot rather than probing the disk on selection.\n"
+    },
+    {
+      "id": "b000064",
+      "kind": "blank",
+      "start_line": 168,
+      "end_line": 168,
+      "raw": "\n"
+    },
+    {
+      "id": "b000065",
+      "kind": "paragraph",
+      "start_line": 169,
+      "end_line": 174,
+      "raw": "Native temporary element transforms use iiSharedCanvas `refreshPreview()`.\nPointer movement and cancellation redraw the canvas without notifying document,\nfile, history, timeline projection, or timeline thumbnail consumers. Release\npublishes the accepted change through the normal synchronous durable edit path;\nstale-file conflicts still reject the edit. Cancelling an idle SDK stroke is a\nno-op. A preview never bypasses a writable DocumentFile transaction.\n"
+    },
+    {
+      "id": "b000066",
+      "kind": "blank",
+      "start_line": 175,
+      "end_line": 175,
+      "raw": "\n"
+    },
+    {
+      "id": "b000067",
+      "kind": "paragraph",
+      "start_line": 176,
+      "end_line": 179,
+      "raw": "Window activation and closing a generation-result view do not call model/file\nrefresh. Native storage monitors and inventory polling continue to discover real\nchanges, and explicit refresh remains available. Application foreground handling\nstill owns inference pausing/resuming and transfer lifecycle.\n"
+    },
+    {
+      "id": "b000068",
+      "kind": "blank",
+      "start_line": 180,
+      "end_line": 180,
+      "raw": "\n"
+    },
+    {
+      "id": "b000069",
+      "kind": "paragraph",
+      "start_line": 181,
+      "end_line": 187,
+      "raw": "Generation result getters consume the published Alias snapshot instead of\nre-probing files, hashing complete IISC payloads or preparing previews. IISC\nresults use the existing asynchronous image provider; opening a document still\nvalidates its actual file. A removed file leaves the list when the storage owner\npublishes its next snapshot, or after explicit refresh. `resultsChanged` only\nupdates result galleries when the published results actually change; job progress\nand search/filter presentation do not invalidate an unchanged gallery.\n"
+    },
+    {
+      "id": "b000070",
+      "kind": "blank",
+      "start_line": 188,
+      "end_line": 188,
+      "raw": "\n"
+    },
+    {
+      "id": "b000071",
+      "kind": "paragraph",
+      "start_line": 189,
+      "end_line": 195,
+      "raw": "Static artboard thumbnails keep their cached source while seeking. Only pages\nwith dynamic content, video, motion, or a partial frame range depend on the\nplayhead; those pages retain frame-sensitive rendering. Content changes still\ninvalidate previews, with live brush notifications deferred until completion.\n`Dreamscapes.EditorProject`, `Dreamscapes.ElementTransform`, and\n`Dreamscapes.ViewStateBoundary` cover these boundaries, including persisted bytes,\nAlias versions, signal counts, timeline invalidation and explicit refresh.\n"
+    },
+    {
+      "id": "b000072",
+      "kind": "blank",
+      "start_line": 196,
+      "end_line": 196,
+      "raw": "\n"
+    },
+    {
+      "id": "b000073",
+      "kind": "paragraph",
+      "start_line": 197,
+      "end_line": 208,
+      "raw": "File-provider dependencies are declared on `DreamscapesGeneration`, the owner of\nfile operations. Directory-wide linkage no longer adds native file-provider\nlibraries to unrelated executables such as the application-lifetime test. The\neditor consumes `iiSharedCanvas::Quick` and its Core dependency directly instead\nof linking the compatibility facade as an additional shared library.\n`Dreamscapes.DependencyBoundary` checks generated target properties and, on\nmacOS, the actual leaf executable's Mach-O dependencies.\nThe lifetime regression closes the window immediately before the explicit\nActive notification, since a delayed initial native Active event can correctly\nrestore it between callbacks. Its internal two-second watchdog is unchanged;\nthe runner allows 30 seconds for cold native loader and plugin setup on the\nshared volume.\n"
+    },
+    {
+      "id": "b000074",
+      "kind": "blank",
+      "start_line": 209,
+      "end_line": 209,
+      "raw": "\n"
+    },
+    {
+      "id": "b000075",
+      "kind": "paragraph",
+      "start_line": 210,
+      "end_line": 214,
+      "raw": "The Home screen loads `CanvasEditor` on the first operation that needs it: a new\ncanvas, a native/image file or selected generation results. Cancelling the open\ndialog does not instantiate the editor. The loaded editor remains alive when\nreturning Home so its document, undo history and route behavior are preserved.\nVideo results do not instantiate the image editor.\n"
+    },
+    {
+      "id": "b000076",
+      "kind": "blank",
+      "start_line": 215,
+      "end_line": 215,
+      "raw": "\n"
+    },
+    {
+      "id": "b000077",
+      "kind": "paragraph",
+      "start_line": 216,
+      "end_line": 219,
+      "raw": "The selected-layer query describes only the selected layer in the active\nartboard. It no longer constructs the complete QVariant layer list to retrieve\none row. The public row fields, lock/alpha state and empty-selection behavior\nare preserved.\n"
+    },
+    {
+      "id": "b000078",
+      "kind": "blank",
+      "start_line": 220,
+      "end_line": 220,
+      "raw": "\n"
+    },
+    {
+      "id": "b000079",
+      "kind": "heading",
+      "start_line": 221,
+      "end_line": 221,
+      "raw": "## Audio preparation and playback responsiveness\n",
+      "level": 2,
+      "title": "Audio preparation and playback responsiveness"
+    },
+    {
+      "id": "b000080",
+      "kind": "blank",
+      "start_line": 222,
+      "end_line": 222,
+      "raw": "\n"
+    },
+    {
+      "id": "b000081",
+      "kind": "paragraph",
+      "start_line": 223,
+      "end_line": 232,
+      "raw": "`EditorCanvas::playTimelineAudio` previously mixed the complete remaining\ntimeline on the GUI thread, and `EditorMedia` copied its PCM again into a byte\nbuffer before starting the device. The editor now submits an immutable\nsnapshot to `EditorAudioPlayback`; native mixing and any endian conversion run\non a worker. One active worker plus the latest pending request bounds queued\nwork. Cancellation does not join that worker on the GUI thread. The output\nretains a shared PCM buffer (a borrowed snapshot asset for single-asset preview)\nand uses a read-only raw-data view on little-endian hosts, removing the second\ncomplete PCM copy. The existing complete-mix allocation limit remains; this is\nnot streaming or a whole-application memory/FPS claim.\n"
+    },
+    {
+      "id": "b000082",
+      "kind": "blank",
+      "start_line": 233,
+      "end_line": 233,
+      "raw": "\n"
+    },
+    {
+      "id": "b000083",
+      "kind": "paragraph",
+      "start_line": 234,
+      "end_line": 240,
+      "raw": "`EditorTimelineModel` owns preparation, output-start and playback clock state.\nIt waits for the actual device start and advances only the view frame using the\nprocessed audio time; silent timelines use `QElapsedTimer`. Seek and view\nlifecycle cancellation invalidate the owning request. No playback notification\nenters camera/tool-mask updates, revisions, edit history, document storage or\ntimeline projection rebuilds. See `Dreamscapes.AudioPlayback` and\n`Dreamscapes.AudioPlaybackHost` for gated-worker and real-host coverage.\n"
+    },
+    {
+      "id": "b000084",
+      "kind": "blank",
+      "start_line": 241,
+      "end_line": 241,
+      "raw": "\n"
+    },
+    {
+      "id": "b000085",
+      "kind": "heading",
+      "start_line": 242,
+      "end_line": 242,
+      "raw": "## Audio and undo memory\n",
+      "level": 2,
+      "title": "Audio and undo memory"
+    },
+    {
+      "id": "b000086",
+      "kind": "blank",
+      "start_line": 243,
+      "end_line": 243,
+      "raw": "\n"
+    },
+    {
+      "id": "b000087",
+      "kind": "paragraph",
+      "start_line": 244,
+      "end_line": 250,
+      "raw": "Timeline audio accumulates 8,192 stereo sample frames per block, using 128 KiB\nof double-precision scratch storage. The previous temporary buffer grew with\nthe whole timeline, up to 256 MiB at the playback limit. The returned 16-bit PCM\nstill contains every requested frame. Track order, resampling, clip offsets,\ngain, rounding and final clipping are unchanged; the regression compares every\nsample with the full-buffer reference, including block boundaries. Stopping\nplayback closes and releases the QBuffer's retained PCM data.\n"
+    },
+    {
+      "id": "b000088",
+      "kind": "blank",
+      "start_line": 251,
+      "end_line": 251,
+      "raw": "\n"
+    },
+    {
+      "id": "b000089",
+      "kind": "paragraph",
+      "start_line": 252,
+      "end_line": 260,
+      "raw": "Undo entries keep their document, tool state, element state and patterns in one\naggregate. A deque removes expired states without shifting every remaining\ndocument. Each entry's media-buffer cost is calculated once; discarded redo\nbranches and evictions subtract that cached cost. The 128 MiB logical retained\nmedia budget now includes audio, native conditioning buffers and pattern images,\nas well as raster/chunk/video pixels. The existing limit of 32 states and minimum\nof two states are preserved. Two individually large states can exceed the media\nbudget; this policy does not bound every metadata allocation or total process\nmemory. Implicitly shared pattern images are counted conservatively per state.\n"
+    },
+    {
+      "id": "b000090",
+      "kind": "blank",
+      "start_line": 261,
+      "end_line": 261,
+      "raw": "\n"
+    },
+    {
+      "id": "b000091",
+      "kind": "paragraph",
+      "start_line": 262,
+      "end_line": 264,
+      "raw": "`undoHistoryIncludesAudioInItsMemoryBudget` verifies eviction, undo/redo content\nand replacing a redo branch with an edit. Existing element, mask, graphic and\ntimeline tests verify that the aggregated history still restores editing state.\n"
+    },
+    {
+      "id": "b000092",
+      "kind": "blank",
+      "start_line": 265,
+      "end_line": 265,
+      "raw": "\n"
+    },
+    {
+      "id": "b000093",
+      "kind": "heading",
+      "start_line": 266,
+      "end_line": 266,
+      "raw": "### Targeted measurements, 2026-10-17\n",
+      "level": 3,
+      "title": "Targeted measurements, 2026-10-17"
+    },
+    {
+      "id": "b000094",
+      "kind": "blank",
+      "start_line": 267,
+      "end_line": 267,
+      "raw": "\n"
+    },
+    {
+      "id": "b000095",
+      "kind": "paragraph",
+      "start_line": 268,
+      "end_line": 270,
+      "raw": "The same 8,000-frame, 24-fps audio fixture returns 32,000,000 signed 16-bit\nsamples before and after the change. Separate process runs with Qt's offscreen\nplatform and software rendering recorded these `/usr/bin/time -l` values:\n"
+    },
+    {
+      "id": "b000096",
+      "kind": "blank",
+      "start_line": 271,
+      "end_line": 271,
+      "raw": "\n"
+    },
+    {
+      "id": "b000097",
+      "kind": "table",
+      "start_line": 272,
+      "end_line": 275,
+      "raw": "| Measurement | Before | After |\n| --- | ---: | ---: |\n| Maximum resident set | 440,696,832 bytes (420.3 MiB) | 185,024,512 bytes (176.5 MiB) |\n| Peak physical footprint | 378,209,408 bytes | 122,586,024 bytes |\n",
+      "columns": [
+        "Measurement",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "Maximum resident set",
+          "440,696,832 bytes (420.3 MiB)",
+          "185,024,512 bytes (176.5 MiB)"
+        ],
+        [
+          "Peak physical footprint",
+          "378,209,408 bytes",
+          "122,586,024 bytes"
+        ]
+      ]
+    },
+    {
+      "id": "b000098",
+      "kind": "blank",
+      "start_line": 276,
+      "end_line": 276,
+      "raw": "\n"
+    },
+    {
+      "id": "b000099",
+      "kind": "paragraph",
+      "start_line": 277,
+      "end_line": 280,
+      "raw": "Maximum resident memory falls by 58.0%. The sample-parity regression separately\nchecks overlapping mono/stereo clips, a fractional frame rate, resampling, gain,\nsource offsets, clipping and block boundaries. These measurements cover the\naudio fixture, not a user's full document or resident inference weights.\n"
+    },
+    {
+      "id": "b000100",
+      "kind": "blank",
+      "start_line": 281,
+      "end_line": 281,
+      "raw": "\n"
+    },
+    {
+      "id": "b000101",
+      "kind": "paragraph",
+      "start_line": 282,
+      "end_line": 285,
+      "raw": "In the 256-layer selection fixture, 1,000 reads changed from 264.237 ms to\n1.57808 ms. Both queries return the same public selected-layer row and leave the\ndocument revision unchanged. This is a method benchmark, not application FPS.\nLogs are retained under `build/optimization-20261017/`.\n"
+    },
+    {
+      "id": "b000102",
+      "kind": "blank",
+      "start_line": 286,
+      "end_line": 286,
+      "raw": "\n"
+    },
+    {
+      "id": "b000103",
+      "kind": "paragraph",
+      "start_line": 287,
+      "end_line": 292,
+      "raw": "The 2026-10-17 source build and canonical deployment completed. EditorTools,\nElementsSelection, ImageCanvas, passive color selection, QuickGenerate, MCP,\napplication-lifetime and dependency-boundary checks passed. Sample parity,\nhistory restoration, source PNG preservation and public selected-layer fields\nremain asserted. The machine-readable record is\n`build/optimization-20261017/verification-summary.json`.\n"
+    },
+    {
+      "id": "b000104",
+      "kind": "blank",
+      "start_line": 293,
+      "end_line": 293,
+      "raw": "\n"
+    },
+    {
+      "id": "b000105",
+      "kind": "paragraph",
+      "start_line": 294,
+      "end_line": 303,
+      "raw": "The full regression run is not fully green. Native working-file persistence\nstill intermittently reports SQLite disk-I/O/locking failures; both a passing\ntimeline run and later failing runs are retained. Gallery scroll/layout checks,\nNew Canvas bounds and a preparing-runtime fixture also have failures or timeouts.\nThe earlier broad Gui and EditorCanvasGui groups have not been established as\npassing after the targeted test repairs. These findings are not classified as\nharmless performance noise. Investigation did not reproduce the I/O failure\nwith the standalone database probe, so no speculative file-provider production\nchange or global SDK replacement was made. The preserved installed user session\nhas not loaded this build candidate.\n"
+    },
+    {
+      "id": "b000106",
+      "kind": "blank",
+      "start_line": 304,
+      "end_line": 304,
+      "raw": "\n"
+    },
+    {
+      "id": "b000107",
+      "kind": "paragraph",
+      "start_line": 305,
+      "end_line": 318,
+      "raw": "GUI regressions wait for asynchronous Home controls and settled dialog bounds\nbefore interacting with them. Passive Elements selection checks its documented\nfractional display (`24.5 px`) and retains the exact document, rendered pixels,\nrevision and undo/redo assertions across focus and tool changes.\nCancelling the New Canvas dialog asserts that the deferred editor has not been\ncreated; the test must not dereference an editor that is intentionally absent.\nStandalone Home attachment fixtures use an actual temporary Society drive and\nretain it until the view and engine are destroyed. This supplies the file-owner\ncontext required for attachment import without changing no-container tests or\nthe application's selected storage.\nElements history tests likewise own a temporary drive and settings path before\nconstructing any editor. The history repair tool restores PNG text from the\nnative document's stored metadata rather than publishing the presentation-only\npreview, retaining the existing pixel and source-byte preservation checks.\n"
+    },
+    {
+      "id": "b000108",
+      "kind": "blank",
+      "start_line": 319,
+      "end_line": 319,
+      "raw": "\n"
+    },
+    {
+      "id": "b000109",
+      "kind": "paragraph",
+      "start_line": 320,
+      "end_line": 325,
+      "raw": "The tool panel reads one shared `engineState` binding per tool-state change.\nTimeline selection changes update only selection; brush/tool settings update\nlock flags only when those flags actually change. Neither operation discards\ncached thumbnails or reconstructs the track list. Actual document/revision/artboard changes still invalidate thumbnails, including\npixel edits. Frame navigation is presentation state and retains document and\nthumbnail snapshots.\n"
+    },
+    {
+      "id": "b000110",
+      "kind": "blank",
+      "start_line": 326,
+      "end_line": 326,
+      "raw": "\n"
+    },
+    {
+      "id": "b000111",
+      "kind": "heading",
+      "start_line": 327,
+      "end_line": 327,
+      "raw": "## Verification and measurements\n",
+      "level": 2,
+      "title": "Verification and measurements"
+    },
+    {
+      "id": "b000112",
+      "kind": "blank",
+      "start_line": 328,
+      "end_line": 328,
+      "raw": "\n"
+    },
+    {
+      "id": "b000113",
+      "kind": "paragraph",
+      "start_line": 329,
+      "end_line": 335,
+      "raw": "Recurring application-wide storage work is kept out of the input path. Society\nHelper publishes presence and reads peer records on one coalescing native C++\nworker; the event loop only applies completed value snapshots. Automatic activity\nand peer-history commits use a separate lazy worker, so history cannot delay the\nheartbeat or focus changes. Normal shutdown drains those commits. Atomic publication,\npermissions and directory validation are preserved. Stopping a Helper drains its\nactive operation and invalidates queued results before removing its own record.\n"
+    },
+    {
+      "id": "b000114",
+      "kind": "blank",
+      "start_line": 336,
+      "end_line": 336,
+      "raw": "\n"
+    },
+    {
+      "id": "b000115",
+      "kind": "paragraph",
+      "start_line": 337,
+      "end_line": 354,
+      "raw": "The application requires iiSocietyHelper 0.9.5 or later. A tested package installed\nunder `build/runtime-sdk/iiSocietyHelper` is supported alongside the normal SDK\ninstallation; `iiSocietyHelper_DIR` selects the exact package. Keep its\niiFileProvider, iiSocietyContainer, iiSharedCanvas Core/Quick and iiSocietySync\ndependencies from the same verified package graph when configuring the product.\nThe iiWebServer dependency must also include the file-provider presentation\nfilter: preview companions and temporary lease files are not public file entries.\nA product-owned installation in `build/runtime-sdk/iiWebServer` is searched for\ntransitive dependencies without adding an unused direct application link.\nGeneration-history assertions count content through the provider's control-file\nclassification, while retaining exact PNG names, dimensions and temporary-file\ncleanup checks. Storage-selection fixtures scope both the settings path and the\ncontainer override, so an isolated test drive cannot override that selection test.\nThe complete LocalSociety fixture has a 180-second runner budget for native\nprocess/loader setup on shared volumes. Initial asynchronous replica creation has\na separate 15-second setup budget with both peers' errors reported on failure.\nIts per-job progress, stall, cancellation and background-expiration deadlines\nare unchanged and remain asserted.\n"
+    },
+    {
+      "id": "b000116",
+      "kind": "blank",
+      "start_line": 355,
+      "end_line": 355,
+      "raw": "\n"
+    },
+    {
+      "id": "b000117",
+      "kind": "paragraph",
+      "start_line": 356,
+      "end_line": 366,
+      "raw": "The generation controller's two-second inventory poll reads storage/model\nmetadata on a background task. An unchanged inventory does not reopen the\nFileSystem or reconstruct its complete Files/Published/History mirror. Changed\nmodels update existing selections and bindings on the UI thread. Storage epochs\ndiscard results from superseded selections, and active generation/background\nstates reject obsolete polling results. Explicit storage selection and Refresh\nretain their synchronous completion contract. Background polls preserve an\nexisting generation error. `backgroundModelInventoryDoesNotReopenTheFileMirror`\ncovers repeated polls, discovery of a newly added model, selection retention and\nerror retention. Presence worker tests also deliberately stall an operation\nwhile checking that application timers continue to receive events.\n"
+    },
+    {
+      "id": "b000118",
+      "kind": "blank",
+      "start_line": 367,
+      "end_line": 367,
+      "raw": "\n"
+    },
+    {
+      "id": "b000119",
+      "kind": "paragraph",
+      "start_line": 368,
+      "end_line": 372,
+      "raw": "`GuiTests::homeDefersEditorUntilNeeded`, Home/editor route tests and multi-canvas\ntests cover delayed creation and retained documents. `mainStartupPerformance`\nreports the time spent in `QQmlApplicationEngine::load` and the resulting object\ncount for three loads of an isolated empty Society fixture. It is a QML load\nmeasurement, not the complete operating-system launch or first-frame latency.\n"
+    },
+    {
+      "id": "b000120",
+      "kind": "blank",
+      "start_line": 373,
+      "end_line": 373,
+      "raw": "\n"
+    },
+    {
+      "id": "b000121",
+      "kind": "paragraph",
+      "start_line": 374,
+      "end_line": 379,
+      "raw": "`EditorLayerTimelineTests::interactionPerformance` creates 32 patterned static\nlayers, warms their thumbnails, then repeats 20 brush-setting changes and\nthumbnail queries. It reports elapsed time and model notifications.\n`toolSettingsDoNotRebuildTimeline` checks unchanged thumbnails across tool and\nselection changes and renewed thumbnails after actual pixel changes. Fixtures\nare test-only and do not populate production timelines.\n"
+    },
+    {
+      "id": "b000122",
+      "kind": "blank",
+      "start_line": 380,
+      "end_line": 380,
+      "raw": "\n"
+    },
+    {
+      "id": "b000123",
+      "kind": "paragraph",
+      "start_line": 381,
+      "end_line": 386,
+      "raw": "Run relevant native/UI tests with the same renderer and no concurrent compiler\nload when comparing timings. Native bundle tests cover real Mach-O pruning,\narchitecture thinning, exported symbols and execution after stripping. A final\nbundle must also pass deep signature verification and an actual application\nlaunch without loader path overrides. Source fixture timings, signed package\nsize and installed application behavior are separate evidence.\n"
+    },
+    {
+      "id": "b000124",
+      "kind": "blank",
+      "start_line": 387,
+      "end_line": 387,
+      "raw": "\n"
+    },
+    {
+      "id": "b000125",
+      "kind": "paragraph",
+      "start_line": 388,
+      "end_line": 391,
+      "raw": "MCP process tests use an actual `.societycontainer` package, with Helper and app\nendpoint directories below that package's `.society-runtime`. A bare directory\ndoes not satisfy the current Society storage contract. These fixtures isolate\nqueue, cancellation and local UI question checks from a running user's store.\n"
+    },
+    {
+      "id": "b000126",
+      "kind": "blank",
+      "start_line": 392,
+      "end_line": 392,
+      "raw": "\n"
+    },
+    {
+      "id": "b000127",
+      "kind": "heading",
+      "start_line": 393,
+      "end_line": 393,
+      "raw": "## Measured macOS result (2026-10-16)\n",
+      "level": 2,
+      "title": "Measured macOS result (2026-10-16)"
+    },
+    {
+      "id": "b000128",
+      "kind": "blank",
+      "start_line": 394,
+      "end_line": 394,
+      "raw": "\n"
+    },
+    {
+      "id": "b000129",
+      "kind": "paragraph",
+      "start_line": 395,
+      "end_line": 398,
+      "raw": "The installed arm64 application decreased from 1,061,195,842 bytes (1,012.0 MiB)\nto 291,063,959 bytes (277.6 MiB), a 72.6% reduction in real-file payload. Allocated\nfilesystem size can differ because of block allocation, directories and links.\nThe previous application is retained as a ZIP backup in the verification folder.\n"
+    },
+    {
+      "id": "b000130",
+      "kind": "blank",
+      "start_line": 399,
+      "end_line": 399,
+      "raw": "\n"
+    },
+    {
+      "id": "b000131",
+      "kind": "paragraph",
+      "start_line": 400,
+      "end_line": 404,
+      "raw": "With an isolated empty Society fixture and software rendering, Home created\n6,551 objects instead of 28,349. The mean of the two warm QML engine loads was\n617.3 ms instead of 1,124.5 ms. The before fixture freezes the original Main.qml;\nboth final Home measurements use the same compact installed runtime. These are\nsource-QML load measurements and do not include operating-system process launch.\n"
+    },
+    {
+      "id": "b000132",
+      "kind": "blank",
+      "start_line": 405,
+      "end_line": 405,
+      "raw": "\n"
+    },
+    {
+      "id": "b000133",
+      "kind": "paragraph",
+      "start_line": 406,
+      "end_line": 410,
+      "raw": "For 32 layers and 20 tool-setting/thumbnail-query iterations, the native model\nbenchmark decreased from 235.058 ms with 20 model notifications to 0.942 ms with\nzero notifications. This is a targeted cache/invalidation benchmark, not an\napplication-wide FPS measurement. Real trained-model generation speed and output\nquality were not benchmarked in this change.\n"
+    },
+    {
+      "id": "b000134",
+      "kind": "blank",
+      "start_line": 411,
+      "end_line": 411,
+      "raw": "\n"
+    },
+    {
+      "id": "b000135",
+      "kind": "paragraph",
+      "start_line": 412,
+      "end_line": 416,
+      "raw": "Evidence, command logs, exact payload checksums and installation verification are\nunder `build/performance-20261016/`. The compact candidate passed the native Cocoa\nentry-point and Helper discovery check without child loader-path overrides. The\ninstalled app was also opened normally and checked with an existing IISC canvas,\nframe navigation, timeline mode changes and Elements/Brush panel switching.\n"
+    },
+    {
+      "id": "b000136",
+      "kind": "blank",
+      "start_line": 417,
+      "end_line": 417,
+      "raw": "\n"
+    },
+    {
+      "id": "b000137",
+      "kind": "heading",
+      "start_line": 418,
+      "end_line": 418,
+      "raw": "## Interaction-path follow-up (2026-10-16)\n",
+      "level": 2,
+      "title": "Interaction-path follow-up (2026-10-16)"
+    },
+    {
+      "id": "b000138",
+      "kind": "blank",
+      "start_line": 419,
+      "end_line": 419,
+      "raw": "\n"
+    },
+    {
+      "id": "b000139",
+      "kind": "paragraph",
+      "start_line": 420,
+      "end_line": 426,
+      "raw": "A three-second sample of the long-running production process found 85 of its\n237 main-thread samples inside Helper publication's `QSaveFile::commit` and\n`fsync`. The periodic generation-model refresh also reopened the complete file\nmirror on that thread. These shared services run independently of the selected\nscreen, making them application-wide input bottlenecks under storage contention.\nThe changes described above move recurring presence, automatic history and model\ninventory work off the input thread while retaining explicit durability contracts.\n"
+    },
+    {
+      "id": "b000140",
+      "kind": "blank",
+      "start_line": 427,
+      "end_line": 427,
+      "raw": "\n"
+    },
+    {
+      "id": "b000141",
+      "kind": "paragraph",
+      "start_line": 428,
+      "end_line": 432,
+      "raw": "In a three-second, two-participant presence fixture with 100-ms heartbeats, the\n95th-percentile timer interval changed from 15.8922 ms to 12.6121 ms and the\nmaximum from 36.0853 ms to 27.229 ms. Both runs use the same Qt runtime without\nduplicate Qt images. This is an isolated timer benchmark, not overall app FPS,\nfull application launch time or trained-model generation throughput.\n"
+    },
+    {
+      "id": "b000142",
+      "kind": "blank",
+      "start_line": 433,
+      "end_line": 433,
+      "raw": "\n"
+    },
+    {
+      "id": "b000143",
+      "kind": "paragraph",
+      "start_line": 434,
+      "end_line": 438,
+      "raw": "The signed candidate also started using Cocoa and its normal Metal selection\nwithout child loader-path overrides. A separate post-startup sample loaded the\nverified Helper binary and contained no main-thread disk commit or model-mirror\nreopen stack. This candidate used an isolated storage fixture; its memory usage\nand sample counts are not directly comparable to the user's open document.\n"
+    },
+    {
+      "id": "b000144",
+      "kind": "blank",
+      "start_line": 439,
+      "end_line": 439,
+      "raw": "\n"
+    },
+    {
+      "id": "b000145",
+      "kind": "paragraph",
+      "start_line": 440,
+      "end_line": 444,
+      "raw": "Evidence, package manifests, regression logs and the reversible installation\nrecord are under `build/interaction-performance-20261016/`. The user's existing\nprocess was launched before this candidate and retains its older executable.\nReplacing the installed bundle preserves that session; the new code takes effect\non the next application launch.\n"
+    },
+    {
+      "id": "b000146",
+      "kind": "blank",
+      "start_line": 445,
+      "end_line": 445,
+      "raw": "\n"
+    },
+    {
+      "id": "b000147",
+      "kind": "heading",
+      "start_line": 446,
+      "end_line": 446,
+      "raw": "## Native timeline interaction path (2026-10-20)\n",
+      "level": 2,
+      "title": "Native timeline interaction path (2026-10-20)"
+    },
+    {
+      "id": "b000148",
+      "kind": "blank",
+      "start_line": 447,
+      "end_line": 447,
+      "raw": "\n"
+    },
+    {
+      "id": "b000149",
+      "kind": "paragraph",
+      "start_line": 448,
+      "end_line": 453,
+      "raw": "The installed application's main-thread sample showed repeated FileSystem mirror\nscans in the two-second polling timer. Its timeline also treated every frame seek\nas a document revision: `CanvasItem::setFrame()` triggered synchronous persistence,\nundo history, document information updates and timeline notifications. A controlled\n16-layer, 512×512 working-file fixture reproduced 24 false document revisions and\n24 timeline notifications during 24 seeks (1,422,925 µs before this change).\n"
+    },
+    {
+      "id": "b000150",
+      "kind": "blank",
+      "start_line": 454,
+      "end_line": 454,
+      "raw": "\n"
+    },
+    {
+      "id": "b000151",
+      "kind": "paragraph",
+      "start_line": 455,
+      "end_line": 459,
+      "raw": "The product now uses iiSharedCanvas 0.31.2, iiPaintEngine 0.5.1 and\niiSocietyHelper 0.9.5. Seeking invalidates only presentation tiles and stale worker\nresults; the native immutable document render snapshot remains reusable. Seeking\nnever adds undo entries or writes the working file. Editing still validates and\ncommits synchronously; releasing a timeline drag performs one durable edit.\n"
+    },
+    {
+      "id": "b000152",
+      "kind": "blank",
+      "start_line": 460,
+      "end_line": 460,
+      "raw": "\n"
+    },
+    {
+      "id": "b000153",
+      "kind": "paragraph",
+      "start_line": 461,
+      "end_line": 466,
+      "raw": "`EditorTimelineModel` owns the filtered track layout, per-track clip/key lists,\nsorted motion keys, layer counts, audio presence, timecode and snapping. Projection\nand layout notifications are separate from selection and control notifications.\nSelecting a row or changing Snap/Linked/Tool does not reset QML Repeaters. Content\nkey projection indexes all document frame keys once instead of rescanning the\ncomplete frame collection for each layer.\n"
+    },
+    {
+      "id": "b000154",
+      "kind": "blank",
+      "start_line": 467,
+      "end_line": 467,
+      "raw": "\n"
+    },
+    {
+      "id": "b000155",
+      "kind": "paragraph",
+      "start_line": 468,
+      "end_line": 474,
+      "raw": "Native drag sessions convert pointer coordinates to frame deltas, snap them and\nproduce geometry previews for moves, trims, linked selection and audio edit tools.\nThe update path touches metadata only: it does not copy the native document,\nvalidate pixels, create history, persist files or rebuild the track projection.\nEscape, pointer cancellation, document/selection replacement and tool changes\ncancel the preview. Release validates and commits once; rejected edits retain the\noriginal native document and file.\n"
+    },
+    {
+      "id": "b000156",
+      "kind": "blank",
+      "start_line": 475,
+      "end_line": 475,
+      "raw": "\n"
+    },
+    {
+      "id": "b000157",
+      "kind": "paragraph",
+      "start_line": 476,
+      "end_line": 481,
+      "raw": "Timeline thumbnails requested by QML render and encode on one C++ worker. An\nimmutable document snapshot is retained across seeks; the pending queue keeps the\nlatest request per layer, with a 128-entry bound and a 128-image result cache.\nCallbacks reject old document/artboard generations. The synchronous `thumbnail()`\nAPI remains available for native callers and deterministic pixel tests. QML uses\n`requestThumbnail()` and updates only after a completed result is delivered.\n"
+    },
+    {
+      "id": "b000158",
+      "kind": "blank",
+      "start_line": 482,
+      "end_line": 482,
+      "raw": "\n"
+    },
+    {
+      "id": "b000159",
+      "kind": "paragraph",
+      "start_line": 483,
+      "end_line": 487,
+      "raw": "FileSystem periodic and monitor-triggered native mirror scans use a bounded C++\nworker, while public explicit refresh/save methods keep their synchronous contracts.\nBatch scans pin the drive, validate resident paths and use a set for remote entry\ndeduplication. Old replies cannot overwrite a newly selected or explicitly refreshed\ndrive. Android retains its existing ContentProvider request context.\n"
+    },
+    {
+      "id": "b000160",
+      "kind": "blank",
+      "start_line": 488,
+      "end_line": 488,
+      "raw": "\n"
+    },
+    {
+      "id": "b000161",
+      "kind": "paragraph",
+      "start_line": 489,
+      "end_line": 493,
+      "raw": "Regression coverage includes read-only scrubbing, byte-identical working files,\nindependent dynamic frame sampling, stable projections during selection, 240 drag\npreview updates followed by a single persisted edit, cancel/reject/undo behavior,\nbackground mirror responsiveness and stale selection replies. Timings describe the\nspecified fixture, not a guaranteed frame rate or an application-wide speedup.\n"
+    },
+    {
+      "id": "b000162",
+      "kind": "blank",
+      "start_line": 494,
+      "end_line": 494,
+      "raw": "\n"
+    },
+    {
+      "id": "b000163",
+      "kind": "paragraph",
+      "start_line": 495,
+      "end_line": 500,
+      "raw": "The clean-package comparison recorded 42 µs for the same 24 seeks (16 layers,\n512×512), with zero document revisions and zero model notifications. These are\nsynchronous command-dispatch timings; frame rendering completes asynchronously.\nThe native drag fixture recorded 572 µs for 240 metadata-only updates before its\nsingle durable commit. Cocoa/Metal verification also exercised actual mouse\npress/move/release and responsive widths 1568, 900, 430 and 320.\n"
+    },
+    {
+      "id": "b000164",
+      "kind": "blank",
+      "start_line": 501,
+      "end_line": 501,
+      "raw": "\n"
+    },
+    {
+      "id": "b000165",
+      "kind": "paragraph",
+      "start_line": 502,
+      "end_line": 506,
+      "raw": "macOS CTest runs remove inherited DYLD library/framework overrides. A shell-wide\nSDK search path can otherwise silently load an earlier compatible dylib despite\nCMake selecting a newer package. Loader logs and native library UUIDs verify the\nselected Core/Quick/Helper packages; the installation gate compares those UUIDs\nwith the transformed, signed bundle before replacement.\n"
+    },
+    {
+      "id": "b000166",
+      "kind": "blank",
+      "start_line": 507,
+      "end_line": 507,
+      "raw": "\n"
+    },
+    {
+      "id": "b000167",
+      "kind": "paragraph",
+      "start_line": 508,
+      "end_line": 513,
+      "raw": "Eight targeted application test sets passed. The broader HomeEditorRoutes set\nstill fails its desktop Home open-file dialog visibility assertion; the same\ncase fails with the original iiSharedCanvas 0.31.1 / iiSocietyHelper 0.9.4\nlibraries. This result is recorded separately from the timeline performance\nregressions. Verification artifacts are under\n`build/verification/interaction-cpp-20261020/`.\n"
+    },
+    {
+      "id": "b000168",
+      "kind": "blank",
+      "start_line": 514,
+      "end_line": 514,
+      "raw": "\n"
+    },
+    {
+      "id": "b000169",
+      "kind": "paragraph",
+      "start_line": 515,
+      "end_line": 521,
+      "raw": "Live brush revisions defer timeline projection and thumbnail invalidation until\nstroke completion/cancellation. Already cached thumbnails remain available while\npainting; uncached UI requests wait for the commit instead of copying a live\ndocument into the thumbnail worker. The primary canvas keeps its existing live\npreview. `liveBrushDefersTimelineWorkUntilCommit` first reproduced six thumbnail\ninvalidations during three stroke points, then verifies zero during the stroke\nand the final red pixels after commit.\n"
+    },
+    {
+      "id": "b000170",
+      "kind": "blank",
+      "start_line": 522,
+      "end_line": 522,
+      "raw": "\n"
+    },
+    {
+      "id": "b000171",
+      "kind": "heading",
+      "start_line": 523,
+      "end_line": 523,
+      "raw": "## Detached editor frame export\n",
+      "level": 2,
+      "title": "Detached editor frame export"
+    },
+    {
+      "id": "b000172",
+      "kind": "blank",
+      "start_line": 524,
+      "end_line": 524,
+      "raw": "\n"
+    },
+    {
+      "id": "b000173",
+      "kind": "paragraph",
+      "start_line": 525,
+      "end_line": 534,
+      "raw": "Editor frame exports now prepare an immutable frame/artboard/density snapshot\nwhen opening the Save dialog and perform rendering, encoding and atomic saving\non a worker. Completion is separate from accepted work, and duplicate requests\ncannot replace the accepted frame. Native IISC copies skip an encode/decode\nround trip; ordinary images encode directly to the provider's atomic stream.\nStateless SDK destination/publication adapters avoid activating a drive observer\nor refreshing its entire mirror. Gated-worker input and owner-lifetime tests,\nalongside the actual File panel dialog regression, are recorded under\n`build/verification/editor-frame-export-20261021/`. These are operation-boundary\nchecks, not whole-application frame-rate measurements.\n"
+    },
+    {
+      "id": "b000174",
+      "kind": "blank",
+      "start_line": 535,
+      "end_line": 535,
+      "raw": "\n"
+    },
+    {
+      "id": "b000175",
+      "kind": "heading",
+      "start_line": 536,
+      "end_line": 536,
+      "raw": "## FilmCraft viewport adaptation (2026-10-20)\n",
+      "level": 2,
+      "title": "FilmCraft viewport adaptation (2026-10-20)"
+    },
+    {
+      "id": "b000176",
+      "kind": "blank",
+      "start_line": 537,
+      "end_line": 537,
+      "raw": "\n"
+    },
+    {
+      "id": "b000177",
+      "kind": "paragraph",
+      "start_line": 538,
+      "end_line": 546,
+      "raw": "The editor timeline now applies the local FilmCraft reference's separation of\ntransient pointer state, document commands and visible-range rendering. Native\n`EditorTimelineViewport` indexes track/clip metadata once per projection change,\nculls offscreen rows/clips/keys, and generates only visible adaptive ruler ticks.\nIt shares no document/storage owner with the view. A stable pointer area remains\nalive when virtualized delegates leave the viewport; only accepted release uses\nthe existing durable edit path. Cursor-anchored zoom, panning and edge scrolling\nchange presentation state only. See [EditorLayerTimeline](EditorLayerTimeline.md)\nfor reference provenance, controls and regression contracts.\n"
+    },
+    {
+      "id": "b000178",
+      "kind": "blank",
+      "start_line": 547,
+      "end_line": 547,
+      "raw": "\n"
+    },
+    {
+      "id": "b000179",
+      "kind": "paragraph",
+      "start_line": 548,
+      "end_line": 553,
+      "raw": "The 10,000-track fixture reports the time for 240 viewport-only updates separately\nfrom document construction, rendering and durable editing. Native UI coverage uses\n1,500 actual IISC layers and forces culling during an active mouse grab. Test,\nCocoa/Metal capture and installation evidence for this change is stored under\n`build/verification/filmcraft-timeline-20261020/`; timings describe those fixtures,\nnot a guaranteed application-wide response time.\n"
+    },
+    {
+      "id": "b000180",
+      "kind": "blank",
+      "start_line": 554,
+      "end_line": 554,
+      "raw": "\n"
+    },
+    {
+      "id": "b000181",
+      "kind": "paragraph",
+      "start_line": 555,
+      "end_line": 566,
+      "raw": "The follow-up gesture fixture identified a separate cost after viewport culling:\n`updateDrag` still searched the entire clip list and rebuilt all snap candidates\nfor each pointer update. It now retains the pressed clip/affected rows and builds\none sorted boundary index at press time, then checks its two nearest boundaries\nwith the current playhead/range marks. Existing equal-distance priorities and\nsingle-release document commits are preserved. With 10,000 native layers and\nsnapping enabled, the same 480 metadata updates measured 4,043,860 microseconds\nbefore and 1,031 microseconds after the change in the focused fixture. These are\naggregate native preview times: they exclude document construction, index setup,\nrendering, painting and durable release storage. The failed baseline, passing\ncomparison and live-anchor/invalidation regression are retained under\n`build/verification/filmcraft-drag-20261021/`.\n"
+    },
+    {
+      "id": "b000182",
+      "kind": "blank",
+      "start_line": 567,
+      "end_line": 567,
+      "raw": "\n"
+    },
+    {
+      "id": "b000183",
+      "kind": "paragraph",
+      "start_line": 568,
+      "end_line": 574,
+      "raw": "The application-wide interaction audit also moves generation-result projection\nout of presentation getters. Completed/latest getters return the same published\nvalue snapshots used for result notifications. Job or owner-Alias changes project\nand publish before observers run; view reads perform no projection or filesystem\nwork. Repeated reads, copy isolation, unavailable/restored owner snapshots and\nunrelated query changes are covered by the native generation regression. See\n[InteractionAudit](InteractionAudit.md) for scope and evidence boundaries.\n"
+    },
+    {
+      "id": "b000184",
+      "kind": "heading",
+      "start_line": 575,
+      "end_line": 575,
+      "raw": "## Selection state reads\n",
+      "level": 2,
+      "title": "Selection state reads"
+    },
+    {
+      "id": "b000185",
+      "kind": "blank",
+      "start_line": 576,
+      "end_line": 576,
+      "raw": "\n"
+    },
+    {
+      "id": "b000186",
+      "kind": "paragraph",
+      "start_line": 577,
+      "end_line": 583,
+      "raw": "`EditorCanvas::toolState()` returns the selected-pixel count retained when the\nselection operand changes. Reading panel state no longer scans every alpha value\nof a full-resolution mask. Ordinary selection updates refresh the count before\noutline/overlay notifications. Background mask selection, completion, deletion,\ntemporary removal previews and detached repair previews maintain the same value.\nClearing/replacing a canvas resets it. This is transient interaction metadata;\nreads neither edit the document nor schedule storage work.\n"
+    },
+    {
+      "id": "b000187",
+      "kind": "blank",
+      "start_line": 584,
+      "end_line": 584,
+      "raw": "\n"
+    },
+    {
+      "id": "b000188",
+      "kind": "paragraph",
+      "start_line": 585,
+      "end_line": 589,
+      "raw": "The `selectionStateReadsDoNotPerformDocumentWork` regression checks repeated reads\nof a 2,048 by 2,048 selection, no notifications/revision changes, subtract/clear\nand document replacement. `selectionStatisticsFollowMaskOwnership` checks empty,\nselected and removed background operands. The fixture logs method-only latency;\nit is not a claim about complete frame rendering or overall application speed.\n"
+    },
+    {
+      "id": "b000189",
+      "kind": "blank",
+      "start_line": 590,
+      "end_line": 590,
+      "raw": "\n"
+    },
+    {
+      "id": "b000190",
+      "kind": "heading",
+      "start_line": 591,
+      "end_line": 591,
+      "raw": "## Working-file reads and preview rendering\n",
+      "level": 2,
+      "title": "Working-file reads and preview rendering"
+    },
+    {
+      "id": "b000191",
+      "kind": "blank",
+      "start_line": 592,
+      "end_line": 592,
+      "raw": "\n"
+    },
+    {
+      "id": "b000192",
+      "kind": "paragraph",
+      "start_line": 593,
+      "end_line": 601,
+      "raw": "Reference images in AdvancedGenerate, the Video monitor and the Video shot/key\ncards use the existing CanvasPreview image provider. Their source bindings do\nnot call GenerationController.imagePreview or prepare a physical runtime PNG.\nIISC decoding/compositing runs asynchronously at a bounded requested pixel size;\nlocal ordinary images also use Qt's asynchronous, bounded image loading. Only reference selection\nand generation input preparation use the existing import/materialization path.\nThe URL key includes the provider-normalized native change token so same-size\nedits with restored modification times invalidate stale pixels, while a preview's\nown attribute publication retains the existing key.\n"
+    },
+    {
+      "id": "b000193",
+      "kind": "blank",
+      "start_line": 602,
+      "end_line": 602,
+      "raw": "\n"
+    },
+    {
+      "id": "b000194",
+      "kind": "paragraph",
+      "start_line": 603,
+      "end_line": 609,
+      "raw": "The 2026-10-20 storage reproduction confirmed that raw preview reads/descriptor\nclosure could overlap SQLite writes within the process. Source access is now\ncoordinated by native identity through iiFileProvider 0.7.3 / Native 0.8.3 and\niiSharedCanvas 0.31.2 Core. Working-file transactions and preview source copies\nexclude each other; idle connections, edit callbacks and detached rendering do\nnot hold that scope. A changed source invalidates an in-flight derived preview.\nQueue publication follows scope release, avoiding queue-backpressure inversion.\n"
+    },
+    {
+      "id": "b000195",
+      "kind": "blank",
+      "start_line": 610,
+      "end_line": 610,
+      "raw": "\n"
+    },
+    {
+      "id": "b000196",
+      "kind": "paragraph",
+      "start_line": 611,
+      "end_line": 616,
+      "raw": "The prior uninstrumented 50-save storage fixture failed at iteration 6. The new\ncandidate completed all 50 in 43.53 seconds with preview work enabled and no\nexplicit quiescing. Separate negative controls verify transaction exclusion and\nediting during a paused renderer. These establish a concurrency repair; they do\nnot measure end-to-end drag latency, overall FPS or every application operation.\nEvidence is under `build/verification/interaction-audit-20261020/`.\n"
+    },
+    {
+      "id": "b000197",
+      "kind": "blank",
+      "start_line": 617,
+      "end_line": 618,
+      "raw": "\n\n"
+    },
+    {
+      "id": "b000198",
+      "kind": "paragraph",
+      "start_line": 619,
+      "end_line": 626,
+      "raw": "Timeline key gestures use native preview state and a press-time occupied-frame\nindex. Pointer movement does not call `moveKey`, native document commit, canvas\nrendering, thumbnail invalidation or storage. The viewport merges only the\nvisible key range and curve neighbours with that temporary position. Releasing\ncommits once, while cancellation/no-op leaves the document unchanged. Grabbing\none of several selected clips retains the group; modifier removal cannot start\na drag on a deselected clip. See `EditorLayerTimeline.md` for the FilmCraft\nreference, behavioral tests and the limits of the native-update timing budget.\n"
+    },
+    {
+      "id": "b000199",
+      "kind": "blank",
+      "start_line": 627,
+      "end_line": 628,
+      "raw": "\n\n"
+    },
+    {
+      "id": "b000200",
+      "kind": "paragraph",
+      "start_line": 629,
+      "end_line": 636,
+      "raw": "Native IISC result commands retain the document URL instead of submitting the\nimage-provider display URI to file/Photos export. Full-resolution preparation\nuses a read-only detached snapshot on a worker and streams PNG into the provider's\natomic local writer, retaining source bytes and avoiding another complete raster\nor encoded byte buffer. Photos preparation likewise moves source/header/MIME I/O\noff the GUI. Its private PNG lease survives a closed view until native completion;\nAndroid receives MIME in the prepared payload rather than sniffing a file during\nGUI dispatch. Ordinary image/MP4 byte-copy behavior remains.\n"
+    },
+    {
+      "id": "b000201",
+      "kind": "blank",
+      "start_line": 637,
+      "end_line": 637,
+      "raw": "\n"
+    },
+    {
+      "id": "b000202",
+      "kind": "paragraph",
+      "start_line": 638,
+      "end_line": 642,
+      "raw": "File, frame and photo export terminal delivery precedes idle notification. An\nobserver closing/reusing an idle owner cannot discard an accepted result, and\nrequest guards prevent the previous idle transition reaching the next export.\nRejected file-export starts have a separate signal and do not fail accepted work.\nThese ownership and ordering guarantees are distinct from whole-application FPS.\n"
+    },
+    {
+      "id": "b000203",
+      "kind": "blank",
+      "start_line": 643,
+      "end_line": 644,
+      "raw": "\n\n"
+    },
+    {
+      "id": "b000204",
+      "kind": "paragraph",
+      "start_line": 645,
+      "end_line": 655,
+      "raw": "Selected-image preparation now has a native GUI intent owner, independent of the\ngeneration queue. Pure selection uses stable Alias metadata and starts no backend\noperation. An explicit Edit resolves original URLs and serializes absent-original\nhydration through the SDK worker. Cached previews never become command inputs.\nTransfer completion schedules the next step outside the SDK ready signal stack;\none completed preparation opens the editor. Request epochs guard queued steps,\nterminal-before-idle delivery, cancellation, reentrant next commands and closed\nviews. Retry retains the accepted batch, not just its last transfer. These are\noperation-chain and data-identity improvements; they do not establish an\nend-to-end import latency or application-wide FPS. Synchronous EditorProject\nimage decoding and page-preview rendering remain under the ongoing audit.\n"
+    },
+    {
+      "id": "b000205",
+      "kind": "blank",
+      "start_line": 656,
+      "end_line": 656,
+      "raw": "\n"
+    },
+    {
+      "id": "b000206",
+      "kind": "paragraph",
+      "start_line": 657,
+      "end_line": 661,
+      "raw": "Result gallery wheel input now moves the viewport directly. Explicit position\ncapture precedes detail/editor transitions, so intermediate layout passes cannot\nreplace the user's saved scroll position. The gallery regression retains its\n1000-result delegate bound and verifies zero generation-job changes across view\nnavigation. These are view-state operations and do not edit files or documents.\n"
+    },
+    {
+      "id": "b000207",
+      "kind": "blank",
+      "start_line": 662,
+      "end_line": 662,
+      "raw": "\n"
+    },
+    {
+      "id": "b000208",
+      "kind": "heading",
+      "start_line": 663,
+      "end_line": 663,
+      "raw": "## Asynchronous artboard previews\n",
+      "level": 2,
+      "title": "Asynchronous artboard previews"
+    },
+    {
+      "id": "b000209",
+      "kind": "blank",
+      "start_line": 664,
+      "end_line": 664,
+      "raw": "\n"
+    },
+    {
+      "id": "b000210",
+      "kind": "paragraph",
+      "start_line": 665,
+      "end_line": 669,
+      "raw": "`EditorProject::pagePreviewSource` now returns cached presentation data or queues\nan optional request and returns empty. `pagePreviewReady(index)` only asks that\npage's image binding to read its result; document invalidation keeps the existing\n`pagePreviewsChanged` contract. The page strip retains native IISC artboards and\nall editing controls.\n"
+    },
+    {
+      "id": "b000211",
+      "kind": "blank",
+      "start_line": 670,
+      "end_line": 670,
+      "raw": "\n"
+    },
+    {
+      "id": "b000212",
+      "kind": "paragraph",
+      "start_line": 671,
+      "end_line": 678,
+      "raw": "`EditorPagePreviews` runs the native renderer and PNG encoding on one worker.\nThere are at most 128 pending slots, with the latest frame per page/output size\nreplacing its pending predecessor without changing FIFO order. Completed URLs\nuse a 32 MiB costed cache, including failed optional results so a failed image\nbinding does not repeatedly launch work. Returning to a cached frame retires its\nobsolete pending request. Document replacement/invalidation clears pending work;\nan already executing old result is discarded. Destruction does not join that\nworker or retain a live canvas/file object.\n"
+    },
+    {
+      "id": "b000213",
+      "kind": "blank",
+      "start_line": 679,
+      "end_line": 679,
+      "raw": "\n"
+    },
+    {
+      "id": "b000214",
+      "kind": "paragraph",
+      "start_line": 680,
+      "end_line": 689,
+      "raw": "The project reuses the SDK canvas's existing immutable render snapshot per content\nrevision and captures the author visibility flags separately. Installed native\nraster payloads use owning vectors, so taking an additional full Document copy on\nthe GUI owner would copy every bitmap again. When the shared snapshot has active\npage focus, the worker restores author visibility in its private value before\nrendering another page. The worker owns those detached inputs and its typed frame,\nartboard ID and requested extent. Initial SDK snapshot capture retains its\nexisting owner-thread cost; this increment avoids another GUI payload copy.\nNavigation, preview completion and optional rendering failure do not revise/save\nIISC or overwrite editing errors.\n"
+    },
+    {
+      "id": "b000215",
+      "kind": "blank",
+      "start_line": 690,
+      "end_line": 690,
+      "raw": "\n"
+    },
+    {
+      "id": "b000216",
+      "kind": "paragraph",
+      "start_line": 691,
+      "end_line": 695,
+      "raw": "The delayed-renderer negative control reproduced the old synchronous call\nreturning after 2107 ms on the GUI owner. The replacement is checked with a held\nrenderer and an independent GUI event heartbeat, not a whole-application FPS\nclaim. Queue/latest-frame, stale completion, failure caching, lifetime and native\npixel cases are recorded under `build/verification/page-previews-20261021`.\n"
+    },
+    {
+      "id": "b000217",
+      "kind": "blank",
+      "start_line": 696,
+      "end_line": 696,
+      "raw": "\n"
+    },
+    {
+      "id": "b000218",
+      "kind": "paragraph",
+      "start_line": 697,
+      "end_line": 703,
+      "raw": "An additional gated regression reproduced asynchronous completion bypassing live\nstroke deferral (one or two indexed ready notifications while the stroke was\nactive). The project now defers that presentation notification until stroke\nfinish/cancel, while explicit native preview reads can still await current data.\nHiding the page strip retires pending optional work and ignores its running\ncompletion, retaining already completed cache entries for the next reveal. These\nview operations publish no project/file change.\n"
+    },
+    {
+      "id": "b000219",
+      "kind": "blank",
+      "start_line": 704,
+      "end_line": 704,
+      "raw": "\n"
+    },
+    {
+      "id": "b000220",
+      "kind": "paragraph",
+      "start_line": 705,
+      "end_line": 712,
+      "raw": "Both page-strip images and the neighboring page cards consume indexed completion.\nThe broader GUI regression caught the card binding still waiting on document\ninvalidation alone; its two layout cases failed with an empty image before that\nsecond consumer was connected. The FileInfo regression now checks navigation's\nexisting `fileViewInformationChanged` contract and zero broad file notifications,\nwhile retaining document bytes, revision and precision checks. That directly\nconstructed EditorCanvas code and fixture were unchanged from the preceding\ninstalled source; no production file notification was added for navigation.\n"
+    },
+    {
+      "id": "b000221",
+      "kind": "blank",
+      "start_line": 713,
+      "end_line": 713,
+      "raw": "\n"
+    },
+    {
+      "id": "b000222",
+      "kind": "heading",
+      "start_line": 714,
+      "end_line": 714,
+      "raw": "## FilmCraft timeline input and optional work (2026-10-21)\n",
+      "level": 2,
+      "title": "FilmCraft timeline input and optional work (2026-10-21)"
+    },
+    {
+      "id": "b000223",
+      "kind": "blank",
+      "start_line": 715,
+      "end_line": 715,
+      "raw": "\n"
+    },
+    {
+      "id": "b000224",
+      "kind": "paragraph",
+      "start_line": 716,
+      "end_line": 721,
+      "raw": "Ruler input now has a native C++23 gesture owner. The initial click and final\nrelease navigate immediately; intermediate pointer events retain one latest frame\nfor a non-restarting 16 ms timer. Escape/view cancellation restores the initial\nframe. External navigation and document/owner replacement discard pending frames.\nThis reduces repeated canvas-frame notifications during an input burst, without\nrevising/saving IISC data or changing direct keyboard/precision navigation.\n"
+    },
+    {
+      "id": "b000225",
+      "kind": "blank",
+      "start_line": 722,
+      "end_line": 722,
+      "raw": "\n"
+    },
+    {
+      "id": "b000226",
+      "kind": "paragraph",
+      "start_line": 723,
+      "end_line": 730,
+      "raw": "The thumbnail worker no longer joins its render thread when the panel is closed.\nQt's future retains the immutable render operation independently, while the\nGUI-owned watcher drops obsolete completion. The queue remains single-worker,\nlatest-per-layer, FIFO and bounded. Completion targets the changed image instead\nof republishing every visible thumbnail binding. Cache eviction no longer leaves\na completed frame permanently marked as in flight. The timeline also reuses the\nSDK's existing immutable render snapshot instead of making a second full copy.\nInitial SDK snapshot capture and native rendering costs remain separate work.\n"
+    },
+    {
+      "id": "b000227",
+      "kind": "blank",
+      "start_line": 731,
+      "end_line": 731,
+      "raw": "\n"
+    },
+    {
+      "id": "b000228",
+      "kind": "paragraph",
+      "start_line": 732,
+      "end_line": 738,
+      "raw": "The held-renderer negative control blocked owner destruction for 2,004,942 us.\nThe first corrected run released that owner in 19 us while the renderer remained\nheld, and suppressed its late delivery. This is an owner-lifetime fixture, not\nan end-to-end UI frame-rate measurement. Evidence is retained in\n`build/verification/filmcraft-timeline-input-20261021-222734/thumbnail-red.xml` and\n`thumbnail-green-initial.xml`. See [EditorLayerTimeline](EditorLayerTimeline.md)\nfor the reference mapping and regression contracts.\n"
+    },
+    {
+      "id": "b000229",
+      "kind": "blank",
+      "start_line": 739,
+      "end_line": 739,
+      "raw": "\n"
+    },
+    {
+      "id": "b000230",
+      "kind": "heading",
+      "start_line": 740,
+      "end_line": 740,
+      "raw": "## Original import preparation (2026-10-21)\n",
+      "level": 2,
+      "title": "Original import preparation (2026-10-21)"
+    },
+    {
+      "id": "b000231",
+      "kind": "blank",
+      "start_line": 741,
+      "end_line": 741,
+      "raw": "\n"
+    },
+    {
+      "id": "b000232",
+      "kind": "paragraph",
+      "start_line": 742,
+      "end_line": 747,
+      "raw": "Selected-image and Add Images QML commands now enter a native accepted request.\nThe request retains only one latest pending batch while a worker reads originals,\nassembles native artboards and performs the existing managed wrapper imports.\nTemporary per-source EditorCanvas/media/history objects are removed. Asset/audio\npayloads move into the aggregate; attachment drafts restore authored visibility\nfrom the shared immutable render snapshot on the worker.\n"
+    },
+    {
+      "id": "b000233",
+      "kind": "blank",
+      "start_line": 748,
+      "end_line": 748,
+      "raw": "\n"
+    },
+    {
+      "id": "b000234",
+      "kind": "paragraph",
+      "start_line": 749,
+      "end_line": 755,
+      "raw": "Invalid input, incompatible frame rates and aggregate limits are resolved before\nwrapper storage begins. The actual native negative control rejected its second\nsource yet created one managed IISC file; the regression retains that failure.\nCompletion updates the project once and maps each actual artboard to its original\nsource record. Pure navigation does not invalidate an accepted batch, while an\nactual document/drive change cancels stale adoption. Closing a view never joins\nthe worker.\n"
+    },
+    {
+      "id": "b000235",
+      "kind": "blank",
+      "start_line": 756,
+      "end_line": 756,
+      "raw": "\n"
+    },
+    {
+      "id": "b000236",
+      "kind": "paragraph",
+      "start_line": 757,
+      "end_line": 763,
+      "raw": "Initial SDK snapshot capture, final native adoption/validation/history and a\ndurable attachment commit remain separate GUI-owner costs. Existing SDK wrapper\nimport still decodes its source for its own storage contract; no single-decode or\ncross-file transaction claim is made. See [EditorImageImport](EditorImageImport.md)\nfor component tests, mounted route verification and the remaining first-editor\ninitialization/snapshot/commit boundaries. The start/destruction timing fixture\nholds real preparation behind a gate; it does not measure total app latency.\n"
+    },
+    {
+      "id": "b000237",
+      "kind": "blank",
+      "start_line": 764,
+      "end_line": 764,
+      "raw": "\n"
+    },
+    {
+      "id": "b000238",
+      "kind": "heading",
+      "start_line": 765,
+      "end_line": 765,
+      "raw": "## Deferred storage for view/data owners (2026-10-21)\n",
+      "level": 2,
+      "title": "Deferred storage for view/data owners (2026-10-21)"
+    },
+    {
+      "id": "b000239",
+      "kind": "blank",
+      "start_line": 766,
+      "end_line": 766,
+      "raw": "\n"
+    },
+    {
+      "id": "b000240",
+      "kind": "paragraph",
+      "start_line": 767,
+      "end_line": 767,
+      "raw": "The EditorCanvas FileSystem used to discover and scan the default drive in its constructor, including for unsaved/view-only owners. It now uses the SDK deferred initialization path and is an explicit owned QObject child. Detached image readers and original-image preparation avoid the same implicit discovery. Explicit open/save, Alias conflict checks and synchronous persistence retain their contracts. See [StorageInitialization](StorageInitialization.md) for SDK packaging evidence, the activation-boundary regression and constructor measurement scope.\n"
+    },
+    {
+      "id": "b000241",
+      "kind": "blank",
+      "start_line": 768,
+      "end_line": 768,
+      "raw": "\n"
+    },
+    {
+      "id": "b000242",
+      "kind": "heading",
+      "start_line": 769,
+      "end_line": 769,
+      "raw": "## Working-file preparation and completion (2026-10-21)\n",
+      "level": 2,
+      "title": "Working-file preparation and completion (2026-10-21)"
+    },
+    {
+      "id": "b000243",
+      "kind": "blank",
+      "start_line": 770,
+      "end_line": 770,
+      "raw": "\n"
+    },
+    {
+      "id": "b000244",
+      "kind": "paragraph",
+      "start_line": 771,
+      "end_line": 778,
+      "raw": "Native `.iisc` open and legacy project migration now use a detached read command.\nDecoding, mirror scanning and Alias hashing run on a worker; one running/one\nlatest pending intent prevents a queue of obsolete reads. GUI adoption uses the\nSDK prepared-storage values and retains writable Alias/version semantics.\nHome/editor navigation and generation metadata update only after completion.\nView cancellation is scoped to its own shared download. See\n[WorkingFileOpen](WorkingFileOpen.md) for source identity, lifecycle tests,\ndispatch measurements and the remaining native adoption/render/commit costs.\n"
+    },
+    {
+      "id": "b000245",
+      "kind": "blank",
+      "start_line": 779,
+      "end_line": 780,
+      "raw": "\n\n"
+    },
+    {
+      "id": "b000246",
+      "kind": "heading",
+      "start_line": 781,
+      "end_line": 781,
+      "raw": "## 한 점 색상 표본과 화이트 밸런스 입력\n",
+      "level": 2,
+      "title": "한 점 색상 표본과 화이트 밸런스 입력"
+    },
+    {
+      "id": "b000247",
+      "kind": "blank",
+      "start_line": 782,
+      "end_line": 782,
+      "raw": "\n"
+    },
+    {
+      "id": "b000248",
+      "kind": "paragraph",
+      "start_line": 783,
+      "end_line": 783,
+      "raw": "색상 표본의 GUI 호출에서 전체 프레임 렌더링을 제거했다. 불변 프레임·세계 좌표·작성 가시성으로 한 픽셀을 작업 스레드에서 읽고, 최신 수락 요청만 GUI에 전달한다. 원본 리비전 변경은 결과를 폐기하며 순수 탐색은 파일을 쓰지 않는다. 화이트 밸런스의 온도·틴트는 한 번에 처리·저장한다. 읽기 오류와 대기 상태는 파일 상태에서 분리했다. 자세한 계약과 남은 동기 처리 비용은 [EditorColorSampling.md](EditorColorSampling.md)에 명시했다.\n"
+    },
+    {
+      "id": "b000249",
+      "kind": "blank",
+      "start_line": 784,
+      "end_line": 784,
+      "raw": "\n"
+    },
+    {
+      "id": "b000250",
+      "kind": "paragraph",
+      "start_line": 785,
+      "end_line": 785,
+      "raw": "패키지 계약은 `iiSharedCanvas 0.31.4`와 `iiSocietyHelper 0.10.2`에 맞춘다. Helper는 컴파일한 Native 최소 버전을 CoreIO보다 먼저 선택하고, 캐시 경로뿐 아니라 실제 가져온 라이브러리 대상의 경로도 확인한다. 전역 SDK를 교체하지 않고 독립 설치 소비자로 검증한다.\n"
+    },
+    {
+      "id": "b000251",
+      "kind": "blank",
+      "start_line": 786,
+      "end_line": 786,
+      "raw": "\n"
+    },
+    {
+      "id": "b000252",
+      "kind": "paragraph",
+      "start_line": 787,
+      "end_line": 787,
+      "raw": "파일 저장·읽기·이미지 래핑을 포함하는 도형 변형 검사는 자체 임시 `.societycontainer` 드라이브를 생성한다. 외부 기본 드라이브나 사용자의 선택 상태가 이미 존재한다고 가정하지 않는다. 이 준비는 검사 환경의 격리이며 앱의 파일 접근 정책을 변경하지 않는다.\n"
+    },
+    {
+      "id": "b000253",
+      "kind": "blank",
+      "start_line": 788,
+      "end_line": 789,
+      "raw": "\n\n"
+    },
+    {
+      "id": "b000254",
+      "kind": "heading",
+      "start_line": 790,
+      "end_line": 790,
+      "raw": "## 그래픽 패널의 설정 계산\n",
+      "level": 2,
+      "title": "그래픽 패널의 설정 계산"
+    },
+    {
+      "id": "b000255",
+      "kind": "blank",
+      "start_line": 791,
+      "end_line": 791,
+      "raw": "\n"
+    },
+    {
+      "id": "b000256",
+      "kind": "paragraph",
+      "start_line": 792,
+      "end_line": 792,
+      "raw": "색상 표본·프리셋과 자동 보정 등 8종의 설정 계산을 `EditorGraphicHelper`로 분리한다. 표본·프리셋은 픽셀을 캡처하지 않고, 픽셀이 필요한 분석은 C++ 작업 스레드에서 원본 레이어를 읽는다. 설정 계산 뒤 전체 효과 적용·마스크 혼합·결과 및 원본 PNG 인코딩을 하지 않는다. 버튼 가능 여부 조회에서도 청크 픽셀의 전체 펼치기를 제거한다. [입력·취소·결과 적용과 검증 계약](GraphicParameterHelpers.md)을 참조한다.\n"
+    },
+    {
+      "id": "b000257",
+      "kind": "blank",
+      "start_line": 793,
+      "end_line": 793,
+      "raw": "\n"
+    },
+    {
+      "id": "b000258",
+      "kind": "paragraph",
+      "start_line": 794,
+      "end_line": 794,
+      "raw": "마스크 패널의 독립 GUI 검사는 앱과 같은 `registerStorageViewTypes()`로 타입을 등록한다. 공유 패널에 추가된 네이티브 계산 객체를 누락한 검사 전용 타입 목록을 유지하지 않으며, 기존 배경·마스크 패널의 폭별 로딩과 실제 컨트롤 동작을 계속 검사한다.\n"
+    },
+    {
+      "id": "b000259",
+      "kind": "blank",
+      "start_line": 795,
+      "end_line": 795,
+      "raw": "\n"
+    },
+    {
+      "id": "b000260",
+      "kind": "heading",
+      "start_line": 796,
+      "end_line": 796,
+      "raw": "## 카메라·사진 획득 객체의 초기화 경계\n",
+      "level": 2,
+      "title": "카메라·사진 획득 객체의 초기화 경계"
+    },
+    {
+      "id": "b000261",
+      "kind": "blank",
+      "start_line": 797,
+      "end_line": 797,
+      "raw": "\n"
+    },
+    {
+      "id": "b000262",
+      "kind": "paragraph",
+      "start_line": 798,
+      "end_line": 798,
+      "raw": "에디터 생성자가 보유하는 `EditorCameraPhoto`의 장치 감시와 임시 폴더 생성은 실제 사용 시점으로 지연한다. 카메라 정보 조회는 장치 감시만 시작하고, 갤러리 목록·검색·선택은 장치 감시나 출력 저장소를 시작하지 않는다. 썸네일·원본 내보내기·캡처 출력은 `iiFileProvider` 네이티브 임시 디렉터리를 공유한다. 변환 없는 로컬 원본 가져오기는 출력 파일을 만들지 않는다. 계약과 검사 범위는 [EditorCameraPhoto.md](EditorCameraPhoto.md)에 기록한다. 이 변경은 초기화 작업의 발생 조건을 줄이는 것이며, 앱 전체 지연 또는 설치본의 응답 시간 개선율을 입증하지 않는다.\n"
+    },
+    {
+      "id": "b000263",
+      "kind": "blank",
+      "start_line": 799,
+      "end_line": 799,
+      "raw": "\n"
+    },
+    {
+      "id": "b000264",
+      "kind": "heading",
+      "start_line": 800,
+      "end_line": 800,
+      "raw": "## 동적 래스터의 원본과 프레임 이동\n",
+      "level": 2,
+      "title": "동적 래스터의 원본과 프레임 이동"
+    },
+    {
+      "id": "b000265",
+      "kind": "blank",
+      "start_line": 801,
+      "end_line": 801,
+      "raw": "\n"
+    },
+    {
+      "id": "b000266",
+      "kind": "paragraph",
+      "start_line": 802,
+      "end_line": 802,
+      "raw": "앱이 SDK의 동적 래스터 편집을 실제 선택 경로에 연결한다. 원본 캐시와 지우개 복원 데이터는 현재 애셋을 구분하며, 메타데이터 확인만으로 픽셀 펼치기나 파일 작업을 시작하지 않는다. SDK는 애셋을 바꾸기 전에 미완료 페인팅을 취소한다. [동작과 검증 경계](DynamicRasterEditing.md)를 참조한다.\n"
+    },
+    {
+      "id": "b000267",
+      "kind": "blank",
+      "start_line": 803,
+      "end_line": 803,
+      "raw": "\n"
+    },
+    {
+      "id": "b000268",
+      "kind": "heading",
+      "start_line": 804,
+      "end_line": 804,
+      "raw": "## 그래픽 이미지 명령의 작업 스레드\n",
+      "level": 2,
+      "title": "그래픽 이미지 명령의 작업 스레드"
+    },
+    {
+      "id": "b000269",
+      "kind": "blank",
+      "start_line": 805,
+      "end_line": 805,
+      "raw": "\n"
+    },
+    {
+      "id": "b000270",
+      "kind": "paragraph",
+      "start_line": 806,
+      "end_line": 806,
+      "raw": "그래픽 패널의 이미지 미리보기·Apply·마스크는 `EditorGraphicCommand`를 사용한다. `Qt.callLater` 안에서 동기 이미지 API를 실행하는 경로를 제거했다. 원본·청크·마스크 처리와 PNG 인코딩은 작업자가 맡으며, 같은 보정 원본은 공유 소유로 전달한다. 설정 계산과 이미지 처리의 조건은 별도로 조회한다. 상세 계약과 남은 UI 비용은 [GraphicImageCommands.md](GraphicImageCommands.md)를 따른다. 이 변경은 실제 문서 쓰기와 지속 저장을 비동기 자동 저장으로 바꾸지 않는다.\n"
+    },
+    {
+      "id": "b000271",
+      "kind": "blank",
+      "start_line": 807,
+      "end_line": 807,
+      "raw": "\n"
+    },
+    {
+      "id": "b000272",
+      "kind": "paragraph",
+      "start_line": 808,
+      "end_line": 808,
+      "raw": "내부 마스크의 픽셀별 `QVariant` 생성과 재파싱은 네이티브 `MaskView` 전달로 교체한다. 소유된 8비트 선택 영역은 한 번만 SDK 커버리지 배열로 변환하고, 기존 공개 맵 입력과 같은 반올림을 유지한다. 새 마스크 미리보기는 사용하지 않는 기존 선택 영역을 복사하거나 레이어 좌표로 변환하지 않는다. 여러 마스크의 보정 배열은 SDK에 그대로 연결하고 별도의 선택 영역이 있으면 결과를 그 영역에 제한한다. 정확성·무변경·저장 계약은 `Dreamscapes.TypedMaskInput`으로 확인한다. 합성 이미지 처리 시간과 프로세스 최대 메모리는 검증 회차의 독립 프로세스 비교 근거에 기록하며, 설치 앱의 FPS나 전경 입력 지연으로 간주하지 않는다.\n"
+    },
+    {
+      "id": "b000273",
+      "kind": "blank",
+      "start_line": 809,
+      "end_line": 809,
+      "raw": "\n"
+    },
+    {
+      "id": "b000274",
+      "kind": "paragraph",
+      "start_line": 810,
+      "end_line": 810,
+      "raw": "2026-10-21 비교는 같은 설치 SDK와 2048×2048 합성 `maskWhiteOnBlack` 입력을 사용하고, 각 방식마다 새 프로세스 3회의 중앙값을 기록했다. 기존 바이너리를 보존하여 교대로 실행했으며 모든 출력 픽셀의 SHA-256이 같았다. 어댑터 경계의 시간은 194.65ms에서 87.99ms, 최대 상주 메모리는 350.91MiB에서 222.69MiB로 감소했다. 원본 캡처·선택 좌표 변환·PNG를 포함한 실제 작업 계산 경로는 451.78ms에서 334.41ms, 390.13MiB에서 278.05MiB로 감소했다. 소요 시간과 최대 메모리는 각각 약 26.0%, 28.7% 감소한 값이다. 개별 실행의 변동은 존재하며 전체 앱 FPS·입력 지연 또는 설치 앱 성능의 증거가 아니다. 원자료는 `build/verification/typed-mask-20261021-121348/mask-comparison.json`이다.\n"
+    },
+    {
+      "id": "b000275",
+      "kind": "blank",
+      "start_line": 811,
+      "end_line": 811,
+      "raw": "\n"
+    },
+    {
+      "id": "b000276",
+      "kind": "heading",
+      "start_line": 812,
+      "end_line": 812,
+      "raw": "## 사진 원본 준비와 비대기 종료\n",
+      "level": 2,
+      "title": "사진 원본 준비와 비대기 종료"
+    },
+    {
+      "id": "b000277",
+      "kind": "blank",
+      "start_line": 813,
+      "end_line": 813,
+      "raw": "\n"
+    },
+    {
+      "id": "b000278",
+      "kind": "paragraph",
+      "start_line": 814,
+      "end_line": 814,
+      "raw": "사진 원본 내보내기 완료가 소유 스레드의 동기 가져오기로 이어지던 연결을 제거한다. 대상 문서와 배치 아트보드·저장소를 수락 시점에 캡처하고, 디코딩·래퍼 준비는 별도 작업자가 맡는다. 소유 스레드는 원래 대상에 한 번의 실제 문서 편집·동기 저장만 수행한다. 갤러리 보기·선택·줌·도구 변경은 준비 작업을 다시 실행하거나 파일 상태를 발행하지 않는다.\n"
+    },
+    {
+      "id": "b000279",
+      "kind": "blank",
+      "start_line": 815,
+      "end_line": 815,
+      "raw": "\n"
+    },
+    {
+      "id": "b000280",
+      "kind": "paragraph",
+      "start_line": 816,
+      "end_line": 816,
+      "raw": "획득 객체의 전용 QThreadPool 대신 객체별 값형 FIFO 연속 작업을 앱 작업 풀에서 실행한다. 화면 객체를 닫을 때 작업 종료를 기다리지 않으며, 닫힌 객체의 대기 작업은 SDK 호출 전에 버린다. 원본 임시 파일은 획득과 배치 작업이 공유 소유한다. 변경 전에는 600ms 후 해제하는 원본 내보내기 조건에서 객체 종료가 250ms 제한을 초과하는 것을 재현했다. 종료 지연·원본 수명과 입력 이벤트 처리는 `Dreamscapes.PhotoImport`의 실제 네이티브 작업으로 검사한다. 이 결과를 물리 장치 응답이나 전체 앱 종료 시간으로 확대 해석하지 않는다. 자세한 계약은 [PhotoImportCommands.md](PhotoImportCommands.md)를 따른다.\n"
+    },
+    {
+      "id": "b000281",
+      "kind": "blank",
+      "start_line": 817,
+      "end_line": 817,
+      "raw": "\n"
+    },
+    {
+      "id": "b000282",
+      "kind": "heading",
+      "start_line": 818,
+      "end_line": 818,
+      "raw": "## 기하 마스크의 불필요한 원본 준비 제거\n",
+      "level": 2,
+      "title": "기하 마스크의 불필요한 원본 준비 제거"
+    },
+    {
+      "id": "b000283",
+      "kind": "blank",
+      "start_line": 819,
+      "end_line": 819,
+      "raw": "\n"
+    },
+    {
+      "id": "b000284",
+      "kind": "paragraph",
+      "start_line": 820,
+      "end_line": 820,
+      "raw": "기하 마스크 적용의 수락 단계는 문서 스냅샷과 원본 이미지 대신 레이어 크기·샘플한 변환을 네이티브 값으로 캡처한다. 작업자도 이 요청에 원본 래스터 읽기나 QImage/RGBA 부동소수 변환을 수행하지 않는다. 미리보기에는 원본 비교 이미지가 필요하므로 해당 읽기를 보존하고, 마스크 커널에 전달할 불필요한 이미지 변환만 생략한다. 실제 색·휘도·브러시·정교화 마스크는 픽셀 경로를 유지한다.\n"
+    },
+    {
+      "id": "b000285",
+      "kind": "blank",
+      "start_line": 821,
+      "end_line": 821,
+      "raw": "\n"
+    },
+    {
+      "id": "b000286",
+      "kind": "paragraph",
+      "start_line": 822,
+      "end_line": 822,
+      "raw": "개선 전후 성능은 별도 새 프로세스에서 같은 2048 × 2048 선형 마스크의 계산 시간·최대 RSS·결과 해시를 비교한다. 어댑터 호출과 전체 마스크 계산을 구분하며, 수락 단계의 문서 스냅샷 제거는 실제 명령 입력 검사로 확인한다. 이 측정은 애플리케이션 전경의 FPS나 모든 작업의 지연을 대표하지 않는다.\n"
+    },
+    {
+      "id": "b000287",
+      "kind": "blank",
+      "start_line": 823,
+      "end_line": 823,
+      "raw": "\n"
+    },
+    {
+      "id": "b000288",
+      "kind": "paragraph",
+      "start_line": 824,
+      "end_line": 824,
+      "raw": "2048 × 2048 선형 마스크를 조건별로 새 프로세스 3회에서 비교한 중앙값은 다음과 같다. QImage 어댑터는 188.54ms에서 178.11ms, 최대 RSS는 138.38MiB에서 74.33MiB로 줄었다. 전체 마스크 계산은 208.75ms에서 198.02ms, 최대 RSS는 194.66MiB에서 130.75MiB로 줄었다. 두 경로 모두 개선 전후 결과 해시가 동일했다. 측정에는 결과 해시 계산을 포함하며, 전체 계산 실험은 기존 불변 문서 입력을 사용하므로 소유 스레드의 스냅샷 제거 효과를 별도로 계량한 수치가 아니다. 원시 측정과 빌드 입력은 `build/verification/mask-demand-20261021-234127/`에 기록했다.\n"
+    },
+    {
+      "id": "b000289",
+      "kind": "blank",
+      "start_line": 825,
+      "end_line": 825,
+      "raw": "\n"
+    },
+    {
+      "id": "b000290",
+      "kind": "heading",
+      "start_line": 826,
+      "end_line": 826,
+      "raw": "## 원본 좌표와 결과 검증의 실행 위치\n",
+      "level": 2,
+      "title": "원본 좌표와 결과 검증의 실행 위치"
+    },
+    {
+      "id": "b000291",
+      "kind": "blank",
+      "start_line": 827,
+      "end_line": 827,
+      "raw": "\n"
+    },
+    {
+      "id": "b000292",
+      "kind": "paragraph",
+      "start_line": 828,
+      "end_line": 828,
+      "raw": "청크 원본은 할당된 캔버스 창을 0부터 시작하는 이미지로 펼치므로, 원본의 월드 원점을 변환에 포함해야 한다. `editorRaster::describe`를 값형 캡처와 이미지 계산에 재사용하여 이 매핑을 일치시킨다. 마스크 적용의 문서·RGB 입력 생략은 유지한다.\n"
+    },
+    {
+      "id": "b000293",
+      "kind": "blank",
+      "start_line": 829,
+      "end_line": 829,
+      "raw": "\n"
+    },
+    {
+      "id": "b000294",
+      "kind": "paragraph",
+      "start_line": 830,
+      "end_line": 830,
+      "raw": "마스크 결과의 PNG 디코딩, 알파 개수와 윤곽·오버레이 일치 검사는 작업자에서 수행한다. 소유자는 크기와 형식 등 픽셀 순회가 필요 없는 필드만 확인한다. 검증 비용은 기존 계산 시간과 구분하여 측정해야 하며, 데이터 검증을 화면 스레드로 이동하거나 결과를 임의로 신뢰하여 응답 시간을 줄이지 않는다. 이미지 할당·인코딩 오류는 부분 결과를 복제하지 않고 오류 값으로 반환한다.\n"
+    },
+    {
+      "id": "b000295",
+      "kind": "blank",
+      "start_line": 831,
+      "end_line": 831,
+      "raw": "\n"
+    },
+    {
+      "id": "b000296",
+      "kind": "paragraph",
+      "start_line": 832,
+      "end_line": 832,
+      "raw": "청크 원점과 결과 수락을 수정한 2026-10-22 비교는 2048 × 2048 선형 마스크를 조건별 새 프로세스 3회에서 실행했다. 수정 전 계산 중앙값은 201.83ms, 현재 계산만의 중앙값은 199.46ms, 결과 검증까지 포함하면 209.35ms였다. 검증 단계 중앙값은 11.17ms이며 작업 스레드에서 PNG·알파·윤곽·선택 개수의 일치를 확인한다. 최대 RSS 중앙값은 각각 130.67MiB, 130.70MiB, 130.80MiB이고 결과 해시는 모두 같았다. 이 변경의 검증 비용을 속도 향상으로 표기하지 않으며, 원본 준비 제거로 확보한 이전 단계의 메모리 감소와 구분한다. 원자료는 `build/verification/mask-coordinates-20261022-004057/validation-comparison.json`이다. 전경 입력·FPS는 측정하지 않았다.\n"
+    },
+    {
+      "id": "b000297",
+      "kind": "blank",
+      "start_line": 833,
+      "end_line": 833,
+      "raw": "\n"
+    },
+    {
+      "id": "b000298",
+      "kind": "heading",
+      "start_line": 834,
+      "end_line": 834,
+      "raw": "## 갤러리의 오래된 SDK 작업 생략\n",
+      "level": 2,
+      "title": "갤러리의 오래된 SDK 작업 생략"
+    },
+    {
+      "id": "b000299",
+      "kind": "blank",
+      "start_line": 835,
+      "end_line": 835,
+      "raw": "\n"
+    },
+    {
+      "id": "b000300",
+      "kind": "paragraph",
+      "start_line": 836,
+      "end_line": 836,
+      "raw": "목록 변경 뒤 결과만 버리던 방식에서, 아직 시작하지 않은 이전 목록·썸네일을 SDK 진입 전에 생략하는 방식으로 바꾼다. 원본 가져오기와 Photos 저장에는 보기 취소 플래그를 전달하지 않아 수락한 파일 작업을 유지한다. 실제 SDK 호출은 기존 객체별 FIFO로 직렬화하며 작업 풀을 추가하지 않는다.\n"
+    },
+    {
+      "id": "b000301",
+      "kind": "blank",
+      "start_line": 837,
+      "end_line": 837,
+      "raw": "\n"
+    },
+    {
+      "id": "b000302",
+      "kind": "paragraph",
+      "start_line": 838,
+      "end_line": 838,
+      "raw": "검증은 실제 획득 객체와 제어된 PhotoLibrary로 실행 순서를 기록한다. 최초 스캔을 차단하고 목록을 두 번 더 요청했을 때의 스캔 개수, 첫 미리보기를 차단하고 이전 썸네일·원본·새 목록을 수락했을 때 원본 앞에 실행되는 작업을 비교한다. 이는 제거한 SDK 호출의 근거이며, 물리 라이브러리 지연이나 설치 앱의 전경 성능 측정은 아니다.\n"
+    },
+    {
+      "id": "b000303",
+      "kind": "blank",
+      "start_line": 839,
+      "end_line": 839,
+      "raw": "\n"
+    },
+    {
+      "id": "b000304",
+      "kind": "paragraph",
+      "start_line": 840,
+      "end_line": 840,
+      "raw": "동일한 재현 입력을 수정 전후 바이너리에 연결한 결과, 연속 목록 요청의 실제 SDK 스캔은 3회에서 2회로 줄었다. 오래된 썸네일 뒤에 원본을 수락한 사례에서는 미리보기 호출이 3회에서 1회로 줄고, 남은 첫 미리보기 다음에 원본이 한 번 전달됐다. 두 조건 모두 SDK 동시 실행 수는 1이며, 차단 중 UI 이벤트가 처리됐다. 원자료는 `build/verification/mask-coordinates-20261022-004057/next-gallery-observation.json`과 `build/verification/gallery-queue-20261022-012031/repaired-gallery-observation.json`이다. 각 SDK 작업의 실제 iCloud 지연을 측정한 결과는 아니다.\n"
+    },
+    {
+      "id": "b000305",
+      "kind": "blank",
+      "start_line": 841,
+      "end_line": 841,
+      "raw": "\n"
+    },
+    {
+      "id": "b000306",
+      "kind": "heading",
+      "start_line": 842,
+      "end_line": 842,
+      "raw": "## 갤러리 타일의 수명과 반복 조회\n",
+      "level": 2,
+      "title": "갤러리 타일의 수명과 반복 조회"
+    },
+    {
+      "id": "b000307",
+      "kind": "blank",
+      "start_line": 843,
+      "end_line": 843,
+      "raw": "\n"
+    },
+    {
+      "id": "b000308",
+      "kind": "paragraph",
+      "start_line": 844,
+      "end_line": 844,
+      "raw": "2026-10-22 실제 Camera/Photo 패널의 400행 Gallery를 제어된 PhotoLibrary와 연결해 측정했다. 기존 GridView가 처음 생성한 타일은 6개였으나 썸네일 한 개 완료와 선택 변경 각각에서 그 6개를 모두 파괴·재생성했다. 안정적인 C++ 행 모델로 변경한 뒤 같은 두 동작의 타일 생성·파괴는 새 프로세스 3회 모두 0개였으며, 최초 6개가 유지됐다. 기존 가상화와 크기·간격·아이콘·선택 표시는 유지한다.\n"
+    },
+    {
+      "id": "b000309",
+      "kind": "blank",
+      "start_line": 845,
+      "end_line": 845,
+      "raw": "\n"
+    },
+    {
+      "id": "b000310",
+      "kind": "paragraph",
+      "start_line": 846,
+      "end_line": 846,
+      "raw": "같은 실험의 400행 목록 조회 500회 중앙값은 121.296583ms에서 0.008167ms, 선택 개수 조회 500회는 9.520292ms에서 0.000541ms로 줄었다. 새 조회는 정렬·필터·픽셀 접근 없이 캐시된 값을 반환한다. 새 카탈로그·검색·정렬 변경의 실제 재구성 비용은 남아 있다. 출력 체크섬은 모두 200500으로 같고, 작업자를 차단한 제어 조건에서 장치 감시를 시작하지 않았다. 각 단계 새 offscreen 프로세스 3회를 사용했으며 전체 앱 FPS·실제 Photos 지연·설치 앱 입력 지연의 측정값은 아니다. 원자료는 `build/verification/gallery-presentation-20261022-013713/presentation-comparison.json`이다.\n"
+    },
+    {
+      "id": "b000311",
+      "kind": "blank",
+      "start_line": 847,
+      "end_line": 847,
+      "raw": "\n"
+    },
+    {
+      "id": "b000312",
+      "kind": "heading",
+      "start_line": 848,
+      "end_line": 848,
+      "raw": "## 권한 승인 뒤의 필요한 읽기와 보기의 수명\n",
+      "level": 2,
+      "title": "권한 승인 뒤의 필요한 읽기와 보기의 수명"
+    },
+    {
+      "id": "b000313",
+      "kind": "blank",
+      "start_line": 849,
+      "end_line": 849,
+      "raw": "\n"
+    },
+    {
+      "id": "b000314",
+      "kind": "paragraph",
+      "start_line": 850,
+      "end_line": 850,
+      "raw": "권한 완료가 목록 세대 변경만으로 버려져 승인 후에도 기다리는 상태가 남는 문제와, 상태 알림 중 다른 라이브러리로 전환해도 이전 권한 요청을 시작하는 문제를 재현했다. 요청 수명을 분리하고 현재 읽기 의도에 연결하여, 실제 승인된 현재 Photos 목록을 한 번 조회한다. 로컬 목록과 파일 작업은 유지한다.\n"
+    },
+    {
+      "id": "b000315",
+      "kind": "blank",
+      "start_line": 851,
+      "end_line": 851,
+      "raw": "\n"
+    },
+    {
+      "id": "b000316",
+      "kind": "paragraph",
+      "start_line": 852,
+      "end_line": 852,
+      "raw": "실제 Camera/Photo 패널에서 승인 대기 중 숨김·닫힘을 수행한 재현은 각각 불필요한 SDK 스캔 1회를 관찰했다. 연결 해제는 표시용 읽기만 종료하며, 승인 완료가 이 보기의 스캔을 발동시키지 않도록 한다. 현재 보기와 복귀한 보기는 계속 조회한다. 이 검증은 제거한 SDK 호출의 범위를 나타내며 실제 iCloud·OS 권한 팝업 지연이나 전체 앱 FPS의 측정값은 아니다. 원자료는 `build/verification/gallery-permission-20261022-022207/view-interest-before.json`과 같은 회차의 최종 검증 기록이다.\n"
+    },
+    {
+      "id": "b000317",
+      "kind": "blank",
+      "start_line": 853,
+      "end_line": 853,
+      "raw": "\n"
+    },
+    {
+      "id": "b000318",
+      "kind": "heading",
+      "start_line": 854,
+      "end_line": 854,
+      "raw": "## 게시 컨트롤러 종료와 콜백 수명\n",
+      "level": 2,
+      "title": "게시 컨트롤러 종료와 콜백 수명"
+    },
+    {
+      "id": "b000319",
+      "kind": "blank",
+      "start_line": 855,
+      "end_line": 855,
+      "raw": "\n"
+    },
+    {
+      "id": "b000320",
+      "kind": "paragraph",
+      "start_line": 856,
+      "end_line": 861,
+      "raw": "`SocialPublishingController`의 파괴자가 네트워크 작업자를 합류 대기하던 경로를\n제거한다. 가짜 전송기가 취소 확인 전에 750ms 동안 반환을 보류하는 재현 조건에서,\n기존 구현은 제공자의 반환까지 UI 종료를 기다렸다. 수정 구현은 공유 실행 상태에\n전송기와 작업을 보유시키고 UI 소유자와 분리한다. 종료 시 큐를 닫아 다음 작업의\n실행을 막고, 현재 작업에 취소를 요청한 뒤 반환한다. 원격 제공자의 처리 시간이나\n취소 자체를 강제 단축한다는 의미는 아니다.\n"
+    },
+    {
+      "id": "b000321",
+      "kind": "blank",
+      "start_line": 862,
+      "end_line": 862,
+      "raw": "\n"
+    },
+    {
+      "id": "b000322",
+      "kind": "paragraph",
+      "start_line": 863,
+      "end_line": 868,
+      "raw": "작업자는 앱의 GUI 큐에 값형 결과를 보내며, 약한 소유 참조가 유효할 때만 게시\n행을 갱신한다. 최종 결과 알림 후 표시 변경 알림을 전달하여, 화면을 닫는 관찰자가\n결과 전달을 끊거나 이미 파괴된 객체로 실행을 이어가지 않게 한다. 계정의 취소\n콜백도 큐 잠금 밖에서 실행한다. 중복 요청 ID와 계정별 최신 변경 의도는 관찰자가\n기록·계정 상태를 바꾸어도 유지한다. 상세 계약과 사례는\n[SocialPublishing.md](SocialPublishing.md)를 따른다.\n"
+    },
+    {
+      "id": "b000323",
+      "kind": "blank",
+      "start_line": 869,
+      "end_line": 869,
+      "raw": "\n"
+    },
+    {
+      "id": "b000324",
+      "kind": "heading",
+      "start_line": 870,
+      "end_line": 870,
+      "raw": "## 생성 완료 이후의 PNG·영상 저장\n",
+      "level": 2,
+      "title": "생성 완료 이후의 PNG·영상 저장"
+    },
+    {
+      "id": "b000325",
+      "kind": "blank",
+      "start_line": 871,
+      "end_line": 871,
+      "raw": "\n"
+    },
+    {
+      "id": "b000326",
+      "kind": "paragraph",
+      "start_line": 872,
+      "end_line": 875,
+      "raw": "네이티브 RGB 인코딩, 프로세스 결과의 디코딩·고급 이미지 처리, 영상 검증과\n파일 반영을 값형 저장 작업자로 이동한다. 배치마다 작업자에서 한 번 미러를\n준비하고 GUI에서는 준비된 값을 채택한다. 저장 중에는 UI 이벤트를 처리하되\n다음 생성 작업은 실제 파일 반영과 현재 작업의 완료까지 대기한다.\n"
+    },
+    {
+      "id": "b000327",
+      "kind": "blank",
+      "start_line": 876,
+      "end_line": 876,
+      "raw": "\n"
+    },
+    {
+      "id": "b000328",
+      "kind": "paragraph",
+      "start_line": 877,
+      "end_line": 882,
+      "raw": "2048×2048 결과를 실제 PNG로 저장하는 동일 프로브로 엔진 반환 이후 GUI\n이벤트 처리의 최대 공백은 749.853250ms에서 5.249208ms로 줄었다. 같은 구간의\n타이머 처리 횟수는 1회에서 347회이며, 두 결과 모두 2048×2048 PNG로 저장됐다.\n각 한 번의 제어된 관측이며 지연 보장 수치로 사용하지 않는다. 이는 PNG 저장 구간의 측정이며\n실제 생성 장치나 전체 앱 FPS의 측정값은 아니다. 취소 경계, 결과 수명과\n실행 근거는 [GenerationPublication.md](GenerationPublication.md)에 기록한다.\n"
+    },
+    {
+      "id": "b000329",
+      "kind": "blank",
+      "start_line": 883,
+      "end_line": 883,
+      "raw": "\n"
+    },
+    {
+      "id": "b000330",
+      "kind": "heading",
+      "start_line": 884,
+      "end_line": 884,
+      "raw": "## 생성 엔진과 캐시 작업 중 표시 소유자 종료\n",
+      "level": 2,
+      "title": "생성 엔진과 캐시 작업 중 표시 소유자 종료"
+    },
+    {
+      "id": "b000331",
+      "kind": "blank",
+      "start_line": 885,
+      "end_line": 885,
+      "raw": "\n"
+    },
+    {
+      "id": "b000332",
+      "kind": "paragraph",
+      "start_line": 886,
+      "end_line": 889,
+      "raw": "생성·캐시 이행의 작업자가 컨트롤러를 참조하여, 종료 시 반환까지 기다리던 경로를\n공유 취소 상태와 값형 입력의 수명으로 분리한다. 네이티브 미리보기 PNG 준비와\n캐시 메모리 해제도 작업자에서 수행한다. 영상은 실제 캐시 해제 완료를 기다린 뒤\n생성 프로세스를 시작하므로 두 작업을 UI에서 직렬 대기하지 않는다.\n"
+    },
+    {
+      "id": "b000333",
+      "kind": "blank",
+      "start_line": 890,
+      "end_line": 890,
+      "raw": "\n"
+    },
+    {
+      "id": "b000334",
+      "kind": "paragraph",
+      "start_line": 891,
+      "end_line": 896,
+      "raw": "엔진 반환을 750ms 보류하는 동일 프로브로 소유자 종료와 공급자 반환의 순서를\n확인했다. 소유자 종료는 759.730375ms에서 0.394209ms로 줄었으며, 수정 후에는\n공급자가 아직 반환하지 않은 상태에서 소유자 종료가 끝났다. 각 한 번의 제어된 관측이며\n실제 GPU 커널의 실행 시간이나 전체 앱 종료 시간의 개선 수치는 아니다.\n실행 계약과 잔여 경계는 [NativeGenerationLifetime.md](NativeGenerationLifetime.md)에\n기록한다.\n"
+    },
+    {
+      "id": "b000335",
+      "kind": "heading",
+      "start_line": 897,
+      "end_line": 897,
+      "raw": "## 외부 생성 워커 수명\n",
+      "level": 2,
+      "title": "외부 생성 워커 수명"
+    },
+    {
+      "id": "b000336",
+      "kind": "blank",
+      "start_line": 898,
+      "end_line": 898,
+      "raw": "\n"
+    },
+    {
+      "id": "b000337",
+      "kind": "paragraph",
+      "start_line": 899,
+      "end_line": 899,
+      "raw": "생성 컨트롤러의 외부 워커 실행·입출력·취소를 iiSDKCore의 네이티브 소유권으로 옮겼다. GUI 종료 시 프로세스 대기를 제거하고 출력의 처리량과 대기량을 제한한다. 순서와 파일 수명·진행 감시의 계약은 [GenerationProcess.md](GenerationProcess.md)에 기록한다.\n"
+    },
+    {
+      "id": "b000338",
+      "kind": "heading",
+      "start_line": 900,
+      "end_line": 900,
+      "raw": "## 최종 구조 정리\n",
+      "level": 2,
+      "title": "최종 구조 정리"
+    },
+    {
+      "id": "b000339",
+      "kind": "blank",
+      "start_line": 901,
+      "end_line": 901,
+      "raw": "\n"
+    },
+    {
+      "id": "b000340",
+      "kind": "paragraph",
+      "start_line": 902,
+      "end_line": 902,
+      "raw": "생성 요청 구성, 실행, 진행·프리뷰 처리를 별도 파일로 분리하고 취소·종료의 소유권을 정리한다. 파라미터와 기존 UI는 유지하며 전체 등록 검사로 최종 회귀를 확인한다. [리팩터링 범위](Refactoring.md)에 상세 구성을 기록한다.\n"
+    },
+    {
+      "id": "b000341",
+      "kind": "blank",
+      "start_line": 903,
+      "end_line": 903,
+      "raw": "\n"
+    },
+    {
+      "id": "b000342",
+      "kind": "heading",
+      "start_line": 904,
+      "end_line": 904,
+      "raw": "## 생성 검토 상태의 분리 (2026-10-24)\n",
+      "level": 2,
+      "title": "생성 검토 상태의 분리 (2026-10-24)"
+    },
+    {
+      "id": "b000343",
+      "kind": "blank",
+      "start_line": 905,
+      "end_line": 905,
+      "raw": "\n"
+    },
+    {
+      "id": "b000344",
+      "kind": "paragraph",
+      "start_line": 906,
+      "end_line": 909,
+      "raw": "`ReviewSelection.h`는 Qt·파일·추론 API를 참조하지 않는 C++23 선택 정책이다.\n`GenerationReviewModel`은 결과 스냅샷을 받아 상태·필터·정렬을 투영한다.\n후보 선정, 제외, 선택, 포커스, 비교 뷰의 확대·팬과 필터 변경은 생성\n컨트롤러 호출, 문서 revision, 저장소 refresh, 원본 파일 저장을 수행하지 않는다.\n"
+    },
+    {
+      "id": "b000345",
+      "kind": "blank",
+      "start_line": 910,
+      "end_line": 910,
+      "raw": "\n"
+    },
+    {
+      "id": "b000346",
+      "kind": "paragraph",
+      "start_line": 911,
+      "end_line": 914,
+      "raw": "완료 결과가 추가되면 기존 도착 순서를 유지하면서 tail insert를 사용한다.\n그리드는 가시 delegate와 소규모 재사용 풀만 유지하며, 미리보기는 비동기로\n읽는다. 스크롤 위치는 결과 ID와 행 오프셋으로 기억하며 필터·정렬별 위치도\n구분한다. 큐 진행률 갱신이 검토 모델의 entries 갱신을 유발하지 않는다.\n"
+    },
+    {
+      "id": "b000347",
+      "kind": "blank",
+      "start_line": 915,
+      "end_line": 915,
+      "raw": "\n"
+    },
+    {
+      "id": "b000348",
+      "kind": "paragraph",
+      "start_line": 916,
+      "end_line": 918,
+      "raw": "일괄 내보내기는 명시적 Export 명령에서만 별도 작업자로 시작한다. 입력\n스냅샷, 원본 참조, 성공·실패 집계를 UI 수명과 분리한다. 비교 100%는 제공된\n미리보기 픽셀 기준이며, 고해상도 `.iisc` 원본을 매 프레임 전체 디코딩하지 않는다.\n"
+    },
+    {
+      "id": "b000349",
+      "kind": "blank",
+      "start_line": 919,
+      "end_line": 919,
+      "raw": "\n"
+    },
+    {
+      "id": "b000350",
+      "kind": "paragraph",
+      "start_line": 920,
+      "end_line": 921,
+      "raw": "동작 계약과 회귀 검증은 [GenerationReview.md](GenerationReview.md)에 있다.\n실제 사용자 선별 시간, GPU 생성 속도 및 p95 프레임 시간은 별도 측정 대상이다.\n"
+    },
+    {
+      "id": "b000351",
+      "kind": "blank",
+      "start_line": 922,
+      "end_line": 922,
+      "raw": "\n"
+    },
+    {
+      "id": "b000352",
+      "kind": "heading",
+      "start_line": 923,
+      "end_line": 923,
+      "raw": "## 타임라인의 완성 프레임 유지\n",
+      "level": 2,
+      "title": "타임라인의 완성 프레임 유지"
+    },
+    {
+      "id": "b000353",
+      "kind": "blank",
+      "start_line": 924,
+      "end_line": 924,
+      "raw": "\n"
+    },
+    {
+      "id": "b000354",
+      "kind": "paragraph",
+      "start_line": 925,
+      "end_line": 925,
+      "raw": "Dreamscapes의 표시 노드는 다음 프레임의 타일 준비 중에도 마지막 완성 텍스처를 유지한다. 비어 있는 중간 캐시를 화면에 반영하지 않으며, 준비된 프레임을 한 번에 교체한다. 전체 캔버스의 추가 비트맵 복사 없이 기존 장면 노드를 유지하고, 대기 중 팬·확대도 뷰포트 변환으로 처리한다. 실제 투명 프레임과 문서 교체는 각각 새 결과와 새 소유자이므로 이전 그림을 유지하지 않는다.\n"
+    },
+    {
+      "id": "b000355",
+      "kind": "blank",
+      "start_line": 926,
+      "end_line": 926,
+      "raw": "\n"
+    },
+    {
+      "id": "b000356",
+      "kind": "paragraph",
+      "start_line": 927,
+      "end_line": 927,
+      "raw": "재생 타이머는 현재 렌더링이 완료된 뒤 최신 벽시계·오디오 시각의 프레임을 요청한다. 이로써 느린 프레임을 매 틱 취소하는 요청 폭주를 방지하며, 문서 리비전·Undo·파일 쓰기는 발생시키지 않는다. 실제 화면 픽셀 및 원본 무변경 검증은 `Dreamscapes.CanvasPresentation`을 사용한다. 상세 계약과 측정 한계는 [CanvasFramePresentation.md](CanvasFramePresentation.md)에 있다.\n"
+    },
+    {
+      "id": "b000357",
+      "kind": "blank",
+      "start_line": 928,
+      "end_line": 928,
+      "raw": "\n"
+    },
+    {
+      "id": "b000358",
+      "kind": "heading",
+      "start_line": 929,
+      "end_line": 929,
+      "raw": "## QML 상태 계산의 네이티브 이전\n",
+      "level": 2,
+      "title": "QML 상태 계산의 네이티브 이전"
+    },
+    {
+      "id": "b000359",
+      "kind": "blank",
+      "start_line": 930,
+      "end_line": 930,
+      "raw": "\n"
+    },
+    {
+      "id": "b000360",
+      "kind": "paragraph",
+      "start_line": 931,
+      "end_line": 931,
+      "raw": "생성·도구·타임라인·선택의 상태 계산과 명령 조합은 `DreamscapesViewModelsNative`와 앱 연결 모델로 이전했다. 짧은 입력은 타입이 정해진 iiSDKCore QueryPort에서 동기 실행하며, 파일 목록의 대량 투영은 두 작업자의 제한된 Runtime에서 비동기로 수행한다. 입력마다 스레드를 만들거나 작업 완료를 GUI에서 기다리지 않는다. 정렬·필터·선택과 파일 편집을 구분하며, 늦게 도착한 목록 결과는 세대 번호로 버린다. 자세한 계층과 검증 범위는 [네이티브 뷰모델](NativeViewModels.md)에 있다. 이것은 전체 앱의 Qt 제거 또는 측정되지 않은 전체 FPS 향상 보고가 아니다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Runtime size and UI responsiveness",
+      "anchor": "runtime-size-and-ui-responsiveness",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000019",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Apple inference profile",
+      "anchor": "apple-inference-profile",
+      "start_line": 58
+    },
+    {
+      "block_id": "b000031",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "폐기한 추론 런타임",
+      "anchor": "폐기한-추론-런타임",
+      "start_line": 86
+    },
+    {
+      "block_id": "b000035",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "패키지 검사 부모 실행기의 의존성",
+      "anchor": "패키지-검사-부모-실행기의-의존성",
+      "start_line": 90
+    },
+    {
+      "block_id": "b000045",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "2026-10-27 최종 최적화 검증",
+      "anchor": "2026-10-27-최종-최적화-검증",
+      "start_line": 113
+    },
+    {
+      "block_id": "b000059",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "UI lifecycle and invalidation",
+      "anchor": "ui-lifecycle-and-invalidation",
+      "start_line": 152
+    },
+    {
+      "block_id": "b000079",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Audio preparation and playback responsiveness",
+      "anchor": "audio-preparation-and-playback-responsiveness",
+      "start_line": 221
+    },
+    {
+      "block_id": "b000085",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Audio and undo memory",
+      "anchor": "audio-and-undo-memory",
+      "start_line": 242
+    },
+    {
+      "block_id": "b000093",
+      "parent_id": "b000085",
+      "level": 3,
+      "title": "Targeted measurements, 2026-10-17",
+      "anchor": "targeted-measurements-2026-10-17",
+      "start_line": 266
+    },
+    {
+      "block_id": "b000111",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Verification and measurements",
+      "anchor": "verification-and-measurements",
+      "start_line": 327
+    },
+    {
+      "block_id": "b000127",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Measured macOS result (2026-10-16)",
+      "anchor": "measured-macos-result-2026-10-16",
+      "start_line": 393
+    },
+    {
+      "block_id": "b000137",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Interaction-path follow-up (2026-10-16)",
+      "anchor": "interaction-path-follow-up-2026-10-16",
+      "start_line": 418
+    },
+    {
+      "block_id": "b000147",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Native timeline interaction path (2026-10-20)",
+      "anchor": "native-timeline-interaction-path-2026-10-20",
+      "start_line": 446
+    },
+    {
+      "block_id": "b000171",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Detached editor frame export",
+      "anchor": "detached-editor-frame-export",
+      "start_line": 523
+    },
+    {
+      "block_id": "b000175",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "FilmCraft viewport adaptation (2026-10-20)",
+      "anchor": "filmcraft-viewport-adaptation-2026-10-20",
+      "start_line": 536
+    },
+    {
+      "block_id": "b000184",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Selection state reads",
+      "anchor": "selection-state-reads",
+      "start_line": 575
+    },
+    {
+      "block_id": "b000190",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Working-file reads and preview rendering",
+      "anchor": "working-file-reads-and-preview-rendering",
+      "start_line": 591
+    },
+    {
+      "block_id": "b000208",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Asynchronous artboard previews",
+      "anchor": "asynchronous-artboard-previews",
+      "start_line": 663
+    },
+    {
+      "block_id": "b000222",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "FilmCraft timeline input and optional work (2026-10-21)",
+      "anchor": "filmcraft-timeline-input-and-optional-work-2026-10-21",
+      "start_line": 714
+    },
+    {
+      "block_id": "b000230",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Original import preparation (2026-10-21)",
+      "anchor": "original-import-preparation-2026-10-21",
+      "start_line": 740
+    },
+    {
+      "block_id": "b000238",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Deferred storage for view/data owners (2026-10-21)",
+      "anchor": "deferred-storage-for-viewdata-owners-2026-10-21",
+      "start_line": 765
+    },
+    {
+      "block_id": "b000242",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Working-file preparation and completion (2026-10-21)",
+      "anchor": "working-file-preparation-and-completion-2026-10-21",
+      "start_line": 769
+    },
+    {
+      "block_id": "b000246",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "한 점 색상 표본과 화이트 밸런스 입력",
+      "anchor": "한-점-색상-표본과-화이트-밸런스-입력",
+      "start_line": 781
+    },
+    {
+      "block_id": "b000254",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "그래픽 패널의 설정 계산",
+      "anchor": "그래픽-패널의-설정-계산",
+      "start_line": 790
+    },
+    {
+      "block_id": "b000260",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "카메라·사진 획득 객체의 초기화 경계",
+      "anchor": "카메라사진-획득-객체의-초기화-경계",
+      "start_line": 796
+    },
+    {
+      "block_id": "b000264",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "동적 래스터의 원본과 프레임 이동",
+      "anchor": "동적-래스터의-원본과-프레임-이동",
+      "start_line": 800
+    },
+    {
+      "block_id": "b000268",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "그래픽 이미지 명령의 작업 스레드",
+      "anchor": "그래픽-이미지-명령의-작업-스레드",
+      "start_line": 804
+    },
+    {
+      "block_id": "b000276",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "사진 원본 준비와 비대기 종료",
+      "anchor": "사진-원본-준비와-비대기-종료",
+      "start_line": 812
+    },
+    {
+      "block_id": "b000282",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "기하 마스크의 불필요한 원본 준비 제거",
+      "anchor": "기하-마스크의-불필요한-원본-준비-제거",
+      "start_line": 818
+    },
+    {
+      "block_id": "b000290",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "원본 좌표와 결과 검증의 실행 위치",
+      "anchor": "원본-좌표와-결과-검증의-실행-위치",
+      "start_line": 826
+    },
+    {
+      "block_id": "b000298",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "갤러리의 오래된 SDK 작업 생략",
+      "anchor": "갤러리의-오래된-sdk-작업-생략",
+      "start_line": 834
+    },
+    {
+      "block_id": "b000306",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "갤러리 타일의 수명과 반복 조회",
+      "anchor": "갤러리-타일의-수명과-반복-조회",
+      "start_line": 842
+    },
+    {
+      "block_id": "b000312",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "권한 승인 뒤의 필요한 읽기와 보기의 수명",
+      "anchor": "권한-승인-뒤의-필요한-읽기와-보기의-수명",
+      "start_line": 848
+    },
+    {
+      "block_id": "b000318",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "게시 컨트롤러 종료와 콜백 수명",
+      "anchor": "게시-컨트롤러-종료와-콜백-수명",
+      "start_line": 854
+    },
+    {
+      "block_id": "b000324",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "생성 완료 이후의 PNG·영상 저장",
+      "anchor": "생성-완료-이후의-png영상-저장",
+      "start_line": 870
+    },
+    {
+      "block_id": "b000330",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "생성 엔진과 캐시 작업 중 표시 소유자 종료",
+      "anchor": "생성-엔진과-캐시-작업-중-표시-소유자-종료",
+      "start_line": 884
+    },
+    {
+      "block_id": "b000335",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "외부 생성 워커 수명",
+      "anchor": "외부-생성-워커-수명",
+      "start_line": 897
+    },
+    {
+      "block_id": "b000338",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "최종 구조 정리",
+      "anchor": "최종-구조-정리",
+      "start_line": 900
+    },
+    {
+      "block_id": "b000342",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "생성 검토 상태의 분리 (2026-10-24)",
+      "anchor": "생성-검토-상태의-분리-2026-10-24",
+      "start_line": 904
+    },
+    {
+      "block_id": "b000352",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "타임라인의 완성 프레임 유지",
+      "anchor": "타임라인의-완성-프레임-유지",
+      "start_line": 923
+    },
+    {
+      "block_id": "b000358",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "QML 상태 계산의 네이티브 이전",
+      "anchor": "qml-상태-계산의-네이티브-이전",
+      "start_line": 929
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000005",
+        "line": 9,
+        "text": "switching reuses the same result, and property reads do not render or scan",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 52,
+        "text": "licenses remain, reducing the number of files that runtime validation must scan.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000017",
+        "line": 55,
+        "text": "dependencies because the application does not call them. A dependency required",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000029",
+        "line": 84,
+        "text": "and launch checks do not prove trained-model output quality.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000039",
+        "line": 102,
+        "text": "등록은 이 실제 배포 진입점의 검증 조건에 포함하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000043",
+        "line": 109,
+        "text": "스토리지 fixture를 초기화하지 않는다. 일반 GUI 함수 실행의 기존 부트스트랩은",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000051",
+        "line": 132,
+        "text": "따라서 모든 실패를 기존 문제나 실행 환경 문제로 일괄 분류하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000053",
+        "line": 136,
+        "text": "단일 행 통과는 전체 EditorElements 묶음의 실패 기록을 대체하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000061",
+        "line": 157,
+        "text": "updates the small frame/artboard/presentation context. Those actions do not emit",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000065",
+        "line": 174,
+        "text": "no-op. A preview never bypasses a writable DocumentFile transaction.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000067",
+        "line": 176,
+        "text": "Window activation and closing a generation-result view do not call model/file",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000069",
+        "line": 187,
+        "text": "and search/filter presentation do not invalidate an unchanged gallery.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000075",
+        "line": 214,
+        "text": "Video results do not instantiate the image editor.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000107",
+        "line": 310,
+        "text": "created; the test must not dereference an editor that is intentionally absent.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000107",
+        "line": 313,
+        "text": "context required for attachment import without changing no-container tests or",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000115",
+        "line": 342,
+        "text": "The iiWebServer dependency must also include the file-provider presentation",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000121",
+        "line": 379,
+        "text": "are test-only and do not populate production timelines.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000123",
+        "line": 384,
+        "text": "bundle must also pass deep signature verification and an actual application",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000131",
+        "line": 404,
+        "text": "source-QML load measurements and do not include operating-system process launch.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000151",
+        "line": 458,
+        "text": "never adds undo entries or writes the working file. Editing still validates and",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000202",
+        "line": 641,
+        "text": "Rejected file-export starts have a separate signal and do not fail accepted work.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000204",
+        "line": 648,
+        "text": "hydration through the SDK worker. Cached previews never become command inputs.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000204",
+        "line": 653,
+        "text": "operation-chain and data-identity improvements; they do not establish an",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000206",
+        "line": 661,
+        "text": "navigation. These are view-state operations and do not edit files or documents.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000214",
+        "line": 688,
+        "text": "Navigation, preview completion and optional rendering failure do not revise/save",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000234",
+        "line": 754,
+        "text": "actual document/drive change cancels stale adoption. Closing a view never joins",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000252",
+        "line": 787,
+        "text": "파일 저장·읽기·이미지 래핑을 포함하는 도형 변형 검사는 자체 임시 `.societycontainer` 드라이브를 생성한다. 외부 기본 드라이브나 사용자의 선택 상태가 이미 존재한다고 가정하지 않는다. 이 준비는 검사 환경의 격리이며 앱의 파일 접근 정책을 변경하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000256",
+        "line": 792,
+        "text": "색상 표본·프리셋과 자동 보정 등 8종의 설정 계산을 `EditorGraphicHelper`로 분리한다. 표본·프리셋은 픽셀을 캡처하지 않고, 픽셀이 필요한 분석은 C++ 작업 스레드에서 원본 레이어를 읽는다. 설정 계산 뒤 전체 효과 적용·마스크 혼합·결과 및 원본 PNG 인코딩을 하지 않는다. 버튼 가능 여부 조회에서도 청크 픽셀의 전체 펼치기를 제거한다. [입력·취소·결과 적용과 검증 계약](GraphicParameterHelpers.md)을 참조한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000262",
+        "line": 798,
+        "text": "에디터 생성자가 보유하는 `EditorCameraPhoto`의 장치 감시와 임시 폴더 생성은 실제 사용 시점으로 지연한다. 카메라 정보 조회는 장치 감시만 시작하고, 갤러리 목록·검색·선택은 장치 감시나 출력 저장소를 시작하지 않는다. 썸네일·원본 내보내기·캡처 출력은 `iiFileProvider` 네이티브 임시 디렉터리를 공유한다. 변환 없는 로컬 원본 가져오기는 출력 파일을 만들지 않는다. 계약과 검사 범위는 [EditorCameraPhoto.md](EditorCameraPhoto.md)에 기록한다. 이 변경은 초기화 작업의 발생 조건을 줄이는 것이며, 앱 전체 지연 또는 설치본의 응답 시간 개선율을 입증하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000266",
+        "line": 802,
+        "text": "앱이 SDK의 동적 래스터 편집을 실제 선택 경로에 연결한다. 원본 캐시와 지우개 복원 데이터는 현재 애셋을 구분하며, 메타데이터 확인만으로 픽셀 펼치기나 파일 작업을 시작하지 않는다. SDK는 애셋을 바꾸기 전에 미완료 페인팅을 취소한다. [동작과 검증 경계](DynamicRasterEditing.md)를 참조한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000272",
+        "line": 808,
+        "text": "내부 마스크의 픽셀별 `QVariant` 생성과 재파싱은 네이티브 `MaskView` 전달로 교체한다. 소유된 8비트 선택 영역은 한 번만 SDK 커버리지 배열로 변환하고, 기존 공개 맵 입력과 같은 반올림을 유지한다. 새 마스크 미리보기는 사용하지 않는 기존 선택 영역을 복사하거나 레이어 좌표로 변환하지 않는다. 여러 마스크의 보정 배열은 SDK에 그대로 연결하고 별도의 선택 영역이 있으면 결과를 그 영역에 제한한다. 정확성·무변경·저장 계약은 `Dreamscapes.TypedMaskInput`으로 확인한다. 합성 이미지 처리 시간과 프로세스 최대 메모리는 검증 회차의 독립 프로세스 비교 근거에 기록하며, 설치 앱의 FPS나 전경 입력 지연으로 간주하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000278",
+        "line": 814,
+        "text": "사진 원본 내보내기 완료가 소유 스레드의 동기 가져오기로 이어지던 연결을 제거한다. 대상 문서와 배치 아트보드·저장소를 수락 시점에 캡처하고, 디코딩·래퍼 준비는 별도 작업자가 맡는다. 소유 스레드는 원래 대상에 한 번의 실제 문서 편집·동기 저장만 수행한다. 갤러리 보기·선택·줌·도구 변경은 준비 작업을 다시 실행하거나 파일 상태를 발행하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000280",
+        "line": 816,
+        "text": "획득 객체의 전용 QThreadPool 대신 객체별 값형 FIFO 연속 작업을 앱 작업 풀에서 실행한다. 화면 객체를 닫을 때 작업 종료를 기다리지 않으며, 닫힌 객체의 대기 작업은 SDK 호출 전에 버린다. 원본 임시 파일은 획득과 배치 작업이 공유 소유한다. 변경 전에는 600ms 후 해제하는 원본 내보내기 조건에서 객체 종료가 250ms 제한을 초과하는 것을 재현했다. 종료 지연·원본 수명과 입력 이벤트 처리는 `Dreamscapes.PhotoImport`의 실제 네이티브 작업으로 검사한다. 이 결과를 물리 장치 응답이나 전체 앱 종료 시간으로 확대 해석하지 않는다. 자세한 계약은 [PhotoImportCommands.md](PhotoImportCommands.md)를 따른다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000284",
+        "line": 820,
+        "text": "기하 마스크 적용의 수락 단계는 문서 스냅샷과 원본 이미지 대신 레이어 크기·샘플한 변환을 네이티브 값으로 캡처한다. 작업자도 이 요청에 원본 래스터 읽기나 QImage/RGBA 부동소수 변환을 수행하지 않는다. 미리보기에는 원본 비교 이미지가 필요하므로 해당 읽기를 보존하고, 마스크 커널에 전달할 불필요한 이미지 변환만 생략한다. 실제 색·휘도·브러시·정교화 마스크는 픽셀 경로를 유지한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000286",
+        "line": 822,
+        "text": "개선 전후 성능은 별도 새 프로세스에서 같은 2048 × 2048 선형 마스크의 계산 시간·최대 RSS·결과 해시를 비교한다. 어댑터 호출과 전체 마스크 계산을 구분하며, 수락 단계의 문서 스냅샷 제거는 실제 명령 입력 검사로 확인한다. 이 측정은 애플리케이션 전경의 FPS나 모든 작업의 지연을 대표하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000292",
+        "line": 828,
+        "text": "청크 원본은 할당된 캔버스 창을 0부터 시작하는 이미지로 펼치므로, 원본의 월드 원점을 변환에 포함해야 한다. `editorRaster::describe`를 값형 캡처와 이미지 계산에 재사용하여 이 매핑을 일치시킨다. 마스크 적용의 문서·RGB 입력 생략은 유지한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000300",
+        "line": 836,
+        "text": "목록 변경 뒤 결과만 버리던 방식에서, 아직 시작하지 않은 이전 목록·썸네일을 SDK 진입 전에 생략하는 방식으로 바꾼다. 원본 가져오기와 Photos 저장에는 보기 취소 플래그를 전달하지 않아 수락한 파일 작업을 유지한다. 실제 SDK 호출은 기존 객체별 FIFO로 직렬화하며 작업 풀을 추가하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000328",
+        "line": 880,
+        "text": "각 한 번의 제어된 관측이며 지연 보장 수치로 사용하지 않는다. 이는 PNG 저장 구간의 측정이며",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000332",
+        "line": 889,
+        "text": "생성 프로세스를 시작하므로 두 작업을 UI에서 직렬 대기하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000344",
+        "line": 909,
+        "text": "컨트롤러 호출, 문서 revision, 저장소 refresh, 원본 파일 저장을 수행하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000346",
+        "line": 914,
+        "text": "구분한다. 큐 진행률 갱신이 검토 모델의 entries 갱신을 유발하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000348",
+        "line": 918,
+        "text": "미리보기 픽셀 기준이며, 고해상도 `.iisc` 원본을 매 프레임 전체 디코딩하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000354",
+        "line": 925,
+        "text": "Dreamscapes의 표시 노드는 다음 프레임의 타일 준비 중에도 마지막 완성 텍스처를 유지한다. 비어 있는 중간 캐시를 화면에 반영하지 않으며, 준비된 프레임을 한 번에 교체한다. 전체 캔버스의 추가 비트맵 복사 없이 기존 장면 노드를 유지하고, 대기 중 팬·확대도 뷰포트 변환으로 처리한다. 실제 투명 프레임과 문서 교체는 각각 새 결과와 새 소유자이므로 이전 그림을 유지하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [
+      {
+        "block_id": "b000023",
+        "language": "sh",
+        "code": "python3 scripts/build-macos-runtime.py --jobs 8\ncmake --build build --target Dreamscapes --parallel 8\n"
+      }
+    ],
+    "links": [
+      {
+        "block_id": "b000003",
+        "label": "검토 모델 성능",
+        "target": "ReviewModelPerformance.md",
+        "kind": "relative",
+        "line": 4
+      },
+      {
+        "block_id": "b000005",
+        "label": "LayerHistogram",
+        "target": "LayerHistogram.md",
+        "kind": "relative",
+        "line": 11
+      },
+      {
+        "block_id": "b000009",
+        "label": "PhotoLibraryExport",
+        "target": "PhotoLibraryExport.md",
+        "kind": "relative",
+        "line": 29
+      },
+      {
+        "block_id": "b000033",
+        "label": "런타임 폐기",
+        "target": "RuntimeRetirement.md",
+        "kind": "relative",
+        "line": 88
+      },
+      {
+        "block_id": "b000177",
+        "label": "EditorLayerTimeline",
+        "target": "EditorLayerTimeline.md",
+        "kind": "relative",
+        "line": 545
+      },
+      {
+        "block_id": "b000183",
+        "label": "InteractionAudit",
+        "target": "InteractionAudit.md",
+        "kind": "relative",
+        "line": 574
+      },
+      {
+        "block_id": "b000228",
+        "label": "EditorLayerTimeline",
+        "target": "EditorLayerTimeline.md",
+        "kind": "relative",
+        "line": 737
+      },
+      {
+        "block_id": "b000236",
+        "label": "EditorImageImport",
+        "target": "EditorImageImport.md",
+        "kind": "relative",
+        "line": 760
+      },
+      {
+        "block_id": "b000240",
+        "label": "StorageInitialization",
+        "target": "StorageInitialization.md",
+        "kind": "relative",
+        "line": 767
+      },
+      {
+        "block_id": "b000244",
+        "label": "WorkingFileOpen",
+        "target": "WorkingFileOpen.md",
+        "kind": "relative",
+        "line": 777
+      },
+      {
+        "block_id": "b000248",
+        "label": "EditorColorSampling.md",
+        "target": "EditorColorSampling.md",
+        "kind": "relative",
+        "line": 783
+      },
+      {
+        "block_id": "b000256",
+        "label": "입력·취소·결과 적용과 검증 계약",
+        "target": "GraphicParameterHelpers.md",
+        "kind": "relative",
+        "line": 792
+      },
+      {
+        "block_id": "b000262",
+        "label": "EditorCameraPhoto.md",
+        "target": "EditorCameraPhoto.md",
+        "kind": "relative",
+        "line": 798
+      },
+      {
+        "block_id": "b000266",
+        "label": "동작과 검증 경계",
+        "target": "DynamicRasterEditing.md",
+        "kind": "relative",
+        "line": 802
+      },
+      {
+        "block_id": "b000270",
+        "label": "GraphicImageCommands.md",
+        "target": "GraphicImageCommands.md",
+        "kind": "relative",
+        "line": 806
+      },
+      {
+        "block_id": "b000280",
+        "label": "PhotoImportCommands.md",
+        "target": "PhotoImportCommands.md",
+        "kind": "relative",
+        "line": 816
+      },
+      {
+        "block_id": "b000322",
+        "label": "SocialPublishing.md",
+        "target": "SocialPublishing.md",
+        "kind": "relative",
+        "line": 868
+      },
+      {
+        "block_id": "b000328",
+        "label": "GenerationPublication.md",
+        "target": "GenerationPublication.md",
+        "kind": "relative",
+        "line": 882
+      },
+      {
+        "block_id": "b000334",
+        "label": "NativeGenerationLifetime.md",
+        "target": "NativeGenerationLifetime.md",
+        "kind": "relative",
+        "line": 895
+      },
+      {
+        "block_id": "b000337",
+        "label": "GenerationProcess.md",
+        "target": "GenerationProcess.md",
+        "kind": "relative",
+        "line": 899
+      },
+      {
+        "block_id": "b000340",
+        "label": "리팩터링 범위",
+        "target": "Refactoring.md",
+        "kind": "relative",
+        "line": 902
+      },
+      {
+        "block_id": "b000350",
+        "label": "GenerationReview.md",
+        "target": "GenerationReview.md",
+        "kind": "relative",
+        "line": 920
+      },
+      {
+        "block_id": "b000356",
+        "label": "CanvasFramePresentation.md",
+        "target": "CanvasFramePresentation.md",
+        "kind": "relative",
+        "line": 927
+      },
+      {
+        "block_id": "b000360",
+        "label": "네이티브 뷰모델",
+        "target": "NativeViewModels.md",
+        "kind": "relative",
+        "line": 931
+      }
+    ],
+    "tables": [
+      {
+        "block_id": "b000097",
+        "columns": [
+          "Measurement",
+          "Before",
+          "After"
+        ],
+        "rows": [
+          [
+            "Maximum resident set",
+            "440,696,832 bytes (420.3 MiB)",
+            "185,024,512 bytes (176.5 MiB)"
+          ],
+          [
+            "Peak physical footprint",
+            "378,209,408 bytes",
+            "122,586,024 bytes"
+          ]
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

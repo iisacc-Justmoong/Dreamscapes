@@ -1,0 +1,243 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:ef4839513d5d625b3e84a844204de4f6567921568117e76250076408aaea7854",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/StorageBrowser.md",
+    "sha256": "de1c11635a41716e00f9b8b0941cdb924c102274c494ae046d2c8488235ade39",
+    "bytes": 6180,
+    "line_count": 93,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "In-app mirrored storage browser",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# In-app mirrored storage browser\n",
+      "level": 1,
+      "title": "In-app mirrored storage browser"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 8,
+      "raw": "Dreamscapes browses its selected drive through the read-only\n`iiSocietyContainer::Container` supplied by `iiSocietyHelper::FileSystem`.\nHome's All files, Generation History / View all and All published actions open\nthe corresponding collection inside Dreamscapes. Desktop Files and History\nsidebar destinations and mobile Storage, history and search destinations use\nthe same route. Explicit account actions may still open Society.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 10,
+      "end_line": 16,
+      "raw": "The browser consumes `Container.aliases`, not the capped Home lists (20 recent\nfiles, 20 history images and 4 publications). It does not start Society, mount a\ndifferent drive or create a second storage owner. It shows every existing Alias\nin the selected collection, including records whose payload is not downloaded.\nThe existing owner defines the mirror's coverage; this view does not independently\nscan or write to the drive. Folders are derived from the paths of mirrored files;\nempty directories without file Aliases are not part of this snapshot.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 18,
+      "end_line": 27,
+      "raw": "Files and Published support hierarchical folder navigation. Search includes\ndescendant paths under the current folder and is case-insensitive. Newest,\noldest and name sorting are available. The grid creates visible delegates with\na small row cache, and previews are requested only while the view is visible.\nTyping and sorting operate on cached metadata without rescanning the drive.\nThe existing preview provider still loads visible images and checks canvas\npreview versions. Refresh asks the existing owner to update the mirror. A changed drive identity clears\nfolder, query and selection so stale entries cannot be reused in another drive.\nHidden browsers retain their snapshot without rebuilding it. The owner's query\nnotifications do not rebuild the grid when its mirror revision is unchanged.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 28,
+      "end_line": 28,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 29,
+      "end_line": 34,
+      "raw": "Generation History includes image, canvas and video records beyond the Home\nlimit. A generated MP4 and its poster form one video item, whose media source is\nthe MP4 and whose preview is the poster. A legacy image wrapper is suppressed\nwhen the corresponding original image is present. Browsing preserves original\nPNGs; it does not convert or rewrite them. Canvas previews use the existing\niiSharedCanvas preview provider.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 35,
+      "end_line": 35,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 36,
+      "end_line": 47,
+      "raw": "Single click selects an item. Open, the folder card's Open action, double click\nor Enter opens a folder or file.\nImages and native canvases use the existing editor route, videos use the result\nviewer, and other local files use the platform's file handler. Missing payloads\nare labeled Not downloaded. Download and open, double click or Enter starts an\nexplicit in-process `iiSocietyHelper::FileDownload`. The browser shows byte\nprogress, connection/verification status, Cancel and Retry. Both Files and\nGeneration History use the same route. A successful download refreshes the\nowner's Alias and opens the actual local file; stale card paths are never used.\nLeaving the collection, changing drives or opening a different file retires the\nprevious open intent. Downloads do not enter the generation queue or cancel\nactive generation jobs. Local resident files work without account authentication.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 48,
+      "end_line": 48,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 49,
+      "end_line": 63,
+      "raw": "The application directly opens its selected native `.societycontainer`. Missing\npayloads use a dedicated authenticated SDK host session in the Dreamscapes\nprocess, with bounded 256 KiB chunks and worker-thread disk/journal operations.\nThe SDK pins the replica revision and native read version, verifies size and\nSHA-256, and atomically publishes into the selected container. It neither opens\nSociety nor sends local IPC, writes a shared download-request file, or waits for\nanother app's `client-session.lock`. Network retrieval needs a reachable host\nand a valid account session; authentication or connectivity failures remain in\nDreamscapes with Retry. Explicit account-management actions remain separate.\nImage selection reuses the existing multi-artboard editor flow. Non-images,\nvideos, native canvases and missing payloads are excluded from image selection.\nThe editor remains lazy until an actual file is opened. Returning from the\neditor preserves the collection and folder, and browsing preserves generation\ndrafts and active jobs. Home returns to the existing Home view. A generation\nsubmission opens the existing result route and retires the browser route.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 64,
+      "end_line": 64,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "heading",
+      "start_line": 65,
+      "end_line": 65,
+      "raw": "## Validation\n",
+      "level": 2,
+      "title": "Validation"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 66,
+      "end_line": 66,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 67,
+      "end_line": 74,
+      "raw": "`Dreamscapes.StorageBrowser` runs real pointer input in desktop and mobile QML\nlayouts against isolated native Society containers. It checks collection sizes\nbeyond Home limits, nested paths with URL-sensitive characters, search, folder\nnavigation, editor opening and return, video/poster identity, live additions and\nremovals, compact geometry, missing payload actions, progress/cancel/retry and\ndrive changes. Fresh-Alias opening and abandoned open intents are checked in\ndesktop and mobile layouts for both Files and History. It intercepts\nthe `society:` scheme and requires zero external navigations.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 75,
+      "end_line": 75,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 76,
+      "end_line": 80,
+      "raw": "A separate Cocoa/Metal run waits for every preview to become ready after a\ncompact-window reflow and checks the pixels of all six visible PNG cards.\nIts evidence is `native-views-result.json` and `native-captures/storage-macos.png`.\nThe software renderer can still report the existing LVRS Canvas `drawImage`\ndiagnostic; the native pixel check verifies the application's actual Metal path.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 81,
+      "end_line": 81,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 82,
+      "end_line": 87,
+      "raw": "`Dreamscapes.DesktopHome` now requires the in-app History route. Existing\nHome/editor routing and image-selection tests cover retained drafts and the\nshared multi-image editing behavior. The original external redirect is captured\nas a failing regression before implementation. Evidence belongs in\n`build/in-app-storage-20261016/`. Source GUI tests and the packaged Cocoa entry\npoint are separate from real mobile-device and trained-model inference checks.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 88,
+      "end_line": 88,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 89,
+      "end_line": 93,
+      "raw": "The direct-download update is recorded in `build/direct-container-download-20261016/`.\nSDK session tests retrieve real payloads over LAN TLS and account relay while a\ndifferent session owns the replica lease, without launching a Society app. They\nalso cover cancellation/resume, hash failure, drive switches and offline local\nfiles. The sync test rejects a stale selected version before publication.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "In-app mirrored storage browser",
+      "anchor": "in-app-mirrored-storage-browser",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000015",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Validation",
+      "anchor": "validation",
+      "start_line": 65
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000007",
+        "line": 27,
+        "text": "notifications do not rebuild the grid when its mirror revision is unchanged.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000011",
+        "line": 44,
+        "text": "owner's Alias and opens the actual local file; stale card paths are never used.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000011",
+        "line": 46,
+        "text": "previous open intent. Downloads do not enter the generation queue or cancel",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

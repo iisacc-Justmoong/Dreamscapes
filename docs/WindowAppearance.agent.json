@@ -1,0 +1,129 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:acac2504b2766faa2f3a46688668c3ec91883a7f2e986259c7dcadf6121910f2",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/WindowAppearance.md",
+    "sha256": "49ce9a36e058ddb0dfa365a3b9ae29d57d48bcab4f202c985a42d04ce9a10ba1",
+    "bytes": 1814,
+    "line_count": 29,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Window appearance",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Window appearance\n",
+      "level": 1,
+      "title": "Window appearance"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 8,
+      "raw": "Dreamscapes uses the default `LV.ApplicationWindow` material from\n[Figma 997:3](https://www.figma.com/design/0GkItQYSNIR0lZ3iJhfJzc?node-id=997-3).\nIt draws a neutral `#141414` background at 66% opacity, followed by a uniform\n4% application accent overlay. Its `primaryColor` is `LV.Theme.defaultPrimary`\n(`#0A84FF`), so the overlay is blue. Society uses the same contract with green\n`#57965C`. There are no product-name color switches in LVRS.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 10,
+      "end_line": 13,
+      "raw": "A live `primaryColor` change updates the overlay through the framework color\ntransition. Auxiliary windows follow the app theme unless explicitly colored.\nThe default ApplicationWindow disables radial gradients. Standalone\nWindowMaterial and PanelMaterial retain their separate radial treatment.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 14,
+      "end_line": 14,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 15,
+      "end_line": 22,
+      "raw": "Desktop Home exposes this shared material directly. It must not paint an\nopaque full-window surface above the background. Controls, cards, and\nselection feedback retain their own component surfaces. Material diffusion\nremains 64 logical pixels, native background blur stays active on supported\nmacOS windows, and foreground/window opacity remains 1.0. Editor exposes the\nsame material behind its shared sidebar; its opaque work-area surface starts\nat the sidebar's right edge. Switching between Home, Image, Video and Editor\nkeeps sidebar geometry and the content top inset stable, including fullscreen.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 23,
+      "end_line": 23,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 24,
+      "end_line": 29,
+      "raw": "`DreamscapesGuiTests mainCreatesOneSharedWindow` checks the production main\nwindow's 66% neutral tint, 4% blue overlay, disabled radial gradients, and a\nlive green-to-blue accent transition. A Cocoa run also samples the final Home\nimage to reject an opaque content layer or missing accent. LVRS tests compare\nuniform composited pixels against the Figma opacities across sizes and accent\nchanges, and ensure that foreground content stays opaque.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Window appearance",
+      "anchor": "window-appearance",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000007",
+        "line": 15,
+        "text": "Desktop Home exposes this shared material directly. It must not paint an",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000003",
+        "label": "Figma 997:3",
+        "target": "https://www.figma.com/design/0GkItQYSNIR0lZ3iJhfJzc?node-id=997-3",
+        "kind": "external",
+        "line": 4
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

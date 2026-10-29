@@ -1,0 +1,1988 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:cb6b0111f93de74e77cff996cee7537752720a58c1fbd0ce2bc42234830f12fb",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/README.md",
+    "sha256": "48cf2a18958610ba3c8768cd22e519efaf1362ae0629b3d6139c896a2ae49fe6",
+    "bytes": 8124,
+    "line_count": 94,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Dreamscapes Documentation",
+    "role": "overview",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Dreamscapes Documentation\n",
+      "level": 1,
+      "title": "Dreamscapes Documentation"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "html",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "<!-- workspace-docs:document-map:start -->\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "heading",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "## Human and agent document map\n",
+      "level": 2,
+      "title": "Human and agent document map"
+    },
+    {
+      "id": "b000005",
+      "kind": "blank",
+      "start_line": 5,
+      "end_line": 5,
+      "raw": "\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "paragraph",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "Markdown is the maintained human source. Agent JSON is a structured, source-traceable projection.\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "blank",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "table",
+      "start_line": 8,
+      "end_line": 93,
+      "raw": "| Document | Agent JSON |\n| --- | --- |\n| [`AGENT.md`](../AGENT.md) | [JSON](entrypoints/AGENT.agent.json) |\n| [`LICENSING.md`](../LICENSING.md) | [JSON](entrypoints/LICENSING.agent.json) |\n| [`README.md`](../README.md) | [JSON](entrypoints/README.agent.json) |\n| [`docs/AdvancedImageParameters.md`](AdvancedImageParameters.md) | [JSON](AdvancedImageParameters.agent.json) |\n| [`docs/ApplicationLifetime.md`](ApplicationLifetime.md) | [JSON](ApplicationLifetime.agent.json) |\n| [`docs/CanvasFramePresentation.md`](CanvasFramePresentation.md) | [JSON](CanvasFramePresentation.agent.json) |\n| [`docs/CanvasPreviews.md`](CanvasPreviews.md) | [JSON](CanvasPreviews.agent.json) |\n| [`docs/CanvasToolFeedback.md`](CanvasToolFeedback.md) | [JSON](CanvasToolFeedback.agent.json) |\n| [`docs/ColorPicker.md`](ColorPicker.md) | [JSON](ColorPicker.agent.json) |\n| [`docs/DesktopHome.md`](DesktopHome.md) | [JSON](DesktopHome.agent.json) |\n| [`docs/DynamicRasterEditing.md`](DynamicRasterEditing.md) | [JSON](DynamicRasterEditing.agent.json) |\n| [`docs/EditorBackgroundMask.md`](EditorBackgroundMask.md) | [JSON](EditorBackgroundMask.agent.json) |\n| [`docs/EditorBackgroundPanel.md`](EditorBackgroundPanel.md) | [JSON](EditorBackgroundPanel.agent.json) |\n| [`docs/EditorButtonStates.md`](EditorButtonStates.md) | [JSON](EditorButtonStates.agent.json) |\n| [`docs/EditorCameraPhoto.md`](EditorCameraPhoto.md) | [JSON](EditorCameraPhoto.agent.json) |\n| [`docs/EditorColorSampling.md`](EditorColorSampling.md) | [JSON](EditorColorSampling.agent.json) |\n| [`docs/EditorCompactLayout.md`](EditorCompactLayout.md) | [JSON](EditorCompactLayout.agent.json) |\n| [`docs/EditorCompactPanels.md`](EditorCompactPanels.md) | [JSON](EditorCompactPanels.agent.json) |\n| [`docs/EditorDesktopPanels.md`](EditorDesktopPanels.md) | [JSON](EditorDesktopPanels.agent.json) |\n| [`docs/EditorElements.md`](EditorElements.md) | [JSON](EditorElements.agent.json) |\n| [`docs/EditorFilePanel.md`](EditorFilePanel.md) | [JSON](EditorFilePanel.agent.json) |\n| [`docs/EditorGraphicAdjust.md`](EditorGraphicAdjust.md) | [JSON](EditorGraphicAdjust.agent.json) |\n| [`docs/EditorGraphicPanels.md`](EditorGraphicPanels.md) | [JSON](EditorGraphicPanels.agent.json) |\n| [`docs/EditorImageImport.md`](EditorImageImport.md) | [JSON](EditorImageImport.agent.json) |\n| [`docs/EditorLayerTimeline.md`](EditorLayerTimeline.md) | [JSON](EditorLayerTimeline.agent.json) |\n| [`docs/EditorLayers.md`](EditorLayers.md) | [JSON](EditorLayers.agent.json) |\n| [`docs/EditorLayout.md`](EditorLayout.md) | [JSON](EditorLayout.agent.json) |\n| [`docs/EditorNativeCanvas.md`](EditorNativeCanvas.md) | [JSON](EditorNativeCanvas.agent.json) |\n| [`docs/EditorPanelResizing.md`](EditorPanelResizing.md) | [JSON](EditorPanelResizing.agent.json) |\n| [`docs/EditorTextPanel.md`](EditorTextPanel.md) | [JSON](EditorTextPanel.agent.json) |\n| [`docs/EditorToolBehavior.md`](EditorToolBehavior.md) | [JSON](EditorToolBehavior.agent.json) |\n| [`docs/EditorToolPanels.md`](EditorToolPanels.md) | [JSON](EditorToolPanels.agent.json) |\n| [`docs/EditorViewOptions.md`](EditorViewOptions.md) | [JSON](EditorViewOptions.agent.json) |\n| [`docs/EditorViewport.md`](EditorViewport.md) | [JSON](EditorViewport.agent.json) |\n| [`docs/ElementTransform.md`](ElementTransform.md) | [JSON](ElementTransform.agent.json) |\n| [`docs/ElementsSelection.md`](ElementsSelection.md) | [JSON](ElementsSelection.agent.json) |\n| [`docs/FILE_PROVIDER.md`](FILE_PROVIDER.md) | [JSON](FILE_PROVIDER.agent.json) |\n| [`docs/FailureAgent.md`](FailureAgent.md) | [JSON](FailureAgent.agent.json) |\n| [`docs/FileCreationBoundary.md`](FileCreationBoundary.md) | [JSON](FileCreationBoundary.agent.json) |\n| [`docs/GenerationProcess.md`](GenerationProcess.md) | [JSON](GenerationProcess.agent.json) |\n| [`docs/GenerationPublication.md`](GenerationPublication.md) | [JSON](GenerationPublication.agent.json) |\n| [`docs/GenerationReview.md`](GenerationReview.md) | [JSON](GenerationReview.agent.json) |\n| [`docs/GraphicImageCommands.md`](GraphicImageCommands.md) | [JSON](GraphicImageCommands.agent.json) |\n| [`docs/GraphicParameterHelpers.md`](GraphicParameterHelpers.md) | [JSON](GraphicParameterHelpers.agent.json) |\n| [`docs/HomeEditorRoutes.md`](HomeEditorRoutes.md) | [JSON](HomeEditorRoutes.agent.json) |\n| [`docs/HomePaintCanvas.md`](HomePaintCanvas.md) | [JSON](HomePaintCanvas.agent.json) |\n| [`docs/ImageCanvasStorage.md`](ImageCanvasStorage.md) | [JSON](ImageCanvasStorage.agent.json) |\n| [`docs/InteractionAudit.md`](InteractionAudit.md) | [JSON](InteractionAudit.agent.json) |\n| [`docs/LayerHistogram.md`](LayerHistogram.md) | [JSON](LayerHistogram.agent.json) |\n| [`docs/Mcp.md`](Mcp.md) | [JSON](Mcp.agent.json) |\n| [`docs/MobileNavigationIcons.md`](MobileNavigationIcons.md) | [JSON](MobileNavigationIcons.agent.json) |\n| [`docs/ModelDiscovery.md`](ModelDiscovery.md) | [JSON](ModelDiscovery.agent.json) |\n| [`docs/MultiCanvasProject.md`](MultiCanvasProject.md) | [JSON](MultiCanvasProject.agent.json) |\n| [`docs/NativeGenerationLifetime.md`](NativeGenerationLifetime.md) | [JSON](NativeGenerationLifetime.agent.json) |\n| [`docs/NativeModelMount.md`](NativeModelMount.md) | [JSON](NativeModelMount.agent.json) |\n| [`docs/NativeViewModels.md`](NativeViewModels.md) | [JSON](NativeViewModels.agent.json) |\n| [`docs/NewCanvas.md`](NewCanvas.md) | [JSON](NewCanvas.agent.json) |\n| [`docs/PanelFrames.md`](PanelFrames.md) | [JSON](PanelFrames.agent.json) |\n| [`docs/PanelRows.md`](PanelRows.md) | [JSON](PanelRows.agent.json) |\n| [`docs/Performance.md`](Performance.md) | [JSON](Performance.agent.json) |\n| [`docs/PhotoImportCommands.md`](PhotoImportCommands.md) | [JSON](PhotoImportCommands.agent.json) |\n| [`docs/PhotoLibraryExport.md`](PhotoLibraryExport.md) | [JSON](PhotoLibraryExport.agent.json) |\n| [`docs/Preferences.md`](Preferences.md) | [JSON](Preferences.agent.json) |\n| [`docs/PromptFields.md`](PromptFields.md) | [JSON](PromptFields.agent.json) |\n| [`docs/PublishDestinationReview.md`](PublishDestinationReview.md) | [JSON](PublishDestinationReview.agent.json) |\n| [`docs/PublishingWorkspace.md`](PublishingWorkspace.md) | [JSON](PublishingWorkspace.agent.json) |\n| [`docs/QtIndependence.md`](QtIndependence.md) | [JSON](QtIndependence.agent.json) |\n| [`docs/Refactoring.md`](Refactoring.md) | [JSON](Refactoring.agent.json) |\n| [`docs/ReviewModelPerformance.md`](ReviewModelPerformance.md) | [JSON](ReviewModelPerformance.agent.json) |\n| [`docs/RuntimeRetirement.md`](RuntimeRetirement.md) | [JSON](RuntimeRetirement.agent.json) |\n| [`docs/SharedLogicalStorage.md`](SharedLogicalStorage.md) | [JSON](SharedLogicalStorage.agent.json) |\n| [`docs/SingleAppBuild.md`](SingleAppBuild.md) | [JSON](SingleAppBuild.agent.json) |\n| [`docs/SocialPublishing.md`](SocialPublishing.md) | [JSON](SocialPublishing.agent.json) |\n| [`docs/SocietyAliases.md`](SocietyAliases.md) | [JSON](SocietyAliases.agent.json) |\n| [`docs/StorageBrowser.md`](StorageBrowser.md) | [JSON](StorageBrowser.agent.json) |\n| [`docs/StorageInitialization.md`](StorageInitialization.md) | [JSON](StorageInitialization.agent.json) |\n| [`docs/Tooltips.md`](Tooltips.md) | [JSON](Tooltips.agent.json) |\n| [`docs/VideoGeneration.md`](VideoGeneration.md) | [JSON](VideoGeneration.agent.json) |\n| [`docs/VideoGenerationWorkspace.md`](VideoGenerationWorkspace.md) | [JSON](VideoGenerationWorkspace.agent.json) |\n| [`docs/WindowAppearance.md`](WindowAppearance.md) | [JSON](WindowAppearance.agent.json) |\n| [`docs/WindowsValidation.md`](WindowsValidation.md) | [JSON](WindowsValidation.agent.json) |\n| [`docs/WorkingFileOpen.md`](WorkingFileOpen.md) | [JSON](WorkingFileOpen.agent.json) |\n| [`docs/documentation-structure.md`](documentation-structure.md) | [JSON](documentation-structure.agent.json) |\n| [`resources/Appicon/README.md`](../resources/Appicon/README.md) | [JSON](mirrors/resources/Appicon/README.agent.json) |\n",
+      "columns": [
+        "Document",
+        "Agent JSON"
+      ],
+      "rows": [
+        [
+          "[`AGENT.md`](../AGENT.md)",
+          "[JSON](entrypoints/AGENT.agent.json)"
+        ],
+        [
+          "[`LICENSING.md`](../LICENSING.md)",
+          "[JSON](entrypoints/LICENSING.agent.json)"
+        ],
+        [
+          "[`README.md`](../README.md)",
+          "[JSON](entrypoints/README.agent.json)"
+        ],
+        [
+          "[`docs/AdvancedImageParameters.md`](AdvancedImageParameters.md)",
+          "[JSON](AdvancedImageParameters.agent.json)"
+        ],
+        [
+          "[`docs/ApplicationLifetime.md`](ApplicationLifetime.md)",
+          "[JSON](ApplicationLifetime.agent.json)"
+        ],
+        [
+          "[`docs/CanvasFramePresentation.md`](CanvasFramePresentation.md)",
+          "[JSON](CanvasFramePresentation.agent.json)"
+        ],
+        [
+          "[`docs/CanvasPreviews.md`](CanvasPreviews.md)",
+          "[JSON](CanvasPreviews.agent.json)"
+        ],
+        [
+          "[`docs/CanvasToolFeedback.md`](CanvasToolFeedback.md)",
+          "[JSON](CanvasToolFeedback.agent.json)"
+        ],
+        [
+          "[`docs/ColorPicker.md`](ColorPicker.md)",
+          "[JSON](ColorPicker.agent.json)"
+        ],
+        [
+          "[`docs/DesktopHome.md`](DesktopHome.md)",
+          "[JSON](DesktopHome.agent.json)"
+        ],
+        [
+          "[`docs/DynamicRasterEditing.md`](DynamicRasterEditing.md)",
+          "[JSON](DynamicRasterEditing.agent.json)"
+        ],
+        [
+          "[`docs/EditorBackgroundMask.md`](EditorBackgroundMask.md)",
+          "[JSON](EditorBackgroundMask.agent.json)"
+        ],
+        [
+          "[`docs/EditorBackgroundPanel.md`](EditorBackgroundPanel.md)",
+          "[JSON](EditorBackgroundPanel.agent.json)"
+        ],
+        [
+          "[`docs/EditorButtonStates.md`](EditorButtonStates.md)",
+          "[JSON](EditorButtonStates.agent.json)"
+        ],
+        [
+          "[`docs/EditorCameraPhoto.md`](EditorCameraPhoto.md)",
+          "[JSON](EditorCameraPhoto.agent.json)"
+        ],
+        [
+          "[`docs/EditorColorSampling.md`](EditorColorSampling.md)",
+          "[JSON](EditorColorSampling.agent.json)"
+        ],
+        [
+          "[`docs/EditorCompactLayout.md`](EditorCompactLayout.md)",
+          "[JSON](EditorCompactLayout.agent.json)"
+        ],
+        [
+          "[`docs/EditorCompactPanels.md`](EditorCompactPanels.md)",
+          "[JSON](EditorCompactPanels.agent.json)"
+        ],
+        [
+          "[`docs/EditorDesktopPanels.md`](EditorDesktopPanels.md)",
+          "[JSON](EditorDesktopPanels.agent.json)"
+        ],
+        [
+          "[`docs/EditorElements.md`](EditorElements.md)",
+          "[JSON](EditorElements.agent.json)"
+        ],
+        [
+          "[`docs/EditorFilePanel.md`](EditorFilePanel.md)",
+          "[JSON](EditorFilePanel.agent.json)"
+        ],
+        [
+          "[`docs/EditorGraphicAdjust.md`](EditorGraphicAdjust.md)",
+          "[JSON](EditorGraphicAdjust.agent.json)"
+        ],
+        [
+          "[`docs/EditorGraphicPanels.md`](EditorGraphicPanels.md)",
+          "[JSON](EditorGraphicPanels.agent.json)"
+        ],
+        [
+          "[`docs/EditorImageImport.md`](EditorImageImport.md)",
+          "[JSON](EditorImageImport.agent.json)"
+        ],
+        [
+          "[`docs/EditorLayerTimeline.md`](EditorLayerTimeline.md)",
+          "[JSON](EditorLayerTimeline.agent.json)"
+        ],
+        [
+          "[`docs/EditorLayers.md`](EditorLayers.md)",
+          "[JSON](EditorLayers.agent.json)"
+        ],
+        [
+          "[`docs/EditorLayout.md`](EditorLayout.md)",
+          "[JSON](EditorLayout.agent.json)"
+        ],
+        [
+          "[`docs/EditorNativeCanvas.md`](EditorNativeCanvas.md)",
+          "[JSON](EditorNativeCanvas.agent.json)"
+        ],
+        [
+          "[`docs/EditorPanelResizing.md`](EditorPanelResizing.md)",
+          "[JSON](EditorPanelResizing.agent.json)"
+        ],
+        [
+          "[`docs/EditorTextPanel.md`](EditorTextPanel.md)",
+          "[JSON](EditorTextPanel.agent.json)"
+        ],
+        [
+          "[`docs/EditorToolBehavior.md`](EditorToolBehavior.md)",
+          "[JSON](EditorToolBehavior.agent.json)"
+        ],
+        [
+          "[`docs/EditorToolPanels.md`](EditorToolPanels.md)",
+          "[JSON](EditorToolPanels.agent.json)"
+        ],
+        [
+          "[`docs/EditorViewOptions.md`](EditorViewOptions.md)",
+          "[JSON](EditorViewOptions.agent.json)"
+        ],
+        [
+          "[`docs/EditorViewport.md`](EditorViewport.md)",
+          "[JSON](EditorViewport.agent.json)"
+        ],
+        [
+          "[`docs/ElementTransform.md`](ElementTransform.md)",
+          "[JSON](ElementTransform.agent.json)"
+        ],
+        [
+          "[`docs/ElementsSelection.md`](ElementsSelection.md)",
+          "[JSON](ElementsSelection.agent.json)"
+        ],
+        [
+          "[`docs/FILE_PROVIDER.md`](FILE_PROVIDER.md)",
+          "[JSON](FILE_PROVIDER.agent.json)"
+        ],
+        [
+          "[`docs/FailureAgent.md`](FailureAgent.md)",
+          "[JSON](FailureAgent.agent.json)"
+        ],
+        [
+          "[`docs/FileCreationBoundary.md`](FileCreationBoundary.md)",
+          "[JSON](FileCreationBoundary.agent.json)"
+        ],
+        [
+          "[`docs/GenerationProcess.md`](GenerationProcess.md)",
+          "[JSON](GenerationProcess.agent.json)"
+        ],
+        [
+          "[`docs/GenerationPublication.md`](GenerationPublication.md)",
+          "[JSON](GenerationPublication.agent.json)"
+        ],
+        [
+          "[`docs/GenerationReview.md`](GenerationReview.md)",
+          "[JSON](GenerationReview.agent.json)"
+        ],
+        [
+          "[`docs/GraphicImageCommands.md`](GraphicImageCommands.md)",
+          "[JSON](GraphicImageCommands.agent.json)"
+        ],
+        [
+          "[`docs/GraphicParameterHelpers.md`](GraphicParameterHelpers.md)",
+          "[JSON](GraphicParameterHelpers.agent.json)"
+        ],
+        [
+          "[`docs/HomeEditorRoutes.md`](HomeEditorRoutes.md)",
+          "[JSON](HomeEditorRoutes.agent.json)"
+        ],
+        [
+          "[`docs/HomePaintCanvas.md`](HomePaintCanvas.md)",
+          "[JSON](HomePaintCanvas.agent.json)"
+        ],
+        [
+          "[`docs/ImageCanvasStorage.md`](ImageCanvasStorage.md)",
+          "[JSON](ImageCanvasStorage.agent.json)"
+        ],
+        [
+          "[`docs/InteractionAudit.md`](InteractionAudit.md)",
+          "[JSON](InteractionAudit.agent.json)"
+        ],
+        [
+          "[`docs/LayerHistogram.md`](LayerHistogram.md)",
+          "[JSON](LayerHistogram.agent.json)"
+        ],
+        [
+          "[`docs/Mcp.md`](Mcp.md)",
+          "[JSON](Mcp.agent.json)"
+        ],
+        [
+          "[`docs/MobileNavigationIcons.md`](MobileNavigationIcons.md)",
+          "[JSON](MobileNavigationIcons.agent.json)"
+        ],
+        [
+          "[`docs/ModelDiscovery.md`](ModelDiscovery.md)",
+          "[JSON](ModelDiscovery.agent.json)"
+        ],
+        [
+          "[`docs/MultiCanvasProject.md`](MultiCanvasProject.md)",
+          "[JSON](MultiCanvasProject.agent.json)"
+        ],
+        [
+          "[`docs/NativeGenerationLifetime.md`](NativeGenerationLifetime.md)",
+          "[JSON](NativeGenerationLifetime.agent.json)"
+        ],
+        [
+          "[`docs/NativeModelMount.md`](NativeModelMount.md)",
+          "[JSON](NativeModelMount.agent.json)"
+        ],
+        [
+          "[`docs/NativeViewModels.md`](NativeViewModels.md)",
+          "[JSON](NativeViewModels.agent.json)"
+        ],
+        [
+          "[`docs/NewCanvas.md`](NewCanvas.md)",
+          "[JSON](NewCanvas.agent.json)"
+        ],
+        [
+          "[`docs/PanelFrames.md`](PanelFrames.md)",
+          "[JSON](PanelFrames.agent.json)"
+        ],
+        [
+          "[`docs/PanelRows.md`](PanelRows.md)",
+          "[JSON](PanelRows.agent.json)"
+        ],
+        [
+          "[`docs/Performance.md`](Performance.md)",
+          "[JSON](Performance.agent.json)"
+        ],
+        [
+          "[`docs/PhotoImportCommands.md`](PhotoImportCommands.md)",
+          "[JSON](PhotoImportCommands.agent.json)"
+        ],
+        [
+          "[`docs/PhotoLibraryExport.md`](PhotoLibraryExport.md)",
+          "[JSON](PhotoLibraryExport.agent.json)"
+        ],
+        [
+          "[`docs/Preferences.md`](Preferences.md)",
+          "[JSON](Preferences.agent.json)"
+        ],
+        [
+          "[`docs/PromptFields.md`](PromptFields.md)",
+          "[JSON](PromptFields.agent.json)"
+        ],
+        [
+          "[`docs/PublishDestinationReview.md`](PublishDestinationReview.md)",
+          "[JSON](PublishDestinationReview.agent.json)"
+        ],
+        [
+          "[`docs/PublishingWorkspace.md`](PublishingWorkspace.md)",
+          "[JSON](PublishingWorkspace.agent.json)"
+        ],
+        [
+          "[`docs/QtIndependence.md`](QtIndependence.md)",
+          "[JSON](QtIndependence.agent.json)"
+        ],
+        [
+          "[`docs/Refactoring.md`](Refactoring.md)",
+          "[JSON](Refactoring.agent.json)"
+        ],
+        [
+          "[`docs/ReviewModelPerformance.md`](ReviewModelPerformance.md)",
+          "[JSON](ReviewModelPerformance.agent.json)"
+        ],
+        [
+          "[`docs/RuntimeRetirement.md`](RuntimeRetirement.md)",
+          "[JSON](RuntimeRetirement.agent.json)"
+        ],
+        [
+          "[`docs/SharedLogicalStorage.md`](SharedLogicalStorage.md)",
+          "[JSON](SharedLogicalStorage.agent.json)"
+        ],
+        [
+          "[`docs/SingleAppBuild.md`](SingleAppBuild.md)",
+          "[JSON](SingleAppBuild.agent.json)"
+        ],
+        [
+          "[`docs/SocialPublishing.md`](SocialPublishing.md)",
+          "[JSON](SocialPublishing.agent.json)"
+        ],
+        [
+          "[`docs/SocietyAliases.md`](SocietyAliases.md)",
+          "[JSON](SocietyAliases.agent.json)"
+        ],
+        [
+          "[`docs/StorageBrowser.md`](StorageBrowser.md)",
+          "[JSON](StorageBrowser.agent.json)"
+        ],
+        [
+          "[`docs/StorageInitialization.md`](StorageInitialization.md)",
+          "[JSON](StorageInitialization.agent.json)"
+        ],
+        [
+          "[`docs/Tooltips.md`](Tooltips.md)",
+          "[JSON](Tooltips.agent.json)"
+        ],
+        [
+          "[`docs/VideoGeneration.md`](VideoGeneration.md)",
+          "[JSON](VideoGeneration.agent.json)"
+        ],
+        [
+          "[`docs/VideoGenerationWorkspace.md`](VideoGenerationWorkspace.md)",
+          "[JSON](VideoGenerationWorkspace.agent.json)"
+        ],
+        [
+          "[`docs/WindowAppearance.md`](WindowAppearance.md)",
+          "[JSON](WindowAppearance.agent.json)"
+        ],
+        [
+          "[`docs/WindowsValidation.md`](WindowsValidation.md)",
+          "[JSON](WindowsValidation.agent.json)"
+        ],
+        [
+          "[`docs/WorkingFileOpen.md`](WorkingFileOpen.md)",
+          "[JSON](WorkingFileOpen.agent.json)"
+        ],
+        [
+          "[`docs/documentation-structure.md`](documentation-structure.md)",
+          "[JSON](documentation-structure.agent.json)"
+        ],
+        [
+          "[`resources/Appicon/README.md`](../resources/Appicon/README.md)",
+          "[JSON](mirrors/resources/Appicon/README.agent.json)"
+        ]
+      ]
+    },
+    {
+      "id": "b000009",
+      "kind": "html",
+      "start_line": 94,
+      "end_line": 94,
+      "raw": "<!-- workspace-docs:document-map:end -->\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Dreamscapes Documentation",
+      "anchor": "dreamscapes-documentation",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000004",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Human and agent document map",
+      "anchor": "human-and-agent-document-map",
+      "start_line": 4
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000008",
+        "label": "`AGENT.md`",
+        "target": "../AGENT.md",
+        "kind": "relative",
+        "line": 10
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "entrypoints/AGENT.agent.json",
+        "kind": "relative",
+        "line": 10
+      },
+      {
+        "block_id": "b000008",
+        "label": "`LICENSING.md`",
+        "target": "../LICENSING.md",
+        "kind": "relative",
+        "line": 11
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "entrypoints/LICENSING.agent.json",
+        "kind": "relative",
+        "line": 11
+      },
+      {
+        "block_id": "b000008",
+        "label": "`README.md`",
+        "target": "../README.md",
+        "kind": "relative",
+        "line": 12
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "entrypoints/README.agent.json",
+        "kind": "relative",
+        "line": 12
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/AdvancedImageParameters.md`",
+        "target": "AdvancedImageParameters.md",
+        "kind": "relative",
+        "line": 13
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "AdvancedImageParameters.agent.json",
+        "kind": "relative",
+        "line": 13
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/ApplicationLifetime.md`",
+        "target": "ApplicationLifetime.md",
+        "kind": "relative",
+        "line": 14
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "ApplicationLifetime.agent.json",
+        "kind": "relative",
+        "line": 14
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/CanvasFramePresentation.md`",
+        "target": "CanvasFramePresentation.md",
+        "kind": "relative",
+        "line": 15
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "CanvasFramePresentation.agent.json",
+        "kind": "relative",
+        "line": 15
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/CanvasPreviews.md`",
+        "target": "CanvasPreviews.md",
+        "kind": "relative",
+        "line": 16
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "CanvasPreviews.agent.json",
+        "kind": "relative",
+        "line": 16
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/CanvasToolFeedback.md`",
+        "target": "CanvasToolFeedback.md",
+        "kind": "relative",
+        "line": 17
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "CanvasToolFeedback.agent.json",
+        "kind": "relative",
+        "line": 17
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/ColorPicker.md`",
+        "target": "ColorPicker.md",
+        "kind": "relative",
+        "line": 18
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "ColorPicker.agent.json",
+        "kind": "relative",
+        "line": 18
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/DesktopHome.md`",
+        "target": "DesktopHome.md",
+        "kind": "relative",
+        "line": 19
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "DesktopHome.agent.json",
+        "kind": "relative",
+        "line": 19
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/DynamicRasterEditing.md`",
+        "target": "DynamicRasterEditing.md",
+        "kind": "relative",
+        "line": 20
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "DynamicRasterEditing.agent.json",
+        "kind": "relative",
+        "line": 20
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorBackgroundMask.md`",
+        "target": "EditorBackgroundMask.md",
+        "kind": "relative",
+        "line": 21
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorBackgroundMask.agent.json",
+        "kind": "relative",
+        "line": 21
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorBackgroundPanel.md`",
+        "target": "EditorBackgroundPanel.md",
+        "kind": "relative",
+        "line": 22
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorBackgroundPanel.agent.json",
+        "kind": "relative",
+        "line": 22
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorButtonStates.md`",
+        "target": "EditorButtonStates.md",
+        "kind": "relative",
+        "line": 23
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorButtonStates.agent.json",
+        "kind": "relative",
+        "line": 23
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorCameraPhoto.md`",
+        "target": "EditorCameraPhoto.md",
+        "kind": "relative",
+        "line": 24
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorCameraPhoto.agent.json",
+        "kind": "relative",
+        "line": 24
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorColorSampling.md`",
+        "target": "EditorColorSampling.md",
+        "kind": "relative",
+        "line": 25
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorColorSampling.agent.json",
+        "kind": "relative",
+        "line": 25
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorCompactLayout.md`",
+        "target": "EditorCompactLayout.md",
+        "kind": "relative",
+        "line": 26
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorCompactLayout.agent.json",
+        "kind": "relative",
+        "line": 26
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorCompactPanels.md`",
+        "target": "EditorCompactPanels.md",
+        "kind": "relative",
+        "line": 27
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorCompactPanels.agent.json",
+        "kind": "relative",
+        "line": 27
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorDesktopPanels.md`",
+        "target": "EditorDesktopPanels.md",
+        "kind": "relative",
+        "line": 28
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorDesktopPanels.agent.json",
+        "kind": "relative",
+        "line": 28
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorElements.md`",
+        "target": "EditorElements.md",
+        "kind": "relative",
+        "line": 29
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorElements.agent.json",
+        "kind": "relative",
+        "line": 29
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorFilePanel.md`",
+        "target": "EditorFilePanel.md",
+        "kind": "relative",
+        "line": 30
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorFilePanel.agent.json",
+        "kind": "relative",
+        "line": 30
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorGraphicAdjust.md`",
+        "target": "EditorGraphicAdjust.md",
+        "kind": "relative",
+        "line": 31
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorGraphicAdjust.agent.json",
+        "kind": "relative",
+        "line": 31
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorGraphicPanels.md`",
+        "target": "EditorGraphicPanels.md",
+        "kind": "relative",
+        "line": 32
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorGraphicPanels.agent.json",
+        "kind": "relative",
+        "line": 32
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorImageImport.md`",
+        "target": "EditorImageImport.md",
+        "kind": "relative",
+        "line": 33
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorImageImport.agent.json",
+        "kind": "relative",
+        "line": 33
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorLayerTimeline.md`",
+        "target": "EditorLayerTimeline.md",
+        "kind": "relative",
+        "line": 34
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorLayerTimeline.agent.json",
+        "kind": "relative",
+        "line": 34
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorLayers.md`",
+        "target": "EditorLayers.md",
+        "kind": "relative",
+        "line": 35
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorLayers.agent.json",
+        "kind": "relative",
+        "line": 35
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorLayout.md`",
+        "target": "EditorLayout.md",
+        "kind": "relative",
+        "line": 36
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorLayout.agent.json",
+        "kind": "relative",
+        "line": 36
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorNativeCanvas.md`",
+        "target": "EditorNativeCanvas.md",
+        "kind": "relative",
+        "line": 37
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorNativeCanvas.agent.json",
+        "kind": "relative",
+        "line": 37
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorPanelResizing.md`",
+        "target": "EditorPanelResizing.md",
+        "kind": "relative",
+        "line": 38
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorPanelResizing.agent.json",
+        "kind": "relative",
+        "line": 38
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorTextPanel.md`",
+        "target": "EditorTextPanel.md",
+        "kind": "relative",
+        "line": 39
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorTextPanel.agent.json",
+        "kind": "relative",
+        "line": 39
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorToolBehavior.md`",
+        "target": "EditorToolBehavior.md",
+        "kind": "relative",
+        "line": 40
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorToolBehavior.agent.json",
+        "kind": "relative",
+        "line": 40
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorToolPanels.md`",
+        "target": "EditorToolPanels.md",
+        "kind": "relative",
+        "line": 41
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorToolPanels.agent.json",
+        "kind": "relative",
+        "line": 41
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorViewOptions.md`",
+        "target": "EditorViewOptions.md",
+        "kind": "relative",
+        "line": 42
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorViewOptions.agent.json",
+        "kind": "relative",
+        "line": 42
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/EditorViewport.md`",
+        "target": "EditorViewport.md",
+        "kind": "relative",
+        "line": 43
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "EditorViewport.agent.json",
+        "kind": "relative",
+        "line": 43
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/ElementTransform.md`",
+        "target": "ElementTransform.md",
+        "kind": "relative",
+        "line": 44
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "ElementTransform.agent.json",
+        "kind": "relative",
+        "line": 44
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/ElementsSelection.md`",
+        "target": "ElementsSelection.md",
+        "kind": "relative",
+        "line": 45
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "ElementsSelection.agent.json",
+        "kind": "relative",
+        "line": 45
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/FILE_PROVIDER.md`",
+        "target": "FILE_PROVIDER.md",
+        "kind": "relative",
+        "line": 46
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "FILE_PROVIDER.agent.json",
+        "kind": "relative",
+        "line": 46
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/FailureAgent.md`",
+        "target": "FailureAgent.md",
+        "kind": "relative",
+        "line": 47
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "FailureAgent.agent.json",
+        "kind": "relative",
+        "line": 47
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/FileCreationBoundary.md`",
+        "target": "FileCreationBoundary.md",
+        "kind": "relative",
+        "line": 48
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "FileCreationBoundary.agent.json",
+        "kind": "relative",
+        "line": 48
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/GenerationProcess.md`",
+        "target": "GenerationProcess.md",
+        "kind": "relative",
+        "line": 49
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "GenerationProcess.agent.json",
+        "kind": "relative",
+        "line": 49
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/GenerationPublication.md`",
+        "target": "GenerationPublication.md",
+        "kind": "relative",
+        "line": 50
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "GenerationPublication.agent.json",
+        "kind": "relative",
+        "line": 50
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/GenerationReview.md`",
+        "target": "GenerationReview.md",
+        "kind": "relative",
+        "line": 51
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "GenerationReview.agent.json",
+        "kind": "relative",
+        "line": 51
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/GraphicImageCommands.md`",
+        "target": "GraphicImageCommands.md",
+        "kind": "relative",
+        "line": 52
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "GraphicImageCommands.agent.json",
+        "kind": "relative",
+        "line": 52
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/GraphicParameterHelpers.md`",
+        "target": "GraphicParameterHelpers.md",
+        "kind": "relative",
+        "line": 53
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "GraphicParameterHelpers.agent.json",
+        "kind": "relative",
+        "line": 53
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/HomeEditorRoutes.md`",
+        "target": "HomeEditorRoutes.md",
+        "kind": "relative",
+        "line": 54
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "HomeEditorRoutes.agent.json",
+        "kind": "relative",
+        "line": 54
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/HomePaintCanvas.md`",
+        "target": "HomePaintCanvas.md",
+        "kind": "relative",
+        "line": 55
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "HomePaintCanvas.agent.json",
+        "kind": "relative",
+        "line": 55
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/ImageCanvasStorage.md`",
+        "target": "ImageCanvasStorage.md",
+        "kind": "relative",
+        "line": 56
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "ImageCanvasStorage.agent.json",
+        "kind": "relative",
+        "line": 56
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/InteractionAudit.md`",
+        "target": "InteractionAudit.md",
+        "kind": "relative",
+        "line": 57
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "InteractionAudit.agent.json",
+        "kind": "relative",
+        "line": 57
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/LayerHistogram.md`",
+        "target": "LayerHistogram.md",
+        "kind": "relative",
+        "line": 58
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "LayerHistogram.agent.json",
+        "kind": "relative",
+        "line": 58
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/Mcp.md`",
+        "target": "Mcp.md",
+        "kind": "relative",
+        "line": 59
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "Mcp.agent.json",
+        "kind": "relative",
+        "line": 59
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/MobileNavigationIcons.md`",
+        "target": "MobileNavigationIcons.md",
+        "kind": "relative",
+        "line": 60
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "MobileNavigationIcons.agent.json",
+        "kind": "relative",
+        "line": 60
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/ModelDiscovery.md`",
+        "target": "ModelDiscovery.md",
+        "kind": "relative",
+        "line": 61
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "ModelDiscovery.agent.json",
+        "kind": "relative",
+        "line": 61
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/MultiCanvasProject.md`",
+        "target": "MultiCanvasProject.md",
+        "kind": "relative",
+        "line": 62
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "MultiCanvasProject.agent.json",
+        "kind": "relative",
+        "line": 62
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeGenerationLifetime.md`",
+        "target": "NativeGenerationLifetime.md",
+        "kind": "relative",
+        "line": 63
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeGenerationLifetime.agent.json",
+        "kind": "relative",
+        "line": 63
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeModelMount.md`",
+        "target": "NativeModelMount.md",
+        "kind": "relative",
+        "line": 64
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeModelMount.agent.json",
+        "kind": "relative",
+        "line": 64
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeViewModels.md`",
+        "target": "NativeViewModels.md",
+        "kind": "relative",
+        "line": 65
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeViewModels.agent.json",
+        "kind": "relative",
+        "line": 65
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NewCanvas.md`",
+        "target": "NewCanvas.md",
+        "kind": "relative",
+        "line": 66
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NewCanvas.agent.json",
+        "kind": "relative",
+        "line": 66
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/PanelFrames.md`",
+        "target": "PanelFrames.md",
+        "kind": "relative",
+        "line": 67
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "PanelFrames.agent.json",
+        "kind": "relative",
+        "line": 67
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/PanelRows.md`",
+        "target": "PanelRows.md",
+        "kind": "relative",
+        "line": 68
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "PanelRows.agent.json",
+        "kind": "relative",
+        "line": 68
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/Performance.md`",
+        "target": "Performance.md",
+        "kind": "relative",
+        "line": 69
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "Performance.agent.json",
+        "kind": "relative",
+        "line": 69
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/PhotoImportCommands.md`",
+        "target": "PhotoImportCommands.md",
+        "kind": "relative",
+        "line": 70
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "PhotoImportCommands.agent.json",
+        "kind": "relative",
+        "line": 70
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/PhotoLibraryExport.md`",
+        "target": "PhotoLibraryExport.md",
+        "kind": "relative",
+        "line": 71
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "PhotoLibraryExport.agent.json",
+        "kind": "relative",
+        "line": 71
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/Preferences.md`",
+        "target": "Preferences.md",
+        "kind": "relative",
+        "line": 72
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "Preferences.agent.json",
+        "kind": "relative",
+        "line": 72
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/PromptFields.md`",
+        "target": "PromptFields.md",
+        "kind": "relative",
+        "line": 73
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "PromptFields.agent.json",
+        "kind": "relative",
+        "line": 73
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/PublishDestinationReview.md`",
+        "target": "PublishDestinationReview.md",
+        "kind": "relative",
+        "line": 74
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "PublishDestinationReview.agent.json",
+        "kind": "relative",
+        "line": 74
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/PublishingWorkspace.md`",
+        "target": "PublishingWorkspace.md",
+        "kind": "relative",
+        "line": 75
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "PublishingWorkspace.agent.json",
+        "kind": "relative",
+        "line": 75
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/QtIndependence.md`",
+        "target": "QtIndependence.md",
+        "kind": "relative",
+        "line": 76
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "QtIndependence.agent.json",
+        "kind": "relative",
+        "line": 76
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/Refactoring.md`",
+        "target": "Refactoring.md",
+        "kind": "relative",
+        "line": 77
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "Refactoring.agent.json",
+        "kind": "relative",
+        "line": 77
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/ReviewModelPerformance.md`",
+        "target": "ReviewModelPerformance.md",
+        "kind": "relative",
+        "line": 78
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "ReviewModelPerformance.agent.json",
+        "kind": "relative",
+        "line": 78
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/RuntimeRetirement.md`",
+        "target": "RuntimeRetirement.md",
+        "kind": "relative",
+        "line": 79
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "RuntimeRetirement.agent.json",
+        "kind": "relative",
+        "line": 79
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/SharedLogicalStorage.md`",
+        "target": "SharedLogicalStorage.md",
+        "kind": "relative",
+        "line": 80
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "SharedLogicalStorage.agent.json",
+        "kind": "relative",
+        "line": 80
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/SingleAppBuild.md`",
+        "target": "SingleAppBuild.md",
+        "kind": "relative",
+        "line": 81
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "SingleAppBuild.agent.json",
+        "kind": "relative",
+        "line": 81
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/SocialPublishing.md`",
+        "target": "SocialPublishing.md",
+        "kind": "relative",
+        "line": 82
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "SocialPublishing.agent.json",
+        "kind": "relative",
+        "line": 82
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/SocietyAliases.md`",
+        "target": "SocietyAliases.md",
+        "kind": "relative",
+        "line": 83
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "SocietyAliases.agent.json",
+        "kind": "relative",
+        "line": 83
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/StorageBrowser.md`",
+        "target": "StorageBrowser.md",
+        "kind": "relative",
+        "line": 84
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "StorageBrowser.agent.json",
+        "kind": "relative",
+        "line": 84
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/StorageInitialization.md`",
+        "target": "StorageInitialization.md",
+        "kind": "relative",
+        "line": 85
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "StorageInitialization.agent.json",
+        "kind": "relative",
+        "line": 85
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/Tooltips.md`",
+        "target": "Tooltips.md",
+        "kind": "relative",
+        "line": 86
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "Tooltips.agent.json",
+        "kind": "relative",
+        "line": 86
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/VideoGeneration.md`",
+        "target": "VideoGeneration.md",
+        "kind": "relative",
+        "line": 87
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "VideoGeneration.agent.json",
+        "kind": "relative",
+        "line": 87
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/VideoGenerationWorkspace.md`",
+        "target": "VideoGenerationWorkspace.md",
+        "kind": "relative",
+        "line": 88
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "VideoGenerationWorkspace.agent.json",
+        "kind": "relative",
+        "line": 88
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/WindowAppearance.md`",
+        "target": "WindowAppearance.md",
+        "kind": "relative",
+        "line": 89
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "WindowAppearance.agent.json",
+        "kind": "relative",
+        "line": 89
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/WindowsValidation.md`",
+        "target": "WindowsValidation.md",
+        "kind": "relative",
+        "line": 90
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "WindowsValidation.agent.json",
+        "kind": "relative",
+        "line": 90
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/WorkingFileOpen.md`",
+        "target": "WorkingFileOpen.md",
+        "kind": "relative",
+        "line": 91
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "WorkingFileOpen.agent.json",
+        "kind": "relative",
+        "line": 91
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/documentation-structure.md`",
+        "target": "documentation-structure.md",
+        "kind": "relative",
+        "line": 92
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "documentation-structure.agent.json",
+        "kind": "relative",
+        "line": 92
+      },
+      {
+        "block_id": "b000008",
+        "label": "`resources/Appicon/README.md`",
+        "target": "../resources/Appicon/README.md",
+        "kind": "relative",
+        "line": 93
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "mirrors/resources/Appicon/README.agent.json",
+        "kind": "relative",
+        "line": 93
+      }
+    ],
+    "tables": [
+      {
+        "block_id": "b000008",
+        "columns": [
+          "Document",
+          "Agent JSON"
+        ],
+        "rows": [
+          [
+            "[`AGENT.md`](../AGENT.md)",
+            "[JSON](entrypoints/AGENT.agent.json)"
+          ],
+          [
+            "[`LICENSING.md`](../LICENSING.md)",
+            "[JSON](entrypoints/LICENSING.agent.json)"
+          ],
+          [
+            "[`README.md`](../README.md)",
+            "[JSON](entrypoints/README.agent.json)"
+          ],
+          [
+            "[`docs/AdvancedImageParameters.md`](AdvancedImageParameters.md)",
+            "[JSON](AdvancedImageParameters.agent.json)"
+          ],
+          [
+            "[`docs/ApplicationLifetime.md`](ApplicationLifetime.md)",
+            "[JSON](ApplicationLifetime.agent.json)"
+          ],
+          [
+            "[`docs/CanvasFramePresentation.md`](CanvasFramePresentation.md)",
+            "[JSON](CanvasFramePresentation.agent.json)"
+          ],
+          [
+            "[`docs/CanvasPreviews.md`](CanvasPreviews.md)",
+            "[JSON](CanvasPreviews.agent.json)"
+          ],
+          [
+            "[`docs/CanvasToolFeedback.md`](CanvasToolFeedback.md)",
+            "[JSON](CanvasToolFeedback.agent.json)"
+          ],
+          [
+            "[`docs/ColorPicker.md`](ColorPicker.md)",
+            "[JSON](ColorPicker.agent.json)"
+          ],
+          [
+            "[`docs/DesktopHome.md`](DesktopHome.md)",
+            "[JSON](DesktopHome.agent.json)"
+          ],
+          [
+            "[`docs/DynamicRasterEditing.md`](DynamicRasterEditing.md)",
+            "[JSON](DynamicRasterEditing.agent.json)"
+          ],
+          [
+            "[`docs/EditorBackgroundMask.md`](EditorBackgroundMask.md)",
+            "[JSON](EditorBackgroundMask.agent.json)"
+          ],
+          [
+            "[`docs/EditorBackgroundPanel.md`](EditorBackgroundPanel.md)",
+            "[JSON](EditorBackgroundPanel.agent.json)"
+          ],
+          [
+            "[`docs/EditorButtonStates.md`](EditorButtonStates.md)",
+            "[JSON](EditorButtonStates.agent.json)"
+          ],
+          [
+            "[`docs/EditorCameraPhoto.md`](EditorCameraPhoto.md)",
+            "[JSON](EditorCameraPhoto.agent.json)"
+          ],
+          [
+            "[`docs/EditorColorSampling.md`](EditorColorSampling.md)",
+            "[JSON](EditorColorSampling.agent.json)"
+          ],
+          [
+            "[`docs/EditorCompactLayout.md`](EditorCompactLayout.md)",
+            "[JSON](EditorCompactLayout.agent.json)"
+          ],
+          [
+            "[`docs/EditorCompactPanels.md`](EditorCompactPanels.md)",
+            "[JSON](EditorCompactPanels.agent.json)"
+          ],
+          [
+            "[`docs/EditorDesktopPanels.md`](EditorDesktopPanels.md)",
+            "[JSON](EditorDesktopPanels.agent.json)"
+          ],
+          [
+            "[`docs/EditorElements.md`](EditorElements.md)",
+            "[JSON](EditorElements.agent.json)"
+          ],
+          [
+            "[`docs/EditorFilePanel.md`](EditorFilePanel.md)",
+            "[JSON](EditorFilePanel.agent.json)"
+          ],
+          [
+            "[`docs/EditorGraphicAdjust.md`](EditorGraphicAdjust.md)",
+            "[JSON](EditorGraphicAdjust.agent.json)"
+          ],
+          [
+            "[`docs/EditorGraphicPanels.md`](EditorGraphicPanels.md)",
+            "[JSON](EditorGraphicPanels.agent.json)"
+          ],
+          [
+            "[`docs/EditorImageImport.md`](EditorImageImport.md)",
+            "[JSON](EditorImageImport.agent.json)"
+          ],
+          [
+            "[`docs/EditorLayerTimeline.md`](EditorLayerTimeline.md)",
+            "[JSON](EditorLayerTimeline.agent.json)"
+          ],
+          [
+            "[`docs/EditorLayers.md`](EditorLayers.md)",
+            "[JSON](EditorLayers.agent.json)"
+          ],
+          [
+            "[`docs/EditorLayout.md`](EditorLayout.md)",
+            "[JSON](EditorLayout.agent.json)"
+          ],
+          [
+            "[`docs/EditorNativeCanvas.md`](EditorNativeCanvas.md)",
+            "[JSON](EditorNativeCanvas.agent.json)"
+          ],
+          [
+            "[`docs/EditorPanelResizing.md`](EditorPanelResizing.md)",
+            "[JSON](EditorPanelResizing.agent.json)"
+          ],
+          [
+            "[`docs/EditorTextPanel.md`](EditorTextPanel.md)",
+            "[JSON](EditorTextPanel.agent.json)"
+          ],
+          [
+            "[`docs/EditorToolBehavior.md`](EditorToolBehavior.md)",
+            "[JSON](EditorToolBehavior.agent.json)"
+          ],
+          [
+            "[`docs/EditorToolPanels.md`](EditorToolPanels.md)",
+            "[JSON](EditorToolPanels.agent.json)"
+          ],
+          [
+            "[`docs/EditorViewOptions.md`](EditorViewOptions.md)",
+            "[JSON](EditorViewOptions.agent.json)"
+          ],
+          [
+            "[`docs/EditorViewport.md`](EditorViewport.md)",
+            "[JSON](EditorViewport.agent.json)"
+          ],
+          [
+            "[`docs/ElementTransform.md`](ElementTransform.md)",
+            "[JSON](ElementTransform.agent.json)"
+          ],
+          [
+            "[`docs/ElementsSelection.md`](ElementsSelection.md)",
+            "[JSON](ElementsSelection.agent.json)"
+          ],
+          [
+            "[`docs/FILE_PROVIDER.md`](FILE_PROVIDER.md)",
+            "[JSON](FILE_PROVIDER.agent.json)"
+          ],
+          [
+            "[`docs/FailureAgent.md`](FailureAgent.md)",
+            "[JSON](FailureAgent.agent.json)"
+          ],
+          [
+            "[`docs/FileCreationBoundary.md`](FileCreationBoundary.md)",
+            "[JSON](FileCreationBoundary.agent.json)"
+          ],
+          [
+            "[`docs/GenerationProcess.md`](GenerationProcess.md)",
+            "[JSON](GenerationProcess.agent.json)"
+          ],
+          [
+            "[`docs/GenerationPublication.md`](GenerationPublication.md)",
+            "[JSON](GenerationPublication.agent.json)"
+          ],
+          [
+            "[`docs/GenerationReview.md`](GenerationReview.md)",
+            "[JSON](GenerationReview.agent.json)"
+          ],
+          [
+            "[`docs/GraphicImageCommands.md`](GraphicImageCommands.md)",
+            "[JSON](GraphicImageCommands.agent.json)"
+          ],
+          [
+            "[`docs/GraphicParameterHelpers.md`](GraphicParameterHelpers.md)",
+            "[JSON](GraphicParameterHelpers.agent.json)"
+          ],
+          [
+            "[`docs/HomeEditorRoutes.md`](HomeEditorRoutes.md)",
+            "[JSON](HomeEditorRoutes.agent.json)"
+          ],
+          [
+            "[`docs/HomePaintCanvas.md`](HomePaintCanvas.md)",
+            "[JSON](HomePaintCanvas.agent.json)"
+          ],
+          [
+            "[`docs/ImageCanvasStorage.md`](ImageCanvasStorage.md)",
+            "[JSON](ImageCanvasStorage.agent.json)"
+          ],
+          [
+            "[`docs/InteractionAudit.md`](InteractionAudit.md)",
+            "[JSON](InteractionAudit.agent.json)"
+          ],
+          [
+            "[`docs/LayerHistogram.md`](LayerHistogram.md)",
+            "[JSON](LayerHistogram.agent.json)"
+          ],
+          [
+            "[`docs/Mcp.md`](Mcp.md)",
+            "[JSON](Mcp.agent.json)"
+          ],
+          [
+            "[`docs/MobileNavigationIcons.md`](MobileNavigationIcons.md)",
+            "[JSON](MobileNavigationIcons.agent.json)"
+          ],
+          [
+            "[`docs/ModelDiscovery.md`](ModelDiscovery.md)",
+            "[JSON](ModelDiscovery.agent.json)"
+          ],
+          [
+            "[`docs/MultiCanvasProject.md`](MultiCanvasProject.md)",
+            "[JSON](MultiCanvasProject.agent.json)"
+          ],
+          [
+            "[`docs/NativeGenerationLifetime.md`](NativeGenerationLifetime.md)",
+            "[JSON](NativeGenerationLifetime.agent.json)"
+          ],
+          [
+            "[`docs/NativeModelMount.md`](NativeModelMount.md)",
+            "[JSON](NativeModelMount.agent.json)"
+          ],
+          [
+            "[`docs/NativeViewModels.md`](NativeViewModels.md)",
+            "[JSON](NativeViewModels.agent.json)"
+          ],
+          [
+            "[`docs/NewCanvas.md`](NewCanvas.md)",
+            "[JSON](NewCanvas.agent.json)"
+          ],
+          [
+            "[`docs/PanelFrames.md`](PanelFrames.md)",
+            "[JSON](PanelFrames.agent.json)"
+          ],
+          [
+            "[`docs/PanelRows.md`](PanelRows.md)",
+            "[JSON](PanelRows.agent.json)"
+          ],
+          [
+            "[`docs/Performance.md`](Performance.md)",
+            "[JSON](Performance.agent.json)"
+          ],
+          [
+            "[`docs/PhotoImportCommands.md`](PhotoImportCommands.md)",
+            "[JSON](PhotoImportCommands.agent.json)"
+          ],
+          [
+            "[`docs/PhotoLibraryExport.md`](PhotoLibraryExport.md)",
+            "[JSON](PhotoLibraryExport.agent.json)"
+          ],
+          [
+            "[`docs/Preferences.md`](Preferences.md)",
+            "[JSON](Preferences.agent.json)"
+          ],
+          [
+            "[`docs/PromptFields.md`](PromptFields.md)",
+            "[JSON](PromptFields.agent.json)"
+          ],
+          [
+            "[`docs/PublishDestinationReview.md`](PublishDestinationReview.md)",
+            "[JSON](PublishDestinationReview.agent.json)"
+          ],
+          [
+            "[`docs/PublishingWorkspace.md`](PublishingWorkspace.md)",
+            "[JSON](PublishingWorkspace.agent.json)"
+          ],
+          [
+            "[`docs/QtIndependence.md`](QtIndependence.md)",
+            "[JSON](QtIndependence.agent.json)"
+          ],
+          [
+            "[`docs/Refactoring.md`](Refactoring.md)",
+            "[JSON](Refactoring.agent.json)"
+          ],
+          [
+            "[`docs/ReviewModelPerformance.md`](ReviewModelPerformance.md)",
+            "[JSON](ReviewModelPerformance.agent.json)"
+          ],
+          [
+            "[`docs/RuntimeRetirement.md`](RuntimeRetirement.md)",
+            "[JSON](RuntimeRetirement.agent.json)"
+          ],
+          [
+            "[`docs/SharedLogicalStorage.md`](SharedLogicalStorage.md)",
+            "[JSON](SharedLogicalStorage.agent.json)"
+          ],
+          [
+            "[`docs/SingleAppBuild.md`](SingleAppBuild.md)",
+            "[JSON](SingleAppBuild.agent.json)"
+          ],
+          [
+            "[`docs/SocialPublishing.md`](SocialPublishing.md)",
+            "[JSON](SocialPublishing.agent.json)"
+          ],
+          [
+            "[`docs/SocietyAliases.md`](SocietyAliases.md)",
+            "[JSON](SocietyAliases.agent.json)"
+          ],
+          [
+            "[`docs/StorageBrowser.md`](StorageBrowser.md)",
+            "[JSON](StorageBrowser.agent.json)"
+          ],
+          [
+            "[`docs/StorageInitialization.md`](StorageInitialization.md)",
+            "[JSON](StorageInitialization.agent.json)"
+          ],
+          [
+            "[`docs/Tooltips.md`](Tooltips.md)",
+            "[JSON](Tooltips.agent.json)"
+          ],
+          [
+            "[`docs/VideoGeneration.md`](VideoGeneration.md)",
+            "[JSON](VideoGeneration.agent.json)"
+          ],
+          [
+            "[`docs/VideoGenerationWorkspace.md`](VideoGenerationWorkspace.md)",
+            "[JSON](VideoGenerationWorkspace.agent.json)"
+          ],
+          [
+            "[`docs/WindowAppearance.md`](WindowAppearance.md)",
+            "[JSON](WindowAppearance.agent.json)"
+          ],
+          [
+            "[`docs/WindowsValidation.md`](WindowsValidation.md)",
+            "[JSON](WindowsValidation.agent.json)"
+          ],
+          [
+            "[`docs/WorkingFileOpen.md`](WorkingFileOpen.md)",
+            "[JSON](WorkingFileOpen.agent.json)"
+          ],
+          [
+            "[`docs/documentation-structure.md`](documentation-structure.md)",
+            "[JSON](documentation-structure.agent.json)"
+          ],
+          [
+            "[`resources/Appicon/README.md`](../resources/Appicon/README.md)",
+            "[JSON](mirrors/resources/Appicon/README.agent.json)"
+          ]
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

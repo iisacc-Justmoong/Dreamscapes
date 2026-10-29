@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import ".." as Frames
 import QtQuick.Window
 import QtQuick.Layouts
@@ -13,17 +14,13 @@ Item {
     property var inference: ({})
     property url previewSource: ""
     property string selectedJob: ""
-    readonly property var activeJob: jobs.find(job => ["running", "connecting-host", "downloading"].indexOf(job.state) >= 0) || ({})
+    readonly property alias activeJob: projection.reviewActiveJob
+    NativeGenerationProjection { id: projection; jobs: root.jobs }
     signal jobRequested(string id)
     signal cancelRequested(string id)
     signal failureRequested(string id)
-    function count(states) { return jobs.filter(job => states.indexOf(job.state) >= 0).length }
-    function stateName(state) {
-        const labels = {queued:qsTr("Queued"),running:qsTr("Running"),completed:qsTr("Completed"),
-            failed:qsTr("Failed"),cancelled:qsTr("Canceled"),interrupted:qsTr("Interrupted"),
-            "connecting-host":qsTr("Connecting"),downloading:qsTr("Downloading")}
-        return labels[state] || state || qsTr("Unavailable")
-    }
+    function count(states) { root.jobs; return projection.countStates(states) }
+    function stateName(state) { return projection.queueStateLabel(state) }
     LV.VStack {
         anchors.fill: parent
         spacing: LV.Theme.gap8
@@ -87,7 +84,7 @@ Item {
                 border.width: root.selectedJob === modelData.id ? 1 : 0
                 border.color: LV.Theme.accent
                 readonly property bool active: !!root.activeJob.id && root.activeJob.id === modelData.id
-                readonly property bool pending: ["queued","running","connecting-host","downloading"].indexOf(modelData.state) >= 0
+                readonly property bool pending: NativeData.presentation.indexOf(["queued","running","connecting-host","downloading"], modelData.state) >= 0
                 readonly property bool measurable: active && root.inference.total > 0 && root.inference.step >= 0
                 LV.VStack {
                     id: content
@@ -117,10 +114,10 @@ Item {
                     }
                     LV.Label {
                         Layout.fillWidth: true
-                        text: row.active ? (root.inference.state || qsTr("Preparing"))
+                        text: (row.active ? (root.inference.state || qsTr("Preparing"))
                             + (row.measurable ? qsTr(" · %1 / %2").arg(root.inference.step).arg(root.inference.total) : "")
                             : row.modelData.state === "completed" ? qsTr("%1 outputs").arg((row.modelData.mediaType === "Video" ? row.modelData.videos || [] : row.modelData.images || []).length)
-                            : row.modelData.error || root.stateName(row.modelData.state)
+                            : row.modelData.error || root.stateName(row.modelData.state)).replace(/[\r\n\u2028\u2029]+/g, " ")
                         style: caption
                         elide: Text.ElideRight
                     }

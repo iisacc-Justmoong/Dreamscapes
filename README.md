@@ -1,5 +1,10 @@
 # Dreamscapes
 
+On entitled Apple platforms, Dreamscapes can prepare a persistent shared logical
+disk before Society is installed. Models and generated images remain in the
+iisacc App Group, and Society later adopts the same disk without copying its
+contents. See [shared logical storage](docs/SharedLogicalStorage.md).
+
 Failed generation jobs return detailed iiMultimodalAgent explanations with the
 original error, captured settings, progress, logs and recommended checks.
 Analysis runs separately from generation; available local chat models may add
@@ -37,6 +42,8 @@ dependencies before Helper. Desktop Society explicitly selects Helper Generation
 mobile consumers do not link the inference host.
 
 Dreamscapes uses `LV.ApplicationWindow` and `LV.Theme.defaultPrimary` ( `#0A84FF` ). The entire window is filled with `#0B0B0B`, almost black without gradient, and fill opacity is 50%. The window background is separated from Primary, and button and selected states maintain the app accent color. 64px material blur and macOS native background blur are maintained, and text and button opacity is not reduced. `Dreamscapes.Gui`'s `mainCreatesOneSharedWindow` validates color, opacity, and gradient removal together with the actual window material.
+
+The Qt-free generation-review session and its current integration boundaries are documented in [Native review session](docs/NativeReviewSession.md). The existing application still uses its Qt review view.
 
 `Views/Home/AdvancedGenerate.qml` is an advanced image generation form separated from the entry point. `expanded` represents both Figma's compact frame and full expanded frame states. It reuses 402px as the base frame and LVRS · ListItem · InputField · ToggleSwitch, distinguishing between categories with `Theme.gap12` and between cards/groups within the same category with `Theme.gap6`. The default seed `-1` means random, and reference images are limited to a maximum of 20. ControlNet always provides the next numbered folded additional row behind the default two layers, and when opened, a new layer and the next numbered row are created. If LoRA is missing, a large `+` card is displayed and added via Fine-tuning's Add or through the corresponding card. The preset save popup accepts only one name. This view is intentionally not connected to `Main.qml`, and subsequent entry point tasks display it and map it to the actual generation request contract. `advancedGenerationDefaultsAndDynamicCollections` validates two display states, default, ControlNet consecutive numbers, 20 reference limit, empty LoRA addition, and name-only preset save.
 
@@ -82,9 +89,9 @@ in Dreamscapes. See [native color picker and validation](docs/ColorPicker.md).
 Set `iiColorManager_DIR` when using a separately installed package; the local
 build also discovers `build/runtime-sdk/iiColorManager`.
 
-The actual installed package name of the library denoted as `iiLisenseManager` in the request is `iiLicenseManager`. If the package is missing, it fails in the CMake configuration step, and optionally it is omitted or does not create an empty replacement target. This declaration alone does not implement the product feature that uses each library.
+The installed licensing SDK is `iiLicenseManager`. If the package is missing, it fails in the CMake configuration step, and optionally it is omitted or does not create an empty replacement target. This declaration alone does not implement the product feature that uses each library.
 
-Android's `scripts/build-android.sh` builds and installs iiAcountManager, which is a transitive dependency of Helper, first with the same ABI. In Dreamscapes, since it uses the Core/Network part required by the account model, the Quick component of this dedicated installation is disabled. At the end of packaging, `tests/verify_android_bundle.py` checks the arm64 format of the Helper/account library in APK and the actual ELF connection. This check does not run the app or send a login request.
+Android's `scripts/build-android.sh` builds and installs iiAccountManager, which is a transitive dependency of Helper, first with the same ABI. In Dreamscapes, since it uses the Core/Network part required by the account model, the Quick component of this dedicated installation is disabled. At the end of packaging, `tests/verify_android_bundle.py` checks the arm64 format of the Helper/account library in APK and the actual ELF connection. This check does not run the app or send a login request.
 
 <a id="소스-구조"></a>
 
@@ -751,3 +758,16 @@ rendering do not retain that access. Changed source data invalidates in-flight
 previews; concurrent previews can reuse the current validated projection.
 
 The compact desktop Home follows Figma node `1467:4554`: a growing prompt, full-width generation controls, a dense recent-file list, an expanded selected-file preview, and compact queue/history panels. Home surfaces are transparent and borderless. Existing generation parameters, reference inputs, presets, video duration/FPS, multi-image editing, downloads and full-library routes remain connected. See [Desktop Home](docs/DesktopHome.md) for the interaction and read-only metadata contracts.
+
+### Native view-model boundary
+
+Screen state, parameter validation, command planning and list projections use the C++23 native view-model target backed by iiSDKCore typed QueryPort contracts and a bounded Runtime for file-list work. QML binds these models and owns layout, drawing, focus, scrolling and popup presentation. Production JavaScript state stores are removed; frozen references remain test-only. The native core does not link Qt; the current GUI and existing backend adapters still do. See [Native view-model contracts](docs/NativeViewModels.md) for ownership, catalog maintenance and validation.
+
+<!-- workspace-docs:readme:start -->
+## Documentation entry points
+
+- Human overview: this English `README.md`.
+- Agent instructions: [AGENT.md](AGENT.md).
+- Human documentation: [documentation index](docs/README.md).
+- Structured agent documentation: [agent index](docs/agent-index.json).
+<!-- workspace-docs:readme:end -->

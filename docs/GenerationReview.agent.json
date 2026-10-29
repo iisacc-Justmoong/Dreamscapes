@@ -1,0 +1,724 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:a86edd2bca99b98bcf5f4eca2ad7e3902a1de94904d9087a1c8a78ac10f18595",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/GenerationReview.md",
+    "sha256": "a35b084ce783f3793bb7ebbd0e34ac4dbcfab574786a0d71f7dd86961edb9848",
+    "bytes": 10596,
+    "line_count": 74,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "생성 진행 및 검토 작업 공간",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# 생성 진행 및 검토 작업 공간\n",
+      "level": 1,
+      "title": "생성 진행 및 검토 작업 공간"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "heading",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "## 범위와 책임\n",
+      "level": 2,
+      "title": "범위와 책임"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 5,
+      "end_line": 5,
+      "raw": "이미지·비디오 생성이 접수되면 홈의 빠른 생성, 이미지 고급 생성, 비디오 고급 생성 모두 `Main.showSubmission(ids)`를 통해 공통 작업 공간으로 이동한다. 입력 오류로 접수되지 않은 요청은 원래 입력 화면을 유지한다. 고급 설정의 파라미터와 드래프트는 보존한다. 에디터 내부의 Inpaint·Outpaint 등 생성형 편집은 기존 대상 캔버스와 인라인 결과 처리 문맥을 유지한다. `Back`은 원래 생성 화면으로 돌아가며, 홈의 `View queue`로 작업 공간을 다시 열 수 있다.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "좌측은 실제 생성 큐, 중앙은 완료 결과의 가상화 그리드, 우측은 Inspector, 하단은 선택 대상 작업이다. 폭 1180px 이상에서는 큐 260px, Inspector 320px을 배치한다. 860~1179px에서는 큐 208px을 유지하고 Inspector는 `Inspect`로 연다. 더 좁은 창에서는 `Queue`와 `Inspect`로 같은 기능을 연다. 필터와 선택 작업은 가로 스크롤로 접근하며, Inspector의 긴 파라미터는 세로 스크롤한다. LVRS의 기본 스케일·서체·버튼 상태를 사용한다.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "생성 엔진, Society 저장소 및 Generation History 형식은 바꾸지 않는다. 메모리 기반 큐와 검토 상태가 앱 재시작 후 복원된다고 표현하지 않는다. 이전 세션의 파일은 기존 Generation History에서 연다.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "heading",
+      "start_line": 11,
+      "end_line": 11,
+      "raw": "## 생성 상태와 검토 상태\n",
+      "level": 2,
+      "title": "생성 상태와 검토 상태"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 12,
+      "end_line": 12,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "list",
+      "start_line": 13,
+      "end_line": 16,
+      "raw": "- 생성 상태는 기존 컨트롤러의 Queued, Running, Completed, Failed, Canceled 및 연결·다운로드 단계를 그대로 표시한다.\n- 검토 상태는 Unreviewed, Shortlisted, Rejected이며 결과마다 독립적이고 상호 배타적이다.\n- 후보 선정·제외·선택·필터·정렬·확대·팬은 UI 세션 상태이다. 작업 큐, 원본 `.iisc`/이미지/비디오, 문서 수정 이력, 저장소 스냅샷을 수정하지 않는다.\n- 검토 상태는 이 앱 실행 세션 동안 유지한다. 화면을 닫거나 새 배치를 생성해도 기존 결과의 상태를 유지한다. 저장소가 전환되어 결과가 제거되면 해당 결과의 상태도 제거한다.\n",
+      "items": [
+        {
+          "marker": "-",
+          "text": "생성 상태는 기존 컨트롤러의 Queued, Running, Completed, Failed, Canceled 및 연결·다운로드 단계를 그대로 표시한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "검토 상태는 Unreviewed, Shortlisted, Rejected이며 결과마다 독립적이고 상호 배타적이다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "후보 선정·제외·선택·필터·정렬·확대·팬은 UI 세션 상태이다. 작업 큐, 원본 `.iisc`/이미지/비디오, 문서 수정 이력, 저장소 스냅샷을 수정하지 않는다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "검토 상태는 이 앱 실행 세션 동안 유지한다. 화면을 닫거나 새 배치를 생성해도 기존 결과의 상태를 유지한다. 저장소가 전환되어 결과가 제거되면 해당 결과의 상태도 제거한다.",
+          "checked": null
+        }
+      ]
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "`ReviewSelection.h`는 표준 C++23만 사용하는 순수 정책이다. `GenerationReviewModel`은 이를 QAbstractListModel로 투영하는 UI 어댑터이다. 향후 LVUI 이식에서도 선택 정책을 재사용할 수 있다. QML은 입력과 레이아웃만 담당한다.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "heading",
+      "start_line": 20,
+      "end_line": 20,
+      "raw": "## 식별·선택·포커스·스크롤 계약\n",
+      "level": 2,
+      "title": "식별·선택·포커스·스크롤 계약"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 21,
+      "end_line": 21,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 22,
+      "end_line": 22,
+      "raw": "결과 키는 제공된 경우 Society Alias의 containerId/key를 사용한다. 그렇지 않으면 작업 ID와 원본 경로를 결합한다. 한 작업의 여러 출력물을 작업 ID 하나로 합치지 않는다. 변경 가능한 미리보기 URL보다 원본 documentSource/mediaSource/image 경로를 우선하며, URL의 미리보기 버전 쿼리를 식별자로 사용하지 않는다.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 23,
+      "end_line": 23,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 24,
+      "end_line": 24,
+      "raw": "이미 도착한 결과의 순서를 유지하고 새 ID만 끝에 추가한다. 필터·정렬로 숨겨진 선택과 포커스는 보존한다. 숨겨진 선택 수를 하단에 표시한다. 필터 변경은 선택 해제 명령이 아니다. 새 결과를 추가할 때는 모델 전체 reset 대신 tail insert를 사용하며, 그리드는 상단에 보이던 결과 ID와 행 오프셋을 기준으로 스크롤을 보존한다. 기존 포커스를 신규 결과로 자동 이동하지 않는다.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 25,
+      "end_line": 25,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 26,
+      "end_line": 26,
+      "raw": "그리드는 GridView의 가상화·재사용과 비동기 썸네일을 사용한다. 완료되지 않은 미리보기는 결과로 집계하거나 선택·내보내기하지 않는다. 실제 실행 작업 ID와 일치하는 미리보기만 표시한다.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 27,
+      "end_line": 27,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "heading",
+      "start_line": 28,
+      "end_line": 28,
+      "raw": "## 입력 및 대상 범위\n",
+      "level": 2,
+      "title": "입력 및 대상 범위"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 29,
+      "end_line": 29,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "table",
+      "start_line": 30,
+      "end_line": 44,
+      "raw": "| 입력 | 동작 |\n|---|---|\n| 클릭 | 포커스 이동 |\n| 더블클릭 / Space | 포커스 결과 확대 보기 |\n| Cmd/Ctrl+클릭 | 개별 선택 추가·제거 |\n| Shift+클릭 | 현재 필터·정렬 순서에서 범위 선택 |\n| Cmd/Ctrl+Shift+클릭 | 기존 선택에 범위 추가 |\n| Select 모드의 클릭 | 개별 선택 추가·제거 |\n| 방향키 / Home / End | 가시 결과 사이 포커스 이동 |\n| Shift+방향키 | 가시 결과의 범위 선택 |\n| Cmd/Ctrl+A | 가시 결과를 전체 선택; 숨겨진 기존 선택 보존 |\n| F / X | 선택 대상의 후보 선정 / 제외 전환 |\n| C | 선택 이미지 2~4개 비교 |\n| Enter | 선택 이미지들을 기존 편집기 경로로 전달; 선택이 없으면 포커스 이미지 |\n| Escape | 확대·비교·보조 패널 닫기, 이어 선택 해제, 이후 홈 복귀 |\n",
+      "columns": [
+        "입력",
+        "동작"
+      ],
+      "rows": [
+        [
+          "클릭",
+          "포커스 이동"
+        ],
+        [
+          "더블클릭 / Space",
+          "포커스 결과 확대 보기"
+        ],
+        [
+          "Cmd/Ctrl+클릭",
+          "개별 선택 추가·제거"
+        ],
+        [
+          "Shift+클릭",
+          "현재 필터·정렬 순서에서 범위 선택"
+        ],
+        [
+          "Cmd/Ctrl+Shift+클릭",
+          "기존 선택에 범위 추가"
+        ],
+        [
+          "Select 모드의 클릭",
+          "개별 선택 추가·제거"
+        ],
+        [
+          "방향키 / Home / End",
+          "가시 결과 사이 포커스 이동"
+        ],
+        [
+          "Shift+방향키",
+          "가시 결과의 범위 선택"
+        ],
+        [
+          "Cmd/Ctrl+A",
+          "가시 결과를 전체 선택; 숨겨진 기존 선택 보존"
+        ],
+        [
+          "F / X",
+          "선택 대상의 후보 선정 / 제외 전환"
+        ],
+        [
+          "C",
+          "선택 이미지 2~4개 비교"
+        ],
+        [
+          "Enter",
+          "선택 이미지들을 기존 편집기 경로로 전달; 선택이 없으면 포커스 이미지"
+        ],
+        [
+          "Escape",
+          "확대·비교·보조 패널 닫기, 이어 선택 해제, 이후 홈 복귀"
+        ]
+      ]
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 45,
+      "end_line": 45,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 46,
+      "end_line": 46,
+      "raw": "단축키는 결과 그리드나 확대·비교 화면에 포커스가 있을 때만 처리한다. 프롬프트 입력·검색·Inspector 텍스트 복사 등의 텍스트 포커스에서는 실행하지 않는다.\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 47,
+      "end_line": 47,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "paragraph",
+      "start_line": 48,
+      "end_line": 48,
+      "raw": "후보 선정·제외·내보내기는 명시적으로 선택한 전체 대상, 선택이 없으면 포커스 하나에 적용한다. 각 버튼에 대상 수를 표시한다. 우클릭 시 클릭한 결과가 선택에 포함되어 있으면 선택 전체, 포함되어 있지 않으면 클릭한 하나를 대상으로 하는 메뉴를 연다. 현재 파일 저장은 메뉴에 별도로 명시한다.\n"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 49,
+      "end_line": 49,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "paragraph",
+      "start_line": 50,
+      "end_line": 50,
+      "raw": "이미지 편집은 기존 `imagesRequested(entries)` → `Main.openImages(entries)` 경로를 사용하며 원본 메타데이터를 그대로 전달한다. 비디오는 재생·검토·내보내기를 지원한다. History에서 비디오를 다시 열 때 포스터나 캔버스 문서와 별도로 제공된 원본 MP4 참조도 결과 포커스에 대응한다. 원본 참조는 URL로 비교해 공백의 `%20` 인코딩 및 미리보기 버전 쿼리 차이가 다른 결과로 오인되지 않도록 한다. 현재 이미지 편집기에 비디오나 이미지·비디오 혼합 선택을 넘기지 않는다.\n"
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 51,
+      "end_line": 51,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "heading",
+      "start_line": 52,
+      "end_line": 52,
+      "raw": "## 비교와 Inspector\n",
+      "level": 2,
+      "title": "비교와 Inspector"
+    },
+    {
+      "id": "b000036",
+      "kind": "blank",
+      "start_line": 53,
+      "end_line": 53,
+      "raw": "\n"
+    },
+    {
+      "id": "b000037",
+      "kind": "paragraph",
+      "start_line": 54,
+      "end_line": 54,
+      "raw": "비교는 이미지 2~4개를 사용하며 화면 맞춤, 실제 픽셀 100%, 휠 확대, 드래그 팬을 지원한다. 동기화 시 같은 확대 배율과 정규화된 팬 위치를 공유한다. 고해상도 화면의 100%는 물리 화면 픽셀과 실제 제공된 미리보기 픽셀을 대응시킨다. 정밀 보기·비교의 이미지 디코딩은 기본 최대 변 길이 2048px로 제한하며, 원본보다 축소된 프리뷰일 수 있음을 비교 화면에 명시한다. 이 예산은 `ReviewMediaView.maximumPreviewEdge`에서 교체할 수 있다. 원본 파일 저장은 해당 프리뷰 대신 documentSource를 사용한다. 동기화를 해제하면 현재 뷰를 각 이미지가 이어받고, 다시 동기화하면 첫 이미지의 뷰를 따른다.\n"
+    },
+    {
+      "id": "b000038",
+      "kind": "blank",
+      "start_line": 55,
+      "end_line": 55,
+      "raw": "\n"
+    },
+    {
+      "id": "b000039",
+      "kind": "paragraph",
+      "start_line": 56,
+      "end_line": 56,
+      "raw": "Inspector는 모델, 시드, 해상도, 실제 시작·종료 시각으로 계산한 생성 시간, 단계 수, 장치, 프롬프트, 네거티브 프롬프트를 제공되는 값으로만 표시한다. 없는 값은 `Unavailable`, 복수 선택의 상이한 값은 `Mixed`와 실제 값 목록으로 표시한다. 시드 0을 누락으로 취급하지 않는다. 모델 이름이나 장치 등을 파일명에서 추정하지 않는다. 미리보기와 원본 경로를 구분한다.\n"
+    },
+    {
+      "id": "b000040",
+      "kind": "blank",
+      "start_line": 57,
+      "end_line": 57,
+      "raw": "\n"
+    },
+    {
+      "id": "b000041",
+      "kind": "heading",
+      "start_line": 58,
+      "end_line": 58,
+      "raw": "## 취소·실패·내보내기\n",
+      "level": 2,
+      "title": "취소·실패·내보내기"
+    },
+    {
+      "id": "b000042",
+      "kind": "blank",
+      "start_line": 59,
+      "end_line": 59,
+      "raw": "\n"
+    },
+    {
+      "id": "b000043",
+      "kind": "paragraph",
+      "start_line": 60,
+      "end_line": 60,
+      "raw": "진행률은 실제 생성 이벤트의 step/total이 있을 때만 표시하며, 대기 중 작업의 완료 시각이나 진행률을 임의로 만들지 않는다. 작업별 취소는 해당 ID만 취소한다. 상단 `Cancel batch`는 현재 제출 배치에만 적용하며 기존 계약대로 홈으로 돌아간다. 홈에서 전체 큐를 다시 연 경우 개별 작업 취소를 사용한다.\n"
+    },
+    {
+      "id": "b000044",
+      "kind": "blank",
+      "start_line": 61,
+      "end_line": 61,
+      "raw": "\n"
+    },
+    {
+      "id": "b000045",
+      "kind": "paragraph",
+      "start_line": 62,
+      "end_line": 62,
+      "raw": "실패 행의 `Failure details`는 기존 FailureAgent 상세 뷰를 연다. 긴 여러 줄 오류가 작업 목록과 하단 상태 영역을 덮지 않도록 이 두 곳의 표시에서는 줄바꿈을 공백으로 바꾸고 한 줄로 말줄임 처리한다. 상세 보고서와 작업의 원본 오류는 변경하지 않으므로 전체 내용을 선택하거나 복사할 수 있다. 확정 오류와 모델의 추가 해석은 기존 실패 보고 계약을 따른다. 검토가 진단 완료를 기다리지 않는다.\n"
+    },
+    {
+      "id": "b000046",
+      "kind": "blank",
+      "start_line": 63,
+      "end_line": 63,
+      "raw": "\n"
+    },
+    {
+      "id": "b000047",
+      "kind": "paragraph",
+      "start_line": 64,
+      "end_line": 64,
+      "raw": "단일 저장은 기존 원본 내보내기를 재사용한다. 가시 썸네일이나 프리뷰 디코딩 상태로 원본 저장 가능 여부를 결정하지 않는다. 필터로 숨겨진 포커스 결과도 원본 참조를 유지하며, 실제 읽기·내보내기 검증은 명령 실행 시 기존 모듈이 수행한다. 일괄 Export는 다이얼로그를 열 때 대상 목록을 고정하고 별도 C++ 작업자에서 처리한다. 선택·필터·새 결과 도착이 이미 접수한 대상 목록을 바꾸지 않는다. 새 고유 하위 폴더를 만들어 기존 파일을 덮어쓰지 않으며 성공 수와 실패 수를 각각 반환한다. 한 결과의 실패가 다음 결과를 중단하지 않는다. 실패는 기존 작업 실패 진단 경로에도 전달한다. 보기만으로 파일 저장이나 다운로드를 수행하지 않는다.\n"
+    },
+    {
+      "id": "b000048",
+      "kind": "blank",
+      "start_line": 65,
+      "end_line": 65,
+      "raw": "\n"
+    },
+    {
+      "id": "b000049",
+      "kind": "heading",
+      "start_line": 66,
+      "end_line": 66,
+      "raw": "## 검증\n",
+      "level": 2,
+      "title": "검증"
+    },
+    {
+      "id": "b000050",
+      "kind": "blank",
+      "start_line": 67,
+      "end_line": 67,
+      "raw": "\n"
+    },
+    {
+      "id": "b000051",
+      "kind": "list",
+      "start_line": 68,
+      "end_line": 72,
+      "raw": "- `Dreamscapes.ReviewSelectionCore`: Qt 없는 상태 전환, 다중·범위 선택, 도착 순서, 제거·세션 종료 정책.\n- `Dreamscapes.ReviewModel`: 필터·정렬·결과 추가 시 ID/선택/포커스 유지, 모델 reset 방지, 1000개 결과, 실제/미제공/혼합 메타데이터, 원본 바이트 불변.\n- `Dreamscapes.ReviewExport`: 입력 고정, 부분 실패 집계, 유효하지 않은 저장 위치, 원격 원본 거부.\n- `Dreamscapes.ReviewWorkspace`: 실제 QML의 1440×900/390×844 배치, 긴 다국어 오류에서 원본 보존 및 실패 상세 버튼 접근, 1000개 가상화, 키보드·텍스트 포커스 분리, 빠른 필터 왕복과 새 결과 추가 시 선택·스크롤 보존, 실제 포인터 비교 확대·팬과 동기화, 2048px 디코딩 예산·원본 보존, 비디오 재생 실패 보고, 생성한 원본의 실제 편집기 진입, 홈/고급 이미지·비디오의 접수 후 네비게이션. 단일 회귀 검사는 `DreamscapesReviewGuiTests longFailureKeepsDetailsAccessible`로 실행할 수 있으며 `DREAMSCAPES_TEST_RUNTIME_DIRECTORY`로 임시 설정 위치를 지정할 수 있다.\n- `Dreamscapes.FailureDetails`: 큐에서 연결하는 기존 실패 상세 뷰의 전체 보고문 보존과 데스크톱·좁은 창 스크롤. 기존 테스트 함수의 CTest 등록 누락도 바로잡아 GUI 레지스트리 검증에 포함한다.\n",
+      "items": [
+        {
+          "marker": "-",
+          "text": "`Dreamscapes.ReviewSelectionCore`: Qt 없는 상태 전환, 다중·범위 선택, 도착 순서, 제거·세션 종료 정책.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`Dreamscapes.ReviewModel`: 필터·정렬·결과 추가 시 ID/선택/포커스 유지, 모델 reset 방지, 1000개 결과, 실제/미제공/혼합 메타데이터, 원본 바이트 불변.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`Dreamscapes.ReviewExport`: 입력 고정, 부분 실패 집계, 유효하지 않은 저장 위치, 원격 원본 거부.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`Dreamscapes.ReviewWorkspace`: 실제 QML의 1440×900/390×844 배치, 긴 다국어 오류에서 원본 보존 및 실패 상세 버튼 접근, 1000개 가상화, 키보드·텍스트 포커스 분리, 빠른 필터 왕복과 새 결과 추가 시 선택·스크롤 보존, 실제 포인터 비교 확대·팬과 동기화, 2048px 디코딩 예산·원본 보존, 비디오 재생 실패 보고, 생성한 원본의 실제 편집기 진입, 홈/고급 이미지·비디오의 접수 후 네비게이션. 단일 회귀 검사는 `DreamscapesReviewGuiTests longFailureKeepsDetailsAccessible`로 실행할 수 있으며 `DREAMSCAPES_TEST_RUNTIME_DIRECTORY`로 임시 설정 위치를 지정할 수 있다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`Dreamscapes.FailureDetails`: 큐에서 연결하는 기존 실패 상세 뷰의 전체 보고문 보존과 데스크톱·좁은 창 스크롤. 기존 테스트 함수의 CTest 등록 누락도 바로잡아 GUI 레지스트리 검증에 포함한다.",
+          "checked": null
+        }
+      ]
+    },
+    {
+      "id": "b000052",
+      "kind": "blank",
+      "start_line": 73,
+      "end_line": 73,
+      "raw": "\n"
+    },
+    {
+      "id": "b000053",
+      "kind": "paragraph",
+      "start_line": 74,
+      "end_line": 74,
+      "raw": "실제 사용자의 24개 중 4개 선별 시간이나 GPU 추론 속도, 스크롤 p95 16.7ms는 이 회귀 테스트의 측정 대상이 아니다. 설계 보고서의 30% 개선은 목표이며 달성 수치로 보고하지 않는다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "생성 진행 및 검토 작업 공간",
+      "anchor": "생성-진행-및-검토-작업-공간",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000003",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "범위와 책임",
+      "anchor": "범위와-책임",
+      "start_line": 3
+    },
+    {
+      "block_id": "b000011",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "생성 상태와 검토 상태",
+      "anchor": "생성-상태와-검토-상태",
+      "start_line": 11
+    },
+    {
+      "block_id": "b000017",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "식별·선택·포커스·스크롤 계약",
+      "anchor": "식별선택포커스스크롤-계약",
+      "start_line": 20
+    },
+    {
+      "block_id": "b000025",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "입력 및 대상 범위",
+      "anchor": "입력-및-대상-범위",
+      "start_line": 28
+    },
+    {
+      "block_id": "b000035",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "비교와 Inspector",
+      "anchor": "비교와-inspector",
+      "start_line": 52
+    },
+    {
+      "block_id": "b000041",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "취소·실패·내보내기",
+      "anchor": "취소실패내보내기",
+      "start_line": 58
+    },
+    {
+      "block_id": "b000049",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "검증",
+      "anchor": "검증",
+      "start_line": 66
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000009",
+        "line": 9,
+        "text": "생성 엔진, Society 저장소 및 Generation History 형식은 바꾸지 않는다. 메모리 기반 큐와 검토 상태가 앱 재시작 후 복원된다고 표현하지 않는다. 이전 세션의 파일은 기존 Generation History에서 연다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 15,
+        "text": "- 후보 선정·제외·선택·필터·정렬·확대·팬은 UI 세션 상태이다. 작업 큐, 원본 `.iisc`/이미지/비디오, 문서 수정 이력, 저장소 스냅샷을 수정하지 않는다.",
+        "basis": "lexical_match",
+        "context": "list"
+      },
+      {
+        "block_id": "b000019",
+        "line": 22,
+        "text": "결과 키는 제공된 경우 Society Alias의 containerId/key를 사용한다. 그렇지 않으면 작업 ID와 원본 경로를 결합한다. 한 작업의 여러 출력물을 작업 ID 하나로 합치지 않는다. 변경 가능한 미리보기 URL보다 원본 documentSource/mediaSource/image 경로를 우선하며, URL의 미리보기 버전 쿼리를 식별자로 사용하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000021",
+        "line": 24,
+        "text": "이미 도착한 결과의 순서를 유지하고 새 ID만 끝에 추가한다. 필터·정렬로 숨겨진 선택과 포커스는 보존한다. 숨겨진 선택 수를 하단에 표시한다. 필터 변경은 선택 해제 명령이 아니다. 새 결과를 추가할 때는 모델 전체 reset 대신 tail insert를 사용하며, 그리드는 상단에 보이던 결과 ID와 행 오프셋을 기준으로 스크롤을 보존한다. 기존 포커스를 신규 결과로 자동 이동하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000023",
+        "line": 26,
+        "text": "그리드는 GridView의 가상화·재사용과 비동기 썸네일을 사용한다. 완료되지 않은 미리보기는 결과로 집계하거나 선택·내보내기하지 않는다. 실제 실행 작업 ID와 일치하는 미리보기만 표시한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000029",
+        "line": 46,
+        "text": "단축키는 결과 그리드나 확대·비교 화면에 포커스가 있을 때만 처리한다. 프롬프트 입력·검색·Inspector 텍스트 복사 등의 텍스트 포커스에서는 실행하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000039",
+        "line": 56,
+        "text": "Inspector는 모델, 시드, 해상도, 실제 시작·종료 시각으로 계산한 생성 시간, 단계 수, 장치, 프롬프트, 네거티브 프롬프트를 제공되는 값으로만 표시한다. 없는 값은 `Unavailable`, 복수 선택의 상이한 값은 `Mixed`와 실제 값 목록으로 표시한다. 시드 0을 누락으로 취급하지 않는다. 모델 이름이나 장치 등을 파일명에서 추정하지 않는다. 미리보기와 원본 경로를 구분한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000047",
+        "line": 64,
+        "text": "단일 저장은 기존 원본 내보내기를 재사용한다. 가시 썸네일이나 프리뷰 디코딩 상태로 원본 저장 가능 여부를 결정하지 않는다. 필터로 숨겨진 포커스 결과도 원본 참조를 유지하며, 실제 읽기·내보내기 검증은 명령 실행 시 기존 모듈이 수행한다. 일괄 Export는 다이얼로그를 열 때 대상 목록을 고정하고 별도 C++ 작업자에서 처리한다. 선택·필터·새 결과 도착이 이미 접수한 대상 목록을 바꾸지 않는다. 새 고유 하위 폴더를 만들어 기존 파일을 덮어쓰지 않으며 성공 수와 실패 수를 각각 반환한다. 한 결과의 실패가 다음 결과를 중단하지 않는다. 실패는 기존 작업 실패 진단 경로에도 전달한다. 보기만으로 파일 저장이나 다운로드를 수행하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000053",
+        "line": 74,
+        "text": "실제 사용자의 24개 중 4개 선별 시간이나 GPU 추론 속도, 스크롤 p95 16.7ms는 이 회귀 테스트의 측정 대상이 아니다. 설계 보고서의 30% 개선은 목표이며 달성 수치로 보고하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": [
+      {
+        "block_id": "b000027",
+        "columns": [
+          "입력",
+          "동작"
+        ],
+        "rows": [
+          [
+            "클릭",
+            "포커스 이동"
+          ],
+          [
+            "더블클릭 / Space",
+            "포커스 결과 확대 보기"
+          ],
+          [
+            "Cmd/Ctrl+클릭",
+            "개별 선택 추가·제거"
+          ],
+          [
+            "Shift+클릭",
+            "현재 필터·정렬 순서에서 범위 선택"
+          ],
+          [
+            "Cmd/Ctrl+Shift+클릭",
+            "기존 선택에 범위 추가"
+          ],
+          [
+            "Select 모드의 클릭",
+            "개별 선택 추가·제거"
+          ],
+          [
+            "방향키 / Home / End",
+            "가시 결과 사이 포커스 이동"
+          ],
+          [
+            "Shift+방향키",
+            "가시 결과의 범위 선택"
+          ],
+          [
+            "Cmd/Ctrl+A",
+            "가시 결과를 전체 선택; 숨겨진 기존 선택 보존"
+          ],
+          [
+            "F / X",
+            "선택 대상의 후보 선정 / 제외 전환"
+          ],
+          [
+            "C",
+            "선택 이미지 2~4개 비교"
+          ],
+          [
+            "Enter",
+            "선택 이미지들을 기존 편집기 경로로 전달; 선택이 없으면 포커스 이미지"
+          ],
+          [
+            "Escape",
+            "확대·비교·보조 패널 닫기, 이어 선택 해제, 이후 홈 복귀"
+          ]
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

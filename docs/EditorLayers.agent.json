@@ -1,0 +1,383 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:7379857ae73b5c5e94ccea57afe0a91bcb96984589fbdba3e3afe6d12dbcf004",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/EditorLayers.md",
+    "sha256": "a91b136740ed04ec0bdb4759b99c7dee78e1eaab278cdf653e750146aec2644f",
+    "bytes": 6521,
+    "line_count": 33,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Editor layer panels",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Editor layer panels\n",
+      "level": 1,
+      "title": "Editor layer panels"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "2026-10-16: Navigation now follows the compact atlas at Figma `778:87433`, `778:87555`, `778:87708` and `778:87856`: four 22px original LVRS icons inside the 30px selector, a trailing Reset icon, and a 20px current-view title with its 18px icon. The document-backed controls below retain their operations. Reset also restores histogram channel/source and clipping state. See [EditorCompactPanels.md](EditorCompactPanels.md).\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 5,
+      "end_line": 5,
+      "raw": "The existing resizable editor dock now presents four views from Dreamscapes Figma: [Layer 564:92996](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-92996), [Adjust 564:93315](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-93315), [Histogram 564:93634](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-93634), and [Information 564:93953](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-93953). The mobile Layer sheet uses the same presenter. Other editor tools retain their current presenters.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "The current compact reference frames have a 398px content width inside the 432px frame. Their natural content heights are 407, 487, 512 and 472px; the resizable dock can give the live hierarchy additional vertical space. The four native LVRS segmented buttons, typography, colors, radii, inputs, slider, menus and icon buttons use the installed LVRS framework. The hierarchy composes `LV.HierarchyList` and `LV.HierarchyItem`, the native parts of `LV.Hierarchy`, with compact 17 px rows and a trailing visibility control. The 32 exported SVG assets preserve their original view boxes and root geometry. Narrow docks reflow actions and scroll taller content.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "The dock and mobile sheet load this presenter when Layer is opened. Keeping the hierarchy outside the initial scene's inline component structure avoids exhausting the QML creation stack during application startup and route changes.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "heading",
+      "start_line": 11,
+      "end_line": 11,
+      "raw": "## Document operations\n",
+      "level": 2,
+      "title": "Document operations"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 12,
+      "end_line": 12,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 13,
+      "end_line": 13,
+      "raw": "Panel headings and property labels use the passive [PanelRow](PanelRows.md) surface. Hover, press and keyboard focus effects belong only to the native value controls and action buttons; the layer hierarchy retains its selectable rows.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 14,
+      "end_line": 14,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 15,
+      "end_line": 15,
+      "raw": "The trailing visibility icon uses the original 16 px horizontal eye exported from [Hierarchy 564:93009](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-93009), saved as `Visibility.svg`, without rotation. Figma's slot is named Chevron, but its current component is `generalshow`; it must not be replaced with a directional chevron. The eye's horizontal orientation is independent of the left-side group disclosure and the layer's visible/hidden state.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 16,
+      "end_line": 16,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "The Layer footer uses the native LVRS Default tone for New layer, Group, Merge down, Duplicate, Apply mask and Lock, and Destructive for Delete, matching Figma nodes `564:93011` through `564:93017`. Each action preserves its tone's background when disabled: unavailable operations retain the Default surface, while Delete keeps its destructive surface. Lock retains the Default tone when the layer is locked. Capability checks and lock/unlock behavior still control whether actions can execute.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "The hierarchy reads the actual document and selected layer, identifies static/dynamic bitmap/vector content, displays saved artboards as collapsible groups, and controls selection and visibility. Blend and opacity update the document. Duplicate copies referenced assets and dynamic keyframes independently. New Paint layer and Place image use existing document operations. Group creates a transparent, full-canvas native artboard for an ungrouped layer on a finite canvas; nested groups are not supported. Merge down renders two adjacent visible, unlocked, unanimated static layers in the same artboard into one bitmap. Both operations use the standard edit transaction and support undo and `.iisc` persistence. Lock uses the existing pixel/position lock controls. Apply mask applies the current selection to pixel alpha; it does not create an independent editable mask layer.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 20,
+      "end_line": 20,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "heading",
+      "start_line": 21,
+      "end_line": 21,
+      "raw": "## Adjust, histogram and information\n",
+      "level": 2,
+      "title": "Adjust, histogram and information"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 22,
+      "end_line": 22,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 23,
+      "end_line": 23,
+      "raw": "Adjust offers twelve labeled icon actions. Contrast, exposure, levels, curves, shadows/highlights, hue/saturation, vibrance and white balance open the existing relevant controls; Auto tone and Black & white execute the corresponding pixel operation. Reset restores the active adjustment session. Only unlocked static raster layers are eligible. Gradient map and Color lookup remain visibly labeled but disabled with a reason because the current editing engine has no gradient-map or imported-LUT implementation.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 24,
+      "end_line": 24,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 25,
+      "end_line": 25,
+      "raw": "Histogram renders the current finite-canvas composite or selected layer at the current frame, excludes fully transparent pixels, computes 256 bins per RGB channel and real mean/standard deviation, and offers channel selection, refresh, and shadow/highlight clipping overlays. Overlays do not modify document pixels. Infinite canvases report an unavailable histogram.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 26,
+      "end_line": 26,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 27,
+      "end_line": 27,
+      "raw": "Information reads source dimensions, content type, actual embedded asset ID, untagged RGB and 8-bit raster precision (or vector geometry), rather than copying Figma's example profile and precision. Sample color reads a real composite pixel on the next canvas click; Copy color and Copy details use the system clipboard. Reveal source opens the saved document's directory because media is embedded in that document. Unsaved documents cannot reveal a source file.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 28,
+      "end_line": 28,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "heading",
+      "start_line": 29,
+      "end_line": 29,
+      "raw": "## Validation\n",
+      "level": 2,
+      "title": "Validation"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "paragraph",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "The hierarchy's active row must track the selected document layer after duplicate, direct document selection, visibility updates and user row activation. The Layer GUI regression checks both document IDs and native row selection; all seven footer tones and rendered background colors are checked against Figma's default and destructive states before locking, while locked and after unlocking. It also checks each existing footer asset's local file, native icon slot and rendered size.\n"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 32,
+      "end_line": 32,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "paragraph",
+      "start_line": 33,
+      "end_line": 33,
+      "raw": "`Dreamscapes.EditorLayers` exercises all four real editor views, duplicate/visibility controls, actual adjustment/reset, channel selection, color sampling/copy, and resizing. `Dreamscapes.EditorTools` checks exact RGB bins, read-only histogram/overlays/sample, independent duplicated pixels, merge appearance, group persistence and undo. Related editor layout, generic tool panel and canvas suites cover integration. Optional `DREAMSCAPES_CAPTURE_DIR` writes four native panel captures. Packaged startup can target the installed application with `DREAMSCAPES_TEST_APP_PATH`.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Editor layer panels",
+      "anchor": "editor-layer-panels",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000011",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Document operations",
+      "anchor": "document-operations",
+      "start_line": 11
+    },
+    {
+      "block_id": "b000021",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Adjust, histogram and information",
+      "anchor": "adjust-histogram-and-information",
+      "start_line": 21
+    },
+    {
+      "block_id": "b000029",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Validation",
+      "anchor": "validation",
+      "start_line": 29
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000015",
+        "line": 15,
+        "text": "The trailing visibility icon uses the original 16 px horizontal eye exported from [Hierarchy 564:93009](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-93009), saved as `Visibility.svg`, without rotation. Figma's slot is named Chevron, but its current component is `generalshow`; it must not be replaced with a directional chevron. The eye's horizontal orientation is independent of the left-side group disclosure and the layer's visible/hidden state.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000025",
+        "line": 25,
+        "text": "Histogram renders the current finite-canvas composite or selected layer at the current frame, excludes fully transparent pixels, computes 256 bins per RGB channel and real mean/standard deviation, and offers channel selection, refresh, and shadow/highlight clipping overlays. Overlays do not modify document pixels. Infinite canvases report an unavailable histogram.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000031",
+        "line": 31,
+        "text": "The hierarchy's active row must track the selected document layer after duplicate, direct document selection, visibility updates and user row activation. The Layer GUI regression checks both document IDs and native row selection; all seven footer tones and rendered background colors are checked against Figma's default and destructive states before locking, while locked and after unlocking. It also checks each existing footer asset's local file, native icon slot and rendered size.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000003",
+        "label": "EditorCompactPanels.md",
+        "target": "EditorCompactPanels.md",
+        "kind": "relative",
+        "line": 3
+      },
+      {
+        "block_id": "b000005",
+        "label": "Layer 564:92996",
+        "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-92996",
+        "kind": "external",
+        "line": 5
+      },
+      {
+        "block_id": "b000005",
+        "label": "Adjust 564:93315",
+        "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-93315",
+        "kind": "external",
+        "line": 5
+      },
+      {
+        "block_id": "b000005",
+        "label": "Histogram 564:93634",
+        "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-93634",
+        "kind": "external",
+        "line": 5
+      },
+      {
+        "block_id": "b000005",
+        "label": "Information 564:93953",
+        "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-93953",
+        "kind": "external",
+        "line": 5
+      },
+      {
+        "block_id": "b000013",
+        "label": "PanelRow",
+        "target": "PanelRows.md",
+        "kind": "relative",
+        "line": 13
+      },
+      {
+        "block_id": "b000015",
+        "label": "Hierarchy 564:93009",
+        "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-93009",
+        "kind": "external",
+        "line": 15
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

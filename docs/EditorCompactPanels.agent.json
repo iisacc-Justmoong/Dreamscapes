@@ -1,0 +1,163 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:a41a2747159483eb1544fca93249e276f7119e3ba09c43ce092f2f717812fa41",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/EditorCompactPanels.md",
+    "sha256": "088b671fe37b5fcffc02b58a489fbd5e75212e9e1e13b8ac3d68c6ff7d5884cc",
+    "bytes": 4145,
+    "line_count": 15,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Compact editor tool panels",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Compact editor tool panels\n",
+      "level": 1,
+      "title": "Compact editor tool panels"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "The reference is [Dreamscapes Figma 772:80714](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=772-80714). The live atlas contains Camera/Photo, historical Asset, File, Background, Audio, Canvas, Generative, Layers, Select, Retouch, Fill and Brush. Asset remains excluded from the runtime toolbar under the existing product contract.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 5,
+      "end_line": 5,
+      "raw": "Audio, Canvas, Generative, Select, Retouch, Fill and Brush now use `EditorCompactPanel.qml` on desktop and mobile. Their former unified forms and text mode pickers are replaced by the source's 30px icon selectors, trailing Reset icon, current-view heading, parameter icons and ordered state-specific rows. Generative has two groups of four selectors. The 38 explicitly drawn state copies and their 167 parameter/action occurrences are recorded independently in `fixtures/CompactPanelsFigma.json`. Lasso remains available as the fifth Select tab; its four existing controls use the same compact layout because the atlas only draws the other four Select copies.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "`EditorCompactDefinitions.js` contains presentation metadata referencing existing stable field IDs. It changes no persisted parameter ID or generation operation. Expand maps to the existing Outpaint operation. Selecting a configuration view preserves all other values and drafts; switching tools, closing/reopening the panel and moving between desktop/mobile retain the selected view. Reset retains the view and resets the tool values using the existing tool contract. Live generation model choices still come from the runtime model list.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "The same installed LVRS controls and the original 134 icon assets are used. Buttons keep fixed Default or Borderless roles across selection, hover and press. The reference's 432px frame has 398px of content; narrower panels adapt input widths and option rows so fields stay in bounds. Dimension fields sit side by side. Preview rows remain passive with their existing trailing disclosure. Actions use a 22px Default icon button with a small adjacent caption.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 11,
+      "end_line": 11,
+      "raw": "All parameters present in the Figma state remain visible. Existing engine capability checks disable unavailable controls and explain why through accessibility descriptions. Unsupported markers, custom/top anchor modes, flat/custom brush tips, Color/Soft light brush blends and generative upscale methods are not mapped to unrelated existing operations. Existing values outside the displayed design choices remain in the draft. The Content-aware action is a real Preview fill: it runs the existing repair operation on a detached in-memory document and renders the result. Closing that preview changes neither pixels nor selection/history. Its Apply repair action uses the existing document transaction and supports Undo. Opening Face Refine displays its disabled parameters and consumes pointer presses without drawing the previous repair mask. This UI alignment does not add ICC conversion, conditioning engines, face refinement or new brush rendering modes.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 12,
+      "end_line": 12,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 13,
+      "end_line": 13,
+      "raw": "The Layers presenter also uses the atlas's four original navigation icons, trailing Reset and current-view icon/title. Layer rows use the compact 17px spacing, action tiles use 22px icons, and Delete retains its fixed Destructive role from the atlas. The delete glyph is the original light Figma SVG (#CED0D6), with unchanged path geometry, so it remains visible on the destructive surface. Its real document hierarchy, selected-layer properties, adjustments, measured histogram and color sampling remain document-backed. Camera/Photo, File and Background retain their dedicated state presenters and actual document/device values; the atlas's example filenames, media counts and thumbnails are not copied into runtime data.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 14,
+      "end_line": 14,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 15,
+      "end_line": 15,
+      "raw": "`Dreamscapes.EditorCompactPanels` checks the independent Figma row order and geometry, all views, fixed button roles, capability disabling, draft retention, Reset, shared desktop/mobile routing and narrow layouts. Existing editor, native canvas and dedicated presenter suites cover their retained behavior. Local captures and source comparison evidence are saved under `build/tool-panels-772-80714-20261016/`.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Compact editor tool panels",
+      "anchor": "compact-editor-tool-panels",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000003",
+        "label": "Dreamscapes Figma 772:80714",
+        "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=772-80714",
+        "kind": "external",
+        "line": 3
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

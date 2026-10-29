@@ -11,21 +11,17 @@ Column {
     readonly property var engine: toolState.engine
     // Focus loss can run while the loader is replacing this panel. Keep its
     // inputs bound to Elements rather than the newly selected tool's fields.
-    readonly property var values: {
-        const draft = toolState.toolId === "elements" ? toolState.values
-            : (toolState.settingsByTool.elements || NativeData.tools.defaults(NativeData.tools.tool("elements")))
-        return engine && engine.elementSelectionCount ? Object.assign({}, draft, engine.selectedElementSettings) : draft
-    }
+    readonly property var values: toolState.nativeModel.elementValues
     readonly property string currentViewId: toolState.elementsViewId
     readonly property var view: NativeData.elements.view(currentViewId)
     readonly property var candidates: engine ? engine.elementCandidates : []
-    readonly property var activeCandidate: candidates.find(function(item) { return item.active }) || null
+    readonly property var activeCandidate: toolState.nativeModel.activeElementCandidate
     readonly property int selectionCount: engine ? engine.elementSelectionCount : 0
     readonly property bool editable: !activeCandidate || activeCandidate.editable
-    readonly property var presentedFields: NativeData.elements.controls(currentViewId, activeCandidate ? activeCandidate.shape : "Rectangle")
+    readonly property var presentedFields: toolState.nativeModel.elementFields
     readonly property bool modalActive: options.visible
     readonly property real inputWidth: Math.min(206, width * 206 / 398)
-    readonly property var scopedCandidates: toolState.elementsSelectionScope === "Selected shapes" ? candidates.filter(function(item) { return item.selected }) : candidates
+    readonly property var scopedCandidates: toolState.nativeModel.scopedElementCandidates
     width: 398
     spacing: 12
 
@@ -37,69 +33,19 @@ Column {
             : control.backgroundColor
     }
     function value(id) { return values[id] }
-    function fieldEnabled(id) {
-        return !activeCandidate || activeCandidate.editable
-            || (activeCandidate.resizable && ["field-0", "field-14", "field-15"].indexOf(id) >= 0)
-    }
-    function selectView(id) {
-        if (!NativeData.elements.views.some(function(item) { return item.id === id })) return
-        toolState.elementsViewId = id
-        options.close()
-    }
-    function edit(id, next) {
-        if (toolState.toolId !== "elements" || !fieldEnabled(id) || next === value(id)) return
-        if (Array.isArray(next) && Array.isArray(value(id)) && next.length === value(id).length && next.every(function(part, index) { return part === root.value(id)[index] })) return
-        toolState.setValue(id, next)
-    }
-    function chooseShape(entry) {
-        if (activeCandidate && !activeCandidate.editable && engine) engine.clearElementSelection()
-        selectView(entry.id)
-        edit("selector", entry.name)
-    }
-    function resetView() {
-        if (!editable) return
-        presentedFields.forEach(function(id) { root.edit(id, NativeData.elements.field(id).initial) })
-        toolState.notice = ""
-    }
-    function setSelected(item, checked) {
-        if (engine) selectionResult(engine.setElementSelected(item.id, checked, toolState.elementsMultipleSelection))
-    }
+    function fieldEnabled(id) { const revision = toolState.nativeModel.revision; return toolState.nativeModel.elementFieldEnabled(id) }
+    function selectView(id) { toolState.nativeModel.selectElementView(id); options.close() }
+    function edit(id, next) { toolState.nativeModel.editElement(id, next) }
+    function chooseShape(entry) { toolState.nativeModel.chooseElementShape(entry); options.close() }
+    function resetView() { toolState.nativeModel.resetElementView() }
+    function setSelected(item, checked) { toolState.nativeModel.setElementSelected(item.id, checked) }
     function selectionResult(success) { toolState.notice = success ? "" : engine.error }
-    function selectAll() {
-        if (!engine) return
-        if (toolState.elementsSelectionScope === "All shapes") selectionResult(engine.selectAllElements())
-        else scopedCandidates.slice().forEach(function(item) { root.selectionResult(root.engine.setElementSelected(item.id, true, true)) })
-    }
-    function invertSelection() {
-        if (!engine) return
-        if (toolState.elementsSelectionScope === "All shapes") selectionResult(engine.invertElementSelection())
-        else scopedCandidates.slice().forEach(function(item) { root.selectionResult(root.engine.setElementSelected(item.id, !item.selected, true)) })
-    }
-    function clearSelection() { if (engine) selectionResult(engine.clearElementSelection()) }
-    function inspectFirst() {
-        if (!engine || !candidates.length) return
-        selectionResult(engine.selectElement(candidates[0].id))
-        selectView("inspect")
-    }
-    function formatted(id, index) {
-        if (id === "field-0") return Number(value(id)[index]).toFixed(2).replace(/\.?0+$/, "") + " px"
-        const spec = NativeData.elements.field(id)
-        return Number(value(id)).toFixed(spec.decimals || 0) + (spec.unit === "px" ? " px" : spec.unit || "")
-    }
-    function commitNumber(id, index, text) {
-        const raw = text.trim().replace(/\s*(px|%|°)$/, "")
-        const next = Number(raw)
-        const spec = NativeData.elements.field(id)
-        if (!raw.length || !isFinite(next)) return
-        if (id === "field-0") {
-            if (next < 1 || next > 65536) return
-            const size = value(id).slice()
-            if (value("field-3")) size[1 - index] = Math.max(1, Math.round(next * size[1 - index] / size[index]))
-            size[index] = next
-            if (!size.every(function(axis) { return isFinite(axis) && axis >= 1 && axis <= 65536 })) return
-            edit(id, size)
-        } else if (next >= spec.minimum && next <= spec.maximum) edit(id, next)
-    }
+    function selectAll() { toolState.nativeModel.elementSelectionAction("all") }
+    function invertSelection() { toolState.nativeModel.elementSelectionAction("invert") }
+    function clearSelection() { toolState.nativeModel.elementSelectionAction("clear") }
+    function inspectFirst() { toolState.nativeModel.elementSelectionAction("inspect"); options.close() }
+    function formatted(id, index) { const revision = toolState.nativeModel.revision; return toolState.nativeModel.formattedElement(id, index === undefined ? -1 : index) }
+    function commitNumber(id, index, text) { toolState.nativeModel.commitElementNumber(id, index === undefined ? -1 : index, text) }
 
     component Heading: Views.PanelRow {
         type: LV.ListItem.Mini
@@ -295,7 +241,7 @@ Column {
                             value: root.buttonColor(choiceButton)
                         }
                         onClicked: {
-                            if (choices.fieldId === "field-2" && slot.modelData === "Image") root.toolState.actionRequested("elements", "image-fill", Object.assign({}, root.values, {"field-2": "Image"}))
+                            if (choices.fieldId === "field-2" && slot.modelData === "Image") root.toolState.nativeModel.requestElementImageFill()
                             else root.edit(choices.fieldId, slot.modelData)
                         }
                     }
@@ -574,14 +520,14 @@ Column {
         LV.Label { style: body; text: qsTr("Edit stroke and arrowheads"); width: parent.width - 42; height: 34; verticalAlignment: Text.AlignVCenter; TapHandler { onTapped: root.selectView("stroke") } }
     }
     Description {
-        visible: ["selection", "inspect", "multiple", "clear", "fill"].indexOf(root.currentViewId) >= 0
+        visible: NativeData.presentation.indexOf(["selection", "inspect", "multiple", "clear", "fill"], root.currentViewId) >= 0
         text: root.currentViewId === "selection" ? qsTr("Choose a shape to inspect its geometry.") : root.currentViewId === "inspect" ? (!root.activeCandidate ? qsTr("Choose a shape to inspect its geometry.") : !root.editable ? qsTr("This shape can be inspected but its geometry cannot be edited.") : qsTr("Inspect the active shape and its appearance.")) : root.currentViewId === "multiple" ? qsTr("Click a row or checkbox to add or remove a shape.") : root.currentViewId === "clear" ? qsTr("Use Inspect for one shape or Multiple for a selection.") : qsTr("Fill and opacity apply to the selected shape.")
     }
     LV.ContextMenu {
         id: options
         property string scopeId: "active"
         showIconSlot: false
-        items: scopeId === "active" ? root.candidates.map(function(item) { return {label: item.name, elementId: item.id} }) : scopeId === "selection" ? [{label: "All shapes"}, {label: "Selected shapes"}] : [{label: "Selected shape"}]
+        items: scopeId === "active" ? NativeData.presentation.choices(root.candidates, "name", "id", "elementId") : scopeId === "selection" ? [{label: "All shapes"}, {label: "Selected shapes"}] : [{label: "Selected shape"}]
         onItemTriggered: function(index) {
             if (scopeId === "active" && root.engine) root.selectionResult(root.engine.selectElement(items[index].elementId))
             else if (scopeId === "selection") root.toolState.elementsSelectionScope = items[index].label

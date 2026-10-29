@@ -125,6 +125,19 @@ LV.ApplicationWindow {
         onReviewFocusRequested: Qt.callLater(resultView.focusResults)
         onHomeRequested: { desktopHome.showHome(); mobileHome.showHome() }
         onNewCanvasRequested: newCanvasDialog.begin()
+        onVideoWorkspaceRequested: {
+            videoWorkspaceLoader.openWorkspace()
+            nativeSession.videoParameters = videoWorkspaceLoader.item.parameterPanel.nativeModel
+        }
+        onImageWorkspaceRequested: {
+            imageWorkspaceLoader.opened = true
+            nativeSession.imageParameters = imageWorkspaceLoader.item.parameterPanel.parameterStore
+        }
+        onWorkspaceFocusRequested: type => {
+            desktopHome.selectedAction = type === "Video" ? "video" : "image"
+            if (type === "Video") videoWorkspaceLoader.item.parameterPanel.focusPrompt()
+            else imageWorkspaceLoader.item.parameterPanel.focusPrompt()
+        }
         onOpenFileDialogRequested: homeOpenDialog.open()
         onManualResultRequested: file => Qt.callLater(() => resultView.showEntry(file))
         onPromptCompletionRequested: (prompt, ratio) => { quickGenerate.prompt = prompt; quickGenerate.aspectRatio = ratio }
@@ -171,17 +184,7 @@ LV.ApplicationWindow {
     property alias currentResult: nativeSession.currentResult
     property alias resultJobIds: nativeSession.resultJobIds
     property alias generationRequestError: nativeSession.generationRequestError
-    readonly property var generationHistoryEntries: NativeData.selection.historyImages(historyModel.generationHistory).map(function(file) {
-        if (/\.iisc$/i.test(file.name || "")) return generation.storedImage(file)
-        if (!/^[0-9a-f-]{36}-poster\.png$/.test(file.name || "")) return file
-        const video = Object.assign({},file)
-        video.mediaType = "Video"
-        video.imageSource = file.previewSource
-        video.mediaSource = file.previewSource.toString().replace(/-poster\.png(\?.*)?$/, "-0001.mp4")
-        video.name = file.name.replace(/-poster\.png$/, "-0001.mp4")
-        video.metadata1 = "MP4 · Video"
-        return video
-    })
+    readonly property var generationHistoryEntries: generation.historyEntries(historyModel.generationHistory)
     readonly property alias generationBackend: generation
     NativeGenerationProjection {
         id: generationProjection
@@ -310,12 +313,7 @@ LV.ApplicationWindow {
     GenerationController {
         id: generation
         objectName: "generationController"
-        onSubmissionQueued: function(jobIds) {
-            // Editor operations retain their target canvas and inline result flow.
-            if (window.editorView && window.editorView.submitting) return
-            // Home and the Image/Video generation views share one review route.
-            window.showSubmission(jobIds)
-        }
+        onSubmissionQueued: ids => nativeSession.submissionQueued(ids)
     }
 
     // Home and Editor share the same application controls and title-bar geometry.
@@ -331,9 +329,7 @@ LV.ApplicationWindow {
         visible: !window.useMobileHomeLayout && !window.storageBrowserVisible
         jobs: generation.jobs
         inlineSearch: window.editorVisible && !window.publishVisible
-        searchResults: historyModel.recentFiles.map(file => ({file: file, label: qsTr("Files") + " · " + file.name}))
-            .concat(historyModel.recentPublished.map(file => ({file: file, label: qsTr("Published") + " · " + file.name})))
-            .concat(window.generationHistoryEntries.map(file => ({file: file, label: qsTr("History") + " · " + file.name}))).slice(0, 8)
+        searchResults: generation.searchEntries(historyModel.recentFiles,historyModel.recentPublished,window.generationHistoryEntries)
         onPreferencesRequested: window.openPreferences()
         onSocietyRequested: window.openSociety()
         onActivityRequested: if (!window.editorVisible) desktopHome.showHome()
@@ -551,7 +547,7 @@ LV.ApplicationWindow {
             onCancelJobRequested: function(id) { generation.cancel(id) }
             onFailureRequested: function(id) { window.showFailureExplanation(id) }
             errorText: window.generationRequestError || (window.generationPending ? ""
-                : (window.submissionJobs.find(function(job) { return job.state === "failed" }) || {}).error || "")
+                : NativeData.facts.firstState(window.submissionJobs, "failed").error || "")
             onBackRequested: {
                 quickGenerate.dismissInput()
                 window.dismissResult()
@@ -677,74 +673,13 @@ LV.ApplicationWindow {
             onMediaActionRequested: function(action) {
                 window.reportUnavailableAction(action)
             }
-            onAdvancedRequested: function(parameters) {
-                if (!Object.keys(parameters).length) {
-                    window.generationRequestError = quickGenerate.homePaint.canvas.inputError
-                    return
-                }
-                quickGenerate.dismissInput()
-                if (quickGenerate.mediaType === "Video") {
-                    videoWorkspaceLoader.openWorkspace()
-                    const panel = videoWorkspaceLoader.item.parameterPanel
-                    for (const key of ["prompt", "negativePrompt", "width", "height", "outputCount", "seed"])
-                        panel.edit(key, parameters[key])
-                    panel.edit("randomSeed", parameters.seed < 0)
-                    panel.edit("duration", quickGenerate.videoDuration)
-                    panel.edit("fps", quickGenerate.videoFps)
-                    if (parameters.referenceImages.length) panel.addImageKey(parameters.referenceImages[0], 0)
-                    desktopHome.selectedAction = "video"
-                    panel.focusPrompt()
-                } else {
-                    imageWorkspaceLoader.opened = true
-                    const panel = imageWorkspaceLoader.item.parameterPanel
-                    if (!panel.parameterStore.updateParameters(parameters)) {
-                        window.generationRequestError = panel.parameterStore.errorString
-                        return
-                    }
-                    desktopHome.selectedAction = "image"
-                    panel.focusPrompt()
-                }
-                window.generationRequestError = ""
-            }
+            onAdvancedRequested: parameters => nativeSession.advancedComposer(parameters, quickGenerate.mediaType,
+                quickGenerate.videoDuration, quickGenerate.videoFps, quickGenerate.homePaint.canvas.inputError)
             errorText: window.resultVisible ? "" : window.generationRequestError
             onGenerateRequested: function(prompt, mediaType, aspectRatio, count) {
-                const draft = quickGenerate.desktopLayout ? quickGenerate.desktopComposer : null
-                const seed = draft ? draft.seed : -1
                 window.generateRequested(prompt, mediaType, aspectRatio, count)
-                window.generationRequestError = ""
-                let jobId
-                if (mediaType === "Video") {
-                    let firstFrame = ""
-                    if (quickGenerate.hasCanvasInputs) {
-                        const parameters = quickGenerate.generationParameters(generation.selectedVideoModel)
-                        const references = parameters.referenceImages || []
-                        if (Object.keys(parameters).length === 0 || references.length !== 1) {
-                            window.generationRequestError = quickGenerate.homePaint.canvas.inputError
-                                || qsTr("Use one image or one painted canvas as the video's first frame.")
-                            return
-                        }
-                        firstFrame = references[0]
-                    }
-                    if (draft && draft.negativePrompt !== draft.appliedNegativePrompt) {
-                        jobId = generation.enqueueVideoRecipe({prompt: prompt, negativePrompt: draft.negativePrompt,
-                            width: draft.outputSize.width, height: draft.outputSize.height, outputCount: count, seed: seed,
-                            duration: quickGenerate.videoDuration, fps: quickGenerate.videoFps,
-                            shots: [{frames: quickGenerate.videoDuration * quickGenerate.videoFps, prompt: prompt,
-                                conditions: firstFrame ? [{frame: 0, image: firstFrame, strength: 1}] : []}]})
-                    } else jobId = generation.enqueueVideo(prompt, aspectRatio, count, firstFrame,
-                        quickGenerate.videoDuration, quickGenerate.videoFps, seed)
-                } else if (quickGenerate.hasCanvasInputs || (draft && draft.usesExplicitParameters)) {
-                    const parameters = draft ? draft.parameters(generation.selectedModel, true)
-                        : quickGenerate.generationParameters(generation.selectedModel)
-                    if (Object.keys(parameters).length === 0) {
-                        window.generationRequestError = quickGenerate.homePaint.canvas.inputError
-                        return
-                    }
-                    jobId = generation.enqueueHomeCanvas(parameters, aspectRatio, !!draft && draft.usesExplicitParameters)
-                } else {
-                    jobId = generation.enqueue(prompt, aspectRatio, count, seed)
-                }
-                if (jobId.length === 0) window.generationRequestError = generation.errorString
+                nativeSession.enqueueComposer(quickGenerate.nativeModel,
+                    quickGenerate.desktopLayout ? quickGenerate.desktopComposer.nativeModel : null)
             }
         }
 
@@ -863,8 +798,8 @@ LV.ApplicationWindow {
             objectName: "societyVaeMenu"
             showIconSlot: false
             itemWidth: Math.max(0, Math.min(440, storagePanel.width - leftPadding - rightPadding - edgeMargin * 2))
-            items: [qsTr("Model default")].concat(generation.vaes.map(function(model) { return model.id }))
-            selectedIndex: generation.selectedVae.length ? items.indexOf(generation.selectedVae) : 0
+            items: NativeData.presentation.prepend(qsTr("Model default"), NativeData.presentation.labels(generation.vaes, "id"))
+            selectedIndex: generation.selectedVae.length ? NativeData.presentation.indexOf(items, generation.selectedVae) : 0
             onItemTriggered: function(index, entry) { generation.selectedVae = index === 0 ? "" : String(entry) }
         }
         LV.ContextMenu {
@@ -872,8 +807,8 @@ LV.ApplicationWindow {
             objectName: "societyModelMenu"
             showIconSlot: false
             itemWidth: Math.max(0, Math.min(440, storagePanel.width - leftPadding - rightPadding - edgeMargin * 2))
-            items: (quickGenerate.mediaType === "Video" ? generation.videoModels : generation.models).map(function(model) { return model.id })
-            selectedIndex: items.indexOf(quickGenerate.mediaType === "Video" ? generation.selectedVideoModel : generation.selectedModel)
+            items: NativeData.presentation.labels(quickGenerate.mediaType === "Video" ? generation.videoModels : generation.models, "id")
+            selectedIndex: NativeData.presentation.indexOf(items, quickGenerate.mediaType === "Video" ? generation.selectedVideoModel : generation.selectedModel)
             onItemTriggered: function(index, entry) {
                 if (quickGenerate.mediaType === "Video") generation.selectedVideoModel = String(entry)
                 else generation.selectedModel = String(entry)

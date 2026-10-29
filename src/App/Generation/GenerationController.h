@@ -142,6 +142,8 @@ signals:
 public:
     QUrl latestImage() const;
     QVariantMap latestResult() const;
+    Q_INVOKABLE QVariantList historyEntries(const QVariantList &files) const;
+    Q_INVOKABLE QVariantList searchEntries(const QVariantList &files, const QVariantList &published, const QVariantList &history) const;
     Q_INVOKABLE QVariantMap storedImage(const QVariantMap &file) const;
     // Materializes a local PNG when required by file/input consumers. Views use CanvasPreview.
     Q_INVOKABLE QUrl imagePreview(const QUrl &source) const;
@@ -167,6 +169,7 @@ public:
     Q_INVOKABLE QString enqueueAdvanced(const QVariantMap &parameters);
     Q_INVOKABLE QString enqueueHomeCanvas(const QVariantMap &parameters, const QString &aspectRatio, bool explicitControls = false);
     Q_INVOKABLE bool cancel(const QString &id);
+    Q_INVOKABLE void cancelBatch(const QStringList &ids);
 
 signals:
     void videoPresetsChanged();
@@ -235,7 +238,7 @@ private:
     void clearPreview();
     bool startWorker(QString *error);
     void prepareForeground();
-    void setInferenceStatus(QJsonObject status);
+    void setInferenceStatus(QJsonObject status, bool recordFailureProgress = true);
     void updateScreenActivity();
     void interruptNative();
     void setNativePaused(bool paused);

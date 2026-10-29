@@ -33,6 +33,11 @@ public:
     void configureAccount(const QString& accountId, iiSocialPublish::Platform, iiSocialPublish::Account);
     void disconnectAccount(const QString& accountId);
 
+    Q_INVOKABLE QVariantList accountsFor(const QString &platform) const;
+    Q_INVOKABLE QStringList providerNames() const;
+    Q_INVOKABLE QString providerId(const QString &name) const;
+    Q_INVOKABLE QStringList accountIds(const QString &platform) const;
+    Q_INVOKABLE QString matchingAccount(const QString &platform, const QString &preferred) const;
     Q_INVOKABLE QString submit(const QString& accountId, const QVariantMap& post);
     QString submitPlan(const QString& accountId, iiSocialPublish::PublicationPlan, const QString& destinationId = {});
     Q_INVOKABLE bool cancel(const QString& jobId);

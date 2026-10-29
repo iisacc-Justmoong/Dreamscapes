@@ -23,13 +23,14 @@ Item {
     property bool pending: false
     property alias selectedPreset: nativeDraft.selectedPreset
     property alias presetFeedback: nativeDraft.presetFeedback
-    readonly property var presetNames: [qsTr("Default")].concat(generation.videoPresetNames || [])
+    readonly property var presetNames: NativeData.presentation.prepend(qsTr("Default"), generation.videoPresetNames || [])
     readonly property var cameraNames: [qsTr("None"),qsTr("Static"),qsTr("Dolly in"),qsTr("Dolly out"),qsTr("Pan left"),qsTr("Pan right"),qsTr("Tilt up"),qsTr("Tilt down"),qsTr("Orbit left"),qsTr("Orbit right"),qsTr("Crane up"),qsTr("Crane down"),qsTr("Zoom in"),qsTr("Zoom out"),qsTr("Handheld"),qsTr("Tracking"),qsTr("Dolly zoom")]
     readonly property var cameraValues: ["none","static","dolly-in","dolly-out","pan-left","pan-right","tilt-up","tilt-down","orbit-left","orbit-right","crane-up","crane-down","zoom-in","zoom-out","handheld","tracking","dolly-zoom"]
     readonly property alias aspectRatio: nativeDraft.aspectRatio
     readonly property alias invalidInputs: nativeDraft.invalidInputs
     readonly property alias hasInvalidInputs: nativeDraft.hasInvalidInputs
     readonly property alias cameraSelectionValid: nativeDraft.cameraSelectionValid
+    readonly property alias nativeModel: nativeDraft
     property alias values: nativeDraft.values
     NativeVideoDraft {
         id: nativeDraft
@@ -38,7 +39,7 @@ Item {
         timeline: root.timeline
         onViewResetRequested: root.tab = "Generation"
     }
-    readonly property var modelNames: generation.videoModels.map(model=>model.name || model.id)
+    readonly property var modelNames: NativeData.presentation.labels(generation.videoModels, "name", "id")
     signal generateRequested()
     function defaults() { return nativeDraft.defaults() }
     function edit(key, value) { return nativeDraft.edit(key, value) }
@@ -82,7 +83,7 @@ Item {
             function onActiveFocusChanged() { if(row.editing && !row.invalidEdit) row.inputText1=String(root.values[row.parameterKey]) }
         }
         Connections { target:root; function onInvalidInputsChanged() { row.invalidEdit=!!root.invalidInputs[row.parameterKey] } }
-        onEdited:function(field,value) { if(field==="inputText1") invalidEdit=!root.edit(parameterKey,String(value).trim()==="" ? NaN : Number(String(value).replace(/\s*(px|s)$/, ""))) }
+        onEdited:function(field,value) { if(field==="inputText1") invalidEdit=!nativeDraft.editNumber(parameterKey,String(value)) }
         LV.Tooltip { target:row.inputControl; automatic:false; visible:row.invalidEdit && row.inputControl.hovered; text:qsTr("Enter a valid value") }
     }
     component SelectRow: Views.PanelRow {
@@ -92,7 +93,7 @@ Item {
         property var optionValues:options
         type:LV.ListItem.Select; compact:true; fillControl:true; Layout.fillWidth:true; Layout.minimumWidth:0; showLeadingIcon:false; showDescription:false
         selector:({items:row.options})
-        Binding { target:row; property:"selectorIndex"; value:Math.max(0,row.optionValues.indexOf(row.parameterKey==="aspectRatio" ? root.aspectRatio : root.values[row.parameterKey])) }
+        Binding { target:row; property:"selectorIndex"; value:Math.max(0,NativeData.presentation.indexOf(row.optionValues, row.parameterKey==="aspectRatio" ? root.aspectRatio : root.values[row.parameterKey])) }
         onEdited:function(field,value) { if(field==="selectorIndex") root.edit(parameterKey,optionValues[value]) }
     }
     component ToggleRow: Views.PanelRow {
@@ -138,13 +139,13 @@ Item {
                         label:qsTr("Model"); showLeadingIcon:false; showDescription:false
                         selector:({items:root.modelNames,text:qsTr("Add LTX model in Society")})
                         enabled:root.modelNames.length>0
-                        Binding { target:modelSelector; property:"selectorIndex"; value:Math.max(0,root.generation.videoModels.findIndex(model=>model.id===root.generation.selectedVideoModel)) }
+                        Binding { target:modelSelector; property:"selectorIndex"; value:Math.max(0,NativeData.presentation.indexOf(root.generation.videoModels, root.generation.selectedVideoModel, "id")) }
                         onEdited:function(field,value) { if(field==="selectorIndex") root.generation.selectedVideoModel=root.generation.videoModels[value].id }
                     }
                     Views.PanelRow {
                         id:presetSelector; objectName:"videoPresetSelector"; type:LV.ListItem.Select; compact:true; fillControl:true
                         Layout.fillWidth:true; Layout.minimumWidth:0; label:qsTr("Select preset"); showLeadingIcon:false; showDescription:false
-                        selector:({items:root.presetNames}); Binding { target:presetSelector; property:"selectorIndex"; value:Math.max(0,root.presetNames.indexOf(root.selectedPreset)) }
+                        selector:({items:root.presetNames}); Binding { target:presetSelector; property:"selectorIndex"; value:Math.max(0,NativeData.presentation.indexOf(root.presetNames, root.selectedPreset)) }
                         onEdited:function(field,value) { if(field==="selectorIndex") root.loadPreset(root.presetNames[value]) }
                     }
                     Section { label:qsTr("Essentials"); description:qsTr("%1 seconds · %2 FPS · %3 frames").arg(root.values.duration).arg(root.values.fps).arg(root.timeline.totalFrames) }
@@ -155,13 +156,13 @@ Item {
                         NumberRow { objectName:"videoHeight"; fillControl:true; label:qsTr("Height"); parameterKey:"height" }
                         NumberRow { objectName:"videoDuration"; fillControl:true; label:qsTr("Duration"); parameterKey:"duration" }
                         SelectRow { objectName:"videoFps"; label:qsTr("Frame rate"); parameterKey:"fps"; options:["12 FPS","24 FPS","30 FPS","60 FPS","120 FPS"]; optionValues:[12,24,30,60,120] }
-                        SelectRow { objectName:"videoAspectRatio"; label:qsTr("Aspect ratio"); parameterKey:"aspectRatio"; options:["1:1","4:3","3:4","16:9","9:16"].concat(root.aspectRatio===qsTr("Custom") ? [qsTr("Custom")] : []) }
+                        SelectRow { objectName:"videoAspectRatio"; label:qsTr("Aspect ratio"); parameterKey:"aspectRatio"; options:NativeData.presentation.concatenate(["1:1","4:3","3:4","16:9","9:16"], root.aspectRatio===qsTr("Custom") ? [qsTr("Custom")] : []) }
                         Views.PanelRow {
                             id:outputCountRow; objectName:"videoOutputCount"; compact:true; fillControl:true; type:LV.ListItem.Select
                             Layout.fillWidth:true; Layout.minimumWidth:0; label:qsTr("Output count"); showLeadingIcon:false; showDescription:false
-                            readonly property var counts: { const common=[1,2,3,4,5,6,7,8,12,16,24,32,64,128,256,512,1000]; return common.indexOf(root.values.outputCount)>=0 ? common : common.concat([root.values.outputCount]).sort((a,b)=>a-b) }
-                            selector:({items:counts.map(count=>qsTr("%1 video%2").arg(count).arg(count===1 ? "" : "s")).concat([qsTr("Custom…")])})
-                            Binding { target:outputCountRow; property:"selectorIndex"; value:Math.max(0,outputCountRow.counts.indexOf(root.values.outputCount)) }
+                            readonly property var counts: NativeData.presentation.countChoices(root.values.outputCount)
+                            selector:({items:NativeData.presentation.videoCountLabels(counts, qsTr("Custom…"))})
+                            Binding { target:outputCountRow; property:"selectorIndex"; value:Math.max(0,NativeData.presentation.indexOf(outputCountRow.counts, root.values.outputCount)) }
                             onEdited:function(field,value) { if(field!=="selectorIndex") return; if(value===counts.length) { outputCountInput.text=String(root.values.outputCount); outputCountPopup.open() } else root.edit("outputCount",counts[value]) }
                         }
                     }
@@ -239,7 +240,8 @@ Item {
             LV.Label { visible:root.presetFeedback.length>0; text:root.presetFeedback; style:caption; Layout.fillWidth:true; Layout.leftMargin:8; wrapMode:Text.Wrap }
             LV.VStack {
                 visible:root.tab==="Shot"; Layout.fillWidth:true; Layout.minimumWidth:0; spacing:8
-                Section { label:qsTr("Shot %1").arg(root.timeline.shots.findIndex(shot=>shot.id===root.timeline.selectedShot.id)+1); description:qsTr("F%1–%2 · %3 frames").arg(root.timeline.selectedStart).arg(root.timeline.selectedEnd).arg(root.timeline.selectedShot.frames || 0) }
+                Section { label:{ root.timeline.shots; return qsTr("Shot %1").arg(root.timeline.shotIndex(root.timeline.selectedShot.id)+1) }
+                    description:qsTr("F%1–%2 · %3 frames").arg(root.timeline.selectedStart).arg(root.timeline.selectedEnd).arg(root.timeline.selectedShot.frames || 0) }
                 Views.PanelRow { compact:true; type:LV.ListItem.InlineEdit; Layout.fillWidth:true; Layout.minimumWidth:0; showLeadingIcon:false; showDescription:false; showPrimaryAction:false; label:qsTr("Name"); inputText1:root.timeline.selectedShot.name || ""; onEdited:function(field,value) { if(field==="inputText1") root.timeline.changeShot(root.timeline.selectedShot.id,"name",value) } }
                 Views.PanelRow { compact:true; type:LV.ListItem.Toggle; Layout.fillWidth:true; Layout.minimumWidth:0; showLeadingIcon:false; showDescription:false; label:qsTr("Exclude from generation"); checked:!!root.timeline.selectedShot.excluded; onEdited:function(field,value) { if(field==="checked") root.timeline.changeShot(root.timeline.selectedShot.id,"excluded",value) } }
                 Views.PanelRow { compact:true; type:LV.ListItem.Toggle; Layout.fillWidth:true; Layout.minimumWidth:0; showLeadingIcon:false; showDescription:false; label:qsTr("Lock"); checked:!!root.timeline.selectedShot.locked; onEdited:function(field,value) { if(field==="checked") root.timeline.changeShot(root.timeline.selectedShot.id,"locked",value) } }
@@ -280,7 +282,7 @@ Item {
     }
 
     Controls.Popup {
-        id:outputCountPopup; onClosed:outputCountRow.selectorIndex=Math.max(0,outputCountRow.counts.indexOf(root.values.outputCount)); objectName:"videoOutputCountPopup"; anchors.centerIn:parent; modal:true; focus:true; padding:LV.Theme.gap16
+        id:outputCountPopup; onClosed:outputCountRow.selectorIndex=Math.max(0,NativeData.presentation.indexOf(outputCountRow.counts, root.values.outputCount)); objectName:"videoOutputCountPopup"; anchors.centerIn:parent; modal:true; focus:true; padding:LV.Theme.gap16
         width:Math.min(300,root.width-16)
         background:Rectangle { color:LV.Theme.panelBackground10; radius:LV.Theme.radiusLg }
         contentItem:ColumnLayout {

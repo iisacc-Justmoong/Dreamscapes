@@ -4,6 +4,11 @@
 
 macOS Release는 [성능 및 런타임 구성](Performance.md)의 Apple 추론 프로필과 compact 배포를 사용한다. `python3 scripts/build-macos-runtime.py --jobs 8`로 제품 전용 iiLocalDiffusion을 준비한 뒤 앱을 빌드한다. 미사용 Qt 모듈·스타일·디버그 자료 및 중복 LVRS 자산을 제외하고, 실제 실행 파일과 플러그인·헬퍼의 의존 관계에 필요한 런타임을 포함한다. 아키텍처 축소와 로컬 심볼 제거 후 전체 번들을 다시 서명한다.
 
+제품 전용 추론 패키지는 ONNX를 포함하지 않는다. 자동 Pose와 그 모델 선택은
+제거하였다. 설치 갱신은 구형 ONNX 런타임을 정리하고, Python 비디오 엔진은
+외부 `DYLD_*` 검색 경로 없이 직접 로딩되어야 한다. 네이티브 로딩 검사와 모델
+추론 완료 검증은 구분한다. 공통 배포 정책은 폐기된 런타임의 재포함을 거부한다.
+
 OpenSSL은 CMake가 선택한 Crypto/SSL 동적 라이브러리를 배포 인벤토리에 명시한다.
 FindOpenSSL의 UNKNOWN_LIBRARY 대상이 공유 라이브러리 목록에서 누락되더라도,
 SDK가 보존한 공급자의 설치 이름을 현재 설정의 런타임으로 해석해야 한다.

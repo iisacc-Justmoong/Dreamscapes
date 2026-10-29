@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import ".." as Frames
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
@@ -9,6 +10,10 @@ Column {
     id: root
     objectName: "editorBackgroundPanel"
     required property var toolState
+    NativeBackgroundModel {
+        id: nativeBackground
+        toolState: root.toolState.nativeModel
+    }
     readonly property var backend: toolState.engine
     readonly property var info: backend ? backend.maskPanelInfo : ({canEdit:false,masks:[],selected:{},targets:[],reason:qsTr("Open a canvas first.")})
     readonly property var selected: info.selected || {}
@@ -20,39 +25,19 @@ Column {
     spacing: 12
     width: 398
     // Preserve focus and menu anchors across property edits and canvas previews.
-    ListModel { id: masksModel }
-    function syncMasks() {
-        if(!masksModel) return
-        const entries=info.masks || []
-        for(let index=0;index<entries.length;++index) {
-            const entry=entries[index]
-            let found=index
-            while(found<masksModel.count && masksModel.get(found).maskId!==entry.id) ++found
-            const row={maskId:entry.id,maskName:entry.name,maskVisible:entry.visible,maskSelected:entry.selected}
-            if(found===masksModel.count) masksModel.insert(index,row)
-            else {
-                if(found!==index) masksModel.move(found,index,1)
-                masksModel.set(index,row)
-            }
-        }
-        if(masksModel.count>entries.length) masksModel.remove(entries.length,masksModel.count-entries.length)
+    NativeSnapshotListModel {
+        id: masksModel
+        objectName: "backgroundNativeMasks"
+        keyRole: "maskId"
+        fieldMapping: ({maskId: "id", maskName: "name", maskVisible: "visible", maskSelected: "selected"})
+        entries: root.info.masks || []
     }
-    onInfoChanged: syncMasks()
-    Component.onCompleted: syncMasks()
     function value(field, fallback) { return values[field] === undefined ? fallback : values[field] }
     function edit(field, next) { if(value(field) !== next) toolState.setValue(field,next) }
-    function action(name) { if(backend) { const ok=backend.backgroundMaskAction(name); toolState.notice=ok ? (name==="clear"?qsTr("Selection cleared."):"") : backend.error } }
-    function propertyEdit(field, next) { if(backend) toolState.notice = backend.setBackgroundMaskProperty(field,next) ? "" : backend.error }
-    function collectionAction(name) {
-        if(!backend) return
-        const ok=name==="new"?backend.createBackgroundMask():name==="duplicate"?backend.duplicateBackgroundMask():backend.deleteBackgroundMask()
-        toolState.notice=ok?"":backend.error
-    }
-    function resetMask() {
-        const defaults={maskTool:"Brush",maskMode:"Add",maskSize:40,maskHardness:60,maskFlow:100,maskOpacity:100,maskPressure:true,maskNewEach:true,maskOverlay:true,maskOverlayColor:"#FF5C77",maskOverlayOpacity:50,maskFuzziness:50}
-        Object.keys(defaults).forEach(function(key){root.edit(key,defaults[key])})
-        if(hasMask) action("reset")
-    }
+    function action(name) { nativeBackground.maskAction(name) }
+    function propertyEdit(field, next) { nativeBackground.maskProperty(field, next) }
+    function collectionAction(name) { nativeBackground.maskCollectionAction(name) }
+    function resetMask() { nativeBackground.resetMask() }
     function openOptions(control, kind, entries, maskId) {
         options.kind=kind;options.entries=entries;options.maskId=maskId || ""
         options.openFor(control,Math.min(0,root.width-control.x-options.implicitWidth),control.height)
@@ -85,8 +70,8 @@ Column {
         function commit() {
             if(edited) {
                 edited=false
-                const number=Number(text.replace(/\s*(px|%)\s*$/,""))
-                if(text.trim().length && isFinite(number) && number>=minimum && number<=maximum) committed(number)
+                const number=NativeData.tools.numberInput(text,minimum,maximum,unit)
+                if(number!==null) committed(number)
             }
             text=valueText
         }
@@ -219,10 +204,10 @@ Column {
                     id: target
                     objectName: "maskTarget"
                     width: parent.width-26; height: 22; arrow: LV.Stepper.UpDown; tone: LV.AbstractButton.Primary
-                    text: root.value("maskTarget","Selected canvas layer")==="Selected canvas layer"?qsTr("Selected canvas layer"):((root.info.targets || []).find(function(item){return item.id===root.info.targetId})||{}).name || qsTr("Selected canvas layer")
+                    text: root.value("maskTarget","Selected canvas layer")==="Selected canvas layer"?qsTr("Selected canvas layer"):NativeData.presentation.find(root.info.targets || [], root.info.targetId, "id").name || qsTr("Selected canvas layer")
                     enabled: Boolean(root.backend) && (root.info.targets || []).length>0
                     activeFocusOnTab: true; Accessible.name: qsTr("Mask target: ")+text
-                    onClicked: root.openOptions(target,"target",(root.info.targets || []).map(function(item){return {id:item.id,label:item.name}}))
+                    onClicked: root.openOptions(target,"target",NativeData.presentation.choices(root.info.targets || [], "name", "id", "id"))
                     Keys.onReturnPressed: clicked(); Keys.onSpacePressed: clicked()
                 }
             }
@@ -383,7 +368,7 @@ Column {
                     width: parent.width*230/398; height: 22; arrow: LV.Stepper.UpDown; tone: LV.AbstractButton.Primary
                     text: root.selected.combine==="Add"?qsTr("Add / union"):root.selected.combine || qsTr("Add / union")
                     activeFocusOnTab: true; Accessible.name: qsTr("Combine with: ")+text
-                    onClicked: root.openOptions(combine,"combine",["Add","Subtract","Intersect","Replace"].map(function(mode){return {id:mode,label:mode==="Add"?qsTr("Add / union"):mode}}))
+                    onClicked: root.openOptions(combine,"combine",[{id:"Add",label:qsTr("Add / union")},{id:"Subtract",label:qsTr("Subtract")},{id:"Intersect",label:qsTr("Intersect")},{id:"Replace",label:qsTr("Replace")}])
                     Keys.onReturnPressed: clicked(); Keys.onSpacePressed: clicked()
                 }
             }
@@ -432,7 +417,7 @@ Column {
         property string maskId: ""
         property var entries: []
         showIconSlot: false
-        items: entries.map(function(entry){return {label:entry.label}})
+        items: NativeData.presentation.labels(entries)
         onItemTriggered: function(index) {
             if(!entries[index] || !root.backend) return
             const id=entries[index].id

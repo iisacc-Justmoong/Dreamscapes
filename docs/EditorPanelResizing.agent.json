@@ -1,0 +1,172 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:1a38aa425023b16a410dccd06033b6a03f54c0b27085c40b65047467822d8349",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/EditorPanelResizing.md",
+    "sha256": "ac078340fa5de5d0bb653a73c24be1265d6274c159184b12b3e03784136ddb1d",
+    "bytes": 3664,
+    "line_count": 56,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Resizable editor tool panel",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Resizable editor tool panel\n",
+      "level": 1,
+      "title": "Resizable editor tool panel"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "Reference: [Dreamscapes Elements panel, Figma 353:22022](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=353-22022&m=dev).\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 5,
+      "end_line": 17,
+      "raw": "The desktop editor's right panel starts at 304 logical pixels with no outer\nborder and a 12-pixel content inset. This provides 280 pixels for the controls.\nDrag its left\nboundary horizontally to change its width. The boundary has a 10-pixel hit\narea and a horizontal resize cursor; double-click restores 304 pixels. The\npanel normally ranges from 280 to 720 pixels, reserving the 52-pixel vertical\ntoolbar beside it and 320 pixels for the canvas where the window permits.\nDragging the panel boundary moves the toolbar with it. Collapsing the panel\nleaves the toolbar at the right window edge. A smaller window clamps the effective width\nwithout discarding the requested width. Growing the window restores it.\nClosing/reopening the panel and switching tools retain both width and tool\nvalues for the editor session. Width is not a persisted user preference.\nMobile editors keep their existing tool sheets and have no resize boundary.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 19,
+      "end_line": 30,
+      "raw": "Titles and field captions start at the upper left. Parameter groups align to\nthe right content edge, inside the 12-pixel panel inset. Input fields\nkeep their 206-by-22 size where space permits and move below their caption\nwhen the caption and field cannot fit beside each other. Long captions wrap.\nDimension fields remain stacked. Slider value inputs also keep their 206-pixel\nwidth; a long caption moves the input below it when the heading cannot fit.\nThe slider underneath aligns right, shrinking from 320 pixels as needed. Color\ninput and picker form one right-aligned group. Toggles and preview controls\nalso align right. Choice and action buttons use their LVRS intrinsic widths,\nkeep their original left-to-right order, wrap without overlap, and align the\nlast button of every row to the right edge. The design's column counts cap the\nnumber of buttons in each row. Wrapped content increases the scroll extent.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 32,
+      "end_line": 36,
+      "raw": "All visible inputs, labels, buttons, sliders, toggles and preview rows reuse\ninstalled LVRS components. The application supplies panel geometry and pointer\nhandling; it does not fork or override LVRS control internals. Existing native\nediting, capabilities, dialogs, tool drafts and generation bindings continue\nthrough the same tool-state signals.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 37,
+      "end_line": 37,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 38,
+      "end_line": 47,
+      "raw": "`desktopEditorPanelResizes` verifies pointer dragging, both width limits,\nwindow clamping/restoration, double-click reset, tool values across panel\ncollapse/reopen, and mobile boundary removal. It checks the active 18-tool\ncatalog at 280/304/342/432/720 pixels: caption origin, parameter edges, wrapping order,\nrow containment and caption/control separation. Existing Figma panel tests\nretain semantic defaults, option interaction and local disclosure asset checks;\nfixed historical field coordinates are superseded by this responsive layout.\nTests that compare the original 398-pixel Figma content use a 422-pixel outer\npanel, keeping those content checks independent of the compact outer margin.\nExisting native toolbar and mobile sheet tests verify operation compatibility.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 48,
+      "end_line": 48,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "fenced_code",
+      "start_line": 49,
+      "end_line": 52,
+      "raw": "```sh\ncmake --build build --target Dreamscapes DreamscapesGuiTests Dreamscapes_qmllint --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(CompactEditorDefaults|EditorPanelResize|EditorToolPanels|EditorCanvasGui|ViewOptions|ViewOptionsHost)$' --output-on-failure\n```\n",
+      "language": "sh",
+      "code": "cmake --build build --target Dreamscapes DreamscapesGuiTests Dreamscapes_qmllint --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(CompactEditorDefaults|EditorPanelResize|EditorToolPanels|EditorCanvasGui|ViewOptions|ViewOptionsHost)$' --output-on-failure\n",
+      "closed": true
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 53,
+      "end_line": 53,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 54,
+      "end_line": 56,
+      "raw": "Build logs, layout captures, test logs and bundle verification are saved under\n`build/verification/editor-panel-resize/`. Software-rendered GUI tests prove\nlayout and interaction; installed macOS verification is recorded separately.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Resizable editor tool panel",
+      "anchor": "resizable-editor-tool-panel",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [],
+    "commands": [
+      {
+        "block_id": "b000013",
+        "language": "sh",
+        "code": "cmake --build build --target Dreamscapes DreamscapesGuiTests Dreamscapes_qmllint --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(CompactEditorDefaults|EditorPanelResize|EditorToolPanels|EditorCanvasGui|ViewOptions|ViewOptionsHost)$' --output-on-failure\n"
+      }
+    ],
+    "links": [
+      {
+        "block_id": "b000003",
+        "label": "Dreamscapes Elements panel, Figma 353:22022",
+        "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=353-22022&m=dev",
+        "kind": "external",
+        "line": 3
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

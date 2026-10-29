@@ -2,6 +2,7 @@
 #include "Generation/GenerationController.h"
 #include "Generation/AdvancedImageParameters.h"
 #include "Views/Result/GenerationReviewModel.h"
+#include "Views/Editor/EditorWorkspaceModel.h"
 #include <QApplication>
 #include <QFile>
 #include <QImage>
@@ -67,6 +68,37 @@ QVariantList fixtures(const QString& directory,int count) {
 class GenerationReviewTests : public QObject {
     Q_OBJECT
 private slots:
+    void longFailureKeepsDetailsAccessible() {
+        const QString error = QStringLiteral("FIRST FAILURE LINE\n")
+            + QStringLiteral("오류 evidence 123\n").repeated(100) + QStringLiteral("LAST FAILURE LINE");
+        const QVariantList jobs{QVariantMap{{"id", "long-failure"}, {"state", "failed"},
+            {"error", error}, {"mediaType", "Video"}, {"modelName", "Fixture video model"}}};
+        QQmlEngine engine;
+        QQmlComponent component(&engine, source("Views/Result/GenerationResult.qml"));
+        QScopedPointer<QQuickItem> view(qobject_cast<QQuickItem*>(component.createWithInitialProperties(
+            {{"jobs", jobs}, {"errorText", error}})));
+        QVERIFY2(view, qPrintable(component.errorString()));
+        QQuickWindow window; window.resize(1440, 900);
+        view->setSize(window.size()); view->setParentItem(window.contentItem()); window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+
+        auto* status = visual(view.data(), "resultStatus"); QVERIFY(status);
+        QTRY_VERIFY(status->height() < 60);
+        QVERIFY(!status->property("text").toString().contains('\n'));
+        auto* queue = visual(view.data(), "reviewQueueList"); QVERIFY(queue);
+        QQuickItem* details = nullptr;
+        QTRY_VERIFY((details = visual(view.data(), "reviewFailure_long-failure")) && details->isVisible());
+        const auto queueTop = queue->mapToScene(QPointF(0, 0)).y();
+        const auto detailsTop = details->mapToScene(QPointF(0, 0)).y();
+        QVERIFY(detailsTop >= queueTop);
+        QVERIFY(detailsTop + details->height() <= queueTop + queue->height());
+        QSignalSpy failures(view.data(), SIGNAL(failureRequested(QString)));
+        click(window, details);
+        QCOMPARE(failures.count(), 1);
+        QCOMPARE(failures.first().first().toString(), QStringLiteral("long-failure"));
+        QCOMPARE(view->property("errorText").toString(), error);
+        QCOMPARE(values(view.data(), "jobs").first().toMap().value("error").toString(), error);
+    }
     void workspace_data() {
         QTest::addColumn<QSize>("size");QTest::addColumn<int>("count");
         QTest::newRow("desktop")<<QSize(1440,900)<<24;
@@ -243,11 +275,11 @@ private slots:
         const auto prepared=values(window,"canvasGenerationResults");QCOMPARE(prepared.size(),1);
         for(const auto* field:{"id","prompt","seed","documentSource","modelName"})QCOMPARE(prepared.first().toMap().value(field),original.value(field));
         auto* editor=window->findChild<QQuickItem*>("canvasEditor");QVERIFY(editor);
-        QVERIFY(editor->setProperty("submitting",true));
-        const auto owned=backend->enqueue("Editor-owned fixture","1:1",1);QVERIFY(!owned.isEmpty());
-        QVERIFY(editor->setProperty("submitting",false));
+        auto *nativeEditor=editor->findChild<EditorWorkspaceModel*>("editorNativeWorkspace");QVERIFY(nativeEditor);
+        QVERIFY(nativeEditor->submitAdvanced({{"prompt",QString("Editor-owned fixture")},{"model",backend->selectedModel()},{"width",64},{"height",64},{"outputCount",1}}));
+        const auto owned=nativeEditor->editorJobIds();QCOMPARE(owned.size(),1);
         QVERIFY(window->property("editorVisible").toBool());QVERIFY(editor->isVisible());QVERIFY(!result->isVisible());
-        backend->cancel(owned);
+        backend->cancel(owned.front());
         QVERIFY(QMetaObject::invokeMethod(window,"closeCanvas"));QTRY_VERIFY(result->isVisible());
         QCOMPARE(review->selectedCount(),1);QCOMPARE(review->focusedKey(),key);
         QCOMPARE(quick->property("prompt").toString(),QString("Unsubmitted review draft"));
@@ -290,8 +322,9 @@ private slots:
 };
 int main(int argc,char** argv) {
     QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);QQuickStyle::setStyle("Basic");
-    QTemporaryDir settings(QString(DREAMSCAPES_TEST_DIRECTORY)+"/review-settings-XXXXXX");if(!settings.isValid())return 2;
-    qputenv("SOCIETY_STORAGE_SETTINGS_PATH",settings.filePath("storage.json").toUtf8());qputenv("DREAMSCAPES_TEMP_DIRECTORY",DREAMSCAPES_TEST_DIRECTORY);
+    const auto runtimeDirectory = qEnvironmentVariable("DREAMSCAPES_TEST_RUNTIME_DIRECTORY", DREAMSCAPES_TEST_DIRECTORY);
+    QTemporaryDir settings(runtimeDirectory+"/review-settings-XXXXXX");if(!settings.isValid())return 2;
+    qputenv("SOCIETY_STORAGE_SETTINGS_PATH",settings.filePath("storage.json").toUtf8());qputenv("DREAMSCAPES_TEMP_DIRECTORY",runtimeDirectory.toUtf8());
     qputenv("SOCIETY_DISABLE_SESSION_RESTORE","1");qputenv("IILOCALLLM_DISABLE_APP_MCP","1");qunsetenv("SOCIETY_CONTAINER_PATH");
     QApplication app(argc,argv);app.setQuitOnLastWindowClosed(false);registerStorageViewTypes();
     presetFile=settings.filePath("presets.json");

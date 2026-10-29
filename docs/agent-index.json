@@ -1,0 +1,629 @@
+{
+  "format": "iisacc.agent-document-index",
+  "schema_version": 1,
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "documentation_root": "docs",
+  "agent_schema": "docs/agent-document.schema.json",
+  "documents": [
+    {
+      "document_id": "urn:iisacc:document:8cfc9d8a7589190597322d973c2b2fecb5c3dc57efad048e8b4b7ea6f238046c",
+      "source": "AGENT.md",
+      "agent_json": "docs/entrypoints/AGENT.agent.json",
+      "source_sha256": "5a45407b369dccf701629f3b107a02f3953e815d259326b27fe97552c5c218e6",
+      "role": "instructions"
+    },
+    {
+      "document_id": "urn:iisacc:document:58de13e8c9d5787d7b15723c771efd988ff39bc219b0c9a7935ce3ff27efc23c",
+      "source": "LICENSING.md",
+      "agent_json": "docs/entrypoints/LICENSING.agent.json",
+      "source_sha256": "629af7be7391f3cda4d302ef93b8f164fde800b301464da5aadcd13f3c1d0082",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:047887459d0d4d3b49222e75488254321571556918c4f0489c848d9d649831d3",
+      "source": "README.md",
+      "agent_json": "docs/entrypoints/README.agent.json",
+      "source_sha256": "4dbdad5cdabb10d8a85c1ebb14e040eca2fd22066532d871afd962f87d92b409",
+      "role": "overview"
+    },
+    {
+      "document_id": "urn:iisacc:document:f0e8b437d0c763b80b86b8ad2072fa9bc7beed99b9d0d10f4dafc0fea2a728c9",
+      "source": "docs/AdvancedImageParameters.md",
+      "agent_json": "docs/AdvancedImageParameters.agent.json",
+      "source_sha256": "8ca4058fcf83afb8174240cff0d2918b0c0ffbe5cd72c4fb6dc1605894524fb6",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:852731a119c69ff0850f1930417be19529ab84c5e2827f4af348d62e7d8bfce0",
+      "source": "docs/ApplicationLifetime.md",
+      "agent_json": "docs/ApplicationLifetime.agent.json",
+      "source_sha256": "42a397e00ab6fda5bf2e0bf08f75f5b20f4e577434bb60c06a40702add0e6cdb",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:355895fb2889aa5bce3e87f886f4e4ba17b14bfb7ba4f62e677427e13a54b7d9",
+      "source": "docs/CanvasFramePresentation.md",
+      "agent_json": "docs/CanvasFramePresentation.agent.json",
+      "source_sha256": "9b6965b377e10113ba9daf0a3258d9caa370060a8bebe4df3c93e9d30eafd75d",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:74e348bf539cbccb71833e73856ecc1618ca91de25262aaa9d1ba7ef6085f49b",
+      "source": "docs/CanvasPreviews.md",
+      "agent_json": "docs/CanvasPreviews.agent.json",
+      "source_sha256": "71be30bc1c85cba2b34370d0c3b2cbe0c1df6d4eebdb30f686ab24c749a255fb",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:1a7d084f6b37c55b8f1ee81d117a5c10fb0c16775bbc5a76c8693d860ac6ef69",
+      "source": "docs/CanvasToolFeedback.md",
+      "agent_json": "docs/CanvasToolFeedback.agent.json",
+      "source_sha256": "8fd89976024b4ac5a1dc850f97a89ebf67511c4a22ee95512fa5dc94e7fa1366",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:dd695d4502282f5d562421fc11c5c3c3bd4077c27beef02d3219ebac1a7344b6",
+      "source": "docs/ColorPicker.md",
+      "agent_json": "docs/ColorPicker.agent.json",
+      "source_sha256": "8098fa1fe9168f9d62727e8de6f320459c2dde9ae21566c0c31ad525e6094ff9",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:c1ea556581f9a5ef7f7610f07aaa1ccf0b9e5b74363f620f3e387a821f1f36e1",
+      "source": "docs/DesktopHome.md",
+      "agent_json": "docs/DesktopHome.agent.json",
+      "source_sha256": "bdcd6a35470144cf52c95e0a1ba9eae454804d8d24f67f9e3083e1ccc710fb7b",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:e8dc2a2590cdfecfce15473b48a069b4eddb4af6174e3aaa7b406b9c4c4f0b53",
+      "source": "docs/DynamicRasterEditing.md",
+      "agent_json": "docs/DynamicRasterEditing.agent.json",
+      "source_sha256": "42c9fb4facd68eb5f35bbb8e933ae8134fc91d0982dd70c205d54d286f1b05f7",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:1a721d64c09ebc1ff186dc83a52adb8938e455cd7bb7b7cb113889f90151849c",
+      "source": "docs/EditorBackgroundMask.md",
+      "agent_json": "docs/EditorBackgroundMask.agent.json",
+      "source_sha256": "4ca0bdeb08e97c1b6d6f38a0da8aff414b9a8d6c12baa9e969155ef153e4b1c6",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:c9d8e1f4495aba09b530f38d92af8d84d20310a4ddac36b3daa084732349c9f5",
+      "source": "docs/EditorBackgroundPanel.md",
+      "agent_json": "docs/EditorBackgroundPanel.agent.json",
+      "source_sha256": "79ee4770d33a3e95d099224666753bf0c98c0f12b31ad6f2a2d1242364d20b95",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:b2863990d7090d4835f240cc7d6a9a661dfbc5e9ce9a1331fd0cf05859ceccae",
+      "source": "docs/EditorButtonStates.md",
+      "agent_json": "docs/EditorButtonStates.agent.json",
+      "source_sha256": "76a31eb700739c00622a8d906a102b7076dd30ad1a766ea41fe07b99a46530f9",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:29bf074dd1a421660fca9c31036038295331daa5a33f2ff1552f757e906f765f",
+      "source": "docs/EditorCameraPhoto.md",
+      "agent_json": "docs/EditorCameraPhoto.agent.json",
+      "source_sha256": "c6d61d3b6d14ec7b4e077c3970758a68b6ebc1b67acdb5d4b4a03234d7fa5f94",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:3d9fa922c5e4e245a40229aeb4edb7d1dc6b59c5b1118d4e18bb628729fb1bd7",
+      "source": "docs/EditorColorSampling.md",
+      "agent_json": "docs/EditorColorSampling.agent.json",
+      "source_sha256": "9c9ca32b12eea1ccd7ab09dff233444f8088d918877693edeb9811ea99ff9683",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:bde28e132977122b30382bc38c17728c35d916538c81304c37e5dd42c54db3c1",
+      "source": "docs/EditorCompactLayout.md",
+      "agent_json": "docs/EditorCompactLayout.agent.json",
+      "source_sha256": "8e05eb4b6d24c8b7c975c1a3d669200a4fb8beda68d7f634942be5cb32c05faf",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:a41a2747159483eb1544fca93249e276f7119e3ba09c43ce092f2f717812fa41",
+      "source": "docs/EditorCompactPanels.md",
+      "agent_json": "docs/EditorCompactPanels.agent.json",
+      "source_sha256": "088b671fe37b5fcffc02b58a489fbd5e75212e9e1e13b8ac3d68c6ff7d5884cc",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:0f9e93dcd8af1bbb1da35e0860178a5052196568070f6e2b89f78e7b0724ae23",
+      "source": "docs/EditorDesktopPanels.md",
+      "agent_json": "docs/EditorDesktopPanels.agent.json",
+      "source_sha256": "909c98f7282c4c6188a48fac366e8b2c282904296003589f67b54b5e9b83212a",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:65ec73137fdb88f7222482d79f2843e8461a3e5805ae675e4255fa945ad234d4",
+      "source": "docs/EditorElements.md",
+      "agent_json": "docs/EditorElements.agent.json",
+      "source_sha256": "49836ccacec20475070cb5271efc149232bf9498bbe8e66df7a13daffd88850b",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:418a03372148f6639c1dfdd170d24182d8b2eff1889c1b588640f4fca58b4553",
+      "source": "docs/EditorFilePanel.md",
+      "agent_json": "docs/EditorFilePanel.agent.json",
+      "source_sha256": "2c2d1dd01c1a8f48f5c7c1c1581c0bffe767a23574cbfa9121094dba03e1f520",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:09ea7d1c50c8c46da0972317d3220fea39bc1812f5bdc4c908ff3087a6ba302f",
+      "source": "docs/EditorGraphicAdjust.md",
+      "agent_json": "docs/EditorGraphicAdjust.agent.json",
+      "source_sha256": "6c6d430c546f2518c4ba62e0d16ce4404606dfc4c402d678b60c8d406f193831",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:a8b82d4d1106ddbcf167048dbb90bb41a2a6e3ca8c3b56591f97275231a2f087",
+      "source": "docs/EditorGraphicPanels.md",
+      "agent_json": "docs/EditorGraphicPanels.agent.json",
+      "source_sha256": "799ba27cce238cab84ef9553a457961e31f0b448fa11b5e966b19f15706b6a33",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:a34253394357e5a58604788ef5ec328019d1628af1040dd27a555f1bcdb350b1",
+      "source": "docs/EditorImageImport.md",
+      "agent_json": "docs/EditorImageImport.agent.json",
+      "source_sha256": "611713730e8e12c6a07b5b93e818d67c6eb5b1c99aa896a8a133cda9c6ebb9de",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:72f474e91c0abeddb47ad805e06829fadb5402171c6800debf0f2635b691298d",
+      "source": "docs/EditorLayerTimeline.md",
+      "agent_json": "docs/EditorLayerTimeline.agent.json",
+      "source_sha256": "ecdeabcebd39b06c1b856b03e757808a98cd230e5e980ca2b3d6541dfc06ae11",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:7379857ae73b5c5e94ccea57afe0a91bcb96984589fbdba3e3afe6d12dbcf004",
+      "source": "docs/EditorLayers.md",
+      "agent_json": "docs/EditorLayers.agent.json",
+      "source_sha256": "a91b136740ed04ec0bdb4759b99c7dee78e1eaab278cdf653e750146aec2644f",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:46da61b3b6f2c26c1d580e6022e1294116cb453d34d402e1693f63a350df729e",
+      "source": "docs/EditorLayout.md",
+      "agent_json": "docs/EditorLayout.agent.json",
+      "source_sha256": "b2c480bddb40d1e348837bf2ae172b59507099283a831dcd779f8ab8d3c4db1d",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:8213616aa778f4b5ac8d31402cd39513324eb378a54a3e1b7c70e70e1efaa2da",
+      "source": "docs/EditorNativeCanvas.md",
+      "agent_json": "docs/EditorNativeCanvas.agent.json",
+      "source_sha256": "f4a0c7d55c2bfa27cf48c6f79f02f27281b0b2990ba659433c22657d5979ec8b",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:1a38aa425023b16a410dccd06033b6a03f54c0b27085c40b65047467822d8349",
+      "source": "docs/EditorPanelResizing.md",
+      "agent_json": "docs/EditorPanelResizing.agent.json",
+      "source_sha256": "ac078340fa5de5d0bb653a73c24be1265d6274c159184b12b3e03784136ddb1d",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:689695d1569b8bb8c6c0202da794ff67e1f78dc23afbfcf7c091cce993d11e70",
+      "source": "docs/EditorTextPanel.md",
+      "agent_json": "docs/EditorTextPanel.agent.json",
+      "source_sha256": "8b62db81a29c3b397b5847a47d20aa75bfa40d166f74c79243078b52b9d0d08a",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:66c537d1218ac6347c7b8f3effca6f1aea32efc3593263e2b6b84e742785c026",
+      "source": "docs/EditorToolBehavior.md",
+      "agent_json": "docs/EditorToolBehavior.agent.json",
+      "source_sha256": "04d75178cfec33ae3361de89dab922ac2d5a5a2d47c06bfc859a4c1e0e0791ab",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:5d16d29e94c2f34af19835eef9ec401c44f9b66e7e3771f4c3d27b61a630041b",
+      "source": "docs/EditorToolPanels.md",
+      "agent_json": "docs/EditorToolPanels.agent.json",
+      "source_sha256": "45fbe500ca9a93942ff53f37353612f66ee5e2ddd20aca11820dfd2d6391cbcc",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:49b74466f5ccb01352fbf032a71af8f4f89b419972196721d9cc8a563b75b023",
+      "source": "docs/EditorViewOptions.md",
+      "agent_json": "docs/EditorViewOptions.agent.json",
+      "source_sha256": "84afa0297558bb85e98c1607c682bfbc43d82034b7d2ac1a057a99bd46e701b1",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:8a1ac21fc3a332918a6f075b3a3d25577dcbd8110a9acd10df84ef3a1dc29d5b",
+      "source": "docs/EditorViewport.md",
+      "agent_json": "docs/EditorViewport.agent.json",
+      "source_sha256": "f591345d8631213367d5ea75b47a528320dff5dfbc9a397476327d67081594bb",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:0f6783d2456e3906565d67710a060da4d4cc525d77e01c225f810f03809bd142",
+      "source": "docs/ElementTransform.md",
+      "agent_json": "docs/ElementTransform.agent.json",
+      "source_sha256": "54b2fa264178d7385e408825d60e4ec5e1af4bf1e11f56203b49e05de0d788e8",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:3d4e4bec41f4dda2a4739174116243325497bc0ebd06824572a7c04a79208657",
+      "source": "docs/ElementsSelection.md",
+      "agent_json": "docs/ElementsSelection.agent.json",
+      "source_sha256": "7573ace5545b3b14fecd2b227eb44e3fb89d4a37f640aa5ef333a717572d4c40",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:e95eb632df2d28db0f2b3ddbc44d02437b81c9b24ee5ab97a13cb6b1f750cebe",
+      "source": "docs/FILE_PROVIDER.md",
+      "agent_json": "docs/FILE_PROVIDER.agent.json",
+      "source_sha256": "4a49996a99a951cfd6eb824f2a3f3153724eb0bdb94fbebd5f4267a3a4af61f2",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:f6b72b1eba9ccb7ba9a13b8568f26738683b269f0b0665db8e490a94c1e9dc17",
+      "source": "docs/FailureAgent.md",
+      "agent_json": "docs/FailureAgent.agent.json",
+      "source_sha256": "2d1f8a489f0d0e61b1292b5875b883641f3cca4510cbb0883a202da55537c472",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:cf0552b4ca44a97d1670d16f3534c08d05afe3e41f3783362130d258fe2b8ed9",
+      "source": "docs/FileCreationBoundary.md",
+      "agent_json": "docs/FileCreationBoundary.agent.json",
+      "source_sha256": "275feb811425a0edc35df13f513958c5115522ba9d23b8fc983d6e0b53959485",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:55f37221b057aafc4e6fd71a1f535686a337c621a0de7ca048577ac4ad1f9da6",
+      "source": "docs/GenerationProcess.md",
+      "agent_json": "docs/GenerationProcess.agent.json",
+      "source_sha256": "288b478f58a6e684a5355c7771179052269816a1f593e6c372ec929f0afda7b9",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:3bdfa3f04419f98387dc9250f446707285ed357f9c202818fb7d0d35b21d42d5",
+      "source": "docs/GenerationPublication.md",
+      "agent_json": "docs/GenerationPublication.agent.json",
+      "source_sha256": "91190511191906c1fa50040f5e5e89047cceb5b4281e4c34af087736f9b0aa9c",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:a86edd2bca99b98bcf5f4eca2ad7e3902a1de94904d9087a1c8a78ac10f18595",
+      "source": "docs/GenerationReview.md",
+      "agent_json": "docs/GenerationReview.agent.json",
+      "source_sha256": "a35b084ce783f3793bb7ebbd0e34ac4dbcfab574786a0d71f7dd86961edb9848",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:0993fc9e0e93a4f7e57fd609de9b151e66979bc05afa83d2a66edb37c81b88fb",
+      "source": "docs/GraphicImageCommands.md",
+      "agent_json": "docs/GraphicImageCommands.agent.json",
+      "source_sha256": "f6eab57bfbe843634e0ca79d3812f450c5f22f79cc3bafa28e1d9bc166bf8732",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:0818e047a374e8d749acf5e2f63fecaa1e6bf9c0ebdf3e16a85b0266c2338ba5",
+      "source": "docs/GraphicParameterHelpers.md",
+      "agent_json": "docs/GraphicParameterHelpers.agent.json",
+      "source_sha256": "ee7aa53604371afd748234ae8513ad5daabd7370e91b480d97ab101013501305",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:9e787114a7624d4a90bc18508190babf5320ee57146265592185151963b48012",
+      "source": "docs/HomeEditorRoutes.md",
+      "agent_json": "docs/HomeEditorRoutes.agent.json",
+      "source_sha256": "846d467b7d71482ae92a863313b59190843eba2a9688388ce50c15e7d90a57e0",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:495afeb3effddb42e4e9f82da7d5ca29c0040cf50ce4795ce6cf4832b015e671",
+      "source": "docs/HomePaintCanvas.md",
+      "agent_json": "docs/HomePaintCanvas.agent.json",
+      "source_sha256": "40b0f04fe374582e9a4fd231c4bd1dc63ddfd780abb36fa6e822284d2e084b52",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:c20f8e17d7e830851815574545b22aad08694eee7d354e11980dc868cd49b366",
+      "source": "docs/ImageCanvasStorage.md",
+      "agent_json": "docs/ImageCanvasStorage.agent.json",
+      "source_sha256": "916aae6dd5458ac6ff613cb84efb0840c9378cbf411d1d0e4a2b6551cd9e5105",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:5ded3472c3547c1f8a81e58d5554702d676f26bef3ae34f85bd94f256d787327",
+      "source": "docs/InteractionAudit.md",
+      "agent_json": "docs/InteractionAudit.agent.json",
+      "source_sha256": "3c3b1628af6ea34c0c9a1b823d01a0f8c55ba17efe548e1a627c081c463e7d77",
+      "role": "evidence"
+    },
+    {
+      "document_id": "urn:iisacc:document:90469fdf1e0b1b59194a4c89615f997e49754f706db436aae914bdcb64f1a786",
+      "source": "docs/LayerHistogram.md",
+      "agent_json": "docs/LayerHistogram.agent.json",
+      "source_sha256": "39f41fc7e3ea8007d8acbd655f6137c35821dab7dcf0a316dc34592a2852af1c",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:e5c3b04a49683ce65346190db945dadc3331f8b46a77bb5180c39d2cb4c04275",
+      "source": "docs/Mcp.md",
+      "agent_json": "docs/Mcp.agent.json",
+      "source_sha256": "150bca07c2fd55735b017ae693ffcf95bf5b75b366ed34dcbf0a85c016070745",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:6600044c07e57a427b28e3c5d60eaedf34b7355007cae405b8aebaef298b0412",
+      "source": "docs/MobileNavigationIcons.md",
+      "agent_json": "docs/MobileNavigationIcons.agent.json",
+      "source_sha256": "fe552d616d10e34c5079cb18f72793cf0a1ff4054f19db706c594cbce3ec2801",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:002c75c68091257473efb4fb20660d0377875d9f1d4569a59441bdee66b0a55e",
+      "source": "docs/ModelDiscovery.md",
+      "agent_json": "docs/ModelDiscovery.agent.json",
+      "source_sha256": "8b2d7b8031b4193d69ca96d9036727855c672e6e481965b96c550d7925ca2306",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:e2759563c6416a97c276eb8664fbf07ee8f3da6c73acddf71c615c083763f10c",
+      "source": "docs/MultiCanvasProject.md",
+      "agent_json": "docs/MultiCanvasProject.agent.json",
+      "source_sha256": "8f9f2a767bf2667e70fc14dbcc2140ede1ec1a08b109a0d81e4cd84691345054",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:723c61fe236920ec87f1de8607c4942b51bd8dbc633fa064e2f53f1ced6266d0",
+      "source": "docs/NativeGenerationLifetime.md",
+      "agent_json": "docs/NativeGenerationLifetime.agent.json",
+      "source_sha256": "cb0f7b8e0111f08e9a9426413dce2a63919aff4b92cfab6f9629a0bdd3142e3a",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:3fef51220ab0f9d8df6ed747f9c87c04c5164599452deaf448c97f3dfe4d514f",
+      "source": "docs/NativeModelMount.md",
+      "agent_json": "docs/NativeModelMount.agent.json",
+      "source_sha256": "37599cbbb8266fb9288d60ec1333702bddffa7e534d4da0b3ec219575c7c2099",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:11f978458fd7fa15fd808de8c52fee2c11dfc78f14f22e16cd81ed0173cbb5b2",
+      "source": "docs/NativeReviewSession.md",
+      "agent_json": "docs/NativeReviewSession.agent.json",
+      "source_sha256": "be51342d1e2f54be98a21a8320a29773e3f078537a460b698898cc79fdcb3294",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:e4807bc90f628af976d375c3ff01692385c8aff9fcb3ad952276834c57a5e1b1",
+      "source": "docs/NativeViewModels.md",
+      "agent_json": "docs/NativeViewModels.agent.json",
+      "source_sha256": "b0a1cbe76d28bb40bee49f66ee40498d6000630c76b14841e1688d45b85af334",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:062e77463c57563741f5c2687633272ca48f1342f7ac32a2c0a64fc8174ecc08",
+      "source": "docs/NewCanvas.md",
+      "agent_json": "docs/NewCanvas.agent.json",
+      "source_sha256": "fb287b9af7c5fd88a6a9b788b69d19fcf4097b4862efbd9650e5fc2e350e04d7",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:75acc02c5e245f46a9567773aa26d66c71e4a26739cfae4a09524b94da8bb333",
+      "source": "docs/PanelFrames.md",
+      "agent_json": "docs/PanelFrames.agent.json",
+      "source_sha256": "6edd72270922c8b37ce1c69b29a72f777e1ba8003629c66c01832d78548e0fa9",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:6a668e41205b309c6356f1b4da0a72b40e49283fc5232675064a89b59861d2a9",
+      "source": "docs/PanelRows.md",
+      "agent_json": "docs/PanelRows.agent.json",
+      "source_sha256": "c215ec2257613835e4c4cfd8bcbdb8c4e35c65d4eea2fffe28d217a609bc8669",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:a79e68d2e594ee98f578e34e1f66f5d2ce381731773dc31ffb5ff468637ce521",
+      "source": "docs/Performance.md",
+      "agent_json": "docs/Performance.agent.json",
+      "source_sha256": "078f30e73acb7dbec7d4fc1548460557f3417f9afd3d81e5e0f3d57e1fa84522",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:a66a5b7b328003488ee269271acf09bd0c03f5b070f309e6f193a1d1e1e6c2c0",
+      "source": "docs/PhotoImportCommands.md",
+      "agent_json": "docs/PhotoImportCommands.agent.json",
+      "source_sha256": "87d7884a12c0c9b4fb281f628283079b6a28897e30147cd27935112defb2d988",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:e4265aadd53d699c564167863d6617fdde75fcc4d66e8230eef1a45248713d52",
+      "source": "docs/PhotoLibraryExport.md",
+      "agent_json": "docs/PhotoLibraryExport.agent.json",
+      "source_sha256": "784b8185cab90388ffa1ec9bdfca7fd4f0d1b6af723566d79eb6287c1fac7fea",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:e41ae580fc12fee31d66778ad5b4ebdf02ebd61b3970c946c6e633af2269f914",
+      "source": "docs/Preferences.md",
+      "agent_json": "docs/Preferences.agent.json",
+      "source_sha256": "e43115bd026510477aa92fbc8f41a982ef0b8d31439d352ac3471a8b5f20f385",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:fa65c4eac2e0d8e70b1d773354eeda1822353e34d3e08db563e312721bb56069",
+      "source": "docs/PromptFields.md",
+      "agent_json": "docs/PromptFields.agent.json",
+      "source_sha256": "1597a9ce796fe8809ae53b0593b794013a8ce20a9ae5758651ad2d48997f55ea",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:c71ffed6d375aacc5b0ea2f0b05b6f0688d37930ae64be287c86cdaf6ea9ba33",
+      "source": "docs/PublishDestinationReview.md",
+      "agent_json": "docs/PublishDestinationReview.agent.json",
+      "source_sha256": "21b63ed253a9fa42ec85fbad95876ba8823dcdd9b0c64674f9808f89606abc80",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:bbe3062404b7755df0e467b7402420bf49c07aea88e58eb32218cd4165f6f32c",
+      "source": "docs/PublishingWorkspace.md",
+      "agent_json": "docs/PublishingWorkspace.agent.json",
+      "source_sha256": "830a0d3ce357b6c9d17c34c2b774efa400e0f2a270b5199adb2b45c98d48ae60",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:bc49b02b1aec33c66d41e42d88b049ecfb043c23e4003561f4462577a67bb2cc",
+      "source": "docs/QtIndependence.md",
+      "agent_json": "docs/QtIndependence.agent.json",
+      "source_sha256": "55bfa054223f49b6ea098bc65b8de602ec9da095f228c9d25baec0a69869853a",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:cb6b0111f93de74e77cff996cee7537752720a58c1fbd0ce2bc42234830f12fb",
+      "source": "docs/README.md",
+      "agent_json": "docs/README.agent.json",
+      "source_sha256": "004d2ce96026da157590c5b7e7079e3ea23eed42e7afa85037f4a302394c4844",
+      "role": "overview"
+    },
+    {
+      "document_id": "urn:iisacc:document:4fc3b6ce3f8e9d759e342cb908075344e673036e64f0b7fb922f64fd9639bf22",
+      "source": "docs/Refactoring.md",
+      "agent_json": "docs/Refactoring.agent.json",
+      "source_sha256": "fd636dc0bc8ff71e57f1b8126419854051507cdcbcaa85145eb327e8874f2431",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:673130d073d4788b7a82a91efdb3a0dc3d847f2c3c23f9f3e2a93636fd867754",
+      "source": "docs/ReviewModelPerformance.md",
+      "agent_json": "docs/ReviewModelPerformance.agent.json",
+      "source_sha256": "3d7bcce84006457eb310b74a753cd261fe0fe0398a981f920a36d61f9bab021a",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:4c9c9e924f999018a970a1441e6f5b17814412bd04c35ec18bc376528faa3ec9",
+      "source": "docs/RuntimeRetirement.md",
+      "agent_json": "docs/RuntimeRetirement.agent.json",
+      "source_sha256": "6c4b6ad4669ebaf33733bba7645224141a948984e529a9bc6f5a9261130413c4",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:af82b77f2944e7b2e36db30e06742950af19f6f6647c2b73e2f838b3d9370ed7",
+      "source": "docs/SharedLogicalStorage.md",
+      "agent_json": "docs/SharedLogicalStorage.agent.json",
+      "source_sha256": "c648af1cd66d0b812ac3da62eb9f1f85c79704d2a143cd9c8850427012d405a3",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:6d367f0cd2378a7896f02b6243214a9a7087647dd3eb7f718f14d051299d4a0c",
+      "source": "docs/SingleAppBuild.md",
+      "agent_json": "docs/SingleAppBuild.agent.json",
+      "source_sha256": "6c524c80eeb0371f5825199239c5e8d00bf9b360354500cd0e70ef3208d75de7",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:fe7025ea7e07249f9c6fe413e1b9df96796581d93eb53755cf51a2fb07e3807b",
+      "source": "docs/SocialPublishing.md",
+      "agent_json": "docs/SocialPublishing.agent.json",
+      "source_sha256": "ffa6276314b60a37ed93e940f1b8f4645cf2ff0b6ca50c312c9846d1e468f394",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:6a5ff18e8f330602eb9e49eef4d93f84e725b5558aac636c66f13f3da7df484c",
+      "source": "docs/SocietyAliases.md",
+      "agent_json": "docs/SocietyAliases.agent.json",
+      "source_sha256": "53c8514bc99c3c3fac14d8e680bfbb07a12885fb5d910c9d5df3b0548c22894c",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:ef4839513d5d625b3e84a844204de4f6567921568117e76250076408aaea7854",
+      "source": "docs/StorageBrowser.md",
+      "agent_json": "docs/StorageBrowser.agent.json",
+      "source_sha256": "de1c11635a41716e00f9b8b0941cdb924c102274c494ae046d2c8488235ade39",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:a6d4f7deb96dbcea3a1616229c4edb87c73a1239adfdef8e60d7a1c506d911f7",
+      "source": "docs/StorageInitialization.md",
+      "agent_json": "docs/StorageInitialization.agent.json",
+      "source_sha256": "8553ce8aacae4fd2adf19981e0e0724f4714c75c936d8bb877fef8005bfafcc4",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:f2686f5402c37acd05720da95ea391ab30f8bb00f122f94e0704ca6e3ee38431",
+      "source": "docs/Tooltips.md",
+      "agent_json": "docs/Tooltips.agent.json",
+      "source_sha256": "d7ba8864ae4b0b5d187d08583c0160075e543e96b61581f3255e306cbae44e76",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:56d04f30b96898d153d02602d895bd56b87186a9d44f84c4e330c46d0a3c2d30",
+      "source": "docs/VideoGeneration.md",
+      "agent_json": "docs/VideoGeneration.agent.json",
+      "source_sha256": "bb807093aa49a910f1f236411cf9de06dbeb5144bb3a24311bac002047b30e0f",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:dda70e5d2e4b6b4bf7090fe48a80ce4bed891c92caa5c501cb0c41c69e60b54e",
+      "source": "docs/VideoGenerationWorkspace.md",
+      "agent_json": "docs/VideoGenerationWorkspace.agent.json",
+      "source_sha256": "bb5063dd9d592a288f3b979bbb9034b9ad95be03055ed7ba5f01faad01332848",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:acac2504b2766faa2f3a46688668c3ec91883a7f2e986259c7dcadf6121910f2",
+      "source": "docs/WindowAppearance.md",
+      "agent_json": "docs/WindowAppearance.agent.json",
+      "source_sha256": "49ce9a36e058ddb0dfa365a3b9ae29d57d48bcab4f202c985a42d04ce9a10ba1",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:a1ec4adce415106d595b63096ee58e08d1f27302b4f32c8d8df9af5867179c5d",
+      "source": "docs/WindowsValidation.md",
+      "agent_json": "docs/WindowsValidation.agent.json",
+      "source_sha256": "cec21b5f2fb94610a8b2329587f3012f3c2c3043b5036edb2acfba5318f54306",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:800d649bbe27697f51b4b948deb5fbbb748e75e996b4b9d8eeb6997eb09099e9",
+      "source": "docs/WorkingFileOpen.md",
+      "agent_json": "docs/WorkingFileOpen.agent.json",
+      "source_sha256": "62023cd7b8997e37e35fdb3e146fd3ffcfa5e8bed62af0d39d1507803b54c59f",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:e4a8832ec398b838df3e21b3bcf58d6334e3698fe98e3258aaa9b5f4e3de0083",
+      "source": "docs/documentation-structure.md",
+      "agent_json": "docs/documentation-structure.agent.json",
+      "source_sha256": "7f94ee0a52a5f9e11fb526538ab8ce34ba2082b8cfa033c4c7081cbff84bf56e",
+      "role": "guide"
+    },
+    {
+      "document_id": "urn:iisacc:document:c4e7a38e0975e6b337c6f59b84743f20ef62b4105fa25e5aabf7b063fb6d1351",
+      "source": "resources/Appicon/README.md",
+      "agent_json": "docs/mirrors/resources/Appicon/README.agent.json",
+      "source_sha256": "4e43f1c69af367353db80ef089e5e349603ad96b3c0782091cb566346731cfc1",
+      "role": "overview"
+    }
+  ],
+  "layout": {
+    "human_entry": "README.md",
+    "agent_entry": "AGENT.md",
+    "human_format": "markdown",
+    "agent_format": "structured_json",
+    "source_authority": "markdown"
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

@@ -1,0 +1,659 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:49b74466f5ccb01352fbf032a71af8f4f89b419972196721d9cc8a563b75b023",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/EditorViewOptions.md",
+    "sha256": "84afa0297558bb85e98c1607c682bfbc43d82034b7d2ac1a057a99bd46e701b1",
+    "bytes": 10792,
+    "line_count": 109,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Editor view options",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Editor view options\n",
+      "level": 1,
+      "title": "Editor view options"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 7,
+      "raw": "Rulers use document pixels (`px`), independent of the canvas PPI and grid/guide\nunits. The view bar labels the control `Rulers · px`, and the ruler corner shows\n`px`. Numeric ticks keep their document-pixel values while zoom and pan change\ntheir screen positions. `EditorViewOptions.rulerUnit` exposes the fixed unit to\nboth views; no document dimensions or physical-unit conversion is changed.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "The editor implements the Figma [view bar](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1157-72320), [Snap](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1186-72316), [Grid](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1186-72320) and [Guides](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1186-72328) settings.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 11,
+      "end_line": 11,
+      "raw": "The 40 px desktop bar uses split controls: the labelled face changes visibility/enabled state, and the 22 px chevron opens details. Settings retain the selected mode when reopened. The right Constrain and Preset controls stay at the right edge. The left controls scroll horizontally instead of wrapping. Popovers are 384 px wide, clamp to smaller windows, and scroll vertically while retaining their header and actions. Content is loaded only while a popover is open. All button roles stay LVRS Default; selection uses that role's pressed surface through `EditorButtonState`.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 12,
+      "end_line": 12,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 13,
+      "end_line": 16,
+      "raw": "Numeric edits, toggles and preset changes keep the existing control instances\nand keyboard focus. Only geometry type, units and guide orientation rebuild\nthe layout when their visible fields change. Composite/Outlines and the\nOutlines button share one display state, so either control restores Composite.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "ComboBox controls use their own fixed `LV.ComboBox.Primary/Borderless` enumeration. Its numeric values differ from `LV.AbstractButton` roles; the button-state policy accepts both namespaces without allowing interaction-dependent tone expressions. The canvas surface starts below the 40 px view bar, while sidebar, tool rail and inspector bounds retain their existing layout.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "heading",
+      "start_line": 20,
+      "end_line": 20,
+      "raw": "## Settings and ownership\n",
+      "level": 2,
+      "title": "Settings and ownership"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 21,
+      "end_line": 21,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 22,
+      "end_line": 22,
+      "raw": "`resources/editor/ViewOptions.json` is the single default/validation catalogue. `EditorViewOptions` is the QML presentation adapter; `EditorViewOptionDefinitions.js` supplies the visible fields for each state. `AlignmentGeometry` uses C++23 standard types only and owns grid construction, guide construction, clipping and snap detection. `EditorCanvasAlignment` resolves the actual document, artboard, layer, selection and viewport coordinates.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 23,
+      "end_line": 23,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 24,
+      "end_line": 24,
+      "raw": "Settings and created guides belong to each open canvas's view session. They survive panel closure and switching between already-open canvases. They do not add raster/vector layers, modify document pixels, create Undo entries or change the IISC file format. New document adoption clears placed guides. Session guides/preferences are not serialized into IISC. Existing text baseline metadata is used only when the current text authoring session supplies it; imported paths do not acquire invented text baselines.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 25,
+      "end_line": 25,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "heading",
+      "start_line": 26,
+      "end_line": 26,
+      "raw": "## Snap\n",
+      "level": 2,
+      "title": "Snap"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 27,
+      "end_line": 27,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 28,
+      "end_line": 28,
+      "raw": "Smart, Pixel, Vector and Layout presets configure the same editable target switches and increment values. Targets are canvas edges/centres, layer edges/centres, guides, grid, pixel edges/centres, vector path anchors, actual authored text baselines, equal spacing and equal size. Visible-only and Ignore locked filter layer candidates. Hidden grid/guide targets are excluded when Visible only is enabled. Guide snapping also respects the Guides `Snap to guides` switch.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 29,
+      "end_line": 29,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "Tolerance and release are screen pixels, converted through the current zoom. A retained target releases at the configured release distance. Priority can favour guides or the grid; axis constraints restrict horizontal or vertical correction. Movement compares the moving shape's corners/centre/edge midpoints. Equal spacing compares the nearest 64 eligible layers without copying their vector data. Equal-size matching is applied during resize. Layer geometry is cached for a gesture and invalidated by accepted document/settings changes.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 32,
+      "end_line": 37,
+      "raw": "Line snapping uses exact nearby geometry for every moving anchor, independent\nof adaptive display and line-density limits. Its search radius uses the full\nconfigured tolerance. Horizontal/vertical constraints also work with angled\nguides and equal-size matching. Deleted guides and newly hidden layer targets\nare discarded immediately. Visible-only respects zero opacity and the pixel\ngrid's zoom reveal threshold.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 38,
+      "end_line": 38,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 39,
+      "end_line": 39,
+      "raw": "Element creation, moving and handle resizing use native document coordinates. Rotation and scale use the configured increments; Shift retains its existing constrained-transform behaviour. Constrain holds proportions during corner resize. An accepted drag remains one document transaction/Undo step. Changing view settings, generating guides, moving guides, or cancelling an unfinished transform does not create document edits.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 40,
+      "end_line": 40,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 41,
+      "end_line": 45,
+      "raw": "Explicit Width/Height entries keep the requested numeric dimensions. Pointer\nsnap increments and the view bar's corner constraint do not alter those inputs;\nthe inspector's ratio control supplies the paired dimension when requested.\nScale increments are measured from the unchanged 100% size, including steps\nthat do not divide 100. A zero Release value disables target retention.\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 46,
+      "end_line": 46,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "heading",
+      "start_line": 47,
+      "end_line": 47,
+      "raw": "## Grid\n",
+      "level": 2,
+      "title": "Grid"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 48,
+      "end_line": 48,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "table",
+      "start_line": 49,
+      "end_line": 57,
+      "raw": "| Type | Geometry controls |\n|---|---|\n| Rectangular | X/Y spacing, subdivisions, major interval, rotation |\n| Isometric | Step, axis angle, subdivisions, rotation |\n| Polar | Radial step, spokes, start/sweep angle, ring count |\n| Perspective | One/two-point projection, horizon, density, vanishing points, depth interval |\n| Pixel | Pixel step, zoom reveal threshold, pixel edge/centre snapping |\n| Baseline | Increment, offset, major interval |\n| Layout | Columns/rows, X/Y gutters, X/Y margins |\n",
+      "columns": [
+        "Type",
+        "Geometry controls"
+      ],
+      "rows": [
+        [
+          "Rectangular",
+          "X/Y spacing, subdivisions, major interval, rotation"
+        ],
+        [
+          "Isometric",
+          "Step, axis angle, subdivisions, rotation"
+        ],
+        [
+          "Polar",
+          "Radial step, spokes, start/sweep angle, ring count"
+        ],
+        [
+          "Perspective",
+          "One/two-point projection, horizon, density, vanishing points, depth interval"
+        ],
+        [
+          "Pixel",
+          "Pixel step, zoom reveal threshold, pixel edge/centre snapping"
+        ],
+        [
+          "Baseline",
+          "Increment, offset, major interval"
+        ],
+        [
+          "Layout",
+          "Columns/rows, X/Y gutters, X/Y margins"
+        ]
+      ]
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 58,
+      "end_line": 58,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "paragraph",
+      "start_line": 59,
+      "end_line": 59,
+      "raw": "Units are px, mm, pt or percent; physical units use the actual canvas PPI. Reference is Canvas, Selection or Artboard. Origin offsets are document/reference units; polar origin defaults to the reference centre. Lines/dots, colour, opacity, major lines, origin axes, adaptive display and intersection snapping affect real display or snap geometry. Pixel-grid visibility respects the reveal threshold. Snap geometry remains exact while adaptive display can omit dense minor lines. A missing Selection reference produces no selection-relative grid/guides.\n"
+    },
+    {
+      "id": "b000036",
+      "kind": "blank",
+      "start_line": 60,
+      "end_line": 60,
+      "raw": "\n"
+    },
+    {
+      "id": "b000037",
+      "kind": "paragraph",
+      "start_line": 61,
+      "end_line": 64,
+      "raw": "Dots represent actual grid intersections, including perspective rays/depth\nrows and polar rings/spokes. Baseline dots use a regular horizontal sampling\nof the baseline rows. Adaptive polar display skips configured rings without\nchanging the outer radius. Origin axes remain lines in either grid style.\n"
+    },
+    {
+      "id": "b000038",
+      "kind": "blank",
+      "start_line": 65,
+      "end_line": 65,
+      "raw": "\n"
+    },
+    {
+      "id": "b000039",
+      "kind": "heading",
+      "start_line": 66,
+      "end_line": 66,
+      "raw": "## Guides\n",
+      "level": 2,
+      "title": "Guides"
+    },
+    {
+      "id": "b000040",
+      "kind": "blank",
+      "start_line": 67,
+      "end_line": 67,
+      "raw": "\n"
+    },
+    {
+      "id": "b000041",
+      "kind": "paragraph",
+      "start_line": 68,
+      "end_line": 68,
+      "raw": "Single guides support horizontal/vertical/angled placement. Layout guides use rows, columns, gutters and margins. Video safe areas have separate action/title insets; print safe areas use physical bleed, safe-margin and crop-inset values. Composition supports thirds, golden ratio and angled diagonals. All artboards generates guides from actual artboard bounds; Clear existing on create replaces the session guide set.\n"
+    },
+    {
+      "id": "b000042",
+      "kind": "blank",
+      "start_line": 69,
+      "end_line": 69,
+      "raw": "\n"
+    },
+    {
+      "id": "b000043",
+      "kind": "paragraph",
+      "start_line": 70,
+      "end_line": 76,
+      "raw": "Every guide mode exposes Canvas/Selection/Artboard reference. The footer trash\nbutton clears all session guides without editing document layers. Guide labels\nuse stable guide numbers, the configured colour/opacity and stacking position,\nand remain visible when a line begins outside the viewport.\nLabel positions reserve the ruler strips. Colour alpha combines with the\nopacity setting; fully transparent guides neither capture pointer input nor\nqualify as visible-only snap targets.\n"
+    },
+    {
+      "id": "b000044",
+      "kind": "blank",
+      "start_line": 77,
+      "end_line": 77,
+      "raw": "\n"
+    },
+    {
+      "id": "b000045",
+      "kind": "paragraph",
+      "start_line": 78,
+      "end_line": 78,
+      "raw": "Drag a visible, unlocked guide on the canvas to move it perpendicular to its direction; Delete/Backspace removes the selected guide. Locked guides cannot move or be deleted. Solid/dashed lines, colour, opacity, labels, above/below artwork, smart guides and snapping are independent settings. Guide generation is capped at 4,096 lines.\n"
+    },
+    {
+      "id": "b000046",
+      "kind": "blank",
+      "start_line": 79,
+      "end_line": 79,
+      "raw": "\n"
+    },
+    {
+      "id": "b000047",
+      "kind": "paragraph",
+      "start_line": 80,
+      "end_line": 82,
+      "raw": "Guide hit testing uses a separate transparent input layer, so visible guides\nremain draggable when drawn below artwork. Modal view settings still block\ncanvas/guide editing until closed.\n"
+    },
+    {
+      "id": "b000048",
+      "kind": "blank",
+      "start_line": 83,
+      "end_line": 83,
+      "raw": "\n"
+    },
+    {
+      "id": "b000049",
+      "kind": "heading",
+      "start_line": 84,
+      "end_line": 84,
+      "raw": "## Rendering and verification\n",
+      "level": 2,
+      "title": "Rendering and verification"
+    },
+    {
+      "id": "b000050",
+      "kind": "blank",
+      "start_line": 85,
+      "end_line": 85,
+      "raw": "\n"
+    },
+    {
+      "id": "b000051",
+      "kind": "paragraph",
+      "start_line": 86,
+      "end_line": 86,
+      "raw": "Live grid, guide, outline and snap overlays use bounded QSG line/point batches on hardware backends. The software backend uses the same geometry through a painted fallback. Overlay input passes through except when an unlocked guide is hit. No viewport-sized image is regenerated on the hardware snap path. Previews use the same geometry at an illustrative zoom. RGB channel inspection uses a bundled shader compiled at build time; Qt ShaderTools is a build tool and is not linked into the application runtime. Pixel preview selects nearest-neighbour rendering. Rulers use viewport coordinates and the same zoom/pan mapping.\n"
+    },
+    {
+      "id": "b000052",
+      "kind": "blank",
+      "start_line": 87,
+      "end_line": 87,
+      "raw": "\n"
+    },
+    {
+      "id": "b000053",
+      "kind": "paragraph",
+      "start_line": 88,
+      "end_line": 93,
+      "raw": "Outline mode follows actual vector curves and transformed raster/video extents\nat the current frame, excluding hidden layers. Channel inspection renders Red,\nGreen, Blue and Alpha as grayscale values and restores the RGB composite.\nSoftware rendering converts the SDK's resident viewport tiles; it does not\nre-render the complete document. Alpha inspection is clipped to the canvas,\npreserving the surrounding workspace. Both rulers show major and minor ticks.\n"
+    },
+    {
+      "id": "b000054",
+      "kind": "blank",
+      "start_line": 94,
+      "end_line": 94,
+      "raw": "\n"
+    },
+    {
+      "id": "b000055",
+      "kind": "paragraph",
+      "start_line": 95,
+      "end_line": 95,
+      "raw": "Static icons are the original exported Figma SVGs under `resources/editor/view-options`, at their original 16 px slots. Screenshots remain verification artifacts under `build/view-options-verification`.\n"
+    },
+    {
+      "id": "b000056",
+      "kind": "blank",
+      "start_line": 96,
+      "end_line": 96,
+      "raw": "\n"
+    },
+    {
+      "id": "b000057",
+      "kind": "fenced_code",
+      "start_line": 97,
+      "end_line": 100,
+      "raw": "```sh\ncmake --build build --target Dreamscapes DreamscapesGuiTests DreamscapesViewOptionsTests DreamscapesAlignmentGeometryTests DreamscapesElementTransformTests DreamscapesCanvasFeedbackTests --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(ViewOptions|ViewOptionsHost|AlignmentGeometry|ElementTransform|CanvasFeedback)$' --output-on-failure\n```\n",
+      "language": "sh",
+      "code": "cmake --build build --target Dreamscapes DreamscapesGuiTests DreamscapesViewOptionsTests DreamscapesAlignmentGeometryTests DreamscapesElementTransformTests DreamscapesCanvasFeedbackTests --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(ViewOptions|ViewOptionsHost|AlignmentGeometry|ElementTransform|CanvasFeedback)$' --output-on-failure\n",
+      "closed": true
+    },
+    {
+      "id": "b000058",
+      "kind": "blank",
+      "start_line": 101,
+      "end_line": 101,
+      "raw": "\n"
+    },
+    {
+      "id": "b000059",
+      "kind": "paragraph",
+      "start_line": 102,
+      "end_line": 102,
+      "raw": "`Dreamscapes.ViewOptions` tests accepted/rejected values, presets, real guide geometry and locking, native pointer dragging/deletion, rotation/scale increments, spacing, real grid snapping, one-step Undo, all 18 setting states at 384/304 px, preview rendering and mouse/keyboard edits through the view bar. Existing free-transform tests explicitly disable alignment when checking unconstrained geometry. Native Cocoa/Metal captures, canonical-bundle signing, installation and running-process adoption are verified separately.\n"
+    },
+    {
+      "id": "b000060",
+      "kind": "blank",
+      "start_line": 103,
+      "end_line": 103,
+      "raw": "\n"
+    },
+    {
+      "id": "b000061",
+      "kind": "paragraph",
+      "start_line": 104,
+      "end_line": 109,
+      "raw": "The detail-input tests operate each visible numeric, colour, toggle, choice and\nmenu control through native pointer/keyboard events in all 18 modes. Their\nper-mode committed-key records are saved under `build/view-options-details`.\nThe host tests compare actual rendered pixels for all five channels and\nexercise Composite, Outlines, Transparency, Pixel preview, Constrain and all\nfour top-bar presets. Both software and Cocoa/Metal rendering are checked.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Editor view options",
+      "anchor": "editor-view-options",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000013",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Settings and ownership",
+      "anchor": "settings-and-ownership",
+      "start_line": 20
+    },
+    {
+      "block_id": "b000019",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Snap",
+      "anchor": "snap",
+      "start_line": 26
+    },
+    {
+      "block_id": "b000031",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Grid",
+      "anchor": "grid",
+      "start_line": 47
+    },
+    {
+      "block_id": "b000039",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Guides",
+      "anchor": "guides",
+      "start_line": 66
+    },
+    {
+      "block_id": "b000049",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Rendering and verification",
+      "anchor": "rendering-and-verification",
+      "start_line": 84
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000017",
+        "line": 24,
+        "text": "Settings and created guides belong to each open canvas's view session. They survive panel closure and switching between already-open canvases. They do not add raster/vector layers, modify document pixels, create Undo entries or change the IISC file format. New document adoption clears placed guides. Session guides/preferences are not serialized into IISC. Existing text baseline metadata is used only when the current text authoring session supplies it; imported paths do not acquire invented text baselines.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000029",
+        "line": 42,
+        "text": "snap increments and the view bar's corner constraint do not alter those inputs;",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000029",
+        "line": 45,
+        "text": "that do not divide 100. A zero Release value disables target retention.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [
+      {
+        "block_id": "b000057",
+        "language": "sh",
+        "code": "cmake --build build --target Dreamscapes DreamscapesGuiTests DreamscapesViewOptionsTests DreamscapesAlignmentGeometryTests DreamscapesElementTransformTests DreamscapesCanvasFeedbackTests --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(ViewOptions|ViewOptionsHost|AlignmentGeometry|ElementTransform|CanvasFeedback)$' --output-on-failure\n"
+      }
+    ],
+    "links": [
+      {
+        "block_id": "b000005",
+        "label": "view bar",
+        "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1157-72320",
+        "kind": "external",
+        "line": 9
+      },
+      {
+        "block_id": "b000005",
+        "label": "Snap",
+        "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1186-72316",
+        "kind": "external",
+        "line": 9
+      },
+      {
+        "block_id": "b000005",
+        "label": "Grid",
+        "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1186-72320",
+        "kind": "external",
+        "line": 9
+      },
+      {
+        "block_id": "b000005",
+        "label": "Guides",
+        "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1186-72328",
+        "kind": "external",
+        "line": 9
+      }
+    ],
+    "tables": [
+      {
+        "block_id": "b000033",
+        "columns": [
+          "Type",
+          "Geometry controls"
+        ],
+        "rows": [
+          [
+            "Rectangular",
+            "X/Y spacing, subdivisions, major interval, rotation"
+          ],
+          [
+            "Isometric",
+            "Step, axis angle, subdivisions, rotation"
+          ],
+          [
+            "Polar",
+            "Radial step, spokes, start/sweep angle, ring count"
+          ],
+          [
+            "Perspective",
+            "One/two-point projection, horizon, density, vanishing points, depth interval"
+          ],
+          [
+            "Pixel",
+            "Pixel step, zoom reveal threshold, pixel edge/centre snapping"
+          ],
+          [
+            "Baseline",
+            "Increment, offset, major interval"
+          ],
+          [
+            "Layout",
+            "Columns/rows, X/Y gutters, X/Y margins"
+          ]
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

@@ -2,6 +2,7 @@
 #include <File.h>
 #include <iiFileProviderNative.h>
 #include "EditorCameraPhoto.h"
+#include "../../ViewModels/ViewData.h"
 #include "EditorPhotoImageNative.h"
 #include <QCamera>
 #include <QCoreApplication>
@@ -743,3 +744,18 @@ bool EditorCameraPhoto::importCurrentCapture() {
     deliverOriginals(token, std::move(originals)); return true;
 }
 void EditorCameraPhoto::reportImportFailure(const QString &message) { m_error = message; emit changed(); }
+
+QVariantMap EditorCameraPhoto::presentation(const QVariantMap &settings) const {
+    const auto reply = m_presentation.queries().send({dreamscapes::nativeValue(settings), dreamscapes::nativeValue(captureTargets()), dreamscapes::nativeValue(devices()), double(recordingDuration()), deviceId().toStdString()});
+    return reply ? dreamscapes::viewValue(*reply).toMap() : QVariantMap{};
+}
+QVariantMap EditorCameraPhoto::captureSettings(const QVariantMap &settings, const QVariantList &region) const {
+    auto result = presentation(settings).value("captureSettings").toMap();
+    if (!region.isEmpty()) result["captureRegion"] = region;
+    return result;
+}
+void EditorCameraPhoto::refreshGalleryFor(QObject *presenter, const QVariantMap &settings) {
+    attachGallery(presenter); loadGallery(settings.value("galleryLibrary").toString(), settings.value("galleryFolder").toUrl());
+    filterGallery(settings.value("gallerySearch").toString(), settings.value("gallerySort").toString());
+}
+bool EditorCameraPhoto::importFor(const QString &view) { return view == "Gallery" ? importSelection() : importCurrentCapture(); }

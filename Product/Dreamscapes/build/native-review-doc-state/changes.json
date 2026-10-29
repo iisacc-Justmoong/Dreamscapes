@@ -1,0 +1,32 @@
+[
+  {
+    "path": "Product/Dreamscapes/docs/README.md",
+    "existed": true,
+    "before_sha256": "48cf2a18958610ba3c8768cd22e519efaf1362ae0629b3d6139c896a2ae49fe6",
+    "backup": "/Volumes/Storage/Workspace/Product/Dreamscapes/Product/Dreamscapes/build/native-review-doc-state/originals/Product/Dreamscapes/docs/README.md"
+  },
+  {
+    "path": "Product/Dreamscapes/docs/entrypoints/README.agent.json",
+    "existed": true,
+    "before_sha256": "0068fb9e2e06a6823eba815b3b4b5ccb980e9ff9514f8a32901d27324bfc0108",
+    "backup": "/Volumes/Storage/Workspace/Product/Dreamscapes/Product/Dreamscapes/build/native-review-doc-state/originals/Product/Dreamscapes/docs/entrypoints/README.agent.json"
+  },
+  {
+    "path": "Product/Dreamscapes/docs/NativeReviewSession.agent.json",
+    "existed": false,
+    "before_sha256": null,
+    "backup": null
+  },
+  {
+    "path": "Product/Dreamscapes/docs/README.agent.json",
+    "existed": true,
+    "before_sha256": "d189697fdf7f7eb0b4490ea3998285f9465cd9ce84e03962a4aeed44fa7fd84c",
+    "backup": "/Volumes/Storage/Workspace/Product/Dreamscapes/Product/Dreamscapes/build/native-review-doc-state/originals/Product/Dreamscapes/docs/README.agent.json"
+  },
+  {
+    "path": "Product/Dreamscapes/docs/agent-index.json",
+    "existed": true,
+    "before_sha256": "580b9eb78047fb31fe6feb7c7f251ec12e2d6156d1f9fd080236784d3e9f801e",
+    "backup": "/Volumes/Storage/Workspace/Product/Dreamscapes/Product/Dreamscapes/build/native-review-doc-state/originals/Product/Dreamscapes/docs/agent-index.json"
+  }
+]

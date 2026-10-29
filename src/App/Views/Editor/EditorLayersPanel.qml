@@ -18,16 +18,16 @@ Item {
     property bool shadowClipping: false
     property bool highlightClipping: false
     readonly property var histogram: histogramAnalysis.histogram
-    property var collapsedGroups: ({})
+    readonly property var collapsedGroups: toolState.nativeModel.collapsedLayerGroups
     readonly property var selected: engine ? engine.selectedLayer : ({})
     readonly property var info: engine ? engine.layerPanelInfo : ({})
     readonly property var sample: engine ? engine.layerColorSample : ({valid: false, hex: "No sample", rgb: "", color: "transparent"})
     readonly property bool modalActive: adjustmentSheet.visible
     readonly property var panelTitles: [qsTr("Layer"), qsTr("Adjust"), qsTr("Histogram"), qsTr("Information")]
     readonly property var panelIcons: ["panel-layers-stack", "panel-layers-adjust", "panel-layers-histogram", "panel-layers-information"]
-    property string adjustmentKey: ""
-    property string lastAdjustmentTool: "color"
-    property var adjustmentValues: ({})
+    readonly property string adjustmentKey: toolState.nativeModel.layerAdjustmentKey
+    readonly property string lastAdjustmentTool: toolState.nativeModel.lastLayerAdjustmentTool
+    readonly property var adjustmentValues: toolState.nativeModel.layerAdjustmentValues
     readonly property var adjustments: [
         {key: "contrast", label: qsTr("Contrast"), icon: "Contrast", fields: ["field-4", "field-5"]},
         {key: "exposure", label: qsTr("Exposure"), icon: "Exposure", fields: ["field-1", "field-2"]},
@@ -48,30 +48,20 @@ Item {
     function report(success) { toolState.notice = success ? "" : engine.error }
     function refreshHistogram() { histogramAnalysis.refresh() }
     function toggleVisibility(row) { report(row.group ? engine.setLayerGroupVisible(row.layerId, !row.visible) : engine.setLayerVisible(row.layerId, !row.visible)) }
-    function editAdjustment(fieldId, value) {
-        if (!engine.applyToolField("color", fieldId, value)) { report(false); return }
-        const next = Object.assign({}, adjustmentValues); next[fieldId] = value; adjustmentValues = next
-        const all = Object.assign({}, toolState.settingsByTool); all.color = next; toolState.settingsByTool = all
-        lastAdjustmentTool = "color"
-    }
-    function openAdjustment(entry) {
-        if (entry.key === "auto") { lastAdjustmentTool = "auto-enhance"; report(engine.executeToolAction("auto-enhance", "field-3", NativeData.tools.defaults(NativeData.tools.tool("auto-enhance")))); return }
-        if (entry.key === "mono") { editAdjustment("field-36", -100); return }
-        adjustmentKey = entry.key
-        adjustmentValues = Object.assign({}, NativeData.tools.defaults(NativeData.tools.tool("color")), {"field-1": 0, "field-2": 0, "field-4": 0, "field-8": 0, "field-12": 0, "field-16": 0, "field-17": 0, "field-20": 0, "field-21": 0, "field-25": 0, "field-28": 0, "field-32": 0, "field-36": 0, "field-42": 0, "field-43": 0, "curveAmount": 0}, engine.toolValues("color"))
-        adjustmentSheet.title = entry.label
-        adjustmentSheet.open()
+    function editAdjustment(fieldId, value) { toolState.nativeModel.editLayerAdjustment(fieldId,value) }
+    function openAdjustment(entry) { toolState.nativeModel.openLayerAdjustment(entry) }
+    Connections {
+        target: root.toolState.nativeModel
+        function onLayerAdjustmentRequested(title) { adjustmentSheet.title = title; adjustmentSheet.open() }
+        function onCloseToolRequested() { if (root.toolState.visible) root.toolState.close() }
+        function onLayerHistogramRequested() { root.refreshHistogram() }
     }
     function action(key) {
-        if (key === "sample") { const started = engine.beginLayerColorSample(); report(started); if (started && toolState.visible) toolState.close() }
-        else if (key === "copyColor") report(engine.copyLayerSampleColor())
-        else if (key === "copyDetails") report(engine.copyLayerPanelDetails())
-        else if (key === "reveal") report(engine.revealLayerSource())
-        else if (key === "refresh") refreshHistogram()
-        else if (key === "shadow") { shadowClipping = !shadowClipping; engine.setLayerHistogramClipping(shadowClipping, highlightClipping) }
-        else if (key === "highlight") { highlightClipping = !highlightClipping; engine.setLayerHistogramClipping(shadowClipping, highlightClipping) }
-        else if (["RGB", "Red", "Green", "Blue"].indexOf(key) >= 0) channel = key
-        else openAdjustment(adjustments.find(function(entry) { return entry.key === key }))
+        if (key === "shadow") shadowClipping = !shadowClipping
+        else if (key === "highlight") highlightClipping = !highlightClipping
+        else if (NativeData.presentation.indexOf(["RGB", "Red", "Green", "Blue"], key) >= 0) { channel = key; return }
+        else if (toolState.nativeModel.layerAdjustment(key,adjustments).key) { openAdjustment(toolState.nativeModel.layerAdjustment(key,adjustments)); return }
+        toolState.nativeModel.layerAction(key,shadowClipping,highlightClipping)
     }
     onPanelIndexChanged: {
         if (panelIndex !== 2 && engine) { shadowClipping = false; highlightClipping = false; engine.setLayerHistogramClipping(false, false) }
@@ -159,7 +149,7 @@ Item {
                 required property int index
                 width: grid.width; height: 60; spacing: 8
                 Repeater {
-                    model: grid.entries.slice(actionRow.index * grid.columns, (actionRow.index + 1) * grid.columns)
+                    model: NativeData.presentation.range(grid.entries, actionRow.index * grid.columns, (actionRow.index + 1) * grid.columns)
                     ActionTile { required property var modelData; entry: modelData; width: (grid.width - (grid.columns - 1) * 8) / grid.columns }
                 }
             }
@@ -255,7 +245,7 @@ Item {
                         Layout.preferredHeight: 22; fieldMinHeight: 22; clearButtonVisible: false
                         text: Math.round((root.selected.opacity === undefined ? 1 : root.selected.opacity) * 100) + "%"
                         enabled: Boolean(root.selected.id)
-                        function commit() { const value = Number(text.replace("%", "")); if (root.selected.id && Number.isFinite(value) && value >= 0 && value <= 100 && value !== Math.round(root.selected.opacity * 100)) root.report(root.engine.setLayerOpacity(root.selected.id, value / 100)); text = Qt.binding(function() { return Math.round((root.selected.opacity === undefined ? 1 : root.selected.opacity) * 100) + "%" }) }
+                        function commit() { root.toolState.nativeModel.editLayerOpacity(text); text = Qt.binding(function() { return Math.round((root.selected.opacity === undefined ? 1 : root.selected.opacity) * 100) + "%" }) }
                         onAccepted: commit()
                         onActiveFocusChanged: if (!activeFocus) commit()
                     }
@@ -287,10 +277,10 @@ Item {
                         model: {
                             if (!root.engine) return []
                             const revision = root.engine.revision, selected = root.engine.selectedLayerId, layers = root.engine.layers
-                            return root.engine.layerHierarchy().map(function(row) { row.count = 0; row.iconSource = root.asset(row.locked ? "Lock" : row.kind); if (row.group) row.expanded = !root.collapsedGroups[row.layerId]; return row })
+                            return root.toolState.nativeModel.layerHierarchy(Qt.resolvedUrl("Assets/Layers/"),root.collapsedGroups)
                         }
                         onActiveChanged: function(item) { if (item && item.nodeData && !item.nodeData.group && item.nodeData.layerId !== root.engine.selectedLayerId) root.report(root.engine.selectLayer(item.nodeData.layerId)) }
-                        onExpansionChanged: function(item, expanded) { if (item.nodeData.group) { const next = Object.assign({}, root.collapsedGroups); next[item.nodeData.layerId] = !expanded; root.collapsedGroups = next } }
+                        onExpansionChanged: function(item, expanded) { if (item.nodeData.group) root.toolState.nativeModel.expandLayerGroup(item.nodeData.layerId, expanded) }
                         itemDelegate: Component {
                             LV.HierarchyItem {
                                 id: layerRow
@@ -338,8 +328,8 @@ Item {
             spacing: 12
             Heading { label: qsTr("Adjustments") }
             ScopeRow { Layout.fillWidth: true; label: qsTr("Apply to"); value: qsTr("Selected layer"); onOpened: function(target) { adjustmentScopeMenu.openFor(target, 0, target.height) } }
-            ColumnLayout { Layout.fillWidth: true; spacing: 8; Heading { label: qsTr("Tone") } ActionGrid { Layout.fillWidth: true; entries: root.adjustments.slice(0, 6) } }
-            ColumnLayout { Layout.fillWidth: true; spacing: 8; Heading { label: qsTr("Color") } ActionGrid { Layout.fillWidth: true; entries: root.adjustments.slice(6) } }
+            ColumnLayout { Layout.fillWidth: true; spacing: 8; Heading { label: qsTr("Tone") } ActionGrid { Layout.fillWidth: true; entries: NativeData.presentation.range(root.adjustments, 0, 6) } }
+            ColumnLayout { Layout.fillWidth: true; spacing: 8; Heading { label: qsTr("Color") } ActionGrid { Layout.fillWidth: true; entries: NativeData.presentation.range(root.adjustments, 6) } }
             Item { Layout.fillHeight: true }
             LV.LabelButton { objectName: "layerResetAdjustments"; text: qsTr("Reset adjustments"); tone: LV.AbstractButton.Borderless; enabled: Boolean(root.info.canAdjust); onClicked: root.report(root.engine.resetTool(root.lastAdjustmentTool, NativeData.tools.defaults(NativeData.tools.tool(root.lastAdjustmentTool)))) }
         }
@@ -438,11 +428,11 @@ Item {
         contentComponent: Column {
             spacing: 12
             Repeater {
-                model: root.adjustments.find(function(entry) { return entry.key === root.adjustmentKey })?.fields || []
+                model: root.toolState.nativeModel.layerAdjustment(root.adjustmentKey,root.adjustments).fields || []
                 EditorToolControl {
                     required property string modelData
                     width: parent.width
-                    field: modelData === "curveAmount" ? {id: "curveAmount", type: "Slider", label: qsTr("Curve amount"), initial: 0, minimum: -100, maximum: 100, step: 1, unit: "", decimals: 0} : NativeData.tools.tool("color").fields.find(function(field) { return field.id === modelData })
+                    field: root.toolState.nativeModel.layerAdjustmentField(modelData)
                     value: root.adjustmentValues[modelData] === undefined ? field.initial : root.adjustmentValues[modelData]
                     onEdited: function(value) { root.editAdjustment(modelData, value) }
                     onRequested: { const success = root.engine.executeToolAction("color", modelData, root.adjustmentValues); root.report(success); if (success && modelData === "field-31") { adjustmentSheet.close(); if (root.toolState.visible) root.toolState.close() } }

@@ -268,8 +268,8 @@ Item {
         id: videoModelMenu
         objectName: "videoModelMenu"
         showIconSlot: false
-        items: root.videoModels.map(function(model) { return model.id })
-        selectedIndex: items.indexOf(root.selectedVideoModel)
+        items: NativeData.presentation.labels(root.videoModels, "id")
+        selectedIndex: NativeData.presentation.indexOf(items, root.selectedVideoModel)
         onItemTriggered: function(index,entry) { root.videoModelSelected(String(entry)) }
     }
     LV.ContextMenu {
@@ -277,7 +277,7 @@ Item {
         objectName: "videoDurationMenu"
         showIconSlot: false
         items: [qsTr("1 s"),qsTr("3 s"),qsTr("5 s"),qsTr("10 s")]
-        selectedIndex: [1,3,5,10].indexOf(root.videoDuration)
+        selectedIndex: NativeData.presentation.indexOf([1,3,5,10], root.videoDuration)
         onItemTriggered: function(index) { root.videoDuration = [1,3,5,10][index] }
     }
     LV.ContextMenu {
@@ -285,7 +285,7 @@ Item {
         objectName: "videoFpsMenu"
         showIconSlot: false
         items: [qsTr("12 FPS"),qsTr("24 FPS"),qsTr("30 FPS"),qsTr("60 FPS"),qsTr("120 FPS")]
-        selectedIndex: [12,24,30,60,120].indexOf(root.videoFps)
+        selectedIndex: NativeData.presentation.indexOf([12,24,30,60,120], root.videoFps)
         onItemTriggered: function(index) { root.videoFps = [12,24,30,60,120][index] }
     }
 
@@ -357,7 +357,7 @@ Item {
         itemWidth: Math.max(0, Math.min(LV.Theme.scaleMetric(145),
             root.width - leftPadding - rightPadding - edgeMargin * 2))
         items: ["1:1", "4:3", "3:4", "16:9", "9:16"]
-        selectedIndex: items.indexOf(root.aspectRatio)
+        selectedIndex: NativeData.presentation.indexOf(items, root.aspectRatio)
         onItemTriggered: function(index, entry) {
             root.aspectRatio = String(entry)
         }
@@ -369,8 +369,8 @@ Item {
         showIconSlot: false
         itemWidth: Math.max(0, Math.min(LV.Theme.scaleMetric(145),
             root.width - leftPadding - rightPadding - edgeMargin * 2))
-        items: root.generationCounts.map(function(count) { return String(count) })
-        selectedIndex: root.generationCounts.indexOf(root.generationCount)
+        items: NativeData.presentation.labels(root.generationCounts, "")
+        selectedIndex: NativeData.presentation.indexOf(root.generationCounts, root.generationCount)
         implicitHeight: Math.min(countList.contentHeight + topPadding + bottomPadding,
             LV.Theme.scaleMetric(320), parent ? Math.max(0, parent.height - edgeMargin * 2) : LV.Theme.scaleMetric(320))
         onItemTriggered: function(index, entry) { root.generationCount = Number(entry) }

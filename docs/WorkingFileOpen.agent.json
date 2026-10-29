@@ -1,0 +1,350 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:800d649bbe27697f51b4b948deb5fbbb748e75e996b4b9d8eeb6997eb09099e9",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/WorkingFileOpen.md",
+    "sha256": "62023cd7b8997e37e35fdb3e146fd3ffcfa5e8bed62af0d39d1507803b54c59f",
+    "bytes": 6939,
+    "line_count": 108,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "Working-file open command",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Working-file open command\n",
+      "level": 1,
+      "title": "Working-file open command"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 18,
+      "raw": "`EditorProject.openDocumentSource(source, asCopy)` is an accepted asynchronous\ncommand. A true return means accepted, not that the current canvas has changed.\n`opening`, `documentOpened`, `documentOpenFailed` and `documentOpenCancelled`\ndescribe its lifecycle. `cancelDocumentOpen` retires the intent immediately.\nCanvasEditor forwards completion; Main changes its visible editor and generation\nmetadata only after successful native adoption. A failed/cancelled read preserves\nthe old document and its generation metadata.\nMain supplies an explicit create/open intent and disables CanvasEditor's unused\ninitial 1024-square placeholder. The standalone component retains its default\nblank initialization. This avoids allocating/binding an extra bitmap/canvas\nbefore opening the requested file; blank-canvas commands still create explicitly.\nThe Home route regression checks this empty initial state explicitly: rejected\nimports and failed asynchronous reads retain the same uninitialized canvas,\nwithout dereferencing or manufacturing a placeholder document.\nGUI open assertions wait for completion and then retrieve the current canvas;\nthe canvas captured before an asynchronous replacement is no longer an owner.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "heading",
+      "start_line": 20,
+      "end_line": 20,
+      "raw": "## Work and ownership\n",
+      "level": 2,
+      "title": "Work and ownership"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 21,
+      "end_line": 21,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 22,
+      "end_line": 30,
+      "raw": "EditorDocumentOpen prepares detached values on a worker. Native `.iisc` reading,\nlegacy `.iiscp` decoding/artboard assembly, storage selection/mirror scanning and\nthe existing full-content Alias version calculation occur there. Legacy payload\nI/O uses iiFileProvider's native C++ API. Native IISC reads and storage/Alias\nvalues use the existing SDK FileSystem gateway; parsed documents remain native\nvalue objects. Bitmap inputs\nreuse original-image preparation, including its existing managed-wrapper storage\ncontract. A source access token coordinates nested SDK reads and version capture;\nno QObject, timer or writable file binding crosses threads.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 32,
+      "end_line": 38,
+      "raw": "EditorDocumentOpenRequest is the GUI command owner. It keeps one running read and\none latest pending intent, owns cancellation and checks the captured project,\ncanvas, revision, file path and selected drive before adoption. Editing,\nreplacement, live strokes and changed drive identity retire a pending intent;\npure frame/zoom/selection navigation does not. The worker closure owns only input\nvalues and its cancellation flag. Destroying the command/project does not join\nthe read. Cancelled or obsolete results cannot replace the current document.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 39,
+      "end_line": 39,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 40,
+      "end_line": 45,
+      "raw": "Source metadata uses iiFileProvider's native change token, which includes native\nidentity/change time while normalizing its own presentation attributes. The data\nfork and SQLite WAL/journal are checked before/after preparation and before\nadoption. Reader shared-memory lock tables are excluded. A replaced source is\nrejected even when its modification time is restored. This is bounded identity\nI/O on the GUI owner, not another payload hash or directory scan.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 46,
+      "end_line": 46,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 47,
+      "end_line": 52,
+      "raw": "PreparedStorage carries the already discovered mirror to the new canvas. Native\nworking documents retain their Alias and expected-version save checks. Copies\nretain no writable source binding; legacy imports remain unsaved native projects\nand never overwrite their `.iiscp`. A legacy active page maps to its first actual\nartboard even when preceding pages contain several artboards. Whole-document\nvalues are moved into the canvas, preserving the native document schema.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 53,
+      "end_line": 53,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 54,
+      "end_line": 57,
+      "raw": "Synchronous EditorCanvas open/import helpers and EditorProject image-import\nhelpers are C++ utilities, absent from the QML metaobject API. GUI entry points\nuse this open command or EditorImageImportRequest. The direct QML wrapper, File\nmenu, file dialog, drag/drop and Home routes share the accepted/completed contract.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 58,
+      "end_line": 58,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "heading",
+      "start_line": 59,
+      "end_line": 59,
+      "raw": "## Cancellation and shared transfers\n",
+      "level": 2,
+      "title": "Cancellation and shared transfers"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 60,
+      "end_line": 60,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 61,
+      "end_line": 66,
+      "raw": "Main retains the container ID of its accepted download, in addition to file key\nand section. Cancelling a view may call FileDownload.cancel only while the\ndownload is active and both key/container ID match that owned intent. An unrelated\nshared transfer is preserved. A completion from a different drive cannot open a\nsame-key file from the newly selected drive. ImageOpenRequest continues to own its\nown hydration requests separately.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 67,
+      "end_line": 67,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "heading",
+      "start_line": 68,
+      "end_line": 68,
+      "raw": "## Verification boundaries\n",
+      "level": 2,
+      "title": "Verification boundaries"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 69,
+      "end_line": 69,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 70,
+      "end_line": 73,
+      "raw": "The source-access gate regression reproduced a 2024473-microsecond blocking open\nbefore the change. The first native replay accepted the same command in 44\nmicroseconds and delivered a timer event while preparation was pending. This\nmeasures dispatch responsiveness, not total decode/open/render time.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 74,
+      "end_line": 74,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 75,
+      "end_line": 81,
+      "raw": "An initial combined test run exceeded its integration deadlines. A live sample\nof the isolated queue case placed the main thread in fixture creation, at\n`DocumentFile::create` / SQLite transaction sync / `fcntl`, before the request\nstarted. That isolated case subsequently passed. Lifecycle/queue fixtures use the\nsupported native IISC snapshot representation; the source-access and writable\nbinding regressions retain real SQLite working files. Product durability is\nunchanged and the dispatch-time bound remains 250 milliseconds.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 82,
+      "end_line": 82,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 83,
+      "end_line": 88,
+      "raw": "Tests cover current working-file binding and optimistic conflicts, copy\nisolation, prepared mirror adoption without rescanning, bounded/latest requests,\ncancellation/edit/replacement/drive invalidation, replaced-file identity,\nreentrant intent ordering, non-joining destruction and legacy active-page\nmapping. Mounted offscreen routes separately verify Home metadata and editor\nadoption. Full build, QML checks and packaged startup remain separate gates.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 89,
+      "end_line": 89,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 90,
+      "end_line": 95,
+      "raw": "Initial editor/QML construction, final native validation/binding/history,\nimplicit-still migration writes, initial render-snapshot copying and durable edits\nstill have GUI-owner costs. There is no zero-I/O or whole-application FPS claim.\nThe existing bitmap wrapper contract may publish individual originals before a\nlater cancellation; it is not a cross-file transaction. Native foreground input\ntesting remains separate while another UI automation is active.\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 96,
+      "end_line": 96,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "heading",
+      "start_line": 97,
+      "end_line": 97,
+      "raw": "## Home 이미지 열기와 저장소 등록 잠금\n",
+      "level": 2,
+      "title": "Home 이미지 열기와 저장소 등록 잠금"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 98,
+      "end_line": 98,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "paragraph",
+      "start_line": 99,
+      "end_line": 103,
+      "raw": "원본 접근 토큰은 최초 버전 캡처에서만 짧게 소유한다. 실제 페이로드 읽기는\nSDK 디코더의 자체 접근 토큰을 사용하고, 준비 완료 전과 채택 전의 버전 검사는\n계속 수행한다. 이미지의 편집용 iisc를 Society에 등록하는 동안에는 원본 토큰을\n유지하지 않는다. 파일 수집 작업이 등록 임대를 가진 채 같은 원본의 프리뷰를\n읽는 경우에도 서로 기다리지 않아야 한다.\n"
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 104,
+      "end_line": 104,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "paragraph",
+      "start_line": 105,
+      "end_line": 108,
+      "raw": "`bitmapPublicationDoesNotHoldTheOriginalReadLock` 검사는 등록 임대를 잠시 점유한\n상태에서 이미지 열기를 시작하고, 등록을 기다리는 동안 다른 읽기 작업이 원본에\n접근할 수 있는지 확인한다. 임대를 해제한 뒤 문서 열기 완료와 원본 바이트 보존도\n검사한다. Home의 실제 선택·Open in editor 경로는 GUI 회귀 검사로 별도 검증한다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Working-file open command",
+      "anchor": "working-file-open-command",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000005",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Work and ownership",
+      "anchor": "work-and-ownership",
+      "start_line": 20
+    },
+    {
+      "block_id": "b000017",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Cancellation and shared transfers",
+      "anchor": "cancellation-and-shared-transfers",
+      "start_line": 59
+    },
+    {
+      "block_id": "b000021",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Verification boundaries",
+      "anchor": "verification-boundaries",
+      "start_line": 68
+    },
+    {
+      "block_id": "b000031",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Home 이미지 열기와 저장소 등록 잠금",
+      "anchor": "home-이미지-열기와-저장소-등록-잠금",
+      "start_line": 97
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000013",
+        "line": 50,
+        "text": "and never overwrite their `.iiscp`. A legacy active page maps to its first actual",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000033",
+        "line": 102,
+        "text": "유지하지 않는다. 파일 수집 작업이 등록 임대를 가진 채 같은 원본의 프리뷰를",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

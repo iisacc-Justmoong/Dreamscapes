@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import LVRS 1.0 as LV
+import Dreamscapes.Storage 1.0
 
 Item {
     id: root
@@ -10,9 +11,9 @@ Item {
     property string statusText: ""
     property string modelName: ""
     property string deviceName: qsTr("Automatic")
-    readonly property int runningCount: jobs.filter(j => ["running", "connecting-host", "downloading"].indexOf(j.state) >= 0).length
-    readonly property int waitingCount: jobs.filter(j => j.state === "queued").length
-    readonly property int failedCount: jobs.filter(j => j.state === "failed").length
+    readonly property int runningCount: NativeData.facts.stateCount(jobs, ["running", "connecting-host", "downloading"])
+    readonly property int waitingCount: NativeData.facts.stateCount(jobs, ["queued"])
+    readonly property int failedCount: NativeData.facts.stateCount(jobs, ["failed"])
     signal viewQueueRequested()
     implicitHeight: 160
     LV.VStack { alignment: Qt.AlignLeft;

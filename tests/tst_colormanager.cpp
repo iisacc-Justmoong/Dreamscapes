@@ -1,4 +1,5 @@
 #include "App/Views/ColorManagerModel.h"
+#include "App/ViewModels/ViewData.h"
 #include <QtTest>
 #include <QApplication>
 #include <QDir>
@@ -117,7 +118,10 @@ void ColorManagerTests::menuListsNineModesAndCommits() {
         }else QTest::mouseClick(&window,Qt::LeftButton,Qt::NoModifier,modeButton->mapToScene(modeButton->boundingRect().center()).toPoint());
         QTRY_VERIFY(menu->property("visible").toBool());
         const auto label=(state->mode()==mode?QString("✓ "):QString())+state->modeNames()[mode];
-        QTRY_VERIFY(menuEntry(window.contentItem(),label));auto* entry=menuEntry(window.contentItem(),label);
+        const auto labels=menu->property("items").toStringList();
+        QCOMPARE(labels.size(),9);
+        QCOMPARE(labels[mode],label);
+        QTRY_VERIFY2(menuEntry(window.contentItem(),label),qPrintable(labels.join(" | ")));auto* entry=menuEntry(window.contentItem(),label);
         QTest::qWait(350);
         QVERIFY(menu->property("x").toReal()>=0);
         QVERIFY(menu->property("x").toReal()+menu->property("width").toReal()<=window.width()+1);
@@ -132,6 +136,6 @@ void ColorManagerTests::menuListsNineModesAndCommits() {
     QQmlExpression apply(engine.rootContext(),root,"picker.setHex('#00FF00'); picker.accept()");apply.evaluate();QVERIFY2(!apply.hasError(),qPrintable(apply.error().toString()));QCOMPARE(state->previousColor(),QColor(Qt::green));
 }
 int main(int argc,char** argv) {
-    QQuickStyle::setStyle("Basic");QApplication application(argc,argv);registerColorManagerTypes();ColorManagerTests tests;return QTest::qExec(&tests,argc,argv);
+    QQuickStyle::setStyle("Basic");QApplication application(argc,argv);dreamscapes::registerNativeViewModelTypes();registerColorManagerTypes();ColorManagerTests tests;return QTest::qExec(&tests,argc,argv);
 }
 #include "tst_colormanager.moc"

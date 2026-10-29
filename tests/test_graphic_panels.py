@@ -6,6 +6,9 @@ import json
 import math
 from pathlib import Path
 import unittest
+import subprocess
+import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 EDITOR = ROOT / "src/App/Views/Editor"
@@ -194,12 +197,23 @@ class GraphicPanelContracts(unittest.TestCase):
         self.assertEqual(preset["options"][1]["api"], "whiteBalancePreset")
         self.assertTrue(preset["uiOnly"])
 
-    def test_javascript_and_manifest_are_the_same_generated_catalog(self):
-        self.assertEqual((EDITOR / "EditorGraphicDefinitions.js").read_text(encoding="utf-8"), self.generator.javascript(self.catalog))
-        javascript = (EDITOR / "EditorGraphicDefinitions.js").read_text(encoding="utf-8")
-        self.assertNotIn("https://www.figma.com/api/mcp/asset", javascript)
-        self.assertIn('tool === "auto-enhance" ? "adjust"', javascript)
-        self.assertIn('tool === "masking" ? "mask"', javascript)
+    def test_native_catalog_and_manifest_are_the_same_generated_catalog(self):
+        native = ROOT / "resources/viewmodels/graphic.json"
+        self.assertEqual(json.loads(native.read_text(encoding="utf-8")), self.catalog)
+        self.assertNotIn("https://www.figma.com/api/mcp/asset", native.read_text())
+        self.assertFalse((EDITOR / "EditorGraphicDefinitions.js").exists())
+
+    def test_reviewed_manifest_can_regenerate_and_validate_native_data(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "build", prefix="native-catalog-") as directory:
+            stage = Path(directory)
+            command = [sys.executable, str(ROOT / "tools/generate_graphic_panels.py"), "--from-manifest", str(EDITOR / "GraphicPanels.json"), "--output", str(stage / "manifest.json"), "--native-catalog", str(stage / "native.json")]
+            subprocess.run(command, check=True, capture_output=True)
+            self.assertEqual(load(stage / "native.json"), self.catalog)
+            subprocess.run(command + ["--check"], check=True, capture_output=True)
+            changed = load(stage / "native.json")
+            changed["panels"].pop()
+            (stage / "native.json").write_text(json.dumps(changed))
+            self.assertNotEqual(subprocess.run(command + ["--check"], capture_output=True).returncode, 0)
 
     def test_high_fidelity_evidence_is_honestly_counted(self):
         available = sum(panel["evidence"]["highFidelity"] for panel in self.catalog["panels"])

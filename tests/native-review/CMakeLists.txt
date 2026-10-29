@@ -1,0 +1,28 @@
+cmake_minimum_required(VERSION 3.24)
+project(DreamscapesNativeReviewTests LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+option(DREAMSCAPES_REFERENCE_QT_TESTS "Compare native results against the existing Qt model" OFF)
+if(NOT DREAMSCAPES_REFERENCE_QT_TESTS)
+    set(CMAKE_DISABLE_FIND_PACKAGE_Qt6 ON)
+endif()
+find_package(iiSDKCore 0.18 CONFIG REQUIRED COMPONENTS Runtime)
+find_package(iiJson 0.1 CONFIG REQUIRED)
+add_executable(DreamscapesNativeReviewTests
+    main.cpp ../../src/App/Views/Result/NativeReviewSession.cpp)
+target_include_directories(DreamscapesNativeReviewTests PRIVATE ../../src)
+target_link_libraries(DreamscapesNativeReviewTests PRIVATE iiSDKCore::Runtime iiJson::iiJson)
+enable_testing()
+add_test(NAME Dreamscapes.NativeReview COMMAND DreamscapesNativeReviewTests)
+if(DREAMSCAPES_REFERENCE_QT_TESTS)
+    find_package(Qt6 6.8.3 EXACT CONFIG REQUIRED COMPONENTS Core)
+    add_executable(DreamscapesReviewParityTests parity.cpp
+        ../../src/App/Views/Result/GenerationReviewModel.cpp
+        ../../src/App/Views/Result/GenerationReviewModel.h
+        ../../src/App/Views/Result/NativeReviewSession.cpp)
+    set_target_properties(DreamscapesReviewParityTests PROPERTIES AUTOMOC ON)
+    target_include_directories(DreamscapesReviewParityTests PRIVATE ../../src)
+    target_link_libraries(DreamscapesReviewParityTests PRIVATE Qt6::Core iiSDKCore::Runtime iiJson::iiJson)
+    add_test(NAME Dreamscapes.NativeReviewParity COMMAND DreamscapesReviewParityTests)
+endif()

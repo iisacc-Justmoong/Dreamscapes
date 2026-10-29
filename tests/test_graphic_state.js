@@ -1,18 +1,18 @@
 // Run with: node --test tests/test_graphic_state.js
-// Expectations describe host edit contracts independently of the generated catalog.
+// Frozen pre-migration reference only. Production equivalents are tested in C++ and bridge parity tests.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { test } = require("node:test");
 const vm = require("node:vm");
 
-const filename = path.resolve(__dirname, "../src/App/Views/Editor/EditorGraphicState.js");
+const filename = path.resolve(__dirname, "fixtures/legacy-viewmodels/EditorGraphicState.js");
 const source = fs.readFileSync(filename, "utf8").replace(/^\s*\.pragma library\s*$/m, "");
 const state = vm.runInThisContext(
     `(function () { ${source}\nreturn { nested, clone, getPath, flatten, resolvedPath, parseNumber, numberText, setPath, pathParts }; })()`,
     { filename }
 );
-const definitionsFilename = path.resolve(__dirname, "../src/App/Views/Editor/EditorGraphicDefinitions.js");
+const definitionsFilename = path.resolve(__dirname, "fixtures/legacy-viewmodels/EditorGraphicDefinitions.js");
 const definitionsSource = fs.readFileSync(definitionsFilename, "utf8").replace(/^\s*\.pragma library\s*$/m, "");
 const definitions = vm.runInThisContext(
     `(function () { ${definitionsSource}\nreturn { catalog, operationDefaults, defaultsFor }; })()`,

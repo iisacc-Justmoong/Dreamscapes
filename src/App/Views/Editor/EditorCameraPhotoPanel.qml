@@ -15,8 +15,8 @@ Column {
     readonly property var backend: toolState.engine ? toolState.engine.photoSources : null
     property VideoOutput cameraOutput: null
     onCameraOutputChanged: syncPreview()
-    readonly property var values: Object.assign({}, NativeData.photo.defaults(), toolState.toolId === "camera-photo" ? toolState.values : toolState.settingsByTool["camera-photo"] || {})
-    readonly property string currentViewId: NativeData.photo.views.some(function(view) { return view.id === values.selector }) ? values.selector : "Camera"
+    readonly property var values: toolState.nativeModel.photoValues
+    readonly property string currentViewId: NativeData.photo.view(values.selector).id
     readonly property bool modalActive: options.visible || libraryFolder.visible || regionPicker.visible
     readonly property real inputWidth: Math.min(206, width * 206 / 398)
     readonly property real previewAspectRatio: {
@@ -26,8 +26,9 @@ Column {
         if (value("cameraAngle") === "90°" || value("cameraAngle") === "270°") ratio = 1 / ratio
         return ratio
     }
-    readonly property var targets: backend ? backend.captureTargets.filter(function(target) { return target.kind === (root.value("captureScope") === "Window" ? "Window" : "Screen") }) : []
-    readonly property var captureTarget: targets.find(function(target) { return target.id === root.value("captureTarget") }) || targets[0] || null
+    readonly property var presentation: { if (backend) { backend.recordingDuration; backend.captureTargets; backend.devices; return backend.presentation(values) } return ({}) }
+    readonly property var targets: presentation.targets || []
+    readonly property var captureTarget: presentation.captureTarget || null
     width: 398
     spacing: 12
 
@@ -38,13 +39,13 @@ Column {
         toolState.setValue(id, next)
     }
     function selectView(id) {
-        if (!NativeData.photo.views.some(function(view) { return view.id === id })) return
+        if (NativeData.photo.view(id).id !== id) return
         edit("selector", id)
         options.close()
     }
     function openOptions(id, control, entries) {
         options.fieldId = id
-        options.entries = entries || NativeData.photo.field(id).options.map(function(option) { return {id: option, label: option} })
+        options.entries = entries || NativeData.presentation.choices(NativeData.photo.field(id).options, "", "", "id", "")
         options.openFor(control, 0, control.height)
     }
     function syncPreview() {
@@ -56,18 +57,10 @@ Column {
     }
     function refreshGallery() {
         if (!backend || !visible || currentViewId !== "Gallery") return
-        backend.attachGallery(root)
-        backend.loadGallery(value("galleryLibrary"), value("galleryFolder") || "")
-        backend.filterGallery(value("gallerySearch"), value("gallerySort"))
+        backend.refreshGalleryFor(root,values)
     }
-    function captureSettings() { return Object.assign({}, values, {captureTarget: captureTarget ? captureTarget.id : ""}) }
-    function importSources() {
-        if (!backend) return
-        if (toolState.generationRuntime && toolState.generationRuntime.containerPath)
-            edit("libraryDirectory", toolState.generationRuntime.containerPath)
-        if (currentViewId === "Gallery") backend.importSelection()
-        else backend.importCurrentCapture()
-    }
+    function captureSettings() { return backend ? backend.captureSettings(values) : ({}) }
+    function importSources() { toolState.nativeModel.importPhotoSources(toolState.generationRuntime ? toolState.generationRuntime.containerPath : "") }
     function captureScreen() {
         if (!backend) return
         if (value("captureScope") === "Region") {
@@ -77,10 +70,7 @@ Column {
             regionPicker.requestActivate()
         } else backend.captureScreen(captureSettings())
     }
-    function recordingTime() {
-        const seconds = backend ? Math.floor(backend.recordingDuration / 1000) : 0
-        return [Math.floor(seconds / 3600), Math.floor(seconds / 60) % 60, seconds % 60].map(function(n) { return String(n).padStart(2, "0") }).join(":")
-    }
+    function recordingTime() { return presentation.recordingTime || "00:00:00" }
     onCurrentViewIdChanged: {
         if (backend) backend.clearError()
         syncPreview()
@@ -214,12 +204,12 @@ Column {
                 anchors.right: parent.right
                 width: Math.min(root.inputWidth, parent.width - timerChoices.implicitWidth - 8); height: 22; fieldMinHeight: 22
                 clearButtonVisible: false
-                text: [0, 3, 5, 10].indexOf(Number(root.value(timer.fieldId))) >= 0 ? "" : String(root.value(timer.fieldId))
+                text: NativeData.presentation.indexOf([0, 3, 5, 10], Number(root.value(timer.fieldId))) >= 0 ? "" : String(root.value(timer.fieldId))
                 placeholderText: qsTr("Duration")
                 inputMethodHints: Qt.ImhDigitsOnly
                 validator: IntValidator { bottom: 0; top: 60 }
                 Accessible.name: NativeData.photo.field(timer.fieldId).label + qsTr(" duration in seconds")
-                onTextEdited: { const next = Number(text); if (text.length && isFinite(next) && next >= 0 && next <= 60) root.edit(timer.fieldId, next) }
+                onTextEdited: { const next = NativeData.tools.numberInput(text,0,60,""); if (next !== null) root.edit(timer.fieldId, next) }
             }
         }
     }
@@ -340,7 +330,7 @@ Column {
                         anchors.fill: parent
                         visible: root.backend && root.backend.previewActive
                         fillMode: VideoOutput.PreserveAspectCrop
-                        orientation: parseInt(root.value("cameraAngle"))
+                        orientation: Number(root.presentation.orientation || 0)
                         transform: Scale { origin.x: video.width / 2; xScale: root.value("cameraMirror") ? -1 : 1 }
                     }
                     Column {
@@ -388,7 +378,7 @@ Column {
                         id: deviceBox
                         objectName: "photoDevice"
                         width: parent.width; height: 20
-                        text: root.backend ? (root.backend.devices.find(function(device) { return device.id === (root.value("cameraDevice") || root.backend.deviceId) }) || {label: qsTr("No camera connected")}).label : qsTr("No camera connected")
+                        text: root.backend ? root.presentation.deviceLabel : qsTr("No camera connected")
                         tone: LV.AbstractButton.Primary; arrow: LV.Stepper.UpDown
                         enabled: root.backend && !root.backend.busy && root.backend.devices.length > 0
                         activeFocusOnTab: true
@@ -579,7 +569,7 @@ Column {
         property string fieldId: "cameraAspect"
         property var entries: []
         showIconSlot: false
-        items: entries.map(function(entry) { return {label: entry.label} })
+        items: NativeData.presentation.labels(entries)
         onItemTriggered: function(index) {
             if (!entries[index]) return
             const next = entries[index].id
@@ -599,8 +589,7 @@ Column {
     EditorCaptureRegion {
         id: regionPicker
         onSelected: function(rect) {
-            const settings = root.captureSettings()
-            settings.captureRegion = [rect.x, rect.y, rect.width, rect.height]
+            const settings = root.backend.captureSettings(root.values,[rect.x, rect.y, rect.width, rect.height])
             // Allow the selector window to disappear before the native screenshot.
             captureRegionTimer.settings = settings
             captureRegionTimer.start()

@@ -17,9 +17,27 @@ Dreamscapes의 가장 중요한 UX 원칙은 생성까지의 거리를 극단적
 이러한 구조 때문에 Dreamscapes의 Home은 전문적인 생성 파라미터를 처음부터 노출하는 작업실이라기보다 빠른 생성 인터페이스에 가깝다. 세부적인 모델·샘플러·생성 방법·후처리 설정은 필요하더라도 초기 진입점에서 분리되어야 한다. 특히 모바일에서는 세부 설정을 희생하더라도 빠르게 조작하고 결과물을 얻는 것이 중요하다는 방향이 명확하다. 한편 데스크톱은 사용자가 앱을 실행했다는 행위 자체가 모바일보다 본격적인 작업 의도를 나타내므로 모바일과 완전히 동일하게 극단적인 compact UI를 강제할 필요가 있는지 고민한 바 있다. 다만 모바일 $99, 데스크톱 $299로 분리하는 안은 폐기하고 $99 하나로 크로스플랫폼 라이선스를 제공하는 방향으로 돌아왔다.
 기술적으로 중요한 축은 로컬 생성이다. Dreamscapes 자체의 생성 기능 아래에는 iiLocalDiffusion 계열의 생성 백엔드/라이브러리를 두는 방향으로 논의되고 있다. 이미지 생성뿐 아니라 비디오 생성까지 생성 방법론을 확장하고 있으며, 최근 논의에서는 LTX 계열을 본격적인 비디오 생성 방법으로 활용하는 방안이 등장했다. SeaDance 역시 생성 모델/서비스의 성격을 구분하면서 iiLocalDiffusion의 생성 방법론으로 다룰 수 있는지 검토했다. 반면 Higgsfield는 외부 서비스의 성격이 강하므로 내부 생성 방법론에서는 제외하는 방향으로 판단했다.
 비디오 파이프라인에서는 LTX + interpolation 조합이 유력하게 검토되었다. 즉 LTX가 실제 프레임 또는 영상을 생성하고, 이후 interpolation 단계가 중간 프레임을 보간하여 움직임과 프레임레이트의 완성도를 높이는 방식이다. Deforum과 기존 interpolation 방식만으로 영상을 만드는 것은 현대적인 video diffusion/generative video 모델에 비해 사실상 하위 호환에 가까운 것으로 평가했다. 이에 따라 Deforum은 완전히 제거하기보다는 12 FPS 이하의 저프레임 영상 또는 GIF와 같은 특수 용도에 제한하고, 일반적인 비디오 생성은 LTX 계열 생성 후 interpolation을 수행하는 방향을 생각하고 있다.
-모델과 생성 파일의 소유자는 Society이다. Dreamscapes는 Society 원본을 직접 읽고 완성 이미지를 Generation History에 저장한다. 체크포인트·VAE·LoRA를 앱 번들 또는 앱 전용 데이터에 복사하지 않는다. 모델 변환 캐시와 임시 생성 파일도 Society의 `Models/.society-runtime/iiLocalDiffusion/`에 두며, 공유 VAE·어댑터는 `Models/.generation-resources/iiLocalDiffusion/`에서 읽는다. 이전 앱 Q8 캐시는 Society 연결 시 비동기로 안전하게 옮긴다. 실행에 필요한 메모리 외에 Dreamscapes만의 모델 저장소를 두지 않는다.
+모델과 생성 파일은 iisacc 공유 저장소에 둔다. Apple에서 Society가 아직 설치되지 않았으면 Dreamscapes가 iiSocietyContainer 논리 디스크를 App Group 안에 소유하여 입출력을 시작할 수 있다. Society 설치 후에는 같은 디스크를 경로와 로컬 식별자를 유지한 채 인수한다. Dreamscapes는 공유 원본을 직접 읽고 완성 이미지를 Generation History에 저장한다. 체크포인트·VAE·LoRA를 앱 번들 또는 앱 전용 데이터에 복사하지 않는다. 모델 변환 캐시와 임시 생성 파일도 공유 디스크의 `Models/.society-runtime/iiLocalDiffusion/`에 두며, 공유 VAE·어댑터는 `Models/.generation-resources/iiLocalDiffusion/`에서 읽는다. 이전 앱 Q8 캐시는 연결 시 비동기로 안전하게 옮긴다. 실행에 필요한 메모리 외에 Dreamscapes 전용 모델 저장소를 두지 않는다.
 이 구조는 Society 자체의 최근 방향과도 결합된다. Society Local은 복잡한 독자 클라우드 프로토콜이라기보다 PSD 파일을 iCloud Drive에 놓고 Photoshop에서 사용하는 것과 비슷한 모델로 단순화되고 있다. Society의 동기화 스토리지를 iCloud Drive 같은 외부 동기화 스토리지에 두면 실질적으로 Society Cloud와 비슷한 다중 장치 동기화 경험을 얻을 수 있다는 판단이다. 따라서 Dreamscapes의 프로젝트와 생성 에셋 역시 Society를 매개로 하면서 실제 물리 저장 위치는 로컬 디스크·iCloud Drive 등의 파일 시스템 계층으로 분리될 가능성이 높다.
 Dreamscapes가 Society를 요구한다는 점은 초기 개발에서도 상당히 큰 영향을 미쳤다. Dreamscapes의 Home 하나를 기획하는 과정에서 Society의 허브 스토리지까지 필요해졌기 때문에 Dreamscapes와 Society를 동시에 기획해야 하는 상황이 발생했다. 결과적으로 Dreamscapes는 완전히 독립된 생성형 AI 앱이라기보다 Society의 storage infrastructure를 적극적으로 소비하는 첫 번째 핵심 애플리케이션 가운데 하나가 되어가고 있다.
 생태계 차원에서 보면 Dreamscapes의 역할은 더욱 명확하다. Nullscapes가 월드 엔진, LIMBO가 2D 그래픽 제작, Clubstep이 DAW 및 사운드 제작, Firework가 스토리보드·각본 프로덕션, Thinking Space가 사고 및 문서 작업, Vincent가 협업 자유 캔버스, Society가 저장 및 동기화 허브라면 Dreamscapes는 그 사이에 들어갈 generative asset factory에 해당한다. 이미지·영상·오디오를 생성한 뒤 결과물을 다른 iisacc 제품으로 넘기는 흐름을 구축할 수 있다. Orbit이 현실 세계의 정보를 카메라로 캡처하여 에셋화하는 입구라면, Dreamscapes는 존재하지 않던 에셋을 생성형 모델로 만들어내는 입구라고 볼 수도 있다.
 사업 모델에서도 Dreamscapes는 iisacc의 장기 원칙을 따른다. 사용자는 창작 도구 자체를 구독제로 판매하지 않겠다는 원칙을 명확히 세웠으며 Nullscapes만 매출의 10%라는 별도 모델을 갖는다. 따라서 Dreamscapes 역시 기능이 강화되었다고 해서 월 구독으로 전환하기보다는 $99 일회성 제품으로 유지하고, 큰 세대교체가 필요하면 Dreamscapes 2와 같은 후속 메이저 버전을 다시 판매하는 방식이 기본 철학과 부합한다. 지속적인 반복 매출은 창작 앱 자체를 임대하는 것이 아니라 Society의 클라우드 스토리지 같은 서비스 계층에서 확보하는 방향이다.
 결국 현재까지의 Dreamscapes를 한 문장으로 압축하면 다음과 같다. Dreamscapes는 Society의 저장·동기화 인프라와 iiLocalDiffusion 계열의 로컬 생성 엔진을 기반으로 이미지·비디오·오디오 생성 과정을 단순한 프롬프트 인터페이스에서 시작하여 실제 창작 파이프라인까지 연결하는 $99 크로스플랫폼 생성형 콘텐츠 제작 도구이며, iisacc 생태계의 생성형 에셋 공급 계층이자 저비용 진입 제품이다. 현재 기획에서 가장 강하게 확정된 성격은 특정 AI 모델 하나를 포장해서 판매하는 것이 아니라, 모델·생성 방법·스토리지·후처리를 추상화하여 사용자가 결과물을 만드는 데 집중하게 하는 창작 애플리케이션이라는 점이다.
+
+<!-- workspace-docs:agent:start -->
+## 문서 구조와 에이전트 탐색
+
+- 프로젝트 루트의 `README.md`는 사람용 영문 진입 문서이며 `AGENT.md`는 에이전트 진입점이다.
+- 하위 인간용 Markdown과 구조화된 agent JSON을 함께 유지한다. Markdown이 원본이며 JSON은 원문 해시와 줄 범위를 가진 파생 문서이다.
+- 먼저 [docs/agent-index.json](docs/agent-index.json)에서 관련 문서와 JSON 투영을 찾는다. 원문 SHA-256이 다르면 현재 Markdown을 읽고 투영을 갱신한다.
+- JSON의 규칙 후보는 검색용 어휘 일치 결과이다. 과거 기록·예제·실패 상태를 현재 지시나 검증 완료로 자동 해석하지 않는다.
+- 기존 프로젝트별 규칙, 동결된 증거, 라이선스, 외부 원본, 사용자 데이터와 다른 작업의 변경을 보존한다.
+- 이 문서 재편 지침은 과거 작업의 기능 구현·배포를 자동 재개하라는 요청이 아니다. 현재 사용자의 작업 범위를 우선한다.
+- 문서를 수정하면 JSON 쌍·색인을 함께 갱신하고 검증한다. 기존 소스 변경에 대한 빌드·테스트 규칙은 계속 따른다.
+
+Workspace에서 이 프로젝트의 문서를 갱신하는 명령은 다음과 같다.
+
+```sh
+python3 ../../Engineering/WorkspaceDocumentation/App/workspace_docs.py --workspace ../.. sync --project Product/Dreamscapes
+```
+<!-- workspace-docs:agent:end -->

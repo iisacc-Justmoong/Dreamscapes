@@ -1,0 +1,254 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:f2686f5402c37acd05720da95ea391ab30f8bb00f122f94e0704ca6e3ee38431",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/Tooltips.md",
+    "sha256": "d7ba8864ae4b0b5d187d08583c0160075e543e96b61581f3255e306cbae44e76",
+    "bytes": 3333,
+    "line_count": 56,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Tooltips",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Tooltips\n",
+      "level": 1,
+      "title": "Tooltips"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 7,
+      "raw": "Dreamscapes uses the installed `LVRS 1.0` `LV.Tooltip` component for hover help.\nThe visual reference is [LVRS Tooltip, Figma 997:13](https://www.figma.com/design/0GkItQYSNIR0lZ3iJhfJzc/Layerd-Visual-Render-System?node-id=997-13),\nread on 2026-10-19. The stock component supplies a rounded body and directional\ntail, Glass 25 material, theme color, opaque text, and placement within the\nwindow. Applications do not override its material, font, geometry, or scale.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 13,
+      "raw": "The LVRS origin-visibility check also distinguishes title-bar controls from\nthe content safe area. A visible chrome button remains a valid origin while\nthe tooltip body stays within the content viewport. The regression fixture\nkeeps offscreen controls within the virtual display and verifies native title\nbar placement separately on Cocoa/Metal.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 14,
+      "end_line": 14,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 15,
+      "end_line": 17,
+      "raw": "LVRS also keeps dismissal latched while its closing overlay restores hover to\nthe underlying control. Escape must stay dismissed while the pointer remains\nat the same button, rather than reopening after the next show delay.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 19,
+      "end_line": 22,
+      "raw": "Stock LVRS also preserves the target button's own press handling. The tooltip\nbody can host interactive content, while its decorative tail passes clicks to\nthe originating control. Regression coverage includes clicks before and after\nthe tooltip appears, in both Qt and LVRS windows and in the shared app toolbar.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 23,
+      "end_line": 23,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "heading",
+      "start_line": 24,
+      "end_line": 24,
+      "raw": "## Integration\n",
+      "level": 2,
+      "title": "Integration"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 25,
+      "end_line": 25,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 26,
+      "end_line": 31,
+      "raw": "Create a local `LV.Tooltip` with an explicit `target` and `text`. The default\nautomatic interaction provides delayed hover, keyboard focus, cancellation\nbefore the delay, Escape dismissal, and nonmodal input. Derive its text from the\ntarget's accessible name or its current data. Do not use `Controls.ToolTip.text`\nor `Controls.ToolTip.visible`: those attached properties create Qt's shared\nstyle tooltip even when attached to an LVRS button; they do not use `LV.Tooltip`.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 32,
+      "end_line": 32,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 33,
+      "end_line": 39,
+      "raw": "The shared application toolbar covers Home, generation results, and Editor.\nSearch results, compact inspector tabs and reset, timeline tools, paint tools,\nphoto tiles, and layer actions use the same component. A layer action has a\nsingle tooltip for its label or unavailability reason. Its enabled tile hosts\nhelp when its button is disabled, preserving the reason on hover without\ndisplaying two overlapping bubbles. Existing mask, transform, video validation,\nand compact sidebar tooltips keep their contextual visibility rules.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 40,
+      "end_line": 40,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "heading",
+      "start_line": 41,
+      "end_line": 41,
+      "raw": "## Verification\n",
+      "level": 2,
+      "title": "Verification"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 42,
+      "end_line": 42,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 43,
+      "end_line": 49,
+      "raw": "Build with `cmake --build build --target Dreamscapes DreamscapesGuiTests -j4`.\nRun `ctest --test-dir build -R '^Dreamscapes.Tooltips$' --output-on-failure`.\nThe GUI tests verify actual pointer entry, pending-hover cancellation, LVRS\nmaterial and outline, target anchoring, Escape dismissal, and account-menu\nactivation. A source contract rejects Qt shared tooltip call sites throughout\nthe application QML. Editor panel and timeline suites exercise the remaining\nhosts; the LVRS SDK owns the tooltip's general geometry and interaction tests.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 50,
+      "end_line": 50,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 51,
+      "end_line": 56,
+      "raw": "For native visual verification, run `DreamscapesGuiTests\napplicationTooltipsUseLvrs` with `QT_QPA_PLATFORM=cocoa`, `QSG_RHI_BACKEND=metal`,\nand `DREAMSCAPES_CAPTURE_DIR` pointing below `build/`. The fixture uses an\nisolated Society container and does not interact with production documents.\nInstalled-bundle startup and a user's already-running process are separate\nverification levels.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Tooltips",
+      "anchor": "tooltips",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000011",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Integration",
+      "anchor": "integration",
+      "start_line": 24
+    },
+    {
+      "block_id": "b000017",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Verification",
+      "anchor": "verification",
+      "start_line": 41
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 7,
+        "text": "window. Applications do not override its material, font, geometry, or scale.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000007",
+        "line": 16,
+        "text": "the underlying control. Escape must stay dismissed while the pointer remains",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 29,
+        "text": "target's accessible name or its current data. Do not use `Controls.ToolTip.text`",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 31,
+        "text": "style tooltip even when attached to an LVRS button; they do not use `LV.Tooltip`.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000003",
+        "label": "LVRS Tooltip, Figma 997:13",
+        "target": "https://www.figma.com/design/0GkItQYSNIR0lZ3iJhfJzc/Layerd-Visual-Render-System?node-id=997-13",
+        "kind": "external",
+        "line": 4
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

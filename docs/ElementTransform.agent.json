@@ -1,0 +1,215 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:0f6783d2456e3906565d67710a060da4d4cc525d77e01c225f810f03809bd142",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/ElementTransform.md",
+    "sha256": "54b2fa264178d7385e408825d60e4ec5e1af4bf1e11f56203b49e05de0d788e8",
+    "bytes": 5526,
+    "line_count": 81,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Element selection and free transform",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Element selection and free transform\n",
+      "level": 1,
+      "title": "Element selection and free transform"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 10,
+      "raw": "Elements uses the document's selected layer as the geometry source. Clicking a\nvisible shape selects the topmost painted shape under the pointer; an ellipse's\nempty bounding-box corner does not hide another shape underneath it. Shift-click\nadds or removes a selection. The active shape has a blue transform outline, a\nthirds grid, eight square resize handles, a center reference and a round rotation\nhandle. Other selected shapes have outlines; manipulation applies to the active\nshape. All handles stay nine screen pixels wide through zoom and pan, including\nartboards and mirrored editor presentation.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 11,
+      "end_line": 11,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 12,
+      "end_line": 19,
+      "raw": "Drag inside a shape to move it, drag an edge or corner to resize, and drag the\nrotation handle to rotate. Shift constrains movement to one axis, corner resize\nto the original aspect ratio, or rotation to 15-degree increments. The existing\nConstrain proportions setting also constrains corner resize. Alt resizes around\nthe center. Crossing the opposite edge flips that axis without flattening the\nshape to a singular transform. Width and height remain between 1 and 65536 pixels.\nThe width and height of a rotated shape are lengths along its own transformed\naxes, rather than the larger axis-aligned enclosing rectangle.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 20,
+      "end_line": 20,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 21,
+      "end_line": 29,
+      "raw": "Clicking empty space clears selection; dragging empty space draws a new shape\nand shows its creation bounds. Control/Command-drag can draw over an existing\nshape. Arrow keys move the selected shape one canvas pixel, or ten with Shift.\nEscape cancels a live transform, then clears selection when no gesture is active.\nEnter accepts the current transform preview. Losing capture or focus, switching\ntools, changing frame or selection, replacing the document, and Undo/Redo cancel\nan unfinished transform before applying the new action. Locked shapes remain\noutlined and inspectable with read-only dimensions; hidden or out-of-frame shapes\ndo not present handles or intercept shape selection.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 31,
+      "end_line": 37,
+      "raw": "`EditorCanvas.elementTransform` exposes viewport points, handles, active layer\nidentity, dimensions, rotation and interaction availability. The QML overlay only\ndraws that state. Hit testing, pointer manipulation, keyboard input and commits\nuse the same native coordinates. It samples the actual IISC layer's asset and\nmotion at the current frame, combines its affine transform and artboard origin,\nthen maps to viewport zoom, canvas origin and pan. Motion keys and source assets\nremain intact: manipulation changes the layer's base affine transform.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 38,
+      "end_line": 38,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 39,
+      "end_line": 47,
+      "raw": "`selectedElementSettings[\"field-0\"]` reports those same actual dimensions. Width\nand height edits on session-created shapes regenerate local geometry after\naccounting for existing scale and rotation. Other shape, fill, stroke, opacity\nand blend values come from that shape's accepted settings and layer properties.\nSelecting a different known shape changes the Shape view to match its type while\nFill, Stroke and Inspect remain in their chosen views. Shape conversion followed\nby Undo/Redo also restores the matching Shape view when the layer ID is unchanged. The Elements presenter\nreads selected native values directly and preserves fractional dimensions to two\ndecimal places; it does not display the 1080-pixel creation draft over a selection.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 48,
+      "end_line": 48,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 49,
+      "end_line": 55,
+      "raw": "A vector reopened from IISC without session generation metadata still exposes its\nactual path bounds, size, opacity and blend mode. It supports transform and size\nedits without guessing the original shape, corner radius or fill-generation\nparameters. The Inspect view labels it Vector and disables unavailable generation\ncontrols. Ordinary bitmap images are not Elements candidates; gradient and image\nfills created as Elements in this session keep the existing session metadata.\nThis change does not add a file format or claim to reconstruct absent metadata.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 56,
+      "end_line": 56,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 57,
+      "end_line": 62,
+      "raw": "Preview changes redraw in memory without recording authorship, writing the file,\nor creating history entries. Release/Enter validates and persists one final edit\nusing the existing document commit path; one Undo restores the entire gesture.\nCancel and a click without movement preserve encoded document bytes and any Redo\nbranch. Failed persistence restores the original transform. The interface and\nhistory remain shared by desktop and mobile editor presentations.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 63,
+      "end_line": 63,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "heading",
+      "start_line": 64,
+      "end_line": 64,
+      "raw": "## Verification\n",
+      "level": 2,
+      "title": "Verification"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 65,
+      "end_line": 65,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 66,
+      "end_line": 76,
+      "raw": "`Dreamscapes.ElementTransform` exercises every resize handle, rendered pixels,\nsingle-entry Undo/Redo, true-path hit testing, movement, rotation followed by\nresizing, scale-aware numeric dimensions, modifiers, flips, cancellation, Enter,\narrow keys, locks, hidden/multiple selection, IISC reopening, artboard and motion\ncoordinates, and gradient/image asset preservation, disk persistence only at acceptance, and\nconflicting-save rejection without losing Redo. `Dreamscapes.ElementsSelection`\nretains the existing selection, fill-source and shape-generation regressions.\n`editorElementsTransformAndInspectorStayInSync` opens the actual editor QML,\ndrags a native handle through the overlay, checks live width/height, Undo/Redo,\nfractional numeric editing, per-shape panel switching, constant-size zoomed\nhandles and actual enlarged pixels from the asynchronous canvas renderer. Captures are optional through `DREAMSCAPES_CAPTURE_DIR`.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 77,
+      "end_line": 77,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 78,
+      "end_line": 81,
+      "raw": "The combined `Dreamscapes.EditorElements` GUI group allows 600 seconds for its\ndesktop/mobile cases and the new transform checks, including cold imports while\nother workspace builds share the external volume. This is a test harness limit,\nnot an application interaction latency target.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Element selection and free transform",
+      "anchor": "element-selection-and-free-transform",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000017",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Verification",
+      "anchor": "verification",
+      "start_line": 64
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000007",
+        "line": 29,
+        "text": "do not present handles or intercept shape selection.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

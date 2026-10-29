@@ -40,8 +40,21 @@ Dreamscapes는 실패한 이미지·비디오 생성과 결과 게시 단계에 
 재시도, 캔버스 변경, 편집 이력 생성, 파일 복구, 게시 실행 권한은 제공하지 않는다.
 로그와 프롬프트를 지시문으로 실행하지 않으며 도구 레지스트리는 비어 있다.
 
+선택한 언어 모델에 넘기는 설명 입력은 실제 토크나이저와 문맥 크기로 측정한다.
+출력 토큰을 확보할 수 없을 때는 모델에 전달할 입력 사본만 줄이고, 저장된 근거와
+전체 보고서는 그대로 유지한다. 원문 오류가 종료 코드뿐이어도 마지막 네이티브 진단을
+입력 앞에 배치한다. 모델 문맥이 짧으면 설명 출력 토큰도 문맥에 맞춰 제한하며,
+필수 지시조차 들어가지 않으면 근거 보고서를 유지하고 분석 불가 사유를 표시한다.
+`modelInputFitsMeasuredContextWithoutChangingTheFullEvidence`는 모델별 입력 제한과
+근거 보존을 검증한다. 이는 모델이 반환한 해석의 정확성을 보증하지 않는다.
+
 QML은 `latestFailure`, `failureAnalysis(jobId)`, `failureExplained(jobId, report)`를
 사용한다. `Failure details` 버튼과 스크롤 가능한 LVRS 모달은 전체 설명을 표시한다.
+보고서 본문은 읽기 전용 일반 텍스트이므로 드래그하여 부분 선택할 수 있다.
+`Copy report`는 현재 표시된 전체 설명과 분석·저장 상태, 보고서 경로를 클립보드에
+복사하며 기존 텍스트 선택을 유지한다. 분석 중 결과가 갱신되면 이후 복사는 갱신된
+내용을 사용한다. 복사는 캡처된 보고서의 내용만 포함하며 원래 로그의 캡처 한계를
+늘리거나 진단 파일을 변경하지 않는다.
 기존 짧은 오류 표시는 유지한다. MCP의 `failure_analysis`와 `jobs.failureAnalysis`도
 같은 결과를 제공한다. 보고서는 앱 데이터의 `FailureReports/.<job-id>.json`에 저장하고
 에이전트 실행 기록은 그 아래 `.sessions`에 저장한다. 이는 iiFileProvider가 문서
@@ -58,6 +71,9 @@ example/failure-context.json`으로 실행한다. `install.py`는 canonical 앱�
 진단 완료 알림은 원래 작업에만 적용하며 현재 생성 작업의 오류·추론 상태를 바꾸지 않는다.
 진행 단계 스냅샷은 작업별 임시 진단 상태로 유지한다. 백그라운드 전환 등 화면
 상태를 작업 진행으로 기록하거나, 이전 작업의 화면 상태를 실패 원인에 섞지 않는다.
+작업 종료 후 워커가 `waiting-model`로 돌아가는 모델 상주 상태도 마지막 생성 단계로
+기록하지 않는다. `videoFailureKeepsLastWorkStageWhenWorkerBecomesIdle`은 비디오
+샘플링 실패 직전의 단계와 진행량이 보고서에 보존되는지 검증한다.
 
 검증: SDK `iiMultimodalAgent.failure_report`, 앱 `Dreamscapes.FailureAgent`,
 `failedGenerationPreservesErrorAndReturnsAgentReport`, MCP 도구 계약 및

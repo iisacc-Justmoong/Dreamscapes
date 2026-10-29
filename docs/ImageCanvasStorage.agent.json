@@ -1,0 +1,233 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:c20f8e17d7e830851815574545b22aad08694eee7d354e11980dc868cd49b366",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/ImageCanvasStorage.md",
+    "sha256": "916aae6dd5458ac6ff613cb84efb0840c9378cbf411d1d0e4a2b6551cd9e5105",
+    "bytes": 7053,
+    "line_count": 30,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "이미지 사용과 네이티브 캔버스 저장",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# 이미지 사용과 네이티브 캔버스 저장\n",
+      "level": 1,
+      "title": "이미지 사용과 네이티브 캔버스 저장"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "이전 버전이 생성 결과를 `<UUID>-0001.iisc`로 저장하여 Society의 이미지 갤러리에서 누락된 경우, `DreamscapesHistoryRepair`로 PNG를 복구할 수 있다. `cmake --build build --target DreamscapesHistoryRepair`로 일반 실행 파일을 빌드한다. `build/DreamscapesHistoryRepair /absolute/Society.societycontainer`는 대상만 조회하며, `--apply`를 앞에 붙이면 PNG를 추가한다. 정확한 생성 UUID 파일명과 단일 `image.fill.layer` 문서만 대상으로 삼고 모든 픽셀을 비교한다. 기존 PNG를 덮어쓰거나 `.iisc`를 삭제하지 않으며, 원래 수정 시간을 보존한다. 원본 PNG의 과거 압축 바이트는 복원할 수 없으므로 네이티브 문서에 남은 픽셀과 메타데이터를 PNG로 재인코딩한다. `--move-canvases` 모드는 복구된 PNG가 있는 기존 생성 `.iisc`를 SDK의 덮어쓰기 없는 동일 드라이브 이동으로 Files에 정리한다. PNG를 보존하고 이동 전후 네이티브 바이트를 비교하며 이름 충돌 시 기존 두 파일을 보존한다. 복구 회귀 검사는 `Dreamscapes.ImageCanvas`에 포함된다.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 5,
+      "end_line": 5,
+      "raw": "생성 결과는 `Generation History/<job>-0001.png`에 PNG 원본으로 저장한다. 생성 단계에서는 `.iisc`를 만들지 않는다. iiSocietyHelper의 `FileSystem::publishGeneratedImage()`가 iiSocietyContainer의 같은 계약으로 게시하며, 이미 존재하는 이름을 덮어쓰지 않고 완전한 파일만 원자적으로 공개한다. 출력 보정이 없으면 엔진의 PNG 바이트와 메타데이터를 그대로 보존한다. 고급 출력 보정은 PNG에 적용한 뒤 게시한다. Society 앱이나 데몬의 실행 여부와 무관하게 선택한 저장소에 저장한다.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "생성 결과의 `image`와 `imageSource`는 저장된 PNG를 가리킨다. 에디터에서 PNG를 열면 자기 완결적인 `.iisc` 문서를 Society의 `Files/`에 저장하며 `Generation History/`의 PNG 원본을 보존한다. 문서는 같은 픽셀 크기, 단일 프레임, 원점 `(0, 0)`, 배율 `1`, 불투명도 `1`의 `StaticBitmapLayer`와 내부 `RasterAsset`을 사용한다. 네이티브 문서의 `documentSource`는 `.iisc`, 표시용 `imageSource`·`previewSource`·`thumbnailSource`는 파생 PNG이다. 파생 프리뷰는 Society의 `Models/.society-runtime/iiLocalDiffusion/image-previews`에서 재생성할 수 있다. 비디오 출력 MP4와 포스터 저장 계약은 유지한다.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "Home에서 첨부한 이미지, 에디터에서 연 이미지, Place Image 및 생성 결과 배치는 먼저 `.iisc`를 영속화한다. 래핑 파일은 선택된 Society의 `Files/<원본 파일명>.<네이티브 내용 SHA-256>.iisc`이다. 명시적인 저장소 선택을 우선하고, 선택이 없으면 이미지가 속한 Society 저장소 또는 공통 기본 저장소를 사용한다. 동일 내용은 기존 파일을 재사용한다. 내용이 바뀌면 별도 파일을 생성하며 원본 이미지와 기존 문서는 덮어쓰지 않는다. 같은 이름의 파일이 다른 바이트를 포함하면 사용을 거부하고 오류를 표시한다. 원본 폴더의 쓰기 권한은 필요하지 않으며, Society의 Files에 쓰기 권한이 없거나 연결된 저장소가 없으면 오류를 반환한다. Files 안의 기존 `.iisc`는 재사용하고, 다른 위치의 네이티브 문서를 사용할 때는 원본 바이트를 보존한 Files 사본을 만든다.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 11,
+      "end_line": 11,
+      "raw": "Home 첨부의 `documentSource`는 영속적인 래핑 문서, `source`는 선택 식별자, `previewSource`는 첨부 수명 동안 유지되는 파생 PNG이다. 원본 PNG가 삭제되거나 변경되어도 첨부의 파생 픽셀은 유지된다. 고급 참조, ControlNet 이미지·마스크 및 비디오 키프레임도 선택 즉시 `.iisc`를 저장하고 초안에 네이티브 경로를 보존한다. 기존 `.iisc`는 파생 PNG로 표시하고 엔진에 전달한다. Home 제출 및 비디오 이미지 조건을 Society의 `Files/Dreamscapes/GenerationInputs`로 보존할 때도 `.iisc`를 저장한다. 엔진에 전달하는 PNG는 별도 런타임 캐시에 생성한다. 네이티브 문서와 복수 이미지 프로젝트의 편집·저장은 기존 Editor 계약을 사용한다.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 12,
+      "end_line": 12,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 13,
+      "end_line": 13,
+      "raw": "픽셀 변환은 iiSharedCanvas의 기존 8비트 sRGB ARGB 비트맵 가져오기 계약을 따른다. 일반 sRGB PNG의 픽셀과 알파를 보존하며, 다른 색공간이나 높은 정밀도는 SDK의 표준 sRGB 픽셀 모델로 변환된다. 고급 출력의 워터마크와 색 변환은 PNG 게시 전에 적용하며, 래핑은 이후 에디터 진입 시 수행한다. 보존하도록 요청된 PNG 텍스트 메타데이터는 네이티브 `stableDiffusionMetadata.extraParameters`에 저장하고 파생 PNG에 복원한다.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 14,
+      "end_line": 14,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 15,
+      "end_line": 15,
+      "raw": "검증은 `Dreamscapes.ImageCanvas`, `Dreamscapes.Generation`, `Dreamscapes.HomeCanvas`, `Dreamscapes.EditorCanvas`, `Dreamscapes.EditorProject`, `Dreamscapes.LocalSociety`와 관련 GUI 경로에서 수행한다. 크기·fill 변환·픽셀·알파·원본 삭제 후 사용·재사용·개정·충돌 보존, 로컬/네이티브/원격 생성 게시, 입력 보존, 생성 이력에서 독립 캔버스 편집 및 PNG 내보내기를 확인한다.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 16,
+      "end_line": 16,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "비디오 키프레임의 큰 프리뷰와 타임라인 썸네일도 네이티브 문서에서 파생한 PNG를 표시한다.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "화면 없는 GUI 검사에서 Qt Labs Platform 메뉴를 열 수 있도록 테스트 실행 파일에만 `QApplication`과 Qt Widgets 메뉴 폴백을 사용한다. 배포 앱의 기존 QGuiApplication 진입점과 의존성은 유지한다.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 20,
+      "end_line": 20,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 21,
+      "end_line": 25,
+      "raw": "History PNGs retain their original bytes when usage creates a content-addressed\nnative wrapper in Files. Older auxiliary wrappers that remain beside a PNG are\nsuppressed by Dreamscapes history, preserving one selectable image entry and its\nselection identity until they are migrated. Legacy native results without a PNG\nremain available for recovery.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 26,
+      "end_line": 26,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 27,
+      "end_line": 27,
+      "raw": "에디터의 Save 및 Save As 기본 위치는 연결된 Society의 Files이다. Society 안에서 `.iisc` 문서를 다른 섹션이나 컨테이너 루트에 저장·내보내는 요청은 거부한다. 명시적인 외부 디렉터리 내보내기는 유지한다. `Dreamscapes.EditorCanvas`는 Files 저장·재열기와 다른 섹션의 거부를, `Dreamscapes.HomeEditorRoutes`는 생성 PNG의 에디터 진입과 Files 문서 표시를 검증한다.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 28,
+      "end_line": 29,
+      "raw": "\n\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "컨테이너 상태와 Alias는 iiSocietyContainer의 읽기 전용 객체로 유지하고 iiSocietyHelper를 통해 동기화한다. 앱의 ImageCanvas 함수는 Helper 호출을 전달하는 호환 인터페이스이다. 네이티브 문서 생성·저장과 프리뷰 캐시 작성은 Helper가 수행한다. 앱은 미리보기 디렉터리를 선택하거나 직접 캐시 파일을 만들지 않는다. [Society Alias 구조](SocietyAliases.md)에 앱 메모리 문서, 버전 충돌, 파일 존재·가용성 및 GUI 모델을 정리한다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "이미지 사용과 네이티브 캔버스 저장",
+      "anchor": "이미지-사용과-네이티브-캔버스-저장",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000025",
+        "label": "Society Alias 구조",
+        "target": "SocietyAliases.md",
+        "kind": "relative",
+        "line": 30
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

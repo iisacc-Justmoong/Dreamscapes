@@ -1,6 +1,35 @@
 cmake_minimum_required(VERSION 3.31)
 include("${CMAKE_CURRENT_LIST_DIR}/cmake/single-app/Defaults.cmake")
 project(Dreamscapes VERSION 0.1.1 LANGUAGES CXX)
+option(DREAMSCAPES_NATIVE_FOUNDATION_ONLY "Build and test the Qt-free native view-model foundation (no application)" OFF)
+if(DREAMSCAPES_NATIVE_FOUNDATION_ONLY)
+    set(CMAKE_DISABLE_FIND_PACKAGE_Qt5 ON)
+    set(CMAKE_DISABLE_FIND_PACKAGE_Qt6 ON)
+    set(CMAKE_CXX_EXTENSIONS OFF)
+    find_package(iiSDKCore 0.18.1 CONFIG REQUIRED COMPONENTS Runtime HINTS "$ENV{HOME}/.local/SDK/iiSDKCore")
+    find_package(iiJson 0.1 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiJson")
+    include(cmake/NativeViewModels.cmake)
+    include(CTest)
+    include(cmake/NativeReviewNavigation.cmake)
+    if(BUILD_TESTING)
+        add_executable(DreamscapesNativeViewModelTests tests/tst_nativeviewmodels.cpp)
+        target_link_libraries(DreamscapesNativeViewModelTests PRIVATE DreamscapesViewModelsNative)
+        target_compile_definitions(DreamscapesNativeViewModelTests PRIVATE DREAMSCAPES_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+        add_test(NAME Dreamscapes.NativeViewModels COMMAND DreamscapesNativeViewModelTests)
+        add_executable(DreamscapesViewCatalogTests tests/tst_viewcatalog.cpp)
+        target_link_libraries(DreamscapesViewCatalogTests PRIVATE DreamscapesViewModelsNative)
+        target_compile_definitions(DreamscapesViewCatalogTests PRIVATE DREAMSCAPES_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+        add_test(NAME Dreamscapes.ViewCatalog COMMAND DreamscapesViewCatalogTests)
+        add_executable(DreamscapesReviewSelectionCoreTests tests/test_reviewselection.cpp)
+        target_compile_features(DreamscapesReviewSelectionCoreTests PRIVATE cxx_std_23)
+        target_include_directories(DreamscapesReviewSelectionCoreTests PRIVATE src)
+        add_test(NAME Dreamscapes.ReviewSelectionCore COMMAND DreamscapesReviewSelectionCoreTests)
+        add_executable(DreamscapesNativeReviewTests tests/native-review/main.cpp)
+        target_link_libraries(DreamscapesNativeReviewTests PRIVATE DreamscapesViewModelsNative)
+        add_test(NAME Dreamscapes.NativeReview COMMAND DreamscapesNativeReviewTests)
+    endif()
+    return()
+endif()
 find_package(iiSDKCore 0.18.1 CONFIG REQUIRED COMPONENTS Runtime HINTS "$ENV{HOME}/.local/SDK/iiSDKCore")
 # File creation is owned by iiFileProvider.
 find_package(iiFileProvider 0.6 CONFIG REQUIRED HINTS "$ENV{IIFILEPROVIDER_PREFIX}" "$ENV{HOME}/.local/SDK/iiFileProvider")
@@ -41,6 +70,9 @@ find_package(iiSocietyHelper 0.11.0 CONFIG REQUIRED HINTS
     "${CMAKE_CURRENT_SOURCE_DIR}/../../SDK/iiSocietyHelper/build/install"
     "${CMAKE_CURRENT_BINARY_DIR}/runtime-sdk/iiSocietyHelper"
     "$ENV{HOME}/.local/SDK/iiSocietyHelper")
+if(NOT iiSocietyContainer_HAS_APPLICATION_STORAGE OR NOT iiSocietyHelper_HAS_APPLICATION_STORAGE)
+    message(FATAL_ERROR "Dreamscapes requires shared application storage in both iiSocietyContainer and iiSocietyHelper")
+endif()
 find_package(LVRS CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/LVRS")
 find_package(iiSocialPublish 0.2.0 CONFIG REQUIRED HINTS
     "$ENV{IISOCIALPUBLISH_PREFIX}" "$ENV{HOME}/.local/SDK/iiSocialPublish"
@@ -100,25 +132,19 @@ target_include_directories(DreamscapesNativeGeneration PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Generation"
     "$<TARGET_PROPERTY:iiLocalDiffusion::iiLocalDiffusion,INTERFACE_INCLUDE_DIRECTORIES>")
 target_link_libraries(DreamscapesNativeGeneration PUBLIC iiFileProvider::Native iiImageCodec::iiImageCodec)
-add_library(DreamscapesViewModelsNative STATIC
-    src/App/ViewModels/Native/ViewValue.cpp
-    src/App/ViewModels/Native/ViewCatalog.cpp
-    src/App/ViewModels/Native/VideoTimeline.cpp
-    src/App/ViewModels/Native/EditorToolState.cpp
-    src/App/ViewModels/Native/GenerationPresentation.cpp
-    src/App/ViewModels/Native/GenerationDraft.cpp)
-set_target_properties(DreamscapesViewModelsNative PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
-target_compile_features(DreamscapesViewModelsNative PUBLIC cxx_std_23)
-target_include_directories(DreamscapesViewModelsNative PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
-target_link_libraries(DreamscapesViewModelsNative PUBLIC iiSDKCore::Runtime iiJson::iiJson)
+include(cmake/NativeViewModels.cmake)
 add_library(DreamscapesViewModels STATIC src/App/ViewModels/ViewData.h src/App/ViewModels/ViewData.cpp
+    src/App/ViewModels/ViewProjectionModel.h src/App/ViewModels/ViewProjectionModel.cpp
+    src/App/ViewModels/TimelinePlaybackModel.h src/App/ViewModels/TimelinePlaybackModel.cpp
     src/App/ViewModels/VideoTimelineModel.h src/App/ViewModels/VideoTimelineModel.cpp
-    src/App/ViewModels/GenerationProjection.h src/App/ViewModels/GenerationProjection.cpp)
+    src/App/ViewModels/GenerationProjection.h src/App/ViewModels/GenerationProjection.cpp
+    src/App/ViewModels/SnapshotListModel.h src/App/ViewModels/SnapshotListModel.cpp)
 target_link_libraries(DreamscapesViewModels PUBLIC DreamscapesViewModelsNative Qt6::Qml)
 target_include_directories(DreamscapesViewModels PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+qt6_extract_metatypes(DreamscapesViewModels)
 add_library(DreamscapesGeneration STATIC)
 target_link_libraries(DreamscapesGeneration PUBLIC DreamscapesViewModels)
-set(_native_view_catalogs tools text text-definition photo file compact elements graphic view-options field-groups)
+set(_native_view_catalogs tools text text-definition photo file compact elements graphic view-options field-groups background-defaults)
 set(_native_view_catalog_files)
 foreach(_catalog IN LISTS _native_view_catalogs)
     set(_path "resources/viewmodels/${_catalog}.json")
@@ -150,9 +176,13 @@ qt_add_qml_module(DreamscapesGeneration
     URI Dreamscapes.Storage VERSION 1.0 NO_PLUGIN
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Dreamscapes/Storage"
     SOURCES src/App/Views/Home/SocietyTypes.h
+        src/App/Views/Home/StorageBrowserModel.h src/App/Views/Home/StorageBrowserModel.cpp
+        src/App/Views/Home/ImageSelectionModel.h src/App/Views/Home/ImageSelectionModel.cpp
+        src/App/Views/Home/NewCanvasModel.h src/App/Views/Home/NewCanvasModel.cpp
         src/App/ViewModels/WorkspaceSession.h src/App/ViewModels/WorkspaceSession.cpp
         src/App/Generation/VideoDraftModel.h src/App/Generation/VideoDraftModel.cpp
         src/App/Generation/GenerationComposerModel.h src/App/Generation/GenerationComposerModel.cpp
+        src/App/Generation/GenerationSubmissionModel.h src/App/Generation/GenerationSubmissionModel.cpp
         src/App/StorageViewTypes.h src/App/StorageViewTypes.cpp
         src/App/Views/Home/HomeCanvas.h src/App/Views/Home/HomeCanvas.cpp
         src/App/Views/Home/CanvasPresets.h src/App/Views/Home/CanvasPresets.cpp
@@ -161,6 +191,9 @@ qt_add_qml_module(DreamscapesGeneration
         src/App/Views/Home/ImageOpenRequest.h src/App/Views/Home/ImageOpenRequest.cpp
         src/App/Views/ColorManagerModel.h src/App/Views/ColorManagerModel.cpp
         src/App/Views/Editor/EditorToolStateModel.h src/App/Views/Editor/EditorToolStateModel.cpp
+        src/App/Views/Editor/EditorGraphicDraftModel.h src/App/Views/Editor/EditorGraphicDraftModel.cpp
+        src/App/Views/Editor/EditorBackgroundModel.h src/App/Views/Editor/EditorBackgroundModel.cpp
+        src/App/Views/Editor/EditorWorkspaceModel.h src/App/Views/Editor/EditorWorkspaceModel.cpp
         src/App/Views/Editor/EditorCanvas.h src/App/Views/Editor/EditorCanvas.cpp
         src/App/Views/Editor/EditorCanvasViewport.cpp
         src/App/Views/Editor/EditorCanvasAlignment.cpp
@@ -581,6 +614,16 @@ if(APPLE)
     endif()
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${dreamscapes_plist}")
     file(READ "${dreamscapes_plist}" dreamscapes_plist_content)
+    if(NOT IOS)
+        set(SOCIETY_MAC_APP_GROUP "group.com.iisacc.society" CACHE STRING "Same signed App Group as Society on macOS")
+        configure_file(src/platform/macos/App.entitlements.in
+            "${CMAKE_CURRENT_BINARY_DIR}/Dreamscapes-Mac.entitlements" @ONLY)
+        set_property(TARGET Dreamscapes PROPERTY XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS
+            "${CMAKE_CURRENT_BINARY_DIR}/Dreamscapes-Mac.entitlements")
+        string(REGEX REPLACE "</dict>[ \t\r\n]*</plist>"
+            "<key>SocietyAppGroup</key><string>${SOCIETY_MAC_APP_GROUP}</string>\n</dict></plist>"
+            dreamscapes_plist_content "${dreamscapes_plist_content}")
+    endif()
     if(IOS)
         string(REGEX REPLACE "</dict>[ \t\r\n]*</plist>"
             "<key>LSApplicationQueriesSchemes</key><array><string>society</string></array>\n<key>UIBackgroundModes</key><array><string>processing</string></array>\n<key>BGTaskSchedulerPermittedIdentifiers</key><array><string>com.iisacc.dreamscapes.generation.*</string></array>\n</dict></plist>"
@@ -623,11 +666,22 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     target_link_libraries(DreamscapesNativeViewModelTests PRIVATE DreamscapesViewModelsNative)
     target_compile_definitions(DreamscapesNativeViewModelTests PRIVATE DREAMSCAPES_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
     add_test(NAME Dreamscapes.NativeViewModels COMMAND DreamscapesNativeViewModelTests)
+    add_executable(DreamscapesViewCatalogTests tests/tst_viewcatalog.cpp)
+    set_target_properties(DreamscapesViewCatalogTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF MACOSX_BUNDLE OFF)
+    target_link_libraries(DreamscapesViewCatalogTests PRIVATE DreamscapesViewModelsNative)
+    target_compile_definitions(DreamscapesViewCatalogTests PRIVATE DREAMSCAPES_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME Dreamscapes.ViewCatalog COMMAND DreamscapesViewCatalogTests)
     qt_add_executable(DreamscapesViewModelBridgeTests tests/tst_viewmodelbridge.cpp)
     set_target_properties(DreamscapesViewModelBridgeTests PROPERTIES MACOSX_BUNDLE OFF)
     target_link_libraries(DreamscapesViewModelBridgeTests PRIVATE DreamscapesViewModels Qt6::Test Qt6::Quick)
     target_compile_definitions(DreamscapesViewModelBridgeTests PRIVATE DREAMSCAPES_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
     add_test(NAME Dreamscapes.ViewModelBridge COMMAND DreamscapesViewModelBridgeTests)
+    qt_add_executable(DreamscapesViewModelAdapterTests tests/tst_viewmodeladapters.cpp)
+    set_target_properties(DreamscapesViewModelAdapterTests PROPERTIES MACOSX_BUNDLE OFF)
+    target_link_libraries(DreamscapesViewModelAdapterTests PRIVATE DreamscapesGeneration Qt6::Test)
+    add_test(NAME Dreamscapes.ViewModelAdapters COMMAND DreamscapesViewModelAdapterTests)
+    set_tests_properties(Dreamscapes.ViewModelAdapters PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 120)
+
     set_tests_properties(Dreamscapes.ViewModelBridge PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 120)
     add_executable(DreamscapesNativeGenerationTests tests/tst_nativegeneration.cpp)
     set_target_properties(DreamscapesNativeGenerationTests PROPERTIES MACOSX_BUNDLE FALSE AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
@@ -649,13 +703,17 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     set_tests_properties(Dreamscapes.ApplicationLifetime PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 30)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME Dreamscapes.NativeViewBoundary COMMAND "${Python3_EXECUTABLE}" -B -m unittest discover -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p test_native_view_boundary.py)
+    set_tests_properties(Dreamscapes.NativeViewBoundary PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" TIMEOUT 30)
+
     get_property(dreamscapes_directory_links DIRECTORY PROPERTY LINK_LIBRARIES)
     file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/DreamscapesTargetLinks-$<CONFIG>.txt"
-        CONTENT "directory=${dreamscapes_directory_links}\ngeneration=$<JOIN:$<TARGET_PROPERTY:DreamscapesGeneration,LINK_LIBRARIES>,|>\nlifetime=$<JOIN:$<TARGET_PROPERTY:DreamscapesApplicationLifetimeTests,LINK_LIBRARIES>,|>\n")
+        CONTENT "directory=${dreamscapes_directory_links}\ngeneration=$<JOIN:$<TARGET_PROPERTY:DreamscapesGeneration,LINK_LIBRARIES>,|>\nlifetime=$<JOIN:$<TARGET_PROPERTY:DreamscapesApplicationLifetimeTests,LINK_LIBRARIES>,|>\npackaged=$<JOIN:$<TARGET_PROPERTY:DreamscapesPackagedApplicationTests,LINK_LIBRARIES>,|>\n")
     add_test(NAME Dreamscapes.DependencyBoundary
         COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/verify_link_dependencies.py"
             "${CMAKE_CURRENT_BINARY_DIR}/DreamscapesTargetLinks-$<CONFIG>.txt"
-            "$<TARGET_FILE:DreamscapesApplicationLifetimeTests>")
+            "$<TARGET_FILE:DreamscapesApplicationLifetimeTests>"
+            "$<TARGET_FILE:DreamscapesPackagedApplicationTests>")
     if(APPLE)
         add_test(NAME Dreamscapes.MacRuntimeProfile
             COMMAND "${Python3_EXECUTABLE}" -B -m unittest discover
@@ -726,17 +784,30 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     set_tests_properties(Dreamscapes.LocalSociety PROPERTIES TIMEOUT 180)
     # Keep this GUI target limited to sources present in Dreamscapes.
     qt_add_executable(DreamscapesGuiTests src/App/tst_Gui.cpp)
-    target_link_libraries(DreamscapesGuiTests PRIVATE Qt6::Test Qt6::Widgets Qt6::Quick Qt6::QuickControls2 Qt6::QuickDialogs2)
-    target_link_libraries(DreamscapesGuiTests PRIVATE DreamscapesGeneration)
-    target_link_libraries(DreamscapesGuiTests PRIVATE iiSocietyHelper::iiSocietyHelper)
-    target_compile_definitions(DreamscapesGuiTests PRIVATE
-        DREAMSCAPES_QML_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/src/App"
+    qt_add_executable(DreamscapesGuiSourceTests EXCLUDE_FROM_ALL src/App/tst_Gui.cpp)
+    foreach(_gui_test IN ITEMS DreamscapesGuiTests DreamscapesGuiSourceTests)
+        target_link_libraries(${_gui_test} PRIVATE Qt6::Test Qt6::Widgets Qt6::Quick Qt6::QuickControls2 Qt6::QuickDialogs2)
+        target_link_libraries(${_gui_test} PRIVATE DreamscapesGeneration)
+        target_link_libraries(${_gui_test} PRIVATE iiSocietyHelper::iiSocietyHelper)
+        target_compile_definitions(${_gui_test} PRIVATE
+            DREAMSCAPES_QML_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/src/App"
+            DREAMSCAPES_EXECUTABLE_PATH="$<TARGET_FILE:Dreamscapes>"
+            DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}"
+            DREAMSCAPES_FAKE_GENERATOR="${CMAKE_CURRENT_SOURCE_DIR}/src/App/Generation/fixtures/generate.py"
+        )
+        lvrs_configure_qml_app(${_gui_test} NO_PLATFORM_RUNTIME_TARGETS)
+    endforeach()
+    add_dependencies(DreamscapesGuiTests Dreamscapes)
+    # This parent only launches the real app and observes its SDK presence.
+    # Keep editor, QML and inference initialization in the child under test.
+    qt_add_executable(DreamscapesPackagedApplicationTests tests/tst_packagedapplication.cpp)
+    target_link_libraries(DreamscapesPackagedApplicationTests PRIVATE
+        Qt6::Test iiSocietyHelper::iiSocietyHelper)
+    target_compile_definitions(DreamscapesPackagedApplicationTests PRIVATE
         DREAMSCAPES_EXECUTABLE_PATH="$<TARGET_FILE:Dreamscapes>"
         DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}"
-        DREAMSCAPES_FAKE_GENERATOR="${CMAKE_CURRENT_SOURCE_DIR}/src/App/Generation/fixtures/generate.py"
-    )
-    add_dependencies(DreamscapesGuiTests Dreamscapes)
-    lvrs_configure_qml_app(DreamscapesGuiTests NO_PLATFORM_RUNTIME_TARGETS)
+        DREAMSCAPES_FAKE_GENERATOR="${CMAKE_CURRENT_SOURCE_DIR}/src/App/Generation/fixtures/generate.py")
+    add_dependencies(DreamscapesPackagedApplicationTests Dreamscapes)
     qt_add_executable(DreamscapesEditorLayerTimelineTests src/App/tst_EditorLayerTimeline.cpp)
     target_link_libraries(DreamscapesEditorLayerTimelineTests PRIVATE DreamscapesGeneration
         Qt6::Test Qt6::Widgets Qt6::Quick Qt6::QuickControls2 Qt6::QuickDialogs2)
@@ -755,11 +826,20 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     target_compile_features(DreamscapesReviewSelectionCoreTests PRIVATE cxx_std_23)
     target_include_directories(DreamscapesReviewSelectionCoreTests PRIVATE src)
     add_test(NAME Dreamscapes.ReviewSelectionCore COMMAND DreamscapesReviewSelectionCoreTests)
+    add_executable(DreamscapesNativeReviewTests tests/native-review/main.cpp)
+    set_target_properties(DreamscapesNativeReviewTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF MACOSX_BUNDLE OFF)
+    target_link_libraries(DreamscapesNativeReviewTests PRIVATE DreamscapesViewModelsNative)
+    add_test(NAME Dreamscapes.NativeReview COMMAND DreamscapesNativeReviewTests)
+    qt_add_executable(DreamscapesReviewParityTests tests/native-review/parity.cpp
+        src/App/Views/Result/GenerationReviewModel.h src/App/Views/Result/GenerationReviewModel.cpp)
+    target_include_directories(DreamscapesReviewParityTests PRIVATE src)
+    target_link_libraries(DreamscapesReviewParityTests PRIVATE DreamscapesViewModelsNative Qt6::Core)
+    add_test(NAME Dreamscapes.NativeReviewParity COMMAND DreamscapesReviewParityTests)
     qt_add_executable(DreamscapesReviewModelTests tests/tst_reviewmodel.cpp
         src/App/Views/Result/GenerationReviewModel.h src/App/Views/Result/GenerationReviewModel.cpp)
     target_compile_features(DreamscapesReviewModelTests PRIVATE cxx_std_23)
     target_include_directories(DreamscapesReviewModelTests PRIVATE src)
-    target_link_libraries(DreamscapesReviewModelTests PRIVATE Qt6::Test)
+    target_link_libraries(DreamscapesReviewModelTests PRIVATE Qt6::Test iiSDKCore::Runtime)
     target_compile_definitions(DreamscapesReviewModelTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
     add_test(NAME Dreamscapes.ReviewModel COMMAND DreamscapesReviewModelTests)
     qt_add_executable(DreamscapesReviewExportTests tests/tst_reviewexport.cpp)
@@ -813,7 +893,7 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
         --build-dir "${CMAKE_CURRENT_BINARY_DIR}" --ctest "${CMAKE_CTEST_COMMAND}")
     set_tests_properties(Dreamscapes.GuiRegistry PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 30)
-    add_test(NAME Dreamscapes.PackagedApplication COMMAND DreamscapesGuiTests packagedApplicationStarts)
+    add_test(NAME Dreamscapes.PackagedApplication COMMAND DreamscapesPackagedApplicationTests packagedApplicationStarts)
     set_tests_properties(Dreamscapes.PackagedApplication PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1"
         RUN_SERIAL TRUE TIMEOUT 120)
@@ -943,7 +1023,7 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 90)
     add_test(NAME Dreamscapes.Video COMMAND DreamscapesGuiTests videoHomeSubmitPlaysAndExports
         videoWorkspaceStartsEmptyAndUsesGenerationDefaults videoInspectorStaysWithinViewport
-        videoWorkspaceRoutesEditsAndGenerates)
+        videoWorkspaceRoutesEditsAndGenerates videoAcceptedSubmissionResetsViewFeedback)
     set_tests_properties(Dreamscapes.Video PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 90)
     add_test(NAME Dreamscapes.PromptFields COMMAND DreamscapesGuiTests
@@ -1214,6 +1294,10 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
         DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}"
         DREAMSCAPES_FAKE_GENERATOR="${CMAKE_CURRENT_SOURCE_DIR}/src/App/Generation/fixtures/generate.py")
     add_test(NAME Dreamscapes.Generation COMMAND DreamscapesGenerationTests)
+    add_test(NAME Dreamscapes.RetiredPose COMMAND DreamscapesGenerationTests retiredPoseResourcesAreRejected)
+    add_test(NAME Dreamscapes.AdvancedNativeControls COMMAND DreamscapesGenerationTests advancedNativeReceivesSamplingComponentsAndAdapters)
+    set_tests_properties(Dreamscapes.RetiredPose Dreamscapes.AdvancedNativeControls PROPERTIES
+        ENVIRONMENT "SOCIETY_DISABLE_SESSION_RESTORE=1" TIMEOUT 180 RUN_SERIAL TRUE)
     qt_add_executable(DreamscapesGenerationProcessTests tests/tst_generationprocess.cpp)
     target_link_libraries(DreamscapesGenerationProcessTests PRIVATE DreamscapesGeneration Qt6::Test)
     target_compile_definitions(DreamscapesGenerationProcessTests PRIVATE
@@ -1287,7 +1371,8 @@ if(APPLE AND dreamscapes_diffusion_prefix)
 endif()
 if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     qt_add_executable(DreamscapesFailureAgentTests tests/tst_failureagent.cpp)
-    target_link_libraries(DreamscapesFailureAgentTests PRIVATE DreamscapesGeneration iiMultimodalAgent::FailureDiagnostics Qt6::Test)
+    target_link_libraries(DreamscapesFailureAgentTests PRIVATE DreamscapesGeneration iiMultimodalAgent::FailureDiagnostics
+        iiMultimodalAgent::iiMultimodalAgent Qt6::Test)
     target_compile_definitions(DreamscapesFailureAgentTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}"
         DREAMSCAPES_FAILURE_AGENT="$<TARGET_FILE:DreamscapesFailureAgent>")
     add_dependencies(DreamscapesFailureAgentTests DreamscapesFailureAgent)

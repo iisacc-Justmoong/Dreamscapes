@@ -1,6 +1,7 @@
 #pragma once
 #include "ImageParameterCodec.h"
 #include "../ViewModels/Native/GenerationDraft.h"
+#include "../ViewModels/Native/NumberInputs.h"
 #include <QObject>
 #include <QPointer>
 #include <QUrl>
@@ -30,6 +31,8 @@ public:
     bool hasInvalidInputs() const { return m_validity.invalid(); }
     Q_INVOKABLE bool edit(const QString &, const QVariant &);
     Q_INVOKABLE bool editNumber(const QString &, const QString &);
+    Q_INVOKABLE bool editControlWeight(const QString &id, const QString &text);
+    Q_INVOKABLE bool editLoraWeight(const QString &id, const QString &text);
     Q_INVOKABLE void recordValidity(const QString &, bool valid);
     Q_INVOKABLE void applyPromptDefaults();
     Q_INVOKABLE void resetDraft();
@@ -71,6 +74,7 @@ signals:
     void presetSaved(QString name);
     void referenceImageLimitReached();
 private:
+    dreamscapes::vm::NumberInputs m_numbers;
     bool fail(const QString &error);
     void validity(dreamscapes::vm::ValidityEdit);
     bool updateDraft(const QVariantMap &, const QString &validityKey);

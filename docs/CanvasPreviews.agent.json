@@ -1,0 +1,163 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:74e348bf539cbccb71833e73856ecc1618ca91de25262aaa9d1ba7ef6085f49b",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/CanvasPreviews.md",
+    "sha256": "71be30bc1c85cba2b34370d0c3b2cbe0c1df6d4eebdb30f686ab24c749a255fb",
+    "bytes": 2419,
+    "line_count": 39,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "IISC previews in Continue creating",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# IISC previews in Continue creating\n",
+      "level": 1,
+      "title": "IISC previews in Continue creating"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 8,
+      "raw": "Home file cards obtain native canvas previews from iiSharedCanvas's public\n`readIiscPreview` API. They display the composed document rather than feeding an\nIISC path into Qt's ordinary image decoder or showing only the first raster asset.\nBoth `HomeContentRow` (desktop) and `FileCarousel` (mobile and the file grid) share\nthe `CanvasPreview` adapter. Raster files keep their existing preview URLs and\nunavailable remote files retain any provider-supplied preview.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 10,
+      "end_line": 17,
+      "raw": "`CanvasPreview::sourceForFile` returns an `image://iisc-preview/` URL for a local\nnative document. Its engine-owned image provider forces asynchronous loading,\ndecodes/renders through iiSharedCanvas on Qt Quick's image worker, and copies the\nmodule's straight-alpha ARGB output before its result is destroyed. Default output\nis bounded to 512 by 512 and requested thumbnail bounds are capped at 2048 pixels\nper axis. Aspect and transparency are preserved. Qt Quick owns the image cache;\nthe URL includes the main file and WAL sizes and high-resolution modification\ntimes so a refreshed card does not reuse an earlier same-size file revision.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 19,
+      "end_line": 24,
+      "raw": "No canvas is opened in the editor, migrated or saved merely to show a card.\nThe SDK supports existing IISC snapshots and SQLite working files, including\ncommitted WAL contents and read-only sources. Missing/corrupt/over-limit documents\nreturn an empty image, allowing the existing LVRS card placeholder to remain.\nThe full source document is decoded under SDK serialization limits; bounded\nthumbnail output does not imply partial decoding of large source assets.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 25,
+      "end_line": 25,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 26,
+      "end_line": 27,
+      "raw": "Generation History continues to store generated PNG originals. This preview path\ndoes not convert generation output or add sidecar thumbnails to Society Files.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 28,
+      "end_line": 28,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 29,
+      "end_line": 29,
+      "raw": "Validation:\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "list",
+      "start_line": 31,
+      "end_line": 39,
+      "raw": "- `iiSharedCanvas.DocumentPreview` and its installed-package consumer verify\n  native rendering, compatibility, bounds and source preservation.\n- `Dreamscapes.CanvasPreview` verifies worker loading through QML, actual module\n  pixels, alpha/aspect, special-character paths, live WAL cache invalidation and\n  ordinary/unavailable image fallback.\n- `Dreamscapes.HomeCanvasPreviews` loads desktop and mobile Home views with both\n  native storage kinds and requires actual file cards to reach `Image.Ready`.\n- `Dreamscapes.DesktopHome` and `Dreamscapes.ImageCanvas` retain Home routing,\n  raster preview and PNG-to-IISC storage coverage.\n",
+      "items": [
+        {
+          "marker": "-",
+          "text": "`iiSharedCanvas.DocumentPreview` and its installed-package consumer verify",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`Dreamscapes.CanvasPreview` verifies worker loading through QML, actual module",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`Dreamscapes.HomeCanvasPreviews` loads desktop and mobile Home views with both",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`Dreamscapes.DesktopHome` and `Dreamscapes.ImageCanvas` retain Home routing,",
+          "checked": null
+        }
+      ]
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "IISC previews in Continue creating",
+      "anchor": "iisc-previews-in-continue-creating",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

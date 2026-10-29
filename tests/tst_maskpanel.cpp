@@ -42,8 +42,6 @@ class MaskPanelTests:public QObject {
     Q_OBJECT
     QTemporaryDir storage{DREAMSCAPES_TEST_DIRECTORY "/mask-documents-XXXXXX.societycontainer"};
     QByteArray oldContainer;
-    QObject *panelState=nullptr;
-    EditorCanvas *panelCanvas=nullptr;
 private slots:
     void initTestCase() {oldContainer=qgetenv("SOCIETY_CONTAINER_PATH");QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));qputenv("SOCIETY_CONTAINER_PATH",storage.path().toUtf8());}
     void cleanupTestCase() {if(oldContainer.isNull())qunsetenv("SOCIETY_CONTAINER_PATH");else qputenv("SOCIETY_CONTAINER_PATH",oldContainer);}
@@ -249,8 +247,7 @@ private slots:
         const auto path=QString(DREAMSCAPES_QML_SOURCE_DIR)+"/Views/Editor/";
         QQmlComponent stateComponent(&engine,QUrl::fromLocalFile(path+"EditorToolSheet.qml"));
         std::unique_ptr<QObject> state(stateComponent.createWithInitialProperties({{"toolId","background"},{"engine",QVariant::fromValue<QObject*>(&canvas)}}));QVERIFY2(state,qPrintable(stateComponent.errorString()));
-        panelState=state.get();panelCanvas=&canvas;canvas.configureTool("background",state->property("values").toMap());
-        QObject::connect(state.get(),SIGNAL(valueEdited(QString,QString,QVariant)),this,SLOT(panelDraftChanged(QString,QString,QVariant)));
+        canvas.configureTool("background",state->property("values").toMap());
         QQmlComponent component(&engine,QUrl::fromLocalFile(path+"EditorDesktopPanel.qml"));std::unique_ptr<QObject> object(component.createWithInitialProperties({{"toolState",QVariant::fromValue(state.get())}}));QVERIFY2(object,qPrintable(component.errorString()));
         auto *panel=qobject_cast<QQuickItem*>(object.get());QVERIFY(panel);QQuickWindow window;window.resize(width,720);window.setColor(QColor("#1d1e1e"));panel->setParentItem(window.contentItem());panel->setSize({qreal(width),720});
         state->setProperty("parent",QVariant::fromValue(window.contentItem()));window.show();QVERIFY(QTest::qWaitForWindowExposed(&window));QTest::qWait(150);
@@ -317,7 +314,7 @@ private slots:
         for(int mode=0;mode<9;++mode){click("background-pickerMode");QTRY_VERIFY(modeMenu->property("opened").toBool());QTRY_VERIFY(body->property("modalActive").toBool());QTRY_VERIFY(menuEntry(window.contentItem(),colorModel->modeNames()[mode]));auto *entry=menuEntry(window.contentItem(),colorModel->modeNames()[mode]);QTest::mouseClick(&window,Qt::LeftButton,Qt::NoModifier,entry->mapToScene(entry->boundingRect().center()).toPoint());QTRY_COMPARE(colorModel->mode(),mode);QTRY_VERIFY(!modeMenu->property("visible").toBool());QCOMPARE(colorModel->hex(),QString("123456"));if(mode>2)QVERIFY(visual(panel,"backgroundModeChannel-"+QString::number(colorModel->channels().first().toInt())));}
         click("backgroundTab-Replace");QCOMPARE(state->property("values").toMap()["replaceSource"].toString(),QString("Image"));
         QVERIFY2(warnings.isEmpty(),qPrintable(warnings.join('\n')));
-        if(auto *sheet=qobject_cast<QQuickItem*>(state.get()))sheet->setParentItem(nullptr);panel->setParentItem(nullptr);panelState=nullptr;panelCanvas=nullptr;
+        if(auto *sheet=qobject_cast<QQuickItem*>(state.get()))sheet->setParentItem(nullptr);panel->setParentItem(nullptr);
     }
     void panelControls() {
         QFETCH(int,width);EditorCanvas canvas;QVERIFY(canvas.loadProjectPage(fixture(),"Panel"));QVERIFY(shape(canvas,"Rectangle"));QVERIFY(shape(canvas,"Lasso"));
@@ -326,9 +323,8 @@ private slots:
         QQmlComponent stateComponent(&engine,QUrl::fromLocalFile(path+"EditorToolSheet.qml"));
         std::unique_ptr<QObject> state(stateComponent.createWithInitialProperties({{"toolId","background"},{"engine",QVariant::fromValue<QObject*>(&canvas)}}));QVERIFY2(state,qPrintable(stateComponent.errorString()));
         state->setProperty("settingsByTool",QVariantMap{{"background",settings()}});
-        panelState=state.get();panelCanvas=&canvas;
+
         canvas.configureTool("background",state->property("values").toMap());
-        QObject::connect(state.get(),SIGNAL(valueEdited(QString,QString,QVariant)),this,SLOT(panelDraftChanged(QString,QString,QVariant)));
         QQmlComponent panelComponent(&engine,QUrl::fromLocalFile(path+"EditorDesktopPanel.qml"));
         std::unique_ptr<QObject> object(panelComponent.createWithInitialProperties({{"toolState",QVariant::fromValue(state.get())}}));QVERIFY2(object,qPrintable(panelComponent.errorString()));
         auto *panel=qobject_cast<QQuickItem*>(object.get());QVERIFY(panel);QQuickWindow window;window.resize(width,720);window.setColor(QColor("#1E1E1E"));panel->setParentItem(window.contentItem());panel->setSize({qreal(width),720});
@@ -409,7 +405,6 @@ private slots:
         QVERIFY2(warnings.isEmpty(),qPrintable(warnings.join('\n')));
         if(auto *sheet=qobject_cast<QQuickItem*>(state.get()))sheet->setParentItem(nullptr);panel->setParentItem(nullptr);
     }
-    void panelDraftChanged(const QString &tool,const QString &field,const QVariant &value) {if(panelCanvas&&panelState){panelCanvas->configureTool(tool,panelState->property("values").toMap());panelCanvas->applyToolField(tool,field,value);}}
 };
 int main(int argc,char **argv) {QQuickStyle::setStyle("Basic");QApplication app(argc,argv);registerStorageViewTypes();MaskPanelTests tests;return QTest::qExec(&tests,argc,argv);}
 #include "tst_maskpanel.moc"

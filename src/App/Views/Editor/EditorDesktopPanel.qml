@@ -79,7 +79,7 @@ Rectangle {
             id: graphicLoader
             width: viewport.width
             height: item ? (item as Item).implicitHeight : 0
-            active: ["color", "auto-enhance", "masking", "effects"].indexOf(root.toolState.toolId) >= 0
+            active: NativeData.presentation.indexOf(["color", "auto-enhance", "masking", "effects"], root.toolState.toolId) >= 0
             sourceComponent: EditorGraphicPanel { toolState: root.toolState }
         }
         Loader {

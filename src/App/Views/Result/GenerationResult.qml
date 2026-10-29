@@ -108,16 +108,16 @@ Item {
         imageMenu.close(); saveDialog.close(); exportDialog.close(); saveFeedback = ""
     }
     function editEntries(entries) {
-        if (!entries.length || entries.some(entry => entry.mediaType === "Video" || entry.mediaType === "Canvas")) {
+        if (!review.validImages(entries)) {
             saveFeedback = qsTr("Select only images for the image editor; videos can be previewed or exported."); return
         }
         imagesRequested(entries)
     }
     function compareImages(entries) {
-        if (entries.length < 2 || entries.length > 4 || entries.some(entry => entry.mediaType === "Video" || entry.mediaType === "Canvas")) {
+        if (!review.validImages(entries,2,4)) {
             saveFeedback = qsTr("Select 2–4 images to compare."); return
         }
-        gallery.rememberPosition(); compareEntries = entries.slice(); comparison.resetView(0)
+        gallery.rememberPosition(); compareEntries = NativeData.presentation.range(entries); comparison.resetView(0)
         compareVisible = true; root.forceActiveFocus()
     }
     function handleKey(event) {
@@ -125,43 +125,24 @@ Item {
             goBack(); event.accepted = true; return
         }
         if (!gallery.activeFocus && !root.activeFocus && !detailVisible && !compareVisible) return
-        const command = event.modifiers & (Qt.ControlModifier | Qt.MetaModifier)
-        if (event.key === Qt.Key_Escape) {
-            if (detailVisible || compareVisible || queueOpen || inspectorOpen) goBack()
-            else if (review.selectedCount || review.selectionMode) review.clearSelection()
-            else goBack()
-        } else if (event.key === Qt.Key_A && command) review.selectAll()
-        else if (command || (event.modifiers & Qt.AltModifier)) return
-        else if (event.key === Qt.Key_F) review.toggleReview("shortlisted")
-        else if (event.key === Qt.Key_X) review.toggleReview("rejected")
-        else if (event.key === Qt.Key_C) compareImages(review.selectedEntries)
-        else if (event.key === Qt.Key_Space) {
-            if (detailVisible) goBack()
-            else if (review.focusedKey.length) showEntry(review.focusedEntry)
-            else selectImage(0,true)
-        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) editEntries(review.actionEntries)
-        else {
-            if (detailVisible || compareVisible || !review.count) return
-            let index = Math.max(0,review.focusedIndex)
-            if (event.key === Qt.Key_Left) --index
-            else if (event.key === Qt.Key_Right) ++index
-            else if (event.key === Qt.Key_Up) index -= gallery.columns
-            else if (event.key === Qt.Key_Down) index += gallery.columns
-            else if (event.key === Qt.Key_Home) index = 0
-            else if (event.key === Qt.Key_End) index = review.count - 1
-            else return
-            index = Math.max(0,Math.min(review.count - 1,index))
-            if (event.modifiers & Qt.ShiftModifier) review.selectAt(index,event.modifiers)
-            else review.focusAt(index)
+        const reply = review.keyCommand(event.key,event.modifiers,gallery.columns,
+                                        detailVisible || compareVisible || queueOpen || inspectorOpen,
+                                        detailVisible,compareVisible)
+        if (!reply.accepted) return
+        if (reply.action === "back") goBack()
+        else if (reply.action === "compare") compareImages(review.selectedEntries)
+        else if (reply.action === "edit") editEntries(review.actionEntries)
+        else if (reply.action === "detail" && review.focusedKey.length) showEntry(review.focusedEntry)
+        else if (reply.action === "focus") {
             gallery.restoreSavedPosition = false
-            gallery.positionViewAtIndex(index,GridView.Contain)
+            gallery.positionViewAtIndex(reply.index,GridView.Contain)
         }
         event.accepted = true
     }
     Keys.onPressed: function(event) { root.handleKey(event) }
     function openImageMenu(anchor,x,y) {
         if (!review.focusedKey.length) return
-        imageMenu.targets = review.isSelected(review.focusedEntry) ? review.selectedEntries.slice() : [review.focusedEntry]
+        imageMenu.targets = review.contextEntries()
         imageMenu.openFor(anchor,x,y)
     }
     function saveImageToFile() {
@@ -181,14 +162,9 @@ Item {
     }
     function exportSelection() {
         if (batchExporter.busy || !review.actionEntries.length) return
-        exportDialog.entries = review.actionEntries.slice(); exportDialog.open()
+        exportDialog.entries = NativeData.presentation.range(review.actionEntries); exportDialog.open()
     }
-    function filterLabel(key) {
-        if (key === "all") return qsTr("All %1").arg(review.totalCount)
-        if (key === "shortlisted") return qsTr("Shortlisted %1").arg(review.shortlistedCount)
-        if (key === "rejected") return qsTr("Rejected %1").arg(review.rejectedCount)
-        return {unreviewed:qsTr("Unreviewed"),images:qsTr("Images"),videos:qsTr("Videos")}[key] || key
-    }
+    function filterLabel(key) { review.totalCount; review.shortlistedCount; review.rejectedCount; return review.filterLabel(key) }
     ImageFileExporter {
         id: fileExporter
         objectName: "imageFileExporter"
@@ -243,12 +219,12 @@ Item {
             {label:qsTr("Shortlist · %1 results").arg(targets.length)},
             {label:qsTr("Reject · %1 results").arg(targets.length)},
             {label:qsTr("Reset review · %1 results").arg(targets.length)},
-            {label:qsTr("Compare · %1 images").arg(targets.length),enabled:targets.length >= 2 && targets.length <= 4 && targets.every(entry => entry.mediaType !== "Video")},
-            {label:qsTr("Edit · %1 images").arg(targets.length),enabled:targets.length > 0 && targets.every(entry => entry.mediaType !== "Video")},
+            {label:qsTr("Compare · %1 images").arg(targets.length),enabled:review.validImages(targets,2,4)},
+            {label:qsTr("Edit · %1 images").arg(targets.length),enabled:review.validImages(targets)},
             {label:qsTr("Save current to File"),enabled:root.canSaveImage && !fileExporter.busy},
             {label:qsTr("Save current to Photos"),enabled:root.canSaveImage && root.photoLibrary.supported && !root.selectedIsVideo && !root.photoLibrary.busy}]
         onItemTriggered: function(index) {
-            if (index < 3) targets.forEach(entry => review.setEntryReview(review.keyForEntry(entry),["shortlisted","rejected","unreviewed"][index]))
+            if (index < 3) review.markEntries(targets,["shortlisted","rejected","unreviewed"][index])
             else if (index === 3) root.compareImages(targets)
             else if (index === 4) root.editEntries(targets)
             else if (index === 5) root.saveImageToFile()
@@ -577,8 +553,8 @@ Item {
         height: implicitHeight + LV.Theme.gap4
         style: caption
         elide: Text.ElideRight
-        text: batchExporter.busy ? qsTr("Exporting %1 / %2…").arg(batchExporter.processed).arg(batchExporter.total)
-            : root.saveFeedback || root.errorText || root.statusText || qsTr("F Shortlist · X Reject · Space Preview · C Compare · Enter Edit · Review decisions last for this session")
+        text: (batchExporter.busy ? qsTr("Exporting %1 / %2…").arg(batchExporter.processed).arg(batchExporter.total)
+            : root.saveFeedback || root.errorText || root.statusText || qsTr("F Shortlist · X Reject · Space Preview · C Compare · Enter Edit · Review decisions last for this session")).replace(/[\r\n\u2028\u2029]+/g, " ")
         color: root.errorText.length && !root.saveFeedback.length ? LV.Theme.accentRed : LV.Theme.textSecondary
     }
     Rectangle {

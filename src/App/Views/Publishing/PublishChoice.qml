@@ -1,4 +1,5 @@
 pragma ComponentBehavior: Bound
+import Dreamscapes.Storage 1.0
 import QtQuick
 import LVRS 1.0 as LV
 
@@ -30,8 +31,8 @@ Column {
         id: choices
         objectName: root.objectName + "Menu"
         showIconSlot: false
-        items: root.options.map(function(option) { return {label: String(option)} })
-        selectedIndex: root.options.indexOf(root.value)
+        items: NativeData.presentation.labels(root.options, "")
+        selectedIndex: NativeData.presentation.indexOf(root.options, root.value)
         onItemTriggered: function(index) { root.chosen(String(root.options[index])) }
     }
 }

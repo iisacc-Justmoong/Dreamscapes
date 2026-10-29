@@ -66,7 +66,7 @@ common=(
     "-DCMAKE_PREFIX_PATH=$prefix"
     "-DiiFileProvider_DIR=$prefix/lib/cmake/iiFileProvider"
     "-DiiSocietyContainer_DIR=$prefix/lib/cmake/iiSocietyContainer"
-    "-DiiAcountManager_DIR=$prefix/lib/cmake/iiAcountManager"
+    "-DiiAccountManager_DIR=$prefix/lib/cmake/iiAccountManager"
 )
 
 build_dependency() {
@@ -83,7 +83,7 @@ build_dependency() {
 build_dependency json-c "$android_root/sources/json-c" \
     -DBUILD_SHARED_LIBS=OFF -DBUILD_STATIC_LIBS=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-build_dependency iiAcountManager "$sdk_source_root/iiAcountManager" \
+build_dependency iiAccountManager "$sdk_source_root/iiAccountManager" \
     -DIIACCOUNTMANAGER_BUILD_QUICK=OFF
 for package in iiFileProvider iiCSMIDI iiSocietyContainer; do
     build_dependency "$package" "$sdk_source_root/$package"
@@ -98,7 +98,7 @@ build_dependency iiLocalDiffusion "$sdk_source_root/iiLocalDiffusion" \
     "-Djson-c_DIR=$prefix/lib/cmake/json-c"
 
 packages=("-DLVRS_DIR=$sdk_install_root/LVRS/platforms/android/lib/cmake/LVRS")
-for package in iiAcountManager iiFileProvider iiCSMIDI iiWebServer iiSocietyContainer iiSocietyHelper iiLocalDiffusion; do
+for package in iiAccountManager iiFileProvider iiCSMIDI iiWebServer iiSocietyContainer iiSocietyHelper iiLocalDiffusion; do
     packages+=("-D${package}_DIR=$prefix/lib/cmake/$package")
 done
 for package in iiLicenseManager iiPaintEngine iiUpdateManager; do

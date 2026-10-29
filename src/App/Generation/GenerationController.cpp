@@ -1,3 +1,5 @@
+#include "../ViewModels/Native/GenerationPresentation.h"
+#include "../ViewModels/ViewData.h"
 #include <File.h>
 #include <iiFileProviderDevice.h>
 #include "GenerationController.h"
@@ -17,10 +19,12 @@
 #include <QDateTime>
 #include <QFileInfo>
 #include <QGuiApplication>
+#include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QStandardPaths>
 #include <QUuid>
+#include <QSet>
 #include <algorithm>
 #include <limits>
 #include <utility>
@@ -34,6 +38,37 @@
 using namespace iiSocietyContainer;
 namespace {
 QString now() { return QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs); }
+// Native projections choose rows; keep their original Qt payloads at this
+// transport boundary, including duplicate identities from different sections.
+class OriginalPresentationRows {
+public:
+    void add(const QVariantList &rows, const dreamscapes::vm::Value &values) {
+        const auto &nativeRows = dreamscapes::vm::array(values);
+        for (qsizetype i = 0; i < rows.size() && std::size_t(i) < nativeRows.size(); ++i)
+            rows_[identity(nativeRows[std::size_t(i)])].push_back(rows[i].toMap());
+    }
+    QVariantMap take(const dreamscapes::vm::Value &row) {
+        const auto found = rows_.find(identity(row));
+        if (found != rows_.end()) {
+            for (auto candidate = found->begin(); candidate != found->end(); ++candidate) {
+                if (found->size() == 1 || dreamscapes::nativeValue(*candidate) == row) {
+                    auto original = *candidate;
+                    found->erase(candidate);
+                    return original;
+                }
+            }
+        }
+        return dreamscapes::viewValue(row).toMap();
+    }
+private:
+    static QStringList identity(const dreamscapes::vm::Value &row) {
+        QStringList parts;
+        for (const auto *key : {"id", "key", "path", "source", "imageSource", "documentSource", "mediaSource", "name"})
+            parts.push_back(QString::fromStdString(dreamscapes::vm::text(dreamscapes::vm::get(row, key))));
+        return parts;
+    }
+    QHash<QStringList, QList<QVariantMap>> rows_;
+};
 QMap<QString, QStringList> inspectModels(const QString &root, const QList<StoredModel> &models)
 {
     QMap<QString, QStringList> result;
@@ -319,6 +354,15 @@ GenerationController::~GenerationController()
 #endif
     clearWorkingFiles();
 }
+void GenerationController::cancelBatch(const QStringList &ids) {
+    const QSet<QString> owners(ids.begin(), ids.end()); QStringList queued, active;
+    for (const auto &value : jobs()) {
+        const auto job=value.toMap(); const auto id=job.value("id").toString(),state=job.value("state").toString();
+        if(!owners.contains(id))continue;
+        if(state=="queued")queued.push_back(id);else if(state=="running"||state=="connecting-host"||state=="downloading")active.push_back(id);
+    }
+    for(const auto &id:queued+active)cancel(id);
+}
 
 bool GenerationController::connected() const { return m_storageReady && container()->available(); }
 QString GenerationController::containerPath() const { return container()->rootPath(); }
@@ -372,14 +416,14 @@ void GenerationController::updateScreenActivity()
     if (m_runtime.screenActivity) m_runtime.screenActivity(active);
     if (owner) emit screenActivityChanged();
 }
-void GenerationController::setInferenceStatus(QJsonObject status)
+void GenerationController::setInferenceStatus(QJsonObject status, bool recordFailureProgress)
 {
     const auto stage = status["state"].toString();
     auto phase = status["phase"].toString(); if (phase.isEmpty()) phase = stage;
     static const QStringList workStages{"waiting", "waiting-model", "waiting-generation", "preparing", "preparing-model", "checking-model",
         "loading", "encoding", "computing", "denoising", "decoding", "interpolating", "encoding-video", "publishing",
         "connecting-host", "downloading", "running", "generating", "complete"};
-    if (busy() && !m_finishing && workStages.contains(phase)) m_failureProgress = status;
+    if (recordFailureProgress && busy() && !m_finishing && workStages.contains(phase)) m_failureProgress = status;
     if (m_inferenceStatus == status) return;
     m_inferenceStatus = std::move(status);
     emit inferenceStatusChanged();
@@ -757,7 +801,7 @@ bool GenerationController::connectStorage(const QString &path)
     ++m_inventoryEpoch;
     QString error;
     m_storageSelection = path; m_storageReady = false;
-    if (!m_fileSystem.open(path)) return fail(m_fileSystem.errorString());
+    if (!dreamscapes::openGenerationStorage(m_fileSystem, path)) return fail(m_fileSystem.errorString());
     m_storageReady = true;
     m_selected.clear();
     m_selectedVideo.clear();
@@ -811,7 +855,7 @@ void GenerationController::refreshModels()
     QString error;
     const auto previousId = container()->containerId(), previousRoot = container()->rootPath();
     const bool wasReady = m_storageReady;
-    if (!m_fileSystem.open(m_storageSelection)) {
+    if (!dreamscapes::openGenerationStorage(m_fileSystem, m_storageSelection)) {
         error = m_fileSystem.errorString(); m_storageReady = false;
         m_models.clear(); m_selected.clear(); m_selectedVae.clear(); m_selectedVideo.clear(); m_videoModelIds.clear(); m_modelModalities.clear();
         emit storageChanged(); emit modelsChanged(); fail(error); return;
@@ -1380,4 +1424,42 @@ bool GenerationController::cancel(const QString &id)
         }
     }
     return false;
+}
+
+QVariantList GenerationController::historyEntries(const QVariantList &files) const {
+    QVariantList result;
+    const auto input = dreamscapes::nativeValue(files);
+    OriginalPresentationRows originals;
+    originals.add(files, input);
+    const auto images = dreamscapes::vm::historyImages(input);
+    for (const auto &file : dreamscapes::vm::array(images)) {
+        auto entry = originals.take(file);
+        if (entry.value("name").toString().endsWith(".iisc", Qt::CaseInsensitive)) entry = storedImage(entry);
+        else {
+            const auto projected=dreamscapes::viewValue(dreamscapes::vm::historyEntry(file)).toMap();
+            if(projected.value("mediaType")!=entry.value("mediaType") || projected.value("name")!=entry.value("name")) {
+                for(const auto *key:{"mediaType","mediaSource","name","metadata1"})entry[key]=projected.value(key);
+                entry["imageSource"]=entry.value("previewSource");
+            }
+        }
+        result.push_back(entry);
+    }
+    return result;
+}
+QVariantList GenerationController::searchEntries(const QVariantList &files, const QVariantList &published, const QVariantList &history) const {
+    const auto nativeFiles = dreamscapes::nativeValue(files);
+    const auto nativePublished = dreamscapes::nativeValue(published);
+    const auto nativeHistory = dreamscapes::nativeValue(history);
+    OriginalPresentationRows originals;
+    originals.add(files, nativeFiles);
+    originals.add(published, nativePublished);
+    originals.add(history, nativeHistory);
+    QVariantList result;
+    const auto projected = dreamscapes::vm::searchEntries(nativeFiles, nativePublished, nativeHistory);
+    for (const auto &entry : dreamscapes::vm::array(projected)) {
+        auto row = dreamscapes::viewValue(entry).toMap();
+        row["file"] = originals.take(dreamscapes::vm::get(entry, "file"));
+        result.push_back(std::move(row));
+    }
+    return result;
 }

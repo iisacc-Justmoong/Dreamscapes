@@ -1,9 +1,11 @@
 #pragma once
 
 #include <algorithm>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace dreamscapes::review {
@@ -26,6 +28,7 @@ public:
     }
     const std::vector<std::string>& order() const { return m_order; }
     const std::string& focusedKey() const { return m_focus; }
+    const std::string& anchorKey() const { return m_anchor; }
     bool contains(const std::string& id) const { return m_items.contains(id); }
     bool focus(const std::string& id) {
         if (!contains(id)) return false;
@@ -43,6 +46,27 @@ public:
         std::vector<std::string> ids;
         for (const auto& id : m_order) if (selected(id)) ids.push_back(id);
         return ids;
+    }
+    // Validate a complete UI snapshot before changing any selection state.
+    struct NavigationChange { bool changed = false, selectionChanged = false; };
+    std::optional<NavigationChange> restoreNavigation(std::string focus, std::string anchor,
+                                                       const std::vector<std::string>& keys) {
+        if ((!focus.empty() && !contains(focus)) || (!anchor.empty() && !contains(anchor))) return {};
+        std::unordered_set<std::string> selected;
+        selected.reserve(keys.size());
+        for (const auto& id : keys) {
+            if (!contains(id)) return {};
+            selected.insert(id);
+        }
+        NavigationChange change{.changed = focus != m_focus || anchor != m_anchor};
+        for (auto& [id, item] : m_items) {
+            const bool value = selected.contains(id);
+            change.selectionChanged |= item.selected != value;
+            item.selected = value;
+        }
+        change.changed |= change.selectionChanged;
+        m_focus = std::move(focus); m_anchor = std::move(anchor);
+        return change;
     }
     void clearSelection() { for (auto& [id, item] : m_items) item.selected = false; }
     void selectAll(const std::vector<std::string>& visible) {

@@ -501,18 +501,27 @@ function definition(tool) {
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--from-manifest", type=Path, help="Reuse a reviewed manifest when raw Figma harvest files are unavailable")
     parser.add_argument("--harvest", type=Path, default=ROOT / "build/figma-editor-panels")
     parser.add_argument("--sdk-catalog", type=Path, default=ROOT.parents[1] / "SDK/iiGraphicAdjust/docs/filter-catalog.json")
     parser.add_argument("--design-source", type=Path, default=ROOT.parents[1] / "Design/Dreamscapes/figma-adjust-filter-20261008")
     parser.add_argument("--output", type=Path, default=ROOT / "src/App/Views/Editor/GraphicPanels.json")
-    parser.add_argument("--javascript", type=Path, default=ROOT / "src/App/Views/Editor/EditorGraphicDefinitions.js")
+    parser.add_argument("--native-catalog", type=Path, default=ROOT / "resources/viewmodels/graphic.json")
+    parser.add_argument("--javascript", type=Path, help="Optional legacy parity fixture; never a production resource")
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    catalog = compile_catalog(args.harvest, args.sdk_catalog, args.design_source)
-    outputs = {args.output: json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", args.javascript: javascript(catalog)}
+    catalog = read_json(args.from_manifest) if args.from_manifest else compile_catalog(args.harvest, args.sdk_catalog, args.design_source)
+    outputs = {args.output: json.dumps(catalog, ensure_ascii=False, indent=2) + "\n",
+               args.native_catalog: json.dumps(catalog, ensure_ascii=False, separators=(",", ":")) + "\n"}
+    if args.javascript:
+        outputs[args.javascript] = javascript(catalog)
     for path, contents in outputs.items():
         if args.check:
-            if not path.exists() or path.read_text(encoding="utf-8") != contents:
+            actual = path.read_text(encoding="utf-8") if path.exists() else None
+            matches = actual == contents
+            if actual is not None and path == args.native_catalog:
+                matches = json.loads(actual) == catalog
+            if not matches:
                 raise SystemExit("Generated output differs: " + str(path))
         else:
             path.write_text(contents, encoding="utf-8")

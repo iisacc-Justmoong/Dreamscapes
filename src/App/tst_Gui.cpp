@@ -1,4 +1,6 @@
 #include "App/StorageViewTypes.h"
+#include "App/ViewModels/ViewData.h"
+#include "App/ViewModels/VideoTimelineModel.h"
 #include "App/Views/Home/HomeCanvas.h"
 #include "App/Views/Home/CanvasPresets.h"
 #include "App/Views/Home/CanvasPreview.h"
@@ -173,6 +175,7 @@ QQuickItem *item(QObject *root, const char *name)
     return root->findChild<QQuickItem *>(QString::fromLatin1(name));
 }
 
+QVariant unwrapped(const QVariant &value) { return value.metaType()==QMetaType::fromType<QJSValue>() ? value.value<QJSValue>().toVariant() : value; }
 QVariantList listProperty(QObject *object, const char *name)
 {
     const auto value = object->property(name);
@@ -598,6 +601,7 @@ private slots:
     void promptCursorStaysVisible();
     void videoHomeSubmitPlaysAndExports();
     void videoWorkspaceStartsEmptyAndUsesGenerationDefaults();
+    void videoAcceptedSubmissionResetsViewFeedback();
     void videoInspectorStaysWithinViewport_data();
     void videoInspectorStaysWithinViewport();
     void videoWorkspaceRoutesEditsAndGenerates();
@@ -608,7 +612,6 @@ private slots:
     void advancedControlsAppearOnlyAfterAdd();
     void advancedWorkspacePreservesDraftAndScrolls();
     void advancedCanvasMatchesResolutionAndStreamsItsBatch();
-    void packagedApplicationStarts();
     void generateButtonUsesSocietyStorage();
     void countSelectionCreatesThreeImagesInSociety();
     void newSubmissionReplacesDismissedResults_data();
@@ -766,7 +769,7 @@ void GuiTests::advancedGenerationDefaultsAndDynamicCollections()
     QCOMPARE(evaluate("advancedView.values.refinerModel").toString(), replacementUrl);
 
     // Picker tests opt in explicitly; constructing the view must not add controls.
-    QCOMPARE(evaluate("advancedView.addControlNet('Pose')").toInt(), 1);
+    QCOMPARE(evaluate("advancedView.addControlNet('Canny')").toInt(), 1);
     QCOMPARE(evaluate("advancedView.addControlNet('Canny')").toInt(), 2);
     auto *ipModelDialog = view->findChild<QObject *>("controlIPModelDialog");
     auto *ipVisionDialog = view->findChild<QObject *>("controlIPVisionDialog");
@@ -809,23 +812,12 @@ void GuiTests::advancedGenerationDefaultsAndDynamicCollections()
     QVERIFY(evaluate("advancedView.values.controlNets[0].ipAdapter").toBool());
     evaluate("ipModelDialog.close(); ipVisionDialog.close()");
 
-    auto *poseDetectorDialog = view->findChild<QObject *>("controlPoseDetectorDialog");
-    auto *poseModelDialog = view->findChild<QObject *>("controlPoseModelDialog");
-    QVERIFY(poseDetectorDialog && poseModelDialog);
-    engine.rootContext()->setContextProperty("poseDetectorDialog", poseDetectorDialog);
-    engine.rootContext()->setContextProperty("poseModelDialog", poseModelDialog);
+    QVERIFY(!view->findChild<QObject *>("controlPoseDetectorDialog"));
+    QVERIFY(!view->findChild<QObject *>("controlPoseModelDialog"));
     const auto previousProcess = evaluate("advancedView.values.controlNets[0].process").toString();
-    evaluate("advancedView.choosePose(ipControlId); poseDetectorDialog.reject()");
+    QVERIFY(!evaluate("advancedView.choosePose(ipControlId)").toBool());
+    QVERIFY(!evaluate("advancedView.selectPose(ipControlId, 'file:///retired-detector', 'file:///retired-model')").toBool());
     QCOMPARE(evaluate("advancedView.values.controlNets[0].process").toString(), previousProcess);
-    evaluate("advancedView.choosePose(ipControlId)");
-    QVERIFY(poseDetectorDialog->setProperty("selectedFile", QUrl("file:///detector.onnx")));
-    evaluate("poseDetectorDialog.accepted(); poseModelDialog.reject()");
-    QCOMPARE(evaluate("advancedView.values.controlNets[0].process").toString(), previousProcess);
-    QVERIFY(evaluate("advancedView.selectPose(ipControlId, 'file:///detector.onnx', 'file:///pose.onnx')").toBool());
-    QCOMPARE(evaluate("advancedView.values.controlNets[0].process").toString(), QString("Pose"));
-    QCOMPARE(evaluate("advancedView.values.controlNets[0].poseModel").toString(), QString("file:///pose.onnx"));
-    QVERIFY(!evaluate("advancedView.selectPose(ipControlId, '', 'file:///pose.onnx')").toBool());
-    evaluate("poseDetectorDialog.close(); poseModelDialog.close()");
 
     auto *watermarkToggle = view->findChild<QObject *>("watermarkToggle");
     QVERIFY(watermarkToggle);
@@ -1035,6 +1027,8 @@ void GuiTests::advancedWorkspacePreservesDraftAndScrolls()
         Q_ARG(QVariant, "inputText1"), Q_ARG(QVariant, "768")));
     QVERIFY(!panel->property("hasInvalidInputs").toBool());
     QVERIFY(workspace->property("requestError").toString().isEmpty());
+    QVERIFY(!workspace->property("invalidInputSubmission").toBool());
+    QVERIFY(listProperty(workspace, "jobIds").isEmpty());
     const auto capture = qEnvironmentVariable("DREAMSCAPES_WORKSPACE_CAPTURE");
     if (!capture.isEmpty()) {
         viewport->setProperty("contentY", 0);
@@ -1314,7 +1308,7 @@ void GuiTests::historyAppearsBelowQuickGenerateAndScrolls()
     QVERIFY(m_societyUrl.isEmpty());
     QTRY_COMPARE(window->property("storageBrowserSection").toString(), "generation-history");
     auto *browser = item(window, "storageBrowser"); QVERIFY(browser && browser->isVisible());
-    QCOMPARE(listProperty(browser, "sectionFiles").size(), 25);
+    QTRY_COMPARE(listProperty(browser, "sectionFiles").size(), 25);
     click(window, item(browser, "storageBrowserBack"));
     window->setProperty("resultVisible", true);
     QTRY_VERIFY(!history->isVisible());
@@ -1858,6 +1852,43 @@ void GuiTests::failureDetailsShowFullTextAndScroll()
     QCOMPARE(scroll->objectName(), QString("failureDetailsScroll"));
     auto* label = scroll->findChild<QQuickItem*>("failureExplanationText"); QVERIFY(label);
     QCOMPARE(label->property("text").toString(), details);
+    QVERIFY(label->property("readOnly").toBool());
+    QVERIFY(label->property("selectByMouse").toBool());
+    auto* copyReport = modal->findChild<QQuickItem*>("modalSecondaryButton"); QVERIFY(copyReport);
+    QCOMPARE(copyReport->property("text").toString(), QString("Copy report"));
+    QVERIFY(copyReport->isEnabled());
+
+    // A real pointer drag must select text in the scrollable report.
+    const auto start = label->mapToScene(QPointF(4, 7));
+    const auto end = label->mapToScene(QPointF(qMin<qreal>(140, label->width() - 4), 7));
+    QTest::mousePress(&window, Qt::LeftButton, Qt::NoModifier, start.toPoint());
+    QMouseEvent drag(QEvent::MouseMove, end, end, Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+    QCoreApplication::sendEvent(&window, &drag);
+    QTest::mouseRelease(&window, Qt::LeftButton, Qt::NoModifier, end.toPoint());
+    QTRY_VERIFY(!label->property("selectedText").toString().isEmpty());
+    const auto selected = label->property("selectedText").toString();
+    QGuiApplication::clipboard()->clear();
+    click(&window, copyReport);
+    QTRY_COMPARE(QGuiApplication::clipboard()->text(), details);
+    QCOMPARE(label->property("selectedText").toString(), selected);
+    QVERIFY(modal->property("open").toBool());
+
+    const QString updated = QString::fromUtf8("원문 <error>\nworker log: 연결 실패");
+    modal->setProperty("report", QVariantMap{{"jobId", "fixture"}, {"state", "pending"}, {"details", updated},
+                                             {"modelUnavailableReason", "model unavailable"},
+                                             {"agentError", "agent unavailable"}, {"persistenceError", "disk error"},
+                                             {"reportPath", "/reports/fixture.json"}});
+    QTRY_VERIFY(label->property("text").toString().contains(updated));
+    click(&window, copyReport);
+    QTRY_COMPARE(QGuiApplication::clipboard()->text(), label->property("text").toString());
+    QVERIFY(QGuiApplication::clipboard()->text().contains("model unavailable"));
+    QVERIFY(QGuiApplication::clipboard()->text().contains("agent unavailable"));
+    QVERIFY(QGuiApplication::clipboard()->text().contains("disk error"));
+    QVERIFY(QGuiApplication::clipboard()->text().contains("/reports/fixture.json"));
+    modal->setProperty("report", QVariantMap{});
+    QTRY_VERIFY(!copyReport->isEnabled());
+    modal->setProperty("report", QVariantMap{{"jobId", "fixture"}, {"state", "complete"}, {"details", details}});
+    QTRY_COMPARE(label->property("text").toString(), details);
     QTRY_VERIFY(scroll->property("contentHeight").toReal() > scroll->height());
     const auto checkScroll = [&] {
         const auto extent = scroll->property("contentHeight").toReal() - scroll->height();
@@ -1870,6 +1901,8 @@ void GuiTests::failureDetailsShowFullTextAndScroll()
     if (!capture.isEmpty()) QVERIFY(window.grabWindow().save(capture + "/failure-details-desktop.png"));
     window.resize(380, 560); modal->setSize(QSizeF(window.size())); QTest::qWait(100);
     QVERIFY(checkScroll());
+    QVERIFY(copyReport->isVisible());
+    QVERIFY(bounds(copyReport, window.contentItem()).right() <= window.width());
     if (!capture.isEmpty()) QVERIFY(window.grabWindow().save(capture + "/failure-details-narrow.png"));
     const auto reportFile = qEnvironmentVariable("DREAMSCAPES_FAILURE_REPORT_CAPTURE");
     if (!capture.isEmpty() && !reportFile.isEmpty()) {
@@ -2773,6 +2806,12 @@ void GuiTests::desktopHomeContinuousRowsAndPromptStarters()
     quick->setProperty("aspectRatio", "16:9");
     quick->setProperty("generationCount", 4);
     composer->setProperty("shortSide", 576);
+    auto *resolutionMenu = composer->findChild<QObject *>("homeResolutionMenu");
+    QVERIFY(resolutionMenu);
+    QTRY_COMPARE(listProperty(resolutionMenu,"items").value(1).toString(),QString("1024 × 576"));
+    quick->setProperty("aspectRatio","9:16");
+    QTRY_COMPARE(listProperty(resolutionMenu,"items").value(1).toString(),QString("576 × 1024"));
+    quick->setProperty("aspectRatio","16:9");
     composer->setProperty("seed", 42);
     composer->setProperty("negativePrompt", "blur, watermark");
     QCOMPARE(mapProperty(composer, "outputSize"), (QVariantMap{{"width", 1024}, {"height", 576}}));
@@ -2910,7 +2949,7 @@ void GuiTests::desktopHomeSearchesSocietyAndUpdates()
     click(window, visualItem(home, "desktopAction_history"));
     QVERIFY(m_societyUrl.isEmpty());
     QTRY_COMPARE(window->property("storageBrowserSection").toString(), "generation-history");
-    QCOMPARE(listProperty(item(window, "storageBrowser"), "sectionFiles").size(), 25);
+    QTRY_COMPARE(listProperty(item(window, "storageBrowser"), "sectionFiles").size(), 25);
     QDesktopServices::unsetUrlHandler("society");
     click(window, visualItem(home, "desktopAction_audio"));
     QVERIFY(window->property("generationRequestError").toString().contains("Audio"));
@@ -4324,7 +4363,7 @@ void GuiTests::canvasRoutesPreserveSelectionAndDraft()
     QVERIFY(!quick->isVisible());
     QVERIFY(!item(window, "storagePanel")->isVisible());
     QCOMPARE(editor->property("imageSource").toUrl(), QUrl::fromLocalFile(path));
-    const auto metadata = editor->property("generationResult").value<QJSValue>().toVariant().toMap();
+    const auto metadata = unwrapped(editor->property("generationResult")).toMap();
     QCOMPARE(metadata, selected);
     auto *nativeCanvas = qobject_cast<EditorCanvas *>(item(window, "editorBlankCanvas"));
     QVERIFY(nativeCanvas && nativeCanvas->documentReady());
@@ -4350,7 +4389,7 @@ void GuiTests::canvasRoutesPreserveSelectionAndDraft()
         click(window, item(window, "canvasCreateButton"));
         QTRY_VERIFY(editor->isVisible());
         QVERIFY(editor->property("imageSource").toUrl().isEmpty());
-        QVERIFY(editor->property("generationResult").value<QJSValue>().toVariant().toMap().isEmpty());
+        QVERIFY(unwrapped(editor->property("generationResult")).toMap().isEmpty());
         QTest::keyClick(window, Qt::Key_Escape);
         QTRY_VERIFY(item(window, "mobileHome")->isVisible());
     }
@@ -4369,12 +4408,12 @@ void GuiTests::canvasRoutesPreserveSelectionAndDraft()
     QCOMPARE(nativeCanvas->selectedRasterPixels()->pixels.front(), QColor("#8f6ec7").rgba());
     QCOMPARE(quick->property("prompt").toString(), "unfinished draft");
     auto *retainedCanvas=nativeCanvas;
-    const auto retainedMetadata=editor->property("generationResult").value<QJSValue>().toVariant();
+    const auto retainedMetadata=unwrapped(editor->property("generationResult"));
     QVERIFY(QMetaObject::invokeMethod(window,"openCanvas",Q_ARG(QVariant,QUrl::fromLocalFile(storage.filePath("missing.iisc"))),Q_ARG(QVariant,QVariantMap{})));
     QTRY_VERIFY_WITH_TIMEOUT(!editor->property("documentOpening").toBool(),15000);
     QVERIFY(!window->property("generationRequestError").toString().isEmpty());
     QCOMPARE(qobject_cast<EditorCanvas *>(item(window,"editorBlankCanvas")),retainedCanvas);
-    QCOMPARE(editor->property("generationResult").value<QJSValue>().toVariant(),retainedMetadata);
+    QCOMPARE(unwrapped(editor->property("generationResult")),retainedMetadata);
 }
 
 void GuiTests::homeEditorRoutes_data()
@@ -4797,22 +4836,16 @@ void GuiTests::referenceViewsDoNotPrepareStorage() {
         auto *parameters = view->findChild<AdvancedImageParameters *>("advancedParameterStore"); QVERIFY(parameters);
         QVERIFY(parameters->addReferenceImage(source.toString()));
     } else {
-        auto *timeline = state ? state.get() : view->findChild<QObject *>("videoTimelineState"); QVERIFY(timeline);
-        QVariant accepted;
+        auto *timeline = qobject_cast<dreamscapes::VideoTimelineModel *>(state ? state.get() : view->findChild<QObject *>("videoTimelineState")); QVERIFY(timeline);
         if (kind == "video-shot") {
-            QVERIFY(QMetaObject::invokeMethod(timeline, "addShot"));
-            const auto shot = timeline->property("selectedShot").toMap();
-            QVERIFY(QMetaObject::invokeMethod(timeline, "addKey", Q_RETURN_ARG(QVariant, accepted),
-                Q_ARG(QVariant, source), Q_ARG(QVariant, 0)));
-            QVERIFY(accepted.toBool());
-            QVERIFY(QMetaObject::invokeMethod(timeline, "selectShot", Q_ARG(QVariant, shot["id"]),
-                Q_ARG(QVariant, false)));
-            QVERIFY(timeline->setProperty("mode", "Shots"));
+            QVERIFY(timeline->addShot());
+            const auto shot = timeline->selectedShot();
+            QVERIFY(timeline->addKey(source.toString(), 0));
+            timeline->selectShot(shot["id"].toString(), false);
+            timeline->setMode("Shots");
             expectedShotImage = "videoShotReference-" + shot["id"].toString();
         } else {
-            QVERIFY(QMetaObject::invokeMethod(timeline, "addKey", Q_RETURN_ARG(QVariant, accepted),
-                Q_ARG(QVariant, source), Q_ARG(QVariant, 0)));
-            QVERIFY(accepted.toBool());
+            QVERIFY(timeline->addKey(source.toString(), 0));
         }
     }
     QCoreApplication::processEvents();
@@ -5290,7 +5323,7 @@ void GuiTests::mobileEditorToolbarSlidesAndSelects()
     toolFor("camera-photo")->forceActiveFocus();
     QTest::keyClick(window, Qt::Key_Right);
     QTRY_COMPARE(editor->property("selectedTool").toString(), "file");
-    QTRY_COMPARE(toolSheet->property("definition").value<QJSValue>().toVariant().toMap()["key"].toString(), "file");
+    QTRY_COMPARE(unwrapped(toolSheet->property("definition")).toMap()["key"].toString(), "file");
     QVERIFY(QMetaObject::invokeMethod(toolSheet, "dismiss"));
     QTRY_VERIFY(!toolSheet->property("visible").toBool());
     QTest::keyClick(window, Qt::Key_End);
@@ -5433,7 +5466,7 @@ void GuiTests::editorToolbarOperations()
     canvas->forceActiveFocus();
     QTest::keySequence(&window, QKeySequence(QKeySequence::Undo));
     QCOMPARE(renderFrame(*canvas->document(), 0).pixels.pixels, before);
-    QTRY_COMPARE(sheet->property("values").value<QJSValue>().toVariant().toMap().value("field-0").toString(), QString("Hello"));
+    QTRY_COMPARE(unwrapped(sheet->property("values")).toMap().value("field-0").toString(), QString("Hello"));
     QVERIFY(tool("select")); QVERIFY(edit("selector", "Rectangle")); QVERIFY(edit("field-2", 0)); QVERIFY(edit("field-5", false));
     QTest::mousePress(&window, Qt::LeftButton, Qt::NoModifier, point(4, 4)); QTest::mouseMove(&window, point(16, 16), 30); QTest::mouseRelease(&window, Qt::LeftButton, Qt::NoModifier, point(16, 16));
     QVERIFY(canvas->toolState().value("selectionActive").toBool());
@@ -5441,7 +5474,7 @@ void GuiTests::editorToolbarOperations()
     QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, point(8, 8));
     QVERIFY(canvas->rasterLayerSelected()); QCOMPARE(canvas->selectedRasterPixels()->pixels[8 * 64 + 8], 0xff804020U);
     QVERIFY(canvas->setLayerOpacity(canvas->selectedLayerId(), 0.5));
-    QVERIFY(tool("layers")); QTRY_COMPARE(sheet->property("values").value<QJSValue>().toVariant().toMap().value("field-10").toDouble(), 50.0);
+    QVERIFY(tool("layers")); QTRY_COMPARE(unwrapped(sheet->property("values")).toMap().value("field-10").toDouble(), 50.0);
     QVERIFY(canvas->setLayerOpacity(canvas->selectedLayerId(), 1.0));
     QVERIFY(tool("color")); QVERIFY(edit("field-1", 1.0)); QVERIFY(qRed(canvas->selectedRasterPixels()->pixels[8 * 64 + 8]) > 128);
     auto *dock = item(editor.data(), "editorDesktopPanel"); QVERIFY(dock && dock->isVisible());
@@ -5475,7 +5508,7 @@ void GuiTests::editorToolbarOperations()
     QVERIFY(QMetaObject::invokeMethod(surface,"close")); QTRY_VERIFY(!surface->property("visible").toBool());
     QTRY_VERIFY(!editor->property("modalActive").toBool());
     QVERIFY(tool("camera-photo")); QVERIFY(!visualItem(editor.data(), "editorAction-field-15"));
-    QVERIFY(!sheet->property("definition").value<QJSValue>().toVariant().toMap()["selector"].toMap()["options"].toStringList().contains("RAW Capture"));
+    QVERIFY(!unwrapped(sheet->property("definition")).toMap()["selector"].toMap()["options"].toStringList().contains("RAW Capture"));
     QVERIFY(tool("elements"));
     QQuickItem *elements = nullptr;
     QTRY_VERIFY((elements = item(dock, "editorElementsPanel")) && elements->isVisible());
@@ -5492,13 +5525,13 @@ void GuiTests::editorToolbarOperations()
         // Selecting the current desktop tool toggles its panel. This sweep
         // validates the expanded presenter for every tool.
         QVERIFY(editor->setProperty("desktopPanelExpanded", true));
-        const auto definition = sheet->property("definition").value<QJSValue>().toVariant().toMap();
+        const auto definition = unwrapped(sheet->property("definition")).toMap();
         const auto key = definition["key"].toString();
         if (key == "elements") {
             QQuickItem *panel = nullptr;
             QTRY_VERIFY((panel = item(dock, "editorElementsPanel")) && panel->isVisible());
             const auto fields = listProperty(panel, "presentedFields");
-            const auto values = sheet->property("values").value<QJSValue>().toVariant().toMap();
+            const auto values = unwrapped(sheet->property("values")).toMap();
             QVERIFY(!fields.isEmpty());
             for (const auto &field : fields) {
                 QVERIFY(visualItem(panel, qPrintable("elementsControl-" + field.toString())));
@@ -5605,8 +5638,8 @@ void GuiTests::editorToolbarOperations()
             // Inspect the visible desktop presenter for the selected tool.
             QTRY_VERIFY((panel = visualItem(dock, "editorToolPanel")) && panel->isVisible());
             QTRY_COMPARE(mapProperty(panel, "definition")["key"].toString(), key);
-            const auto fields = panel->property("presentedFields").value<QJSValue>().toVariant().toList(); QVERIFY(!fields.isEmpty());
-            const auto values = sheet->property("values").value<QJSValue>().toVariant().toMap();
+            const auto fields = unwrapped(panel->property("presentedFields")).toList(); QVERIFY(!fields.isEmpty());
+            const auto values = unwrapped(sheet->property("values")).toMap();
             for (const auto &field : fields) QVERIFY2(canvas->toolControlState(key, field.toMap()["id"].toString(), values).value("supported").toBool(), qPrintable(key + '/' + mode + '/' + field.toMap()["id"].toString()));
             for (const auto &field : definition["fields"].toList()) {
                 const auto f = field.toMap();
@@ -5791,30 +5824,24 @@ void GuiTests::videoTimelineTracks()
 {
     QQmlEngine engine;
     QQmlComponent component(&engine, sourceUrl("Views/Video/VideoTimelineState.qml"));
-    QScopedPointer<QObject> state(component.create());
+    QScopedPointer<dreamscapes::VideoTimelineModel> state(qobject_cast<dreamscapes::VideoTimelineModel *>(component.create()));
     QVERIFY2(state, qPrintable(component.errorString()));
     QCOMPARE(listProperty(state.data(), "tracks").size(), 0);
     QVERIFY(!state->property("canUndo").toBool());
     auto addTrack = [&](const QString &type, const QString &name, int position = -1) {
-        QVariant result;
-        if (!QMetaObject::invokeMethod(state.data(), "addTrack", Q_RETURN_ARG(QVariant, result),
-                Q_ARG(QVariant, type), Q_ARG(QVariant, name), Q_ARG(QVariant, position))) return QString{};
-        return result.toString();
+        return state->addTrack(type, name, position);
     };
     auto editTrack = [&](const char *method, const QString &id, const QVariant &value) {
-        QVariant result;
-        return QMetaObject::invokeMethod(state.data(), method, Q_RETURN_ARG(QVariant, result),
-            Q_ARG(QVariant, id), Q_ARG(QVariant, value)) && result.toBool();
+        const QByteArray name(method);
+        if (name == "renameTrack") return state->renameTrack(id, value.toString());
+        if (name == "moveTrack") return state->moveTrack(id, value.toInt());
+        if (name == "assignShotTrack") return state->assignShotTrack(id, value.toString());
+        if (name == "editKey") return state->editKey(id, value);
+        return false;
     };
-    auto removeTrack = [&](const QString &id) {
-        QVariant result;
-        return QMetaObject::invokeMethod(state.data(), "removeTrack", Q_RETURN_ARG(QVariant, result),
-            Q_ARG(QVariant, id)) && result.toBool();
-    };
+    auto removeTrack = [&](const QString &id) { return state->removeTrack(id); };
     auto addKey = [&](const QString &source, int frame, const QString &trackId) {
-        QVariant result;
-        return QMetaObject::invokeMethod(state.data(), "addKeyToTrack", Q_RETURN_ARG(QVariant, result),
-            Q_ARG(QVariant, source), Q_ARG(QVariant, frame), Q_ARG(QVariant, trackId)) && result.toBool();
+        return state->addKeyToTrack(source, frame, trackId);
     };
     const auto audio1 = addTrack("Audio", "Dialogue"); QVERIFY(!audio1.isEmpty());
     const auto audio2 = addTrack("Audio", "Music"); QVERIFY(!audio2.isEmpty());
@@ -5856,9 +5883,7 @@ void GuiTests::videoTimelineTracks()
     QCOMPARE(listProperty(state.data(), "keys"), keys);
     QVERIFY(editTrack("moveTrack", contents1, 0));
     QCOMPARE(listProperty(state.data(), "keys"), keys);
-    QVariant added;
-    QVERIFY(QMetaObject::invokeMethod(state.data(), "addShotToTrack", Q_RETURN_ARG(QVariant, added), Q_ARG(QVariant, shots)));
-    QVERIFY(added.toBool());
+    QVERIFY(state->addShotToTrack(shots));
     QCOMPARE(listProperty(state.data(), "shots").first().toMap().value("trackId").toString(), shots);
     const auto alternate = addTrack("Shots", "Alternate", 0); QVERIFY(!alternate.isEmpty());
     const auto shotId = listProperty(state.data(), "shots").first().toMap().value("id").toString();
@@ -5869,15 +5894,15 @@ void GuiTests::videoTimelineTracks()
     QVERIFY(removeTrack(contents1));
     QCOMPARE(listProperty(state.data(), "keys").size(), 1);
     QCOMPARE(listProperty(state.data(), "shots").size(), 1);
-    QVERIFY(QMetaObject::invokeMethod(state.data(), "undo"));
+    state->undo();
     QCOMPARE(listProperty(state.data(), "tracks").size(), 6);
     QCOMPARE(listProperty(state.data(), "keys"), keys);
-    QVERIFY(QMetaObject::invokeMethod(state.data(), "redo"));
+    state->redo();
     QCOMPARE(listProperty(state.data(), "keys").size(), 1);
     QVERIFY(removeTrack(shots));
     QCOMPARE(listProperty(state.data(), "shots").size(), 0);
     QCOMPARE(state->property("totalFrames").toInt(), 120);
-    QVERIFY(QMetaObject::invokeMethod(state.data(), "reset", Q_ARG(QVariant, 48), Q_ARG(QVariant, 24)));
+    state->reset(48, 24);
     QCOMPARE(listProperty(state.data(), "tracks").size(), 0);
     QCOMPARE(listProperty(state.data(), "keys").size(), 0);
     QCOMPARE(state->property("selectedTrackId").toString(), QString{});
@@ -6317,10 +6342,10 @@ void GuiTests::desktopEditorLayoutCentersCanvas()
     QVERIFY(toolbarCapture);
     QTRY_VERIFY(!toolbarCapture->image().isNull());
     const auto railImage = toolbarCapture->image();
-    QCOMPARE(railImage.pixelColor(railImage.width()-1,railImage.height()/2),theme->property("accentGrayMuted").value<QColor>());
+    QCOMPARE(railImage.pixelColor(railImage.width()-1,railImage.height()/2), QColor("#0c0c0c"));
     auto* railFrame=item(toolbar,"panelFrame_tools");QVERIFY(railFrame);
     QVERIFY(!railFrame->property("leftEdge").toBool());
-    QVERIFY(railImage.pixelColor(0,railImage.height()/2)!=theme->property("accentGrayMuted").value<QColor>());
+    QVERIFY(railImage.pixelColor(0,railImage.height()/2)!=QColor("#0c0c0c"));
     QVERIFY(QMetaObject::invokeMethod(toolbar, "selectTool", Q_ARG(QVariant, 0)));
     QVERIFY(editor->setProperty("desktopPanelExpanded", true));
     const auto centered = [&]() {
@@ -6563,13 +6588,13 @@ void GuiTests::desktopEditorPanelResizes()
     auto *panel = item(dock, "editorElementsPanel");
     QVERIFY(panel);
     click(&window, visualItem(panel, "elementsShapeChoice-1"));
-    QCOMPARE(state->property("values").value<QJSValue>().toVariant().toMap()["selector"].toString(), "Ellipse");
+    QCOMPARE(unwrapped(state->property("values")).toMap()["selector"].toString(), "Ellipse");
     QVERIFY(QMetaObject::invokeMethod(toolbar, "selectTool", Q_ARG(QVariant, 0)));
     QTRY_VERIFY(!dock->isVisible() && !handle->isVisible());
     QVERIFY(QMetaObject::invokeMethod(toolbar, "selectTool", Q_ARG(QVariant, 0)));
     QTRY_VERIFY(dock->isVisible() && handle->isVisible());
     QCOMPARE(dock->width(), 720.0);
-    QCOMPARE(state->property("values").value<QJSValue>().toVariant().toMap()["selector"].toString(), "Ellipse");
+    QCOMPARE(unwrapped(state->property("values")).toMap()["selector"].toString(), "Ellipse");
     window.resize(900, 700);
     editor->setSize(window.size());
     QTRY_COMPARE(dock->width(), editor->property("desktopPanelMaximumWidth").toReal());
@@ -6631,7 +6656,7 @@ void GuiTests::desktopEditorPanelResizes()
             QVERIFY(editor->setProperty("desktopPanelWidth", width));
             QTRY_COMPARE(dock->width(), width);
             QTest::qWait(5);
-            const auto definition = state->property("definition").value<QJSValue>().toVariant().toMap();
+            const auto definition = unwrapped(state->property("definition")).toMap();
             auto fields = definition["fields"].toList();
             if (definition.contains("selector")) fields.prepend(definition["selector"]);
             qreal previousBottom = 0;
@@ -7580,7 +7605,7 @@ void GuiTests::editorLayerPanelFourStates()
     for (int y = 0; y < 24; ++y) for (int x = 0; x < 32; ++x) pixels.setPixel(x, y, qRgb(x * 8, y * 10, 128));
     QVERIFY(canvas->insertPixels(pixels, "Subject"));
     auto *toolbar = item(editor.data(), "editorToolbar"); QVERIFY(toolbar);
-    const auto tools = toolbar->property("tools").value<QJSValue>().toVariant().toList();
+    const auto tools = unwrapped(toolbar->property("tools")).toList();
     int layerIndex = -1;
     for (int index = 0; index < tools.size(); ++index) if (tools[index].toMap()["key"].toString() == "layers") layerIndex = index;
     QVERIFY(layerIndex >= 0);
@@ -7730,7 +7755,7 @@ void GuiTests::editorLayerPanelFourStates()
             QTRY_COMPARE(canvas->selectedRasterPixels()->pixels, original);
         } else if (index == 2) {
             QTRY_VERIFY(histogramAnalysis->active());
-            QTRY_VERIFY(panel->property("histogram").value<QJSValue>().toVariant().toMap()["pixelCount"].toLongLong() > 0);
+            QTRY_VERIFY(unwrapped(panel->property("histogram")).toMap()["pixelCount"].toLongLong() > 0);
             const auto histogramRevision = canvas->revision();
             const auto histogramBytes = iiSharedCanvas::encodeIisc(*canvas->document()).bytes;
             const auto histogramCount = histogramAnalysis->histogram()["pixelCount"];
@@ -8283,7 +8308,7 @@ void GuiTests::storageBrowserRoutes()
     QVERIFY(search->setProperty("text", ""));
     QTRY_COMPARE(listProperty(browser, "entries").size(), 26);
     QVERIFY(browser->setProperty("sortOrder", "name"));
-    QCOMPARE(listProperty(browser, "entries")[1].toMap()["name"].toString(), "Study-00.png");
+    QTRY_COMPARE(listProperty(browser, "entries")[1].toMap()["name"].toString(), "Study-00.png");
     const auto folder = listProperty(browser, "entries").first().toMap();
     QVERIFY(folder["isDirectory"].toBool());
     QCOMPARE(folder["name"].toString(), "Folder #1");
@@ -8291,7 +8316,7 @@ void GuiTests::storageBrowserRoutes()
     auto *folderOpen = visualItem(folderCard, "card_action"); QVERIFY(folderOpen);
     click(window, folderOpen);
     QTRY_COMPARE(browser->property("directory").toString(), "Folder #1");
-    QCOMPARE(listProperty(browser, "entries").size(), 1);
+    QTRY_COMPARE(listProperty(browser, "entries").size(), 1);
     const auto nestedEntry = listProperty(browser, "entries").first().toMap();
     QCOMPARE(nestedEntry["source"].toUrl(), QUrl::fromLocalFile(nested));
     auto *nestedCard = visualItem(grid, "storageBrowserCard0"); QVERIFY(nestedCard);
@@ -8597,9 +8622,9 @@ void GuiTests::storageBrowserUnavailableEntriesAndContainerChanges()
     QQuickWindow window; window.resize(430, 700);
     browser->setParentItem(window.contentItem()); browser->setSize(window.size()); window.show();
     QVERIFY(QTest::qWaitForWindowExposed(&window));
-    QCOMPARE(listProperty(browser.get(), "sectionFiles").size(), 1);
-    QCOMPARE(listProperty(browser.get(), "entries").first().toMap()["name"].toString(), "constructor");
-    QSignalSpy snapshots(browser.get(), SIGNAL(mirroredAliasesChanged())); QVERIFY(snapshots.isValid());
+    QTRY_COMPARE(listProperty(browser.get(), "sectionFiles").size(), 1);
+    QTRY_COMPARE(listProperty(browser.get(), "entries").first().toMap()["name"].toString(), "constructor");
+    QSignalSpy snapshots(browser.get(), SIGNAL(sectionFilesChanged())); QVERIFY(snapshots.isValid());
     mirror.setQuery("Home-only search");
     QCOMPARE(snapshots.size(), 0);
     browser->setVisible(false);
@@ -8614,9 +8639,9 @@ void GuiTests::storageBrowserUnavailableEntriesAndContainerChanges()
     // Unavailable originals remain selectable by native Alias identity.
     QCOMPARE(listProperty(item(browser.get(), "storageBrowserSelection"), "images").size(), 2);
     QVERIFY(browser->setProperty("directory", "constructor"));
-    QQuickItem *missingCard = nullptr;
-    QTRY_VERIFY((missingCard = visualItem(item(browser.get(), "storageBrowserGrid"), "storageBrowserCard0")));
-    QTRY_COMPARE(missingCard->property("metadata").toString(), "Not downloaded");
+    QPointer<QQuickItem> missingCard;
+    QTRY_VERIFY((missingCard = visualItem(item(browser.get(), "storageBrowserGrid"), "storageBrowserCard0"))
+                && missingCard->property("metadata").toString() == "Not downloaded");
     QSignalSpy requested(browser.get(), SIGNAL(fileRequested(QVariant)));
     QVERIFY(QMetaObject::invokeMethod(browser.get(), "activate", Q_ARG(QVariant, remote)));
     QCOMPARE(requested.size(), 1);
@@ -8780,8 +8805,14 @@ void GuiTests::editorGalleryRowsStayStable()
     QQmlEngine engine; auto *theme = engine.singletonInstance<QObject *>("LVRS", "Theme"); QVERIFY(theme && theme->setProperty("targetOverride", "macos"));
     auto state = engine.newObject(), backend = engine.newObject(); backend.setProperty("photoSources", engine.newQObject(sources.get()));
     state.setProperty("engine", backend); state.setProperty("toolId", "camera-photo"); state.setProperty("notice", QString{});
-    state.setProperty("values", engine.toScriptValue(QVariantMap{{"selector", "Gallery"}, {"galleryLibrary", "iCloud Photo"}}));
-    state.setProperty("settingsByTool", engine.newObject()); state.setProperty("setValue", engine.evaluate("(function(key,value){this.values[key]=value;})"));
+    QQmlComponent nativeStateComponent(&engine);
+    nativeStateComponent.setData(R"(import QtQml
+        import Dreamscapes.Storage 1.0
+        NativeEditorToolState { catalog: NativeData; toolId: "camera-photo"; settingsByTool: ({"camera-photo": {selector: "Gallery", galleryLibrary: "iCloud Photo"}}) }
+    )",QUrl());
+    QScopedPointer<QObject> nativeState(nativeStateComponent.create());QVERIFY2(nativeState,qPrintable(nativeStateComponent.errorString()));
+    state.setProperty("nativeModel",engine.newQObject(nativeState.data()));
+    state.setProperty("setValue",engine.evaluate("(function(key,value){this.nativeModel.setValue(key,value);})"));
     const auto url = sourceUrl("Views/Editor/EditorCameraPhotoPanel.qml"); QFile file(url.toLocalFile()); QVERIFY(file.open(QIODevice::ReadOnly)); auto source = file.readAll();
     const QByteArray root = "    id: root\n"; QCOMPARE(source.count(root), 1); source.replace(root, root + "    property int probeTilesCreated: 0\n");
     const QRegularExpression completion("Component\\.onCompleted: if \\(root\\.backend\\) root\\.backend\\.requestThumbnail\\(([^\\n]+)\\)");
@@ -8830,13 +8861,14 @@ void GuiTests::editorGalleryPermissionContinuation()
     auto backend = engine.newObject(); backend.setProperty("photoSources", engine.newQObject(source.get()));
     QQmlComponent stateComponent(&engine); stateComponent.setData(R"(
         import QtQml
+        import Dreamscapes.Storage 1.0
         QtObject {
             property var engine
             property string toolId: "camera-photo"
-            property var values: ({selector: "Gallery", galleryLibrary: "iCloud Photo"})
-            property var settingsByTool: ({})
+            property NativeEditorToolState nativeModel: NativeEditorToolState { catalog: NativeData; toolId: "camera-photo"; settingsByTool: ({"camera-photo": {selector: "Gallery", galleryLibrary: "iCloud Photo"}}) }
+            readonly property var values: nativeModel.photoValues
             property string notice: ""
-            function setValue(key, next) { const changed = Object.assign({}, values); changed[key] = next; values = changed }
+            function setValue(key, next) { nativeModel.setValue(key,next) }
         }
     )", QUrl("qrc:/GalleryPermissionState.qml"));
     std::unique_ptr<QObject> state(stateComponent.createWithInitialProperties({{"engine", QVariant::fromValue(backend)}})); QVERIFY2(state, qPrintable(stateComponent.errorString()));
@@ -9184,7 +9216,7 @@ void GuiTests::desktopEditorToolPanelsMatchFigma()
         auto *background=visualItem(dock,"editorBackgroundPanel");
         QVERIFY(dock&&background&&viewport&&dock->isVisible());QCOMPARE(background->width(),398.);
         QCOMPARE(background->property("currentView").toString(),QString("Color"));
-        QCOMPARE(state->property("definition").value<QJSValue>().toVariant().toMap()["figmaNode"].toString(),QString("777:82068"));
+        QCOMPARE(unwrapped(state->property("definition")).toMap()["figmaNode"].toString(),QString("777:82068"));
         for(const auto &view:QStringList{"Color","Remove","Mask","Replace"}) {
             QVERIFY(QMetaObject::invokeMethod(state,"setValue",Q_ARG(QVariant,QVariant("backgroundView")),Q_ARG(QVariant,QVariant(view))));
             QTRY_COMPARE(background->property("currentView").toString(),view);
@@ -9195,7 +9227,7 @@ void GuiTests::desktopEditorToolPanelsMatchFigma()
         QVERIFY(!panel);editor->setParentItem(nullptr);return;
     }
     QVERIFY(dock && panel && viewport && dock->isVisible());
-    const auto definition = state->property("definition").value<QJSValue>().toVariant().toMap();
+    const auto definition = unwrapped(state->property("definition")).toMap();
     QCOMPARE(definition["figmaNode"].toString(), specification["figmaNode"].toString());
     const auto fields = specification["fields"].toList();
     const auto actionsSpec = specification["actions"].toMap();
@@ -9212,7 +9244,7 @@ void GuiTests::desktopEditorToolPanelsMatchFigma()
         QCOMPARE(controlRect.left(), 12.0);
         QCOMPARE(controlRect.width(), 398.0);
         QVERIFY(controlRect.height() > 0);
-        QCOMPARE(control->property("field").value<QJSValue>().toVariant().toMap()["label"].toString(), spec["label"].toString());
+        QCOMPARE(unwrapped(control->property("field")).toMap()["label"].toString(), spec["label"].toString());
         if (type == "Field" || type == "Slider" || type == "Color") {
             const auto name = (type == "Field" ? "editorInput-" : type == "Slider" ? "editorNumeric-" : "editorColorInput-") + id;
             auto *input = visualItem(control, qPrintable(name));
@@ -9288,11 +9320,23 @@ void GuiTests::desktopEditorToolPanelsMatchFigma()
         QTRY_VERIFY(!capture->image().isNull());
         QVERIFY(capture->image().save(captureDirectory + '/' + key + ".png"));
     }
-    const auto values = [state]() { return state->property("values").value<QJSValue>().toVariant().toMap(); };
+    const auto values = [state]() { return unwrapped(state->property("values")).toMap(); };
     const auto defaults = values();
     QSignalSpy actionSignals(editor.data(), SIGNAL(toolActionRequested(QString,QString,QVariant)));
     int optionStates = 0;
     const auto model = definition["fields"].toList();
+    const auto revealControl = [viewport](QQuickItem *control) {
+        if (!control) return false;
+        const auto offset = viewport->property("contentY").toReal();
+        const auto top = control->mapToItem(viewport, QPointF{}).y();
+        const auto maximum = qMax(0.0, viewport->property("contentHeight").toReal() - viewport->height());
+        viewport->setProperty("contentY", qBound(0.0, offset + top - 20, maximum));
+        return QTest::qWaitFor([&] {
+            const auto center = control->mapToItem(viewport, QPointF(control->width() / 2, control->height() / 2));
+            return center.x() >= 0 && center.x() < viewport->width()
+                && center.y() >= 0 && center.y() < viewport->height();
+        }, 2000);
+    };
     const auto dismissEditingSurface = [&]() {
         // Choices can open a real surface too (for example Image fill).
         // Close it before continuing the independent control-state sweep.
@@ -9314,6 +9358,7 @@ void GuiTests::desktopEditorToolPanelsMatchFigma()
             auto *button = visualItem(panel, qPrintable(QString("editorChoice-%1-%2").arg(id).arg(index)));
             QVERIFY(button);
             if (!button->isEnabled()) continue;
+            QVERIFY2(revealControl(button), qPrintable(button->objectName()));
             click(&window, button);
             QCOMPARE(values()[id].toString(), options[index]);
             QQmlExpression checked(qmlContext(button), button, "Accessible.checked");
@@ -9331,12 +9376,14 @@ void GuiTests::desktopEditorToolPanelsMatchFigma()
         else if (type == "Toggle") {
             auto *toggle = visualItem(panel, qPrintable("editorToggle-" + id));
             if (!toggle->isEnabled()) continue;
+            QVERIFY2(revealControl(toggle), qPrintable(toggle->objectName()));
             click(&window, toggle);
             QCOMPARE(values()[id].toBool(), !defaults[id].toBool());
         } else if (type == "Action" || type == "Visual") {
             auto *button = visualItem(panel, qPrintable((type == "Action" ? "editorAction-" : "editorPreview-") + id));
             if (!button->isEnabled()) continue;
             if (type == "Visual") button = visualItem(button, "editorPreviewChevron");
+            QVERIFY2(revealControl(button), qPrintable(button->objectName()));
             click(&window, button);
             QVERIFY(!actionSignals.isEmpty());
             QCOMPARE(actionSignals.last()[0].toString(), key);
@@ -10124,13 +10171,15 @@ void GuiTests::editorGraphicPanelCollectionsAndPickers()
     QSignalSpy sourceFrame(&window, &QQuickWindow::frameSwapped);
     window.update(); QTRY_VERIFY(!sourceFrame.isEmpty());
     auto *choose = visualItem(panel, "graphicAction-718:59219"); QVERIFY(choose);
+    auto *sourceDraft = panel->findChild<QObject *>("editorNativeGraphicDraft"); QVERIFY(sourceDraft);
+    QSignalSpy sourceRequested(sourceDraft, SIGNAL(sourceRequested())); QVERIFY(sourceRequested.isValid());
     QTRY_VERIFY(choose->isVisible() && choose->isEnabled());
     QTRY_VERIFY(bounds(choose, window.contentItem()).top() >= 0
         && bounds(choose, window.contentItem()).bottom() <= window.height());
     click(&window, choose);
     auto *sourcePicker = editor->findChild<QObject *>("editorGraphicSourcePicker"); QVERIFY(sourcePicker);
     QTRY_VERIFY(sourcePicker->property("visible").toBool());
-    QCOMPARE(panel->property("sourceParameter").toString(), QString("map"));
+    QCOMPARE(sourceRequested.size(), 1);
     QVERIFY(QMetaObject::invokeMethod(sourcePicker, "reject"));
     QTRY_VERIFY(!sourcePicker->property("visible").toBool());
     QCOMPARE(mapProperty(state, "values")["graphicDrafts"], draftsBeforeDialog);
@@ -10327,64 +10376,28 @@ void GuiTests::editorToolControlsDoNotCommitUneditedFocus()
 
 void GuiTests::editorToolNumericContracts()
 {
-    QFile file(sourceUrl("Views/Editor/EditorToolDefinitions.js").toLocalFile());
-    QVERIFY(file.open(QIODevice::ReadOnly));
-    QString script = QString::fromUtf8(file.readAll());
-    script.remove(".pragma library");
-    script.remove(".import \"EditorTextDefinitions.js\" as TextDefinitions");
-    script.remove(".import \"EditorCameraPhotoDefinitions.js\" as PhotoDefinitions");
-    QFile photoFile(sourceUrl("Views/Editor/EditorCameraPhotoDefinitions.js").toLocalFile());
-    QVERIFY(photoFile.open(QIODevice::ReadOnly));
-    QString photoScript = QString::fromUtf8(photoFile.readAll()); photoScript.remove(".pragma library");
-    script.prepend("var PhotoDefinitions = (function() {" + photoScript + "\nreturn {definition: definition}; })();\n");
-    script.remove(".import \"EditorGraphicDefinitions.js\" as GraphicDefinitions");
-    QFile textFile(sourceUrl("Views/Editor/EditorTextDefinitions.js").toLocalFile());
-    QVERIFY(textFile.open(QIODevice::ReadOnly));
-    QString textScript = QString::fromUtf8(textFile.readAll()); textScript.remove(".pragma library");
-    textScript = "var TextDefinitions = (function() {" + textScript + "\nreturn {definition: definition}; })();\n";
-    script.prepend(textScript);
-    QFile graphicFile(sourceUrl("Views/Editor/EditorGraphicDefinitions.js").toLocalFile());
-    QVERIFY(graphicFile.open(QIODevice::ReadOnly));
-    QString graphicScript = QString::fromUtf8(graphicFile.readAll());
-    graphicScript.remove(".pragma library");
-    script.prepend("var GraphicDefinitions = (function() {" + graphicScript
-        + "\nreturn {definition: definition, defaultsFor: defaultsFor}; })();\n");
-    script.remove(".import \"EditorFileDefinitions.js\" as FileDefinitions");
-    QFile fileDefinitions(sourceUrl("Views/Editor/EditorFileDefinitions.js").toLocalFile());
-    QVERIFY(fileDefinitions.open(QIODevice::ReadOnly));
-    QString fileScript = QString::fromUtf8(fileDefinitions.readAll()); fileScript.remove(".pragma library");
-    script.prepend("var FileDefinitions = (function() {" + fileScript + "\nreturn {definition: definition}; })();\n");
-    QJSEngine engine;
-    const auto evaluated = engine.evaluate(script);
-    QVERIFY2(!evaluated.isError(), qPrintable(evaluated.toString()));
-    const auto validation = engine.evaluate(R"JS(
-        var errors = [];
-        tools.forEach(function(tool, index) {
-            if (tool.number !== index + 1) errors.push('editor panel numbering: ' + tool.key);
-            tool.fields.forEach(function(field) {
-                if (field.type !== 'Slider') return;
-                var decoded = parsed(field, formatted(field, field.initial));
-                if (JSON.stringify(decoded) !== JSON.stringify(field.initial)) errors.push(tool.key + '/' + field.label);
-                if (parsed(field, 'NaN') !== null || parsed(field, '12 garbage') !== null
-                    || parsed(field, String(field.maximum + 1)) !== null) errors.push('invalid accepted: ' + field.label);
-            });
-        });
-        var range = tool('masking').fields[16];
-        if (parsed(range, '90 — 20%') !== null) errors.push('inverted depth range');
-        if (JSON.stringify(parsed(range, '10 — 90%')) !== '[10,90]') errors.push('depth endpoints');
-        if (tool('missing') !== null) errors.push('unknown tool');
-        if (tool('asset') !== null || runtimeDefinition(tool('asset')) !== null) errors.push('removed Asset tool remains available');
-        if (tools.length !== 18) errors.push('editor tool count');
-        if (tool('camera-photo').selector.options.join(',') !== 'Camera,Capture,Gallery') errors.push('camera views diverged from Figma');
-        var nativeEffects = runtimeDefinition(tool('effects'));
-        var distortion = nativeEffects.fields.filter(function(field) { return field.id === 'field-45' })[0];
-        if (parsed(distortion, '-50%') !== -50) errors.push('manual distortion coefficient');
-        if (tool('effects').fields[45].type !== 'Toggle') errors.push('runtime mutated design catalog');
-        if (runtimeDefinition(tool('camera-photo')).selector.options.indexOf('RAW Capture') >= 0) errors.push('unimplemented RAW advertised');
-        errors.join('\n');
-    )JS");
-    QVERIFY2(!validation.isError(), qPrintable(validation.toString()));
-    QCOMPARE(validation.toString(), QString());
+    dreamscapes::ViewData data;
+    const auto tools=dreamscapes::viewValue(data.nativeCatalog().resource("tools")).toList();
+    QCOMPARE(tools.size(),18);
+    for(int i=0;i<tools.size();++i) {
+        const auto tool=tools[i].toMap();QCOMPARE(tool.value("number").toInt(),i+1);
+        for(const auto &entry:tool.value("fields").toList()) {
+            const auto field=entry.toMap();if(field.value("type").toString()!="Slider")continue;
+            const auto formatted=data.tools()->formatted(field,field.value("initial"),false);
+            QCOMPARE(data.tools()->parsed(field,formatted),field.value("initial"));
+            QVERIFY(data.tools()->parsed(field,"NaN").isNull());QVERIFY(data.tools()->parsed(field,"12 garbage").isNull());
+            QVERIFY(data.tools()->parsed(field,QString::number(field.value("maximum").toDouble()+1)).isNull());
+        }
+    }
+    const auto range=data.tools()->tool("masking").toMap().value("fields").toList()[16].toMap();
+    QVERIFY(data.tools()->parsed(range,"90 — 20%").isNull());QCOMPARE(data.tools()->parsed(range,"10 — 90%").toList(),QVariantList({10.,90.}));
+    QVERIFY(data.tools()->tool("missing").isNull());QVERIFY(data.tools()->tool("asset").isNull());
+    const auto photo=data.tools()->tool("camera-photo").toMap();QCOMPARE(photo.value("selector").toMap().value("options").toList(),QVariantList({"Camera","Capture","Gallery"}));
+    const auto effects=data.tools()->tool("effects").toMap(),runtime=data.tools()->runtimeDefinition(effects).toMap();
+    for(const auto &entry:runtime.value("fields").toList())if(entry.toMap().value("id")=="field-45")QCOMPARE(data.tools()->parsed(entry,"-50%").toDouble(),-50.);
+    QCOMPARE(effects.value("fields").toList()[45].toMap().value("type").toString(),QString("Toggle"));
+    QVERIFY(!data.tools()->runtimeDefinition(photo).toMap().value("selector").toMap().value("options").toList().contains("RAW Capture"));
+
 }
 
 void GuiTests::editorToolSheets()
@@ -10426,7 +10439,7 @@ void GuiTests::editorToolSheets()
         auto *panel = item(sheet, "editorToolPanel");
         auto *viewport = item(sheet, "sheet_viewport");
         QVERIFY(viewport);
-        const auto catalog = sheet->property("definition").value<QJSValue>().toVariant().toMap()["fields"].toList();
+        const auto catalog = unwrapped(sheet->property("definition")).toMap()["fields"].toList();
         if (counts.contains(key)) { QCOMPARE(catalog.size(), counts[key]); total += catalog.size(); }
         if (key == "file") {
             auto *filePanel = item(sheet, "editorFilePanel"); QVERIFY(filePanel);
@@ -10543,11 +10556,11 @@ void GuiTests::editorToolSheets()
             continue;
         }
         QVERIFY(panel);
-        const auto fields = panel->property("presentedFields").value<QJSValue>().toVariant().toList();
+        const auto fields = unwrapped(panel->property("presentedFields")).toList();
         QCOMPARE(panel->property("fieldCount").toInt(), fields.size());
         QVERIFY(!fields.isEmpty());
         auto *canvas = qobject_cast<EditorCanvas *>(item(editor, "editorBlankCanvas")); QVERIFY(canvas);
-        const auto values = sheet->property("values").value<QJSValue>().toVariant().toMap();
+        const auto values = unwrapped(sheet->property("values")).toMap();
         for (const auto &entry : catalog) {
             const auto field = entry.toMap();
             if (canvas->toolControlState(key, field["id"].toString(), values).value("supported").toBool()) continue;
@@ -10621,7 +10634,7 @@ void GuiTests::editorToolSheets()
         click(&window, control);
     };
     const auto values = [sheet]() {
-        return sheet->property("values").value<QJSValue>().toVariant().toMap();
+        return unwrapped(sheet->property("values")).toMap();
     };
     auto *dimension = visualItem(panel, "elementsInput-field-0-0");
     QVERIFY(dimension);
@@ -10704,7 +10717,7 @@ void GuiTests::editorToolSheets()
     click(&window, visualItem(panel, "elementsHeaderAction"));
     QCOMPARE(values()["field-1"].toInt(), 24);
     QCOMPARE(values()["field-3"].toBool(), true);
-    const auto drafts = sheet->property("settingsByTool").value<QJSValue>().toVariant().toMap();
+    const auto drafts = unwrapped(sheet->property("settingsByTool")).toMap();
     QCOMPARE(drafts["text"].toMap()["field-0"].toString(), "My caption");
     // Dragging the native grabber dismisses the sheet without leaving the canvas.
     auto *grabber = item(sheet, "sheet_grabber");
@@ -12069,37 +12082,34 @@ void GuiTests::videoCompositionEditsAreAtomic()
         {"generation",QVariant::fromValue<QObject *>(&controller)},{"width",1280},{"height",800}}));
     QVERIFY2(workspace,qPrintable(component.errorString()));
     auto *parameters=workspace->property("parameterPanel").value<QObject *>();QVERIFY(parameters);
-    auto *state=workspace->property("timelineState").value<QObject *>();QVERIFY(state);
+    auto *state=qobject_cast<dreamscapes::VideoTimelineModel *>(workspace->property("timelineState").value<QObject *>());QVERIFY(state);
     const auto snapshot=[&] {
-        QVariant value;
-        if(!QMetaObject::invokeMethod(state,"snapshot",Q_RETURN_ARG(QVariant,value)))return QByteArray{};
-        const auto map=value.value<QJSValue>().toVariant().toMap();
-        return QJsonDocument(QJsonObject::fromVariantMap(map)).toJson(QJsonDocument::Compact);
+        return QJsonDocument::fromVariant(state->snapshot()).toJson(QJsonDocument::Compact);
     };
     if(operation=="too-many-shots") {
-        for(int i=0;i<15;++i)QVERIFY(QMetaObject::invokeMethod(state,"addShot"));
+        for(int i=0;i<15;++i)QVERIFY(state->addShot());
     } else if(operation=="colliding-conditions") {
         QImage image(8,8,QImage::Format_RGB32);image.fill(Qt::blue);const auto path=storage.filePath("condition.png");QVERIFY(image.save(path));
         const auto source=QUrl::fromLocalFile(path).toString();
-        for(int frame=0;frame<2;++frame)QVERIFY(QMetaObject::invokeMethod(state,"addKey",Q_ARG(QVariant,source),Q_ARG(QVariant,frame)));
+        for(int frame=0;frame<2;++frame)QVERIFY(state->addKey(source,frame));
     }
     const auto before=snapshot();QVERIFY(before.size()>2);
-    const auto undo=listProperty(state,"undoStack").size(),redo=listProperty(state,"redoStack").size();
-    const auto values=parameters->property("values").value<QJSValue>().toVariant().toMap();
+    const auto undo=state->undoDepth(),redo=state->redoDepth();
+    const auto values=unwrapped(parameters->property("values")).toMap();
     QVariant accepted;
     if(operation=="too-many-shots"||operation=="colliding-conditions") {
         QVERIFY(QMetaObject::invokeMethod(parameters,"edit",Q_RETURN_ARG(QVariant,accepted),Q_ARG(QVariant,"duration"),Q_ARG(QVariant,1)));
         QVERIFY(parameters->property("hasInvalidInputs").toBool());
-        QCOMPARE(parameters->property("values").value<QJSValue>().toVariant().toMap(),values);
+        QCOMPARE(unwrapped(parameters->property("values")).toMap(),values);
     } else {
         const double invalid=operation=="zero-fps"?0:std::numeric_limits<double>::quiet_NaN();
-        QVERIFY(QMetaObject::invokeMethod(state,"resizeComposition",Q_RETURN_ARG(QVariant,accepted),
-            Q_ARG(QVariant,operation=="nonfinite-frames"?invalid:24),Q_ARG(QVariant,operation=="nonfinite-frames"?24:invalid)));
+        accepted=state->resizeComposition(operation=="nonfinite-frames"?invalid:24,
+                                         operation=="nonfinite-frames"?24:invalid);
     }
-    QVERIFY(!accepted.toBool());QCOMPARE(snapshot(),before);QCOMPARE(listProperty(state,"undoStack").size(),undo);
-    QCOMPARE(listProperty(state,"redoStack").size(),redo);QVERIFY(!state->property("error").toString().isEmpty());
+    QVERIFY(!accepted.toBool());QCOMPARE(snapshot(),before);QCOMPARE(state->undoDepth(),undo);
+    QCOMPARE(state->redoDepth(),redo);QVERIFY(!state->property("error").toString().isEmpty());
     // A rejected edit cannot leave an invalid state available through Redo.
-    QVERIFY(QMetaObject::invokeMethod(state,"redo"));QCOMPARE(snapshot(),before);
+    state->redo();QCOMPARE(snapshot(),before);
     QVERIFY(QMetaObject::invokeMethod(parameters,"edit",Q_RETURN_ARG(QVariant,accepted),Q_ARG(QVariant,"duration"),Q_ARG(QVariant,20)));
     QVERIFY(accepted.toBool());QVERIFY(!parameters->property("hasInvalidInputs").toBool());QVERIFY(state->property("error").toString().isEmpty());
     QCOMPARE(state->property("totalFrames").toInt(),480);
@@ -12108,14 +12118,14 @@ void GuiTests::videoCompositionEditsAreAtomic()
     for(const auto &key:listProperty(state,"keys")){const auto frame=key.toMap().value("frame").toInt();QVERIFY(!frames.contains(frame));frames.insert(frame);}
     if(operation=="too-many-shots") {
         QVERIFY(QMetaObject::invokeMethod(parameters,"resetDraft"));
-        for(int i=0;i<6;++i)QVERIFY(QMetaObject::invokeMethod(state,"addShot"));
+        for(int i=0;i<6;++i)QVERIFY(state->addShot());
         QVERIFY(QMetaObject::invokeMethod(parameters,"edit",Q_RETURN_ARG(QVariant,accepted),Q_ARG(QVariant,"fps"),Q_ARG(QVariant,12)));QVERIFY(accepted.toBool());
         QVERIFY(QMetaObject::invokeMethod(parameters,"edit",Q_RETURN_ARG(QVariant,accepted),Q_ARG(QVariant,"duration"),Q_ARG(QVariant,1)));QVERIFY(accepted.toBool());
         QCOMPARE(state->property("totalFrames").toInt(),12);
         for(const auto &shot:listProperty(state,"shots"))QCOMPARE(shot.toMap().value("frames").toInt(),2);
         const auto resized=snapshot();
-        QVERIFY(QMetaObject::invokeMethod(state,"undo"));QCOMPARE(state->property("totalFrames").toInt(),60);
-        QVERIFY(QMetaObject::invokeMethod(state,"redo"));QCOMPARE(snapshot(),resized);
+        state->undo();QCOMPARE(state->property("totalFrames").toInt(),60);
+        state->redo();QCOMPARE(snapshot(),resized);
     }
     QCOMPARE(controller.jobs().size(),0);
 }
@@ -12137,7 +12147,7 @@ void GuiTests::videoWorkspaceStartsEmptyAndUsesGenerationDefaults()
         {"generation", QVariant::fromValue<QObject *>(&controller)}, {"width", 1280}, {"height", 800}}));
     QVERIFY2(workspace, qPrintable(component.errorString()));
     auto *parameters = workspace->property("parameterPanel").value<QObject *>(); QVERIFY(parameters);
-    auto *state = workspace->property("timelineState").value<QObject *>(); QVERIFY(state);
+    auto *state = qobject_cast<dreamscapes::VideoTimelineModel *>(workspace->property("timelineState").value<QObject *>()); QVERIFY(state);
     auto *timeline = workspace->property("timelinePanel").value<QObject *>(); QVERIFY(timeline);
     auto *preview = item(workspace.get(), "videoReferencePreview"); QVERIFY(preview);
     QVERIFY(item(workspace.get(), "videoResetDefaults"));
@@ -12187,20 +12197,20 @@ void GuiTests::videoWorkspaceStartsEmptyAndUsesGenerationDefaults()
     verifyEmpty();
     QCOMPARE(state->property("totalFrames").toInt(), 36);
     QCOMPARE(state->property("markOut").toInt(), 35);
-    QVERIFY(QMetaObject::invokeMethod(state, "undo"));
+    state->undo();
     QCOMPARE(mapProperty(parameters, "values").value("fps").toInt(), 24);
     QCOMPARE(mapProperty(parameters, "values").value("duration").toInt(), 3);
     QCOMPARE(state->property("totalFrames").toInt(), 72);
-    QVERIFY(QMetaObject::invokeMethod(state, "undo"));
+    state->undo();
     QCOMPARE(mapProperty(parameters, "values").value("duration").toInt(), 5);
     QCOMPARE(state->property("totalFrames").toInt(), 120);
     verifyEmpty();
-    QVERIFY(QMetaObject::invokeMethod(state, "redo"));
-    QVERIFY(QMetaObject::invokeMethod(state, "redo"));
+    state->redo();
+    state->redo();
     QCOMPARE(mapProperty(parameters, "values").value("fps").toInt(), 12);
     QCOMPARE(mapProperty(parameters, "values").value("duration").toInt(), 3);
     QCOMPARE(state->property("totalFrames").toInt(), 36);
-    QVERIFY(QMetaObject::invokeMethod(state, "seek", Q_ARG(QVariant, 100)));
+    state->seek(100);
     QCOMPARE(state->property("playhead").toInt(), 35);
     QTemporaryDir imageInputs(DREAMSCAPES_TEST_DIRECTORY "/gui-video-inputs-XXXXXX"); QVERIFY(imageInputs.isValid());
     const auto keyUrl = QUrl::fromLocalFile(imageInputs.filePath("key.png"));
@@ -12222,15 +12232,15 @@ void GuiTests::videoWorkspaceStartsEmptyAndUsesGenerationDefaults()
     const auto conditions = recipe.value("shots").toList().first().toMap().value("conditions").toList();
     QCOMPARE(conditions.size(), 1);
     QCOMPARE(conditions.first().toMap().value("frame").toInt(), 35);
-    QVERIFY(QMetaObject::invokeMethod(state, "addShot"));
+    QVERIFY(state->addShot());
     QCOMPARE(listProperty(state, "shots").size(), 1);
     QCOMPARE(state->property("totalFrames").toInt(), 36);
-    QVERIFY(QMetaObject::invokeMethod(state, "rippleDelete"));
+    QVERIFY(state->rippleDelete());
     verifyEmpty();
-    QVERIFY(QMetaObject::invokeMethod(state, "undo"));
+    state->undo();
     QCOMPARE(listProperty(state, "shots").size(), 1);
     QCOMPARE(listProperty(state, "keys").size(), 1);
-    QVERIFY(QMetaObject::invokeMethod(state, "redo"));
+    state->redo();
     verifyEmpty();
     QVERIFY(timeline->setProperty("playing", true));
     QVERIFY(timeline->setProperty("timelineScale", 2));
@@ -12244,16 +12254,15 @@ void GuiTests::videoWorkspaceStartsEmptyAndUsesGenerationDefaults()
     QCOMPARE(timeline->property("timelineScale").toReal(), 1.0);
     QVERIFY(QMetaObject::invokeMethod(parameters, "edit", Q_ARG(QVariant, "duration"), Q_ARG(QVariant, 3)));
     QVERIFY(QMetaObject::invokeMethod(parameters, "edit", Q_ARG(QVariant, "fps"), Q_ARG(QVariant, 12)));
-    QVERIFY(QMetaObject::invokeMethod(state, "addShot"));
+    QVERIFY(state->addShot());
     const auto shotId = mapProperty(state, "selectedShot").value("id");
-    QVERIFY(QMetaObject::invokeMethod(state, "trim", Q_ARG(QVariant, shotId), Q_ARG(QVariant, "out"),
-        Q_ARG(QVariant, 24), Q_ARG(QVariant, "Trim")));
+    QVERIFY(state->trim(shotId.toString(), "out", 24, "Trim"));
     QCOMPARE(state->property("totalFrames").toInt(), 60);
     // Matching the edited shot extent must also update the empty generation extent.
     QVERIFY(QMetaObject::invokeMethod(parameters, "edit", Q_ARG(QVariant, "duration"), Q_ARG(QVariant, 5)));
     QCOMPARE(state->property("compositionFrames").toInt(), 60);
     QVERIFY(state->setProperty("markIn", 10));
-    QVERIFY(QMetaObject::invokeMethod(state, "rippleDelete"));
+    QVERIFY(state->rippleDelete());
     verifyEmpty();
     QCOMPARE(state->property("totalFrames").toInt(), 60);
     QVERIFY(QMetaObject::invokeMethod(parameters, "resetDraft"));
@@ -12385,6 +12394,37 @@ void GuiTests::videoInspectorStaysWithinViewport()
     QCOMPARE(controller.jobs().size(),0);
 }
 
+void GuiTests::videoAcceptedSubmissionResetsViewFeedback()
+{
+    QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/gui-video-submit-XXXXXX.societycontainer");
+    QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+    QVERIFY(QDir().mkpath(storage.filePath("Models/Checkpoint/ltx")));
+    QFile manifest(storage.filePath("Models/Checkpoint/ltx/model_index.json"));
+    QVERIFY(manifest.open(QIODevice::WriteOnly));
+    manifest.write(R"({"_class_name":"LTXConditionPipeline"})"); manifest.close();
+    auto runtime = GenerationRuntime{QStringLiteral(DREAMSCAPES_FAKE_GENERATOR),"cpu",1,64,{}};
+    runtime.modelPreferencesFile = storage.filePath("settings/generation.conf");
+    GenerationController controller(runtime);
+    QVERIFY(controller.connectStorage(storage.path()));
+    controller.setForeground(false); // Validate queue admission, not inference or media publication.
+    QQmlEngine engine;
+    QQmlComponent component(&engine,sourceUrl("Views/Video/VideoGenerationWorkspace.qml"));
+    std::unique_ptr<QObject> workspace(component.createWithInitialProperties({
+        {"generation",QVariant::fromValue<QObject *>(&controller)},{"width",1280},{"height",800}}));
+    QVERIFY2(workspace,qPrintable(component.errorString()));
+    auto *panel = workspace->property("parameterPanel").value<QObject *>(); QVERIFY(panel);
+    auto *state = qobject_cast<dreamscapes::VideoTimelineModel *>(workspace->property("timelineState").value<QObject *>());
+    QVERIFY(state && state->addShot());
+    QVERIFY(QMetaObject::invokeMethod(panel,"edit",Q_ARG(QVariant,"prompt"),Q_ARG(QVariant,"queue-only video")));
+    QVERIFY(workspace->setProperty("saveFeedback",QString("File saved")));
+    QSignalSpy submitted(&controller,&GenerationController::submissionQueued);
+    QVERIFY(QMetaObject::invokeMethod(workspace.get(),"submit"));
+    QCOMPARE(submitted.size(),1);
+    QCOMPARE(controller.jobs().size(),1);
+    QVERIFY(workspace->property("saveFeedback").toString().isEmpty());
+    controller.cancelBatch(submitted.front().front().toStringList());
+}
+
 void GuiTests::videoWorkspaceRoutesEditsAndGenerates()
 {
     QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/gui-video-workspace-XXXXXX.societycontainer");
@@ -12491,13 +12531,11 @@ void GuiTests::videoWorkspaceRoutesEditsAndGenerates()
         click(window,item(workspace,"videoAddShot"));
         const auto shot=mapProperty(state,"selectedShot");
         const int delta=frames-shot.value("frames").toInt();
-        if(delta) QVERIFY(QMetaObject::invokeMethod(state,"trim",Q_ARG(QVariant,shot.value("id")),
-            Q_ARG(QVariant,"out"),Q_ARG(QVariant,delta),Q_ARG(QVariant,"Trim")));
+        if(delta) QVERIFY(qobject_cast<dreamscapes::VideoTimelineModel *>(state)->trim(shot.value("id").toString(),"out",delta,"Trim"));
         QCOMPARE(mapProperty(state,"selectedShot").value("frames").toInt(),frames);
     }
-    QVERIFY(QMetaObject::invokeMethod(state,"changeShot",Q_ARG(QVariant,mapProperty(state,"selectedShot").value("id")),
-        Q_ARG(QVariant,"excluded"),Q_ARG(QVariant,true)));
-    QVERIFY(QMetaObject::invokeMethod(state,"selectShot",Q_ARG(QVariant,listProperty(state,"shots")[2].toMap().value("id")),Q_ARG(QVariant,false)));
+    QVERIFY(qobject_cast<dreamscapes::VideoTimelineModel *>(state)->changeShot(mapProperty(state,"selectedShot").value("id").toString(),"excluded",true));
+    qobject_cast<dreamscapes::VideoTimelineModel *>(state)->selectShot(listProperty(state,"shots")[2].toMap().value("id").toString(),false);
     QCOMPARE(listProperty(state,"shots").size(),4);
     QCOMPARE(state->property("keptFrames").toInt(),84);
     state->setProperty("playhead",60);
@@ -12512,7 +12550,10 @@ void GuiTests::videoWorkspaceRoutesEditsAndGenerates()
     QImage reference(64,32,QImage::Format_RGB32); reference.fill(Qt::red); QVERIFY(reference.save(keyUrl.toLocalFile()));
     QVariant keyAccepted;
     QVERIFY(QMetaObject::invokeMethod(parameters,"addImageKey",Q_RETURN_ARG(QVariant,keyAccepted),Q_ARG(QVariant,keyUrl),Q_ARG(QVariant,60)));
-    QVERIFY(keyAccepted.toBool());
+    const auto *generationController = window->findChild<GenerationController *>();
+    QVERIFY2(keyAccepted.toBool(), qPrintable(QString("%1 | %2")
+        .arg(generationController ? generationController->errorString() : QString("No generation controller"),
+             state->property("error").toString())));
     QCOMPARE(listProperty(state,"keys").size(),1);
     QVERIFY(QUrl(listProperty(state,"keys").first().toMap().value("source").toString()).toLocalFile().endsWith(".iisc"));
     QVERIFY(QFile::remove(keyUrl.toLocalFile()));
@@ -12521,8 +12562,8 @@ void GuiTests::videoWorkspaceRoutesEditsAndGenerates()
     QTRY_VERIFY((keyImage = visualItem(workspace,qPrintable(keyImageName))));
     QTRY_COMPARE(keyImage->property("status").toInt(), 1);
     QCOMPARE(keyImage->property("source").toUrl().host(), QStringLiteral("iisc-preview"));
-    QVERIFY(QMetaObject::invokeMethod(state,"editKey",Q_ARG(QVariant,"frame"),Q_ARG(QVariant,61)));
-    QVERIFY(QMetaObject::invokeMethod(state,"editKey",Q_ARG(QVariant,"value"),Q_ARG(QVariant,.65)));
+    QVERIFY(qobject_cast<dreamscapes::VideoTimelineModel *>(state)->editKey("frame",61));
+    QVERIFY(qobject_cast<dreamscapes::VideoTimelineModel *>(state)->editKey("value",.65));
     auto *prompt=item(workspace,"videoPrompt"); QVERIFY(prompt);
     QVERIFY(prompt->setProperty("text","video"));
     QVERIFY(QMetaObject::invokeMethod(parameters,"edit",Q_ARG(QVariant,"outputCount"),Q_ARG(QVariant,2)));
@@ -12708,7 +12749,7 @@ void GuiTests::sharedControlsSubmitCurrentSelection()
     QCOMPARE(ratio->property("text").toString(), "16:9");
 
     const QVariantList counts{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40, 50, 100, 200, 500, 1000};
-    QCOMPARE(panel->property("generationCounts").value<QJSValue>().toVariant().toList(), counts);
+    QCOMPARE(unwrapped(panel->property("generationCounts")).toList(), counts);
     auto *countMenu = panel->findChild<QObject *>("generationCountMenu");
     QVERIFY(countMenu);
     for (int index = 0; index < counts.size(); ++index) {
@@ -12758,86 +12799,17 @@ void GuiTests::sharedControlsSubmitCurrentSelection()
     QCOMPARE(requests.size(), 2);
 }
 
-void GuiTests::packagedApplicationStarts()
-{
-    QTemporaryDir presence(DREAMSCAPES_TEST_DIRECTORY "/helper-XXXXXX");
-    QString storageError;
-    const auto drive = iiSocietyContainer::SocietyDrive::createAt(presence.path(), &storageError);
-    QVERIFY2(drive, qPrintable(storageError));
-    const auto containerPath = drive->rootPath();
-    const auto storage = iiSocietyContainer::SharedStorage::open(containerPath, &storageError);
-    QVERIFY2(storage, qPrintable(storageError));
-    const auto helperDirectory = storage->ensureRuntimeDirectory("helpers/test", &storageError);
-    QVERIFY2(!helperDirectory.isEmpty(), qPrintable(storageError));
-    const auto endpointsDirectory = storage->ensureRuntimeDirectory("apps/test", &storageError);
-    QVERIFY2(!endpointsDirectory.isEmpty(), qPrintable(storageError));
-    iiSocietyHelper::Helper observer;
-    QVERIFY(observer.start({"com.iisacc.dreamscapes.test", "Dreamscapes test", "1"},
-                            {helperDirectory, 100, 5000}));
-    auto environment = QProcessEnvironment::systemEnvironment();
-    environment.insert("SOCIETY_CONTAINER_PATH", containerPath);
-    environment.insert("SOCIETY_HELPER_DIRECTORY", helperDirectory);
-    environment.insert("IILOCALLLM_APP_ENDPOINTS", endpointsDirectory);
-    for (const auto *key : {"DYLD_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH", "QML_IMPORT_PATH", "QML2_IMPORT_PATH"})
-        environment.remove(QString::fromLatin1(key));
-    QProcess process;
-    process.setProcessEnvironment(environment);
-    process.setProcessChannelMode(QProcess::MergedChannels);
-    // Verify the installed entry point too, without copying another build-tree app.
-    const auto installedExecutable = qEnvironmentVariable("DREAMSCAPES_TEST_APP_PATH");
-    process.start(installedExecutable.isEmpty() ? QStringLiteral(DREAMSCAPES_EXECUTABLE_PATH)
-                                               : installedExecutable,
-                  {"--society-container", containerPath});
-    QVERIFY(process.waitForStarted());
-    QByteArray output;
-    QElapsedTimer timer;
-    timer.start();
-    while (!output.contains("LVRS bootstrap.entry.root-loaded")
-           && !output.contains("LVRS bootstrap.entry.root-load-failed") && timer.elapsed() < 90000
-           && process.state() != QProcess::NotRunning) {
-        process.waitForReadyRead(100);
-        output += process.readAll();
-    }
-    const bool running = process.state() == QProcess::Running;
-    // Both participants must actually observe each other through the installed SDK.
-    QElapsedTimer discovery;
-    discovery.start();
-    while (!output.contains("LVRS bootstrap.entry.root-load-failed")
-           && process.state() == QProcess::Running && discovery.elapsed() < 15000 && (observer.peers().isEmpty()
-           || !output.contains("com.iisacc.dreamscapes observed com.iisacc.dreamscapes.test"))) {
-        QTest::qWait(50);
-        output += process.readAll();
-    }
-    const auto peers = observer.peers();
-    process.terminate();
-    if (!process.waitForFinished(3000)) {
-        process.kill();
-        process.waitForFinished();
-    }
-    output += process.readAll();
-    // Source GUI fixtures register their own types. Only this real entry-point
-    // check catches a missing production registration in the static module.
-    const auto capture=qEnvironmentVariable("DREAMSCAPES_CAPTURE_DIR");
-    if (!capture.isEmpty()) {
-        QVERIFY(QDir().mkpath(capture));
-        QFile entryLog(capture+"/packaged-entry.log");
-        QVERIFY(entryLog.open(QIODevice::WriteOnly));
-        QCOMPARE(entryLog.write(output),qint64(output.size()));
-    }
-    QVERIFY2(!output.contains("LVRS bootstrap.entry.root-load-failed"), output.constData());
-    QVERIFY2(running, output.constData());
-    QVERIFY2(output.contains("LVRS bootstrap.entry.root-loaded"), output.constData());
-    QVERIFY2(peers.size() == 1, output.constData());
-    QCOMPARE(peers.first().application.id, "com.iisacc.dreamscapes");
-    QVERIFY2(output.contains("com.iisacc.dreamscapes observed com.iisacc.dreamscapes.test"), output.constData());
-    QVERIFY2(output.contains("\"windowCount\":1"), output.constData());
-    QVERIFY2(!output.contains("failed to load") && !output.contains("is not installed")
-        && !output.contains("QML Image: Cannot open:"), output.constData());
-}
 
 int main(int argc, char **argv)
 {
     QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
+    for (int index = 1; index < argc; ++index) {
+        if (QByteArray(argv[index]) == "-functions") {
+            QCoreApplication application(argc, argv);
+            GuiTests tests;
+            return QTest::qExec(&tests, argc, argv);
+        }
+    }
     QQuickStyle::setStyle("Basic");
     // Qt Labs Platform menus require the Widgets fallback on offscreen surfaces.
     QApplication application(argc, argv);

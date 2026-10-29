@@ -1,0 +1,107 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:58de13e8c9d5787d7b15723c771efd988ff39bc219b0c9a7935ce3ff27efc23c",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "LICENSING.md",
+    "sha256": "629af7be7391f3cda4d302ef93b8f164fde800b301464da5aadcd13f3c1d0082",
+    "bytes": 483,
+    "line_count": 9,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "라이선스 정책",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# 라이선스 정책\n",
+      "level": 1,
+      "title": "라이선스 정책"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "SPDX-License-Identifier: AGPL-3.0-only\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 5,
+      "end_line": 6,
+      "raw": "이 저장소의 자체 애플리케이션 코드와 문서는 GNU Affero General Public License\n버전 3만을 적용하여 배포한다. 전체 조건은 [LICENSE](LICENSE)에 명시되어 있다.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 8,
+      "end_line": 9,
+      "raw": "독립적으로 관리되는 공개 iiSDK 라이브러리는 각 저장소의 MIT 라이선스를 따른다.\n제3자 코드, 라이브러리, 폰트, 도구와 모델 가중치는 각각의 라이선스를 유지한다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "라이선스 정책",
+      "anchor": "라이선스-정책",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000005",
+        "label": "LICENSE",
+        "target": "LICENSE",
+        "kind": "relative",
+        "line": 6
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

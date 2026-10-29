@@ -7,10 +7,17 @@
 #include "../../ViewModels/WorkspaceSession.h"
 #include "../Editor/EditorToolStateModel.h"
 #include "../Editor/EditorGraphicDraftModel.h"
+#include "../Editor/EditorBackgroundModel.h"
+#include "../Editor/EditorWorkspaceModel.h"
 #include "../../ViewModels/VideoTimelineModel.h"
 #include "../../ViewModels/GenerationProjection.h"
+#include "../../ViewModels/SnapshotListModel.h"
 #include "../../Generation/VideoDraftModel.h"
 #include "../../Generation/GenerationComposerModel.h"
+#include "../../Generation/GenerationSubmissionModel.h"
+#include "StorageBrowserModel.h"
+#include "ImageSelectionModel.h"
+#include "NewCanvasModel.h"
 
 struct NativeViewDataRegistration {
     Q_GADGET
@@ -67,15 +74,50 @@ struct NativeGraphicDraftRegistration {
     QML_FOREIGN(EditorGraphicDraftModel)
     QML_NAMED_ELEMENT(NativeGraphicDraft)
 };
+struct NativeBackgroundRegistration {
+    Q_GADGET
+    QML_FOREIGN(EditorBackgroundModel)
+    QML_NAMED_ELEMENT(NativeBackgroundModel)
+};
+struct NativeEditorWorkspaceRegistration {
+    Q_GADGET
+    QML_FOREIGN(EditorWorkspaceModel)
+    QML_NAMED_ELEMENT(NativeEditorWorkspace)
+};
 
 struct NativeGenerationProjectionRegistration {
     Q_GADGET
     QML_FOREIGN(dreamscapes::GenerationProjection)
     QML_NAMED_ELEMENT(NativeGenerationProjection)
 };
+struct NativeSnapshotListRegistration {
+    Q_GADGET
+    QML_FOREIGN(dreamscapes::SnapshotListModel)
+    QML_NAMED_ELEMENT(NativeSnapshotListModel)
+};
 
 struct NativeGenerationComposerRegistration {
     Q_GADGET
     QML_FOREIGN(GenerationComposerModel)
     QML_NAMED_ELEMENT(NativeGenerationComposer)
+};
+struct NativeGenerationSubmissionRegistration {
+    Q_GADGET
+    QML_FOREIGN(GenerationSubmissionModel)
+    QML_NAMED_ELEMENT(NativeGenerationSubmission)
+};
+struct NativeStorageBrowserRegistration {
+    Q_GADGET
+    QML_FOREIGN(StorageBrowserModel)
+    QML_NAMED_ELEMENT(NativeStorageBrowser)
+};
+struct NativeImageSelectionRegistration {
+    Q_GADGET
+    QML_FOREIGN(ImageSelectionModel)
+    QML_NAMED_ELEMENT(NativeImageSelection)
+};
+struct NativeCanvasDraftRegistration {
+    Q_GADGET
+    QML_FOREIGN(NewCanvasModel)
+    QML_NAMED_ELEMENT(NativeCanvasDraft)
 };

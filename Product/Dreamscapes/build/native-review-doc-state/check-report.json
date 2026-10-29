@@ -1,0 +1,17 @@
+{
+  "projects": 1,
+  "would_change": 4,
+  "actual_writes": 0,
+  "changes": [
+    {
+      "project": "Product/Dreamscapes",
+      "paths": [
+        "Product/Dreamscapes/docs/NativeReviewSession.agent.json",
+        "Product/Dreamscapes/docs/README.md",
+        "Product/Dreamscapes/docs/agent-index.json",
+        "Product/Dreamscapes/docs/entrypoints/README.agent.json"
+      ]
+    }
+  ],
+  "failures": []
+}

@@ -1,0 +1,246 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:e4265aadd53d699c564167863d6617fdde75fcc4d66e8230eef1a45248713d52",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/PhotoLibraryExport.md",
+    "sha256": "784b8185cab90388ffa1ec9bdfca7fd4f0d1b6af723566d79eb6287c1fac7fea",
+    "bytes": 4608,
+    "line_count": 73,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Photo library export ownership",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Photo library export ownership\n",
+      "level": 1,
+      "title": "Photo library export ownership"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 8,
+      "raw": "`PhotoLibraryExporter::save` accepts one local image source without opening a\nSociety drive or rebuilding a result gallery. The result view uses the published\n`documentSource` for native IISC commands while keeping its asynchronous preview\nURI for display. Ordinary result images retain their original local source.\nThe chosen command URL is captured when the command starts; file dialogs retain\nthat URL even if the result selection changes.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 10,
+      "end_line": 15,
+      "raw": "`false` means the request was not accepted and emits `rejected(message)`;\n`lastRejection()` provides the same reason to C++ callers. Unsupported, nonlocal\nand busy starts are rejected immediately. Rejection does not finish or fail an\naccepted save. `true` accepts work with `saved(assetIdentifier)` or\n`failed(message)` as its eventual outcome. Missing, unreadable or malformed local\nfiles are preparation failures after acceptance, keeping their I/O off the GUI.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 16,
+      "end_line": 16,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "heading",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "## Preparation and native dispatch\n",
+      "level": 2,
+      "title": "Preparation and native dispatch"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 19,
+      "end_line": 25,
+      "raw": "The value-owned PrepareOperation runs on a worker before native dispatch. It\nreturns Image `{path, mimeType}`, an error and an optional shared resource lease.\nOrdinary images keep their original path and bytes; their readable header and\ncontent MIME are inspected on the worker. Native IISC uses the frozen\n`iiSocietyHelper::exportMedia` adapter: detached read-only snapshot, frame zero,\ncomplete document-view extent, PNG alpha and available PNG text. Existing media\nlimits reject unsupported sizes instead of producing a reduced preview.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 26,
+      "end_line": 26,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 27,
+      "end_line": 33,
+      "raw": "A native canvas is prepared in a private provider-owned temporary directory.\nThe GUI dispatch and native request retain its resource lease until the first\nnative reply. A separate local lease keeps the file alive until dispatch returns,\neven if synchronous completion reenters Qt, destroys the view or starts another\nsave. First-reply cleanup releases the request's lease even when native code\nretains obsolete callback copies. Failures and owner deletion have the same\ncleanup contract. The source document and its editable data remain unchanged.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 34,
+      "end_line": 34,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 35,
+      "end_line": 41,
+      "raw": "Native SaveOperation receives only the prepared Image payload on the application\nGUI owner, independent of a view-owned watcher. The platform adapters do not\ninspect the source to derive MIME on the GUI thread. Apple retains its add-only\nPhotoKit authorization and file-resource import. Android retains its Activity\npermission dispatch and single-threaded MediaStore copy/publication worker; it\nnow receives the prepared content MIME. Unsupported platforms expose\n`supported = false`. OS permission and publication policy is unchanged.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 42,
+      "end_line": 42,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 43,
+      "end_line": 50,
+      "raw": "The operation, preparer and input are copied before publishing busy state.\nClosing the view during that notification or during preparation cannot destroy\naccepted work. Only feedback uses a weak reference to the view owner. Native\nreplies can arrive from any thread: an atomic per-request gate accepts one outcome\nand queues GUI delivery. Duplicate/obsolete replies cannot finish a later request.\nPreparation/native exceptions become failures; exceptions after a reply cannot\nreplace its first outcome. Application process termination is outside the\nview-lifetime guarantee.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 51,
+      "end_line": 51,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 52,
+      "end_line": 56,
+      "raw": "Completion clears busy state and delivers saved/failed before publishing idle.\nTerminal observers can start another save or destroy the owner. Only a\nstill-current owner receives final idle notification. File and editor frame\nexporters use the same terminal-before-idle ordering. ImageFileExporter separates\nrejected starts from an accepted job's eventual failure as well.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 57,
+      "end_line": 57,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "heading",
+      "start_line": 58,
+      "end_line": 58,
+      "raw": "## Verification\n",
+      "level": 2,
+      "title": "Verification"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 59,
+      "end_line": 59,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 60,
+      "end_line": 69,
+      "raw": "`Dreamscapes.PhotoLibrary` checks original bytes/resolution/text, content MIME,\nworker preparation, live GUI input during gated work, acceptance followed by\nmissing-file failure, native full-size IISC preparation, lease retention/cleanup,\nview destruction before dispatch, synchronous reentrant completion, retries,\nduplicate/stale/concurrent replies and exceptions. The result-view fixtures use\nproduction `GenerationController::storedImage`, an actual native snapshot/working\nfile and the real asynchronous image provider. They verify original command\nidentity, save-dialog selection capture, full-size file output and an injected\nPhotos operation while preserving source bytes. File/frame exporter tests also\nverify delivery before an idle observer deletes the owner and reentrant next jobs.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 70,
+      "end_line": 70,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 71,
+      "end_line": 73,
+      "raw": "These fixtures do not add assets to the user's real Photos library or establish\nphysical Android/iOS permission and import behavior. Native-platform execution\nand installed-bundle startup are recorded separately from source and SDK tests.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Photo library export ownership",
+      "anchor": "photo-library-export-ownership",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000007",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Preparation and native dispatch",
+      "anchor": "preparation-and-native-dispatch",
+      "start_line": 17
+    },
+    {
+      "block_id": "b000019",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Verification",
+      "anchor": "verification",
+      "start_line": 58
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000013",
+        "line": 36,
+        "text": "GUI owner, independent of a view-owned watcher. The platform adapters do not",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000023",
+        "line": 71,
+        "text": "These fixtures do not add assets to the user's real Photos library or establish",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

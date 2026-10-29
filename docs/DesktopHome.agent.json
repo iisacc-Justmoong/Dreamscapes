@@ -1,0 +1,578 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:c1ea556581f9a5ef7f7610f07aaa1ccf0b9e5b74363f620f3e387a821f1f36e1",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/DesktopHome.md",
+    "sha256": "bdcd6a35470144cf52c95e0a1ba9eae454804d8d24f67f9e3083e1ccc710fb7b",
+    "bytes": 7353,
+    "line_count": 57,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "Desktop Home",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "html",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "<a id=\"desktop-home\"></a>\n"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "heading",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "# Desktop Home\n",
+      "level": 1,
+      "title": "Desktop Home"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 5,
+      "end_line": 5,
+      "raw": "Home은 [Figma 1467:4554](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1467-4554)의 1440 × 900 개선안을 사용한다. 상단의 생성 입력, 중앙 좌측의 최근 파일 목록, 중앙 우측의 선택 파일, 하단의 생성 큐와 최근 생성 결과를 하나의 작업 공간으로 구성한다. 실제 기본 창 크기와 모바일 Home은 유지한다.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "heading",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "## 레이아웃과 표면\n",
+      "level": 2,
+      "title": "레이아웃과 표면"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "ApplicationWindow, 상단 검색·알림·계정과 181px/48px 사이드바는 기존 서비스를 사용한다. Home의 가로 여백은 16px이며 좁은 창은 12px이다. 패널과 결과 항목은 검은 배경 및 패널 외곽선을 갖지 않는다. 입력창·버튼·선택 상태의 LVRS 표현은 유지한다. LVRS Theme의 스케일, 글자 크기, 버튼 높이와 전역 기본값을 변경하지 않는다.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 11,
+      "end_line": 11,
+      "raw": "생성 입력 영역의 내부 여백은 12px이다. 입력은 빈 상태에서 한 줄로 시작하고 실제 줄 수에 따라 늘어난다. LVRS TextEditor의 공개 높이 속성을 사용하며 여러 줄 입력·선택·클립보드·한글 입력·undo와 내부 스크롤을 유지한다. 참조 파일 행은 첨부가 있을 때만 나타난다. 가용 폭이 줄면 설정이 다음 행으로 배치되고 Home 전체를 세로로 스크롤할 수 있다.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 12,
+      "end_line": 12,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 13,
+      "end_line": 13,
+      "raw": "넓은 창에서 최근 파일과 선택 파일은 나란히 표시한다. 파일 목록은 48px 행의 가상화된 ListView이다. 클릭과 방향키는 보기의 선택만 바꾸며, 더블클릭·Enter·Open in editor가 기존 열기/다운로드 경로를 실행한다. 안정적인 파일 키로 선택을 보존하므로 목록 추가와 종류 필터가 생성 요청이나 문서 채택을 일으키지 않는다. 선택 파일은 종횡비를 유지한 큰 미리보기와 실제 파일 속성을 표시한다.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 14,
+      "end_line": 14,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 15,
+      "end_line": 15,
+      "raw": "최근 생성 결과는 하단에서 2열의 작은 썸네일과 메타데이터를 제공한다. 160px 영역에서 기본 높이의 헤더·하단 개수와 48px 결과 두 행이 모두 보이도록 내부 간격을 압축한다. 원래 최근 항목 제한과 전체 목록 진입, 복수 이미지 선택과 편집기 전달을 유지한다. 행이 많으면 내부 세로 스크롤과 방향키·Home/End로 탐색한다. 생성 큐는 실제 jobs의 running/connecting-host/downloading, queued, failed를 집계하고 기존 Review Workspace로 연결한다.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 16,
+      "end_line": 16,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "heading",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "## 유지하는 생성 계약\n",
+      "level": 2,
+      "title": "유지하는 생성 계약"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "table",
+      "start_line": 19,
+      "end_line": 35,
+      "raw": "| 기능 또는 인자 | 연결 경로 |\n|---|---|\n| 프롬프트, Clear, 여러 줄, Ctrl/Cmd+Return | 공유 QuickGenerate 초안과 submit |\n| Image / Video / Audio / Board | 기존 미디어 선택과 미지원 알림; 초안 보존 |\n| 모델 | 기존 이미지·비디오 모델 목록과 선택 |\n| 종횡비 | 기존 5개 비율과 프리셋의 사용자 규격 |\n| 이미지 해상도 | 짧은 변 512/576/768/1024/1536 및 8px 양자화 |\n| 생성 수량 | 1부터 1000까지 기존 선택지 전체 |\n| 시드 | Random 또는 배치 범위를 고려한 32비트 시드 |\n| Negative prompt | 기본값 추종 및 사용자 수정 보존 |\n| 프리셋 저장·불러오기 | AdvancedImageParameters 전체 설정과 검증 |\n| 참조 이미지와 iisc | HomeCanvas의 원본 입력, 미리보기, 제거 및 불변 작업 입력 |\n| Paint canvas | 기존 새 캔버스 흐름 |\n| 비디오 길이·FPS | 기존 duration/FPS 메뉴 및 실제 비디오 recipe |\n| 고급 생성 | 현재 초안을 Image/Video의 기존 전체 파라미터 화면으로 전달 |\n| Generate, 중복 제출 방지 | 기존 enqueue/recipe 수락과 즉시 생성 진행 화면 전환 |\n| 추가 VAE·모델/저장소 설정 | Assets와 기존 확장 설정 슬롯 |\n",
+      "columns": [
+        "기능 또는 인자",
+        "연결 경로"
+      ],
+      "rows": [
+        [
+          "프롬프트, Clear, 여러 줄, Ctrl/Cmd+Return",
+          "공유 QuickGenerate 초안과 submit"
+        ],
+        [
+          "Image / Video / Audio / Board",
+          "기존 미디어 선택과 미지원 알림; 초안 보존"
+        ],
+        [
+          "모델",
+          "기존 이미지·비디오 모델 목록과 선택"
+        ],
+        [
+          "종횡비",
+          "기존 5개 비율과 프리셋의 사용자 규격"
+        ],
+        [
+          "이미지 해상도",
+          "짧은 변 512/576/768/1024/1536 및 8px 양자화"
+        ],
+        [
+          "생성 수량",
+          "1부터 1000까지 기존 선택지 전체"
+        ],
+        [
+          "시드",
+          "Random 또는 배치 범위를 고려한 32비트 시드"
+        ],
+        [
+          "Negative prompt",
+          "기본값 추종 및 사용자 수정 보존"
+        ],
+        [
+          "프리셋 저장·불러오기",
+          "AdvancedImageParameters 전체 설정과 검증"
+        ],
+        [
+          "참조 이미지와 iisc",
+          "HomeCanvas의 원본 입력, 미리보기, 제거 및 불변 작업 입력"
+        ],
+        [
+          "Paint canvas",
+          "기존 새 캔버스 흐름"
+        ],
+        [
+          "비디오 길이·FPS",
+          "기존 duration/FPS 메뉴 및 실제 비디오 recipe"
+        ],
+        [
+          "고급 생성",
+          "현재 초안을 Image/Video의 기존 전체 파라미터 화면으로 전달"
+        ],
+        [
+          "Generate, 중복 제출 방지",
+          "기존 enqueue/recipe 수락과 즉시 생성 진행 화면 전환"
+        ],
+        [
+          "추가 VAE·모델/저장소 설정",
+          "Assets와 기존 확장 설정 슬롯"
+        ]
+      ]
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 36,
+      "end_line": 36,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 37,
+      "end_line": 37,
+      "raw": "생성 엔진, 저장소 스키마, 기본 파라미터와 기존 검증을 바꾸지 않는다. UI를 압축하기 위해 파라미터를 삭제하지 않는다. Figma의 예시 파일·이미지·모델·시드는 실제 앱에 넣지 않는다.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 38,
+      "end_line": 38,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "heading",
+      "start_line": 39,
+      "end_line": 39,
+      "raw": "## 읽기 전용 파일 정보\n",
+      "level": 2,
+      "title": "읽기 전용 파일 정보"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 40,
+      "end_line": 40,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 41,
+      "end_line": 41,
+      "raw": "`HomeFileDetails`는 선택한 로컬 파일 한 개의 정보를 C++ 작업 스레드에서 읽는다. 일반 이미지는 QImageReader의 헤더 크기를 읽고, iisc는 iiSharedCanvas DocumentFile::readSnapshot으로 규격·레이어·아트보드·프레임 정보를 얻는다. 저작용 DocumentFile을 열거나 포맷을 업그레이드하거나 저장하지 않는다. 오래된 선택의 결과는 요청 번호로 버리고, 다운로드되지 않은 파일은 정보 조회 때문에 다운로드하지 않는다.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 42,
+      "end_line": 42,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 43,
+      "end_line": 43,
+      "raw": "메타데이터 검사 메모리는 파일 64MiB, 래스터 16M 픽셀로 제한한다. 이 범위를 넘거나 SDK가 읽을 수 없는 상세 정보는 Unavailable로 남기며 미리보기·다운로드·열기를 막지 않는다. ARGB 8-bit는 네이티브 캔버스의 저장 표현이며 임의의 sRGB 프로필을 추정하지 않는다. 이미지 미리보기는 기존 CanvasPreview의 비동기 공급자를 사용한다. 파일 목록 전체를 매번 디코딩하거나 선택 시 저장소를 재검색하지 않는다.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 44,
+      "end_line": 44,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 45,
+      "end_line": 45,
+      "raw": "HomeFileFacts.js는 이미 제공된 저장소·생성 스냅샷의 표시만 담당한다. 누락된 모델·시드·색상 정보를 추측하지 않는다. 생성 큐와 모델 상태도 실제 제공된 값만 표시한다.\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 46,
+      "end_line": 46,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "paragraph",
+      "start_line": 47,
+      "end_line": 47,
+      "raw": "최근 이미지의 명시적 열기는 기존 비동기 문서 열기를 사용한다. 원본 버전 캡처와 SDK 내부의 읽기에만 원본 접근 잠금을 사용하고, 편집용 iisc를 Society에 등록하는 동안에는 원본 잠금을 유지하지 않는다. 저장소 파일 수집 작업의 등록 잠금과 원본 잠금이 역순으로 겹치는 것을 방지하며, 전후 버전 검사와 원본 바이트 보존은 유지한다.\n"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 48,
+      "end_line": 48,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "heading",
+      "start_line": 49,
+      "end_line": 49,
+      "raw": "## 검증\n",
+      "level": 2,
+      "title": "검증"
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 50,
+      "end_line": 50,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "paragraph",
+      "start_line": 51,
+      "end_line": 51,
+      "raw": "Dreamscapes.DesktopHome은 새 영역 배치, 좁은 창 접근성, 파일 선택과 명시적 열기, 필터·파일 추가 후 선택 보존, 초안·프리셋·첨부·생성 인자 보존, 큐 상태, 실제 미리보기와 전체 목록 경로를 검사한다. Dreamscapes.CanvasPreview는 iisc 메타데이터의 원본 바이트 보존 및 빠른 선택 전환 시 이전 결과 폐기를 검사한다.\n"
+    },
+    {
+      "id": "b000036",
+      "kind": "blank",
+      "start_line": 52,
+      "end_line": 52,
+      "raw": "\n"
+    },
+    {
+      "id": "b000037",
+      "kind": "paragraph",
+      "start_line": 53,
+      "end_line": 53,
+      "raw": "최근 생성 결과의 복수 선택은 기존 선택 모델의 결과 목록과 실제 강조 색상으로 검사한다. 교체한 카드 컴포넌트의 이전 selected 속성에 의존하지 않는다. 프롬프트 드래그 검사는 새 12px 내부 여백에서도 텍스트 조작이 윈도우 이동을 발생시키지 않는지 확인한다.\n"
+    },
+    {
+      "id": "b000038",
+      "kind": "blank",
+      "start_line": 54,
+      "end_line": 54,
+      "raw": "\n"
+    },
+    {
+      "id": "b000039",
+      "kind": "paragraph",
+      "start_line": 55,
+      "end_line": 55,
+      "raw": "모델이 없는 비디오 요청의 거부는 특정 모델 브랜드가 오류 문구에 포함되는지가 아니라, 백엔드 오류가 비어 있지 않고 Home에 동일하게 전달되며 이미지 큐에 작업이 추가되지 않는지 검사한다. 이어서 이미지 생성 수량 메뉴가 실제 3개 작업을 제출하고 결과를 저장하는지 확인한다.\n"
+    },
+    {
+      "id": "b000040",
+      "kind": "blank",
+      "start_line": 56,
+      "end_line": 56,
+      "raw": "\n"
+    },
+    {
+      "id": "b000041",
+      "kind": "paragraph",
+      "start_line": 57,
+      "end_line": 57,
+      "raw": "QuickGenerate, PromptFields, HomeCanvasPreviews, HomeEditorRoutes, Video와 생성 회귀 검사를 함께 사용한다. build/home-redesign-20261025/에 빌드·테스트·설치 및 화면 검증 기록을 남긴다. 테스트는 격리된 Society 저장소를 사용하며 실제 모델 추론이나 사용자 작업을 시작하지 않는다. 빌드·설치본·현재 실행 중인 프로세스의 적용 여부를 구분한다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000003",
+      "parent_id": null,
+      "level": 1,
+      "title": "Desktop Home",
+      "anchor": "desktop-home",
+      "start_line": 3
+    },
+    {
+      "block_id": "b000007",
+      "parent_id": "b000003",
+      "level": 2,
+      "title": "레이아웃과 표면",
+      "anchor": "레이아웃과-표면",
+      "start_line": 7
+    },
+    {
+      "block_id": "b000017",
+      "parent_id": "b000003",
+      "level": 2,
+      "title": "유지하는 생성 계약",
+      "anchor": "유지하는-생성-계약",
+      "start_line": 17
+    },
+    {
+      "block_id": "b000023",
+      "parent_id": "b000003",
+      "level": 2,
+      "title": "읽기 전용 파일 정보",
+      "anchor": "읽기-전용-파일-정보",
+      "start_line": 39
+    },
+    {
+      "block_id": "b000033",
+      "parent_id": "b000003",
+      "level": 2,
+      "title": "검증",
+      "anchor": "검증",
+      "start_line": 49
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000009",
+        "line": 9,
+        "text": "ApplicationWindow, 상단 검색·알림·계정과 181px/48px 사이드바는 기존 서비스를 사용한다. Home의 가로 여백은 16px이며 좁은 창은 12px이다. 패널과 결과 항목은 검은 배경 및 패널 외곽선을 갖지 않는다. 입력창·버튼·선택 상태의 LVRS 표현은 유지한다. LVRS Theme의 스케일, 글자 크기, 버튼 높이와 전역 기본값을 변경하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000021",
+        "line": 37,
+        "text": "생성 엔진, 저장소 스키마, 기본 파라미터와 기존 검증을 바꾸지 않는다. UI를 압축하기 위해 파라미터를 삭제하지 않는다. Figma의 예시 파일·이미지·모델·시드는 실제 앱에 넣지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000025",
+        "line": 41,
+        "text": "`HomeFileDetails`는 선택한 로컬 파일 한 개의 정보를 C++ 작업 스레드에서 읽는다. 일반 이미지는 QImageReader의 헤더 크기를 읽고, iisc는 iiSharedCanvas DocumentFile::readSnapshot으로 규격·레이어·아트보드·프레임 정보를 얻는다. 저작용 DocumentFile을 열거나 포맷을 업그레이드하거나 저장하지 않는다. 오래된 선택의 결과는 요청 번호로 버리고, 다운로드되지 않은 파일은 정보 조회 때문에 다운로드하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000027",
+        "line": 43,
+        "text": "메타데이터 검사 메모리는 파일 64MiB, 래스터 16M 픽셀로 제한한다. 이 범위를 넘거나 SDK가 읽을 수 없는 상세 정보는 Unavailable로 남기며 미리보기·다운로드·열기를 막지 않는다. ARGB 8-bit는 네이티브 캔버스의 저장 표현이며 임의의 sRGB 프로필을 추정하지 않는다. 이미지 미리보기는 기존 CanvasPreview의 비동기 공급자를 사용한다. 파일 목록 전체를 매번 디코딩하거나 선택 시 저장소를 재검색하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000029",
+        "line": 45,
+        "text": "HomeFileFacts.js는 이미 제공된 저장소·생성 스냅샷의 표시만 담당한다. 누락된 모델·시드·색상 정보를 추측하지 않는다. 생성 큐와 모델 상태도 실제 제공된 값만 표시한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000031",
+        "line": 47,
+        "text": "최근 이미지의 명시적 열기는 기존 비동기 문서 열기를 사용한다. 원본 버전 캡처와 SDK 내부의 읽기에만 원본 접근 잠금을 사용하고, 편집용 iisc를 Society에 등록하는 동안에는 원본 잠금을 유지하지 않는다. 저장소 파일 수집 작업의 등록 잠금과 원본 잠금이 역순으로 겹치는 것을 방지하며, 전후 버전 검사와 원본 바이트 보존은 유지한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000037",
+        "line": 53,
+        "text": "최근 생성 결과의 복수 선택은 기존 선택 모델의 결과 목록과 실제 강조 색상으로 검사한다. 교체한 카드 컴포넌트의 이전 selected 속성에 의존하지 않는다. 프롬프트 드래그 검사는 새 12px 내부 여백에서도 텍스트 조작이 윈도우 이동을 발생시키지 않는지 확인한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000041",
+        "line": 57,
+        "text": "QuickGenerate, PromptFields, HomeCanvasPreviews, HomeEditorRoutes, Video와 생성 회귀 검사를 함께 사용한다. build/home-redesign-20261025/에 빌드·테스트·설치 및 화면 검증 기록을 남긴다. 테스트는 격리된 Society 저장소를 사용하며 실제 모델 추론이나 사용자 작업을 시작하지 않는다. 빌드·설치본·현재 실행 중인 프로세스의 적용 여부를 구분한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000005",
+        "label": "Figma 1467:4554",
+        "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1467-4554",
+        "kind": "external",
+        "line": 5
+      }
+    ],
+    "tables": [
+      {
+        "block_id": "b000019",
+        "columns": [
+          "기능 또는 인자",
+          "연결 경로"
+        ],
+        "rows": [
+          [
+            "프롬프트, Clear, 여러 줄, Ctrl/Cmd+Return",
+            "공유 QuickGenerate 초안과 submit"
+          ],
+          [
+            "Image / Video / Audio / Board",
+            "기존 미디어 선택과 미지원 알림; 초안 보존"
+          ],
+          [
+            "모델",
+            "기존 이미지·비디오 모델 목록과 선택"
+          ],
+          [
+            "종횡비",
+            "기존 5개 비율과 프리셋의 사용자 규격"
+          ],
+          [
+            "이미지 해상도",
+            "짧은 변 512/576/768/1024/1536 및 8px 양자화"
+          ],
+          [
+            "생성 수량",
+            "1부터 1000까지 기존 선택지 전체"
+          ],
+          [
+            "시드",
+            "Random 또는 배치 범위를 고려한 32비트 시드"
+          ],
+          [
+            "Negative prompt",
+            "기본값 추종 및 사용자 수정 보존"
+          ],
+          [
+            "프리셋 저장·불러오기",
+            "AdvancedImageParameters 전체 설정과 검증"
+          ],
+          [
+            "참조 이미지와 iisc",
+            "HomeCanvas의 원본 입력, 미리보기, 제거 및 불변 작업 입력"
+          ],
+          [
+            "Paint canvas",
+            "기존 새 캔버스 흐름"
+          ],
+          [
+            "비디오 길이·FPS",
+            "기존 duration/FPS 메뉴 및 실제 비디오 recipe"
+          ],
+          [
+            "고급 생성",
+            "현재 초안을 Image/Video의 기존 전체 파라미터 화면으로 전달"
+          ],
+          [
+            "Generate, 중복 제출 방지",
+            "기존 enqueue/recipe 수락과 즉시 생성 진행 화면 전환"
+          ],
+          [
+            "추가 VAE·모델/저장소 설정",
+            "Assets와 기존 확장 설정 슬롯"
+          ]
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

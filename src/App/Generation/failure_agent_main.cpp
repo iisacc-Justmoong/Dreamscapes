@@ -1,9 +1,11 @@
 #include "FailureEvidence.h"
+#include "FailureModelBudget.h"
 #include "FailureReportStorage.h"
 #include <iiMultimodalAgent/agent/Engine.h>
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -54,6 +56,7 @@ int main(int argc, char** argv) {
     try {
         std::unique_ptr<iiLocalLLM::Service> service;
         std::shared_ptr<a::Model> model;
+        int explanationTokens = 1536;
         QString uri = "evidence://failure-diagnostics";
         const auto modelsDirectory = qEnvironmentVariable("IIMULTIMODALAGENT_MODELS_DIR",
             evidence["modelsDirectory"].toString());
@@ -72,8 +75,10 @@ int main(int argc, char** argv) {
             }
             if (uri.startsWith("model://")) {
                 try {
-                    (void)service->loadModel({uri, 8192, {{"enable_thinking", false}, {"threads", 2}}, 0}).get();
-                    model = std::make_shared<a::ServiceModel>(*service);
+                    const auto loaded = service->loadModel({uri, 8192, {{"enable_thinking", false}, {"threads", 2}}, 0}).get();
+                    if (loaded.contextTokens > 0)
+                        explanationTokens = std::min(1536, std::max(128, loaded.contextTokens / 4));
+                    model = std::make_shared<dreamscapes::FailureModelBudget>(std::make_shared<a::ServiceModel>(*service));
                 } catch (const std::exception& error) { modelError = QString::fromUtf8(error.what()); }
             } else modelError = "No compatible installed chat model was found in the diagnostic model catalog.";
         } else modelError = "No local language-model catalog is available. This is an evidence-based explanation; no language-model inference was performed.";
@@ -93,9 +98,12 @@ int main(int argc, char** argv) {
             "Do not claim a repair or retry occurred. Do not request or execute tools. Do not invent missing diagnostics. "
             "Explain how the failed stage and submitted settings relate to the error; cite exact relevant error text. Answer in the application's English language.");
         a::RunRequest request; request.sessionId = session.id; request.maxTurns = 1;
-        request.generation.maxTokens = 1536; request.generation.temperature = 0;
-        // Preserve all evidence in the factual report; bound the optional model's input separately.
-        request.prompt = report["details"].toString().left(18000);
+        request.generation.maxTokens = explanationTokens; request.generation.temperature = 0;
+        // Put the native failure first: the old worker may have returned only a
+        // numeric exit code, while the job telemetry contains the engine error.
+        // The complete evidence remains in the factual report. The model
+        // adapter measures and bounds its separate input with its tokenizer.
+        request.prompt = dreamscapes::failureModelPrompt(evidence, report);
         const auto run = engine.run(request);
         if (run.result.wait_for(std::chrono::seconds(60)) != std::future_status::ready) {
             run.cancel(); throw std::runtime_error("The local explanation model exceeded its 60-second reasoning budget.");

@@ -10,7 +10,7 @@ LV.VStack { alignment: Qt.AlignLeft;
     property var file: ({})
     readonly property bool hasFile: NativeData.facts.key(file).length > 0
     readonly property url previewSource: hasFile ? previews.sourceForFile(file) : ""
-    readonly property var facts: Object.assign({}, file, details.metadata)
+    readonly property var facts: NativeData.facts.merged(file, details.metadata)
     HomeFileDetails { id: details; file: root.file }
     signal fileRequested(var file)
     spacing: LV.Theme.gap8

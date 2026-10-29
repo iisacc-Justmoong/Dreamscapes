@@ -49,7 +49,7 @@ Item {
                     id: choice
                     required property var modelData
                     readonly property var value: modelData.value === undefined ? modelData : modelData.value
-                    readonly property bool selected: modelData.active ? modelData.active.indexOf(root.values[root.definition.key]) >= 0 : root.values[root.definition.key] === value
+                    readonly property bool selected: modelData.active ? NativeData.presentation.indexOf(modelData.active, root.values[root.definition.key]) >= 0 : root.values[root.definition.key] === value
                     objectName: "viewOption-" + root.family + "-" + root.definition.key + "-" + value
                     width: (root.width - (root.definition.options.length - 1) * 4) / root.definition.options.length
                     height: 24
@@ -96,8 +96,7 @@ Item {
                     function commit() {
                         if (!dirty) return
                         dirty = false
-                        const value = entry.modelData[0] === "color" ? text.trim() : Number(text.trim().replace(/\s*(px|mm|pt|%|°)\s*$/, ""))
-                        if (text.trim().length) root.edit(entry.modelData[0], value)
+                        root.canvas.viewOptions.editText(root.section,entry.modelData[0],text)
                         text = display
                     }
                     onAccepted: { commit(); root.forceActiveFocus() }
@@ -122,8 +121,8 @@ Item {
         id: menu
         objectName: "viewOptionMenu-" + root.family + "-" + (root.definition.key || "")
         showIconSlot: false
-        selectedIndex: (root.definition.options || []).indexOf(root.values[root.definition.key])
-        items: (root.definition.options || []).map(function(value) { return {label: String(value)} })
+        selectedIndex: NativeData.presentation.indexOf((root.definition.options || []), root.values[root.definition.key])
+        items: NativeData.presentation.labels(root.definition.options || [], "")
         onItemTriggered: function(index) { root.edit(root.definition.key, root.definition.options[index]) }
     }
     Rectangle {

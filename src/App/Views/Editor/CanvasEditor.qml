@@ -12,18 +12,18 @@ Item {
     id: root
     objectName: "canvasEditor"
     property var generationRuntime: null
-    property var editorJobIds: []
-    property bool submitting: false
-    property string generationOperation: ""
-    property var previewData: ({})
-    property string previewTool: ""
-    property string previewField: ""
-    property var previewValues: ({})
+    property alias editorJobIds: nativeWorkspace.editorJobIds
+    property alias submitting: nativeWorkspace.submitting
+    property alias generationOperation: nativeWorkspace.generationOperation
+    property alias previewData: nativeWorkspace.previewData
+    property alias previewTool: nativeWorkspace.previewTool
+    property alias previewField: nativeWorkspace.previewField
+    property alias previewValues: nativeWorkspace.previewValues
     property bool applicationModalActive: false
     property bool applicationSearchActive: false
     readonly property bool modalActive: applicationModalActive || viewBar.modalActive || toolSheet.modalActive || documentControls.modalActive || previewSheet.visible || sourceDialog.visible || exportDialog.visible || advancedSheet.visible || editorTimeline.modalActive || (desktopDock.item ? desktopDock.item.backgroundModalActive || desktopDock.item.layerModalActive || desktopDock.item.graphicModalActive || desktopDock.item.elementsModalActive || desktopDock.item.photoModalActive : false)
-    property int selectedPath: -1
-    property var generationTargetCanvas: null
+    property alias selectedPath: nativeWorkspace.selectedPath
+    property alias generationTargetCanvas: nativeWorkspace.generationTargetCanvas
     property url imageSource: ""
     property var generationResult: ({})
     property var generationResults: []
@@ -32,29 +32,46 @@ Item {
     readonly property alias project: canvasProject
     readonly property var blankCanvas: canvasProject.currentCanvas
     readonly property string documentError: canvasProject.error
-    property var generationResultsByArtboard: ({})
+    property alias generationResultsByArtboard: nativeWorkspace.generationResultsByArtboard
     readonly property var sourceArtboards: canvasProject ? canvasProject.artboards : []
     readonly property string activeArtboardId: canvasProject && sourceArtboards[canvasProject.currentIndex] ? sourceArtboards[canvasProject.currentIndex].id : ""
-    readonly property var activeGenerationResult: activeArtboardId
-        ? generationResultsByArtboard[activeArtboardId] || ({}) : generationResults[canvasProject ? canvasProject.currentIndex : 0] || generationResult
-    function syncGenerationMetadata() {
-        if (!canvasProject) return
-        const mapped = ({})
-        sourceArtboards.forEach(function(board, index) {
-            mapped[board.id] = generationResults.length === 1 ? generationResults[0] : generationResults[index] || ({})
-        })
-        generationResultsByArtboard = mapped
+    readonly property alias activeGenerationResult: nativeWorkspace.activeGenerationResult
+    NativeEditorWorkspace {
+        id: nativeWorkspace
+        objectName: "editorNativeWorkspace"
+        project: canvasProject
+        imageImporter: root.imageImportRequest
+        toolState: toolSheet.nativeModel
+        generation: root.generationRuntime
+        generationResult: root.generationResult
+        generationResults: root.generationResults
+        onSourceRequested: (tool, values, directory, filters) => {
+            sourceDialog.targetTool = tool
+            sourceDialog.settings = values
+            if (directory.toString().length) sourceDialog.currentFolder = directory
+            sourceDialog.nameFilters = filters
+            sourceDialog.open()
+        }
+        onPreviewRequested: previewSheet.open()
+        onPreviewCloseRequested: previewSheet.close()
+        onOpenDocumentRequested: (copy, directory) => documentControls.requestOpen(copy, directory)
+        onSaveAsRequested: (name, directory) => documentControls.requestSaveAs(name, directory)
+        onPaintColorRequested: documentControls.showPaintColor()
+        onExportRequested: (format, name, directory) => {
+            if (directory.toString().length) exportDialog.currentFolder = directory
+            exportDialog.nameFilters = [format + " (*." + format.toLowerCase() + ")"]
+            exportDialog.format = format
+            exportDialog.selectedFile = name + "." + format.toLowerCase()
+            exportDialog.open()
+        }
     }
-    onGenerationResultsChanged: syncGenerationMetadata()
-    function createBlankCanvas(specification) { imageImporter.cancel(); canvasProject.cancelDocumentOpen(); return canvasProject.createCanvas(specification) }
-    function openDocumentSource(source, asCopy) {
-        imageImporter.cancel()
-        return canvasProject.openDocumentSource(source, Boolean(asCopy))
-    }
+    function syncGenerationMetadata() { nativeWorkspace.syncGenerationMetadata() }
+    function createBlankCanvas(specification) { return nativeWorkspace.createCanvas(specification) }
+    function openDocumentSource(source, asCopy) { return nativeWorkspace.openDocument(source,Boolean(asCopy)) }
     readonly property bool documentOpening: canvasProject.opening
     function cancelDocumentOpen() { canvasProject.cancelDocumentOpen() }
     function saveDocumentAs(destination) { return canvasProject.saveDocumentAs(destination) }
-    function openImages(sources, entries) { canvasProject.cancelDocumentOpen(); return imageImporter.start(sources, entries || [], false) }
+    function openImages(sources, entries) { return nativeWorkspace.openImages(sources,entries || []) }
     function localFileSource(path) { return blankCanvas.localFileSource(path) }
     property bool mobileLayout: false
     readonly property string selectedTool: toolToolbar.currentTool
@@ -114,7 +131,7 @@ Item {
     Connections {
         target: canvasProject
         function onCurrentCanvasChanged() {
-            root.generationResultsByArtboard = ({})
+            nativeWorkspace.syncGenerationMetadata()
             root.mountCanvas()
             Qt.callLater(root.syncGenerationMetadata)
         }
@@ -122,102 +139,13 @@ Item {
     }
     Connections {
         target: blankCanvas
-        function onHistoryRestored(settings) {
-            const restored = Object.assign({}, settings);
-            // Graphic drafts are UI input state. Undo restores document pixels
-            // while retaining the user's current values in each graphic panel.
-            ["color", "auto-enhance", "masking", "effects"].forEach(function(tool) {
-                const draft = toolSheet.settingsByTool[tool]
-                if (!draft || !draft.graphicDrafts) return
-                restored[tool] = Object.assign({}, restored[tool] || {}, {
-                    graphicDrafts: draft.graphicDrafts,
-                    graphicOperation: draft.graphicOperation,
-                    graphicParameters: draft.graphicParameters
-                })
-            })
-            // Acquisition settings describe the next source, independent of
-            // the document transaction that placed the previous source.
-            const photoDraft = toolSheet.settingsByTool["camera-photo"]
-            if (photoDraft) restored["camera-photo"] = photoDraft
-            toolSheet.settingsByTool = restored
-            toolSheet.notice = ""
-            toolSheet.syncElementSettings(true)
-        }
+        function onHistoryRestored(settings) { toolSheet.nativeModel.restoreSettings(settings) }
     }
-    function requestSource(tool, values) {
-        sourceDialog.targetTool = tool
-        sourceDialog.settings = values
-        const folder = blankCanvas.localDirectory(tool === "file" ? values["field-0"] || "" : values["field-8"] || "")
-        if (folder.toString().length) sourceDialog.currentFolder = folder
-        sourceDialog.nameFilters = tool === "audio-track" ? [qsTr("WAV audio (*.wav)")]
-            : [qsTr("Images, canvases and vectors (*.iisc *.png *.jpg *.jpeg *.webp *.bmp *.tif *.tiff *.svg)")]
-        sourceDialog.open()
-    }
-    function showPreview(tool, field, values) {
-        previewTool = tool
-        previewField = field
-        selectedPath = -1
-        const snapshot = Object.assign({}, values)
-        if (generationRuntime) snapshot.libraryDirectory = generationRuntime.containerPath
-        previewValues = snapshot
-        previewData = blankCanvas.toolPreview(tool, field, snapshot)
-        previewSheet.open()
-    }
-    function submitGeneration(tool, field, values) {
-        if (!generationRuntime) { toolSheet.notice = qsTr("The generation runtime is not attached."); return }
-        let operation = field === "field-14" ? "Outpaint" : field === "field-10" || tool === "retouch" || tool === "eraser" ? "Inpaint" : field === "field-7" ? "Image-to-image" : values.selector || "Text-to-image"
-        let recipe = values
-        if (tool === "background") {
-            operation = "Background"
-            recipe = Object.assign({}, values, {"field-0": values.replacePrompt || values["field-12"],
-                "field-2": !values.replaceModel || values.replaceModel === "Current generation model" ? "Auto" : values.replaceModel,
-                "field-5": values.replaceStrength === undefined ? 60 : values.replaceStrength})
-        }
-        if (tool === "fill") { operation = "Fill"; recipe = {"field-0": values["field-12"], "field-5": values["field-13"]} }
-        if (tool === "retouch") recipe = {"field-0": values["field-5"], "field-5": values["field-6"]}
-        if (tool === "eraser") recipe = toolSheet.settingsByTool.generative || NativeData.tools.defaults(NativeData.tools.tool("generative"))
-        const parameters = blankCanvas.generationParameters(operation, recipe)
-        if (!Object.keys(parameters).length) { toolSheet.notice = blankCanvas.error; return }
-        generationOperation = operation
-        generationTargetCanvas = blankCanvas
-        submitting = true
-        const id = generationRuntime.enqueueAdvanced(parameters)
-        submitting = false
-        toolSheet.notice = id.length ? qsTr("Generation queued. Open results to place a variation.") : generationRuntime.errorString
-    }
-    function handleToolAction(toolId, fieldId, values) {
-        toolActionRequested(toolId, fieldId, values)
-        toolSheet.notice = ""
-        if (toolId === "elements" && fieldId === "image-fill") { requestSource("elements", values); return }
-        const definition = NativeData.tools.tool(toolId)
-        if (fieldId === "capabilities") {
-            previewTool = "capabilities"
-            previewData = {title: qsTr("Tool availability"), description: qsTr("Required document, device and runtime capabilities"), items: definition.fields.map(function(f) { const c = blankCanvas.toolControlState(toolId, f.id, values); return {label: f.label, description: c.reason || qsTr("Connected"), enabled: false} }).filter(function(f) { return f.description !== qsTr("Connected") })}
-            previewSheet.open()
-            return
-        }
-        const field = definition.fields.find(function(entry) { return entry.id === fieldId })
-        if (field && field.type === "Visual") { showPreview(toolId, fieldId, values); return }
-        if (toolId === "file" && fieldId === "field-3") documentControls.requestOpen(values["field-2"], blankCanvas.localDirectory(values["field-0"] || ""))
-        else if (toolId === "file" && fieldId === "field-6") requestSource("file", values)
-        else if (toolId === "file" && fieldId === "field-12") {
-            if (values["field-1"] === "IISC" && values["field-11"]) documentControls.requestSaveAs(values["field-10"], blankCanvas.localDirectory(values["field-0"] || ""))
-            else if (!blankCanvas.prepareImageExport()) toolSheet.notice = blankCanvas.error
-            else { const folder = blankCanvas.localDirectory(values["field-0"] || ""); if (folder.toString().length) exportDialog.currentFolder = folder; exportDialog.nameFilters = [values["field-1"] + " (*." + String(values["field-1"]).toLowerCase() + ")"]; exportDialog.format = values["field-1"]; exportDialog.selectedFile = values["field-10"] + "." + String(values["field-1"]).toLowerCase(); exportDialog.open() }
-        }
-        else if (toolId === "camera-photo" && fieldId === "field-7") requestSource(toolId, values)
-        else if (toolId === "audio-track" && fieldId === "field-3") requestSource(toolId, values)
-        else if (toolId === "layers" && ["field-11", "field-15"].indexOf(fieldId) >= 0) showPreview(toolId, fieldId, values)
-        else if (toolId === "brush" && fieldId === "field-20") documentControls.showPaintColor()
-        else if (toolId === "brush" && fieldId === "field-3") showPreview(toolId, "field-2", values)
-        else if (toolId === "retouch" && fieldId === "field-18") showPreview(toolId, fieldId, values)
-        else if (toolId === "generative" && ["field-3", "field-7", "field-10", "field-14"].indexOf(fieldId) >= 0 || toolId === "background" && fieldId === "field-15" && values["field-13"] === "Generate" || toolId === "fill" && fieldId === "field-15" || toolId === "retouch" && (fieldId === "field-7" || fieldId === "field-3" && values["field-2"] === "Generate") || toolId === "eraser" && fieldId === "field-7" && values["field-6"] === "Generate") submitGeneration(toolId, fieldId, values)
-        else if (toolId === "background" && fieldId === "field-15" && values["field-13"] !== "Generate") requestSource(toolId, values)
-        else if (toolId === "generative" && fieldId === "field-22") requestSource("reference", values)
-        else if (toolId === "layers" && fieldId === "field-3") submitGeneration("generative", "field-7", toolSheet.settingsByTool.generative || NativeData.tools.defaults(NativeData.tools.tool("generative")))
-        else if (!blankCanvas.executeToolAction(toolId, fieldId, values)) toolSheet.notice = blankCanvas.error
-        else toolSheet.notice = blankCanvas.toolHint
-    }
+
+    function requestSource(tool, values) { nativeWorkspace.requestSource(tool, values) }
+    function showPreview(tool, field, values) { nativeWorkspace.showPreview(tool, field, values) }
+    function submitGeneration(tool, field, values) { nativeWorkspace.submitGeneration(tool, field, values) }
+    function handleToolAction(toolId, fieldId, values) { toolActionRequested(toolId, fieldId, values); nativeWorkspace.handleToolAction(toolId, fieldId, values) }
     Component.onCompleted: {
         if (initializeBlankCanvas && !blankCanvas.documentReady) createBlankCanvas({width: 1024, height: 1024, unit: "px", background: "White"})
         blankCanvas.configureTool(toolSheet.toolId, toolSheet.values)
@@ -374,7 +302,7 @@ Item {
                     layer.enabled: root.blankCanvas.graphicsBackend !== "software" && root.blankCanvas.viewOptions.display.channel !== "RGB"
                     layer.effect: ShaderEffect {
                         property var source
-                        property int channel: ["RGB","Red","Green","Blue","Alpha"].indexOf(root.blankCanvas.viewOptions.display.channel)
+                        property int channel: NativeData.presentation.indexOf(["RGB","Red","Green","Blue","Alpha"], root.blankCanvas.viewOptions.display.channel)
                         property vector4d canvasRect: Qt.vector4d(
                             (root.blankCanvas.panX + (root.blankCanvas.editingOrigin.x - root.blankCanvas.canvasOriginX) * root.blankCanvas.zoom) / Math.max(1, width),
                             (root.blankCanvas.panY + (root.blankCanvas.editingOrigin.y - root.blankCanvas.canvasOriginY) * root.blankCanvas.zoom) / Math.max(1, height),
@@ -404,7 +332,7 @@ Item {
             EditorAlignmentOverlay { objectName: "editorSnapOverlay"; anchors.fill: parent; z: 217; canvas: root.blankCanvas; family: "snap" }
             EditorAlignmentOverlay { objectName: "editorGuideInput"; anchors.fill: parent; z: 219; enabled: !root.modalActive; canvas: root.blankCanvas; family: "guide-input" }
             Repeater {
-                model: root.blankCanvas.alignmentFeedback.concat(guidesOverlay.labels)
+                model: NativeData.presentation.concatenate(root.blankCanvas.alignmentFeedback, guidesOverlay.labels)
                 LV.Label {
                     required property var modelData
                     visible: Boolean(modelData.label)
@@ -631,9 +559,10 @@ Item {
         engine: blankCanvas
         projectRuntime: canvasProject
         generationRuntime: root.generationRuntime
+        onClosed: if (root.mobileLayout && root.visible) Qt.callLater(toolToolbar.focusCurrent)
         onToolIdChanged: {
             if (toolToolbar.currentTool === toolId) return
-            const index = toolToolbar.tools.findIndex(function(tool) { return tool.key === toolSheet.toolId })
+            const index = NativeData.presentation.indexOf(toolToolbar.tools, toolSheet.toolId, "key")
             if (index >= 0) toolToolbar.syncTool(index)
         }
         onSourceRequested: (toolId, values) => root.requestSource(toolId, values)
@@ -644,28 +573,15 @@ Item {
         objectName: "editorSourceDialog"
         property string targetTool: "file"
         property var settings: ({})
-        onAccepted: {
-            if (targetTool === "reference") {
-                toolSheet.setValue("field-4", selectedFile.toString())
-            } else if (!blankCanvas.importToolSource(selectedFile, targetTool, settings)) toolSheet.notice = blankCanvas.error
-            else if (targetTool === "audio-track") {
-                const authoritative = blankCanvas.toolValues("audio-track")
-                const all = Object.assign({}, toolSheet.settingsByTool)
-                all["audio-track"] = authoritative
-                toolSheet.settingsByTool = all
-            }
-        }
-        onRejected: if (targetTool === "elements") { toolSheet.syncElementSettings(); toolSheet.notice = "" }
+        onAccepted: nativeWorkspace.importSource(selectedFile, targetTool, settings)
+        onRejected: nativeWorkspace.sourceRejected(targetTool)
     }
     Dialogs.FileDialog {
         id: exportDialog
         objectName: "editorExportDialog"
         property string format: "PNG"
         fileMode: Dialogs.FileDialog.SaveFile
-        onAccepted: {
-            if (blankCanvas.exportImage(selectedFile, format)) toolSheet.notice = qsTr("Exporting frame…")
-            else toolSheet.notice = blankCanvas.error
-        }
+        onAccepted: nativeWorkspace.exportImage(selectedFile, format)
         onRejected: blankCanvas.cancelImageExport()
     }
     Connections {
@@ -680,10 +596,6 @@ Item {
     Connections {
         target: blankCanvas.media.audioPlayback
         function onFailed(id, message) { toolSheet.notice = message }
-    }
-    Connections {
-        target: root.generationRuntime
-        function onSubmissionQueued(ids) { if (root.submitting) root.editorJobIds = ids.slice() }
     }
     Frames.PanelSheet {
         id: previewSheet
@@ -716,26 +628,7 @@ Item {
                     showDescription: description.length > 0
                     showLeadingIcon: false
                     enabled: modelData.enabled !== false && Boolean(modelData.action)
-                    onClicked: {
-                        if (modelData.action === "selectLayer") blankCanvas.selectLayer(modelData.id)
-                        else if (modelData.action === "brushPreset") { toolSheet.setValue("field-1", modelData.value); toolSheet.setValue("field-5", modelData.value === "Paint" ? 60 : 100) }
-                        else if (modelData.action === "filterPreset") toolSheet.setValue("field-1", modelData.value)
-                        else if (modelData.action === "palette") toolSheet.setValue(modelData.field || "field-1", modelData.value)
-                        else if (modelData.action === "editPath") root.selectedPath = modelData.index
-                        else if (modelData.action === "job") root.generationRuntime.cancel(modelData.id)
-                        else if (modelData.action === "region") { const region = {selector: "Region", "field-14": modelData.label, "field-15": modelData.label}; blankCanvas.configureTool("masking", region); blankCanvas.executeToolAction("masking", "field-13", region); blankCanvas.configureTool(toolSheet.toolId, toolSheet.values) }
-                        else if (modelData.action === "importAsset") blankCanvas.importToolSource(modelData.source, "asset", toolSheet.values)
-                        else if (modelData.action === "applyMask") blankCanvas.executeToolAction("layers", "field-23", toolSheet.values)
-                        else if (modelData.action === "applyRepair") {
-                            if (!blankCanvas.executeToolAction("retouch", "field-18", root.previewValues)) toolSheet.notice = blankCanvas.error
-                            else previewSheet.close()
-                            return
-                        }
-                        else if (modelData.action === "clearSelection") blankCanvas.clearAreaSelection()
-                        else if (modelData.action === "playAudio") blankCanvas.playAudio()
-                        else if (modelData.action === "stopAudio") blankCanvas.media.stop()
-                        if (root.previewTool !== "generation-results") root.previewData = blankCanvas.toolPreview(root.previewTool, root.previewField, root.previewValues)
-                    }
+                    onClicked: nativeWorkspace.activatePreview(modelData)
                 }
             }
             LV.HStack {
@@ -756,14 +649,14 @@ Item {
                 }
             }
             Repeater {
-                model: root.generationRuntime ? root.generationRuntime.completedResults.filter(function(result) { return root.editorJobIds.indexOf(result.id) >= 0 }) : []
+                model: nativeWorkspace.completedResults
                 Views.PanelRow {
                     required property var modelData
                     width: parent.width
                     type: LV.ListItem.Navigation
                     label: qsTr("Place variation: %1").arg(modelData.id)
                     showLeadingIcon: false
-                    onClicked: if (root.generationTargetCanvas && root.generationTargetCanvas.placeGenerated(modelData.documentSource || modelData.imageSource, root.generationOperation)) previewSheet.close()
+                    onClicked: nativeWorkspace.placeVariation(modelData)
                 }
             }
             LV.LabelButton { text: qsTr("Close"); onClicked: previewSheet.close() }
@@ -776,7 +669,7 @@ Item {
         anchors.topMargin: 44
         visible: root.editorJobIds.length > 0
         text: qsTr("Generation results")
-        onClicked: { root.previewData = ({title: qsTr("Generation results"), description: toolSheet.notice, items: root.editorJobIds.map(function(id) { const job = root.generationRuntime.jobs.find(function(j) { return j.id === id }); const pending = job && ["queued", "running"].indexOf(String(job.state).toLowerCase()) >= 0; return {id: id, label: pending ? qsTr("Cancel %1").arg(id) : id, description: job ? job.state + (job.error ? ": " + job.error : "") : "", action: "job", enabled: pending} })}); root.previewTool = "generation-results"; previewSheet.open() }
+        onClicked: nativeWorkspace.showGenerationResults()
     }
     LV.LabelButton {
         objectName: "editorAdvancedGeneration"
@@ -798,15 +691,7 @@ Item {
             width: parent ? parent.width : 402
             models: root.generationRuntime ? root.generationRuntime.models : []
             vaes: root.generationRuntime ? root.generationRuntime.vaes : []
-            onGenerateRequested: function(parameters) {
-                root.generationTargetCanvas = blankCanvas
-                root.generationOperation = "Text-to-image"
-                root.submitting = true
-                const id = root.generationRuntime.enqueueAdvanced(parameters)
-                root.submitting = false
-                toolSheet.notice = id.length ? qsTr("Generation queued. Open results to place a variation.") : root.generationRuntime.errorString
-                if (id.length) advancedSheet.close()
-            }
+            onGenerateRequested: parameters => { if (nativeWorkspace.submitAdvanced(parameters)) advancedSheet.close() }
         }
     }
     Shortcut { sequence: StandardKey.Open; enabled: root.visible && !root.modalActive; onActivated: documentControls.requestOpen() }

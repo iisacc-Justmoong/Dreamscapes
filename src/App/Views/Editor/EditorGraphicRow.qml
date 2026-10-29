@@ -80,10 +80,8 @@ Item {
                 enabled: root.editable
                 Accessible.name: root.entry.label
                 onClicked: {
-                    const entries = root.entry.options || []
-                    if (!entries.length) return
-                    const at = entries.findIndex(function(o) { return (o.value === undefined ? o : o.value) === root.currentValue() })
-                    root.click(typeof entries[(at + 1) % entries.length] === "object" ? entries[(at + 1) % entries.length] : {value: entries[(at + 1) % entries.length]})
+                    const next = NativeData.presentation.nextChoice(root.entry.options || [], root.currentValue())
+                    if (next !== undefined && next !== null) root.click(next)
                 }
             }
             LV.Slider {
@@ -266,7 +264,7 @@ Item {
                     LV.LabelButton {
                         required property var modelData
                         required property int index
-                        objectName: modelData.target && ["preview", "apply", "overview"].indexOf(modelData.value) < 0 ? "graphicNavigate-" + modelData.target : "graphicAction-" + root.entry.id + "-" + index
+                        objectName: modelData.target && NativeData.presentation.indexOf(["preview", "apply", "overview"], modelData.value) < 0 ? "graphicNavigate-" + modelData.target : "graphicAction-" + root.entry.id + "-" + index
                         width: (root.width - ((root.entry.options || []).length - 1) * 8) / (root.entry.options || []).length
                         height: 22
                         tone: LV.AbstractButton.Default

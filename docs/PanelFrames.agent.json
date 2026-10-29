@@ -1,0 +1,515 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:75acc02c5e245f46a9567773aa26d66c71e4a26739cfae4a09524b94da8bb333",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/PanelFrames.md",
+    "sha256": "6edd72270922c8b37ce1c69b29a72f777e1ba8003629c66c01832d78548e0fa9",
+    "bytes": 7069,
+    "line_count": 105,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "작업 패널의 외곽선",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# 작업 패널의 외곽선\n",
+      "level": 1,
+      "title": "작업 패널의 외곽선"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 8,
+      "raw": "Dreamscapes의 작업 패널은 거의 검정에 가까운 다크 그레이 1px 외곽선과 반경 0의 직각 모서리를 사용한다.\n인접한 작업 영역의 경계를 명확히 보여 주기 위한 앱 공통 표현이다.\n외곽선 색상은 `PanelFrame`의 `panelBorderColor` 스타일 토큰이 소유하는\n불투명한 `#0C0C0C`이며 폭은\nQML 좌표계의 1 논리 픽셀이다. 고해상도 화면에서도\n패널과 같은 좌표계를 사용한다.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 10,
+      "end_line": 14,
+      "raw": "Dreamscapes Figma에서 기존 작업 패널의 경계는 로컬 의미 변수\n`Panel/Border`를 사용한다. 이 변수는 `Color/Neutral/12`의 `#0C0C0C`를\n참조한다. 앱 토큰과 Figma 변수는 별도 정의이므로 변경 시 함께 갱신한다.\n에디터와 비디오 타임라인의 기존 프레임, 퍼블리싱의 출처 패널 및 계정\n상세 패널에 적용하며, 홈이나 상단 바에 새 프레임을 추가하지 않는다.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 15,
+      "end_line": 15,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "heading",
+      "start_line": 16,
+      "end_line": 16,
+      "raw": "## 적용 범위\n",
+      "level": 2,
+      "title": "적용 범위"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "list",
+      "start_line": 18,
+      "end_line": 25,
+      "raw": "- Home 개선안과 공통 탐색 사이드바는 외곽선 적용에서 제외한다. 생성 입력·큐·파일 목록·선택 파일·최근 생성 결과는 투명 표면을 사용한다.\n- 이미지·비디오: 생성 설정, 입력 캔버스, 결과 미리보기와 타임라인\n- 생성 검토: 헤더, 큐, 결과 그리드, Inspector, 비교 화면, 선택 작업 바\n- 에디터: 문서 컨트롤, 캔버스 작업 영역, 페이지 목록, 세로 도구 모음,\n  도구 Inspector, 타임라인, 상세 보기 옵션과 도구 Sheet. 상단 보기 바와\n  공통 탐색 사이드바는 제외한다.\n- 파일 목록, 환경설정의 목록 패널, 퍼블리싱의 문서·캔버스·설정·리뷰 영역\n- 모바일: 기존 레이아웃을 유지하는 작업 영역과 Sheet\n",
+      "items": [
+        {
+          "marker": "-",
+          "text": "Home 개선안과 공통 탐색 사이드바는 외곽선 적용에서 제외한다. 생성 입력·큐·파일 목록·선택 파일·최근 생성 결과는 투명 표면을 사용한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "이미지·비디오: 생성 설정, 입력 캔버스, 결과 미리보기와 타임라인",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "생성 검토: 헤더, 큐, 결과 그리드, Inspector, 비교 화면, 선택 작업 바",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "에디터: 문서 컨트롤, 캔버스 작업 영역, 페이지 목록, 세로 도구 모음,",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "파일 목록, 환경설정의 목록 패널, 퍼블리싱의 문서·캔버스·설정·리뷰 영역",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "모바일: 기존 레이아웃을 유지하는 작업 영역과 Sheet",
+          "checked": null
+        }
+      ]
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 26,
+      "end_line": 26,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 27,
+      "end_line": 29,
+      "raw": "반경 0은 패널 표면에 적용한다. 이미지 카드, 버튼, 입력란, 색상 스와치,\n선택 표시와 타임라인 클립은 각 컨트롤의 기존 LVRS 표현을 사용한다.\n툴팁·메뉴 및 운영체제가 제공하는 창과 파일 대화상자는 별도의 표면이다.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "heading",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "## 공유 경계\n",
+      "level": 2,
+      "title": "공유 경계"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 32,
+      "end_line": 32,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 33,
+      "end_line": 37,
+      "raw": "`PanelFrame`의 네 변은 `topEdge`, `rightEdge`, `bottomEdge`, `leftEdge`로\n개별 지정할 수 있다. 기본값은 모두 true이다. 독립 패널은 기존 네 변의\n외곽선을 유지하고, 맞닿은 에디터 패널은 공유 변을 한쪽에서만 그린다.\n네 변이 모두 켜진 경우 기존 Rectangle border를 사용하고, 일부 변만 켜진\n경우 정확히 한 논리 픽셀인 사각형으로 그린다. 레이아웃·입력 계약은 같다.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 38,
+      "end_line": 38,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 39,
+      "end_line": 45,
+      "raw": "에디터의 외곽, 캔버스 열의 우측, 툴바의 우측, 타임라인의 상단이 각각\n경계를 소유한다. Inspector와 캔버스는 이 선들로 둘러싸이므로 인접한\n두 패널 안쪽에 별도의 선이 생기는 2px 문제를 만들지 않는다.\n자세한 소유권과 최소형 타임라인은 [에디터 레이아웃](EditorCompactLayout.md)을 참조한다.\n앱의 새 캔버스 대화상자에도 같은 외곽선을 적용한다. LVRS Modal을 사용하는\n실패 설명·폴더 선택 대화상자는 공개 속성인 `frameCornerRadius`만 0으로\n설정한다. 해당 SDK는 Modal 프레임의 외곽선 속성을 공개하지 않는다.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 46,
+      "end_line": 46,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "heading",
+      "start_line": 47,
+      "end_line": 47,
+      "raw": "## 구현 계약\n",
+      "level": 2,
+      "title": "구현 계약"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 48,
+      "end_line": 48,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 49,
+      "end_line": 54,
+      "raw": "`src/App/Views/PanelFrame.qml`은 투명한 장식 전용 Rectangle이다.\n입력을 받지 않으며 접근성 탐색에서도 제외된다. 패널의 크기와 위치를\n따라갈 뿐 문서·파일·생성 상태를 변경하지 않는다. 자식 콘텐츠보다 위에서\n그리므로 캔버스나 스크롤 콘텐츠가 외곽선을 덮지 않는다.\n퍼블리싱 출처 패널처럼 자체 Rectangle을 유지해야 하는 경우에도 같은\n`panelBorderColor`를 참조한다.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 55,
+      "end_line": 55,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 56,
+      "end_line": 59,
+      "raw": "일반 Item 패널에서는 `readonly property Item panelFrame`에 프레임을 소유시키고\n시각적 부모를 해당 패널로 지정한다. Layout이나 LVRS의 기본 콘텐츠 별칭에\n프레임을 직접 삽입하지 않는다. 그렇지 않으면 장식이 새 행 또는 delegate로\n취급되어 간격과 높이가 바뀔 수 있다.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 60,
+      "end_line": 60,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 61,
+      "end_line": 64,
+      "raw": "스크롤하는 홈의 섹션은 Flickable의 `contentItem`에 프레임을 두고\n`target`으로 해당 섹션을 지정한다. 프레임이 대상까지의 조상 좌표를\n관찰하므로 리사이즈와 스크롤에 맞추어 이동한다. 고정된 스크롤 패널의\n외곽선은 viewport 자체를 부모로 사용한다.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 65,
+      "end_line": 65,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 66,
+      "end_line": 69,
+      "raw": "`PanelSheet.qml`은 LVRS Sheet의 공개 `background`와 `cornerRadius`만\n사용하는 앱 어댑터이다. 헤더·안전 영역·스크롤·포커스 반환은 기존 Sheet가\n관리한다. 배경 프레임은 콘텐츠 아래에 두어 불투명 표면이 컨트롤을 덮지\n않도록 한다. SDK 자체의 기본값이나 전역 Theme 배율은 변경하지 않는다.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 70,
+      "end_line": 70,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 71,
+      "end_line": 73,
+      "raw": "새 작업 패널을 추가할 때에는 공통 프레임을 사용하고 기존 배경의 반경을\n0으로 맞춘다. 프레임이 이미 있는 상위 패널의 단순 파라미터 행에는 중복\n외곽선을 추가하지 않는다. 패널 간 간격·크기·컨트롤 상태도 유지한다.\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 74,
+      "end_line": 74,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "heading",
+      "start_line": 75,
+      "end_line": 75,
+      "raw": "## 검증\n",
+      "level": 2,
+      "title": "검증"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 76,
+      "end_line": 76,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "paragraph",
+      "start_line": 77,
+      "end_line": 78,
+      "raw": "전용 테스트는 `tests/tst_panelframes.cpp`와 CTest의 `Dreamscapes.PanelFrames`이다.\n다음 계약을 실제 QML 장면에서 확인한다.\n"
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 79,
+      "end_line": 79,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "list",
+      "start_line": 80,
+      "end_line": 85,
+      "raw": "1. 모서리 픽셀이 `#0C0C0C`이며 외곽선 다음 픽셀부터 원래 배경이 보인다.\n2. 장식이 마우스 입력을 통과시키고 Layout의 행 높이와 간격을 바꾸지 않는다.\n3. Home 개선안의 표면과 사이드바는 프레임이 없으며, 그 외 기존 작업 패널은 각 화면의 계약을 유지한다.\n4. 에디터 도구 18개를 전환해도 Inspector의 프레임을 유지한다.\n5. 창 크기를 바꾸어도 외곽선이 대상의 위치와 크기를 따른다.\n6. Sheet의 표면이 직각이고 내부 콘텐츠가 유지된다.\n",
+      "items": [
+        {
+          "marker": "1.",
+          "text": "모서리 픽셀이 `#0C0C0C`이며 외곽선 다음 픽셀부터 원래 배경이 보인다.",
+          "checked": null
+        },
+        {
+          "marker": "2.",
+          "text": "장식이 마우스 입력을 통과시키고 Layout의 행 높이와 간격을 바꾸지 않는다.",
+          "checked": null
+        },
+        {
+          "marker": "3.",
+          "text": "Home 개선안의 표면과 사이드바는 프레임이 없으며, 그 외 기존 작업 패널은 각 화면의 계약을 유지한다.",
+          "checked": null
+        },
+        {
+          "marker": "4.",
+          "text": "에디터 도구 18개를 전환해도 Inspector의 프레임을 유지한다.",
+          "checked": null
+        },
+        {
+          "marker": "5.",
+          "text": "창 크기를 바꾸어도 외곽선이 대상의 위치와 크기를 따른다.",
+          "checked": null
+        },
+        {
+          "marker": "6.",
+          "text": "Sheet의 표면이 직각이고 내부 콘텐츠가 유지된다.",
+          "checked": null
+        }
+      ]
+    },
+    {
+      "id": "b000036",
+      "kind": "blank",
+      "start_line": 86,
+      "end_line": 86,
+      "raw": "\n"
+    },
+    {
+      "id": "b000037",
+      "kind": "paragraph",
+      "start_line": 87,
+      "end_line": 90,
+      "raw": "테스트는 `build/` 아래에 격리된 Society 컨테이너와 설정을 만들며 사용자\n저장소나 모델 추론을 사용하지 않는다. 실제 앱 QML을 그린 검증 이미지는\n`build/panel-frames/`에 저장한다. 빈 컨테이너 화면이므로 사용자 작업물이\n포함되지 않는다.\n"
+    },
+    {
+      "id": "b000038",
+      "kind": "blank",
+      "start_line": 91,
+      "end_line": 91,
+      "raw": "\n"
+    },
+    {
+      "id": "b000039",
+      "kind": "paragraph",
+      "start_line": 92,
+      "end_line": 98,
+      "raw": "기존 에디터 회귀 검사의 투명한 둥근 모서리 조건도 회색 직각 모서리의\n실제 픽셀 검사로 갱신한다. 홈의 생성 이력 회귀 검사는 원본 25개 파일의\n이름과 바이트가 유지되는지 검사한다. iiFileProvider `FileCatalog`가\n비동기로 만드는 `<원본>.iisacc.json` 동반 파일은 해당 SDK의 기존 계약이므로\n원본 파일 수에 포함하지 않는다. 그 외 새 파일·누락·원본 바이트 변경은\n실패로 취급한다. 이 변경으로 카탈로그 작성 시점에 따라 단순 전체 파일 수\n검사가 실패하던 문제를 제거하면서 원본 보존 검사를 강화한다.\n"
+    },
+    {
+      "id": "b000040",
+      "kind": "blank",
+      "start_line": 99,
+      "end_line": 99,
+      "raw": "\n"
+    },
+    {
+      "id": "b000041",
+      "kind": "fenced_code",
+      "start_line": 100,
+      "end_line": 105,
+      "raw": "```sh\ncmake --build build --target DreamscapesPanelFrameTests\nctest --test-dir build -R '^Dreamscapes.PanelFrames$' --output-on-failure\ncmake --build build --target Dreamscapes\nctest --test-dir build -R '^Dreamscapes.PackagedApplication$' --output-on-failure\n```\n",
+      "language": "sh",
+      "code": "cmake --build build --target DreamscapesPanelFrameTests\nctest --test-dir build -R '^Dreamscapes.PanelFrames$' --output-on-failure\ncmake --build build --target Dreamscapes\nctest --test-dir build -R '^Dreamscapes.PackagedApplication$' --output-on-failure\n",
+      "closed": true
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "작업 패널의 외곽선",
+      "anchor": "작업-패널의-외곽선",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000007",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "적용 범위",
+      "anchor": "적용-범위",
+      "start_line": 16
+    },
+    {
+      "block_id": "b000013",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "공유 경계",
+      "anchor": "공유-경계",
+      "start_line": 31
+    },
+    {
+      "block_id": "b000019",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "구현 계약",
+      "anchor": "구현-계약",
+      "start_line": 47
+    },
+    {
+      "block_id": "b000031",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "검증",
+      "anchor": "검증",
+      "start_line": 75
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000005",
+        "line": 14,
+        "text": "상세 패널에 적용하며, 홈이나 상단 바에 새 프레임을 추가하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000017",
+        "line": 45,
+        "text": "설정한다. 해당 SDK는 Modal 프레임의 외곽선 속성을 공개하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000021",
+        "line": 51,
+        "text": "따라갈 뿐 문서·파일·생성 상태를 변경하지 않는다. 자식 콘텐츠보다 위에서",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000023",
+        "line": 58,
+        "text": "프레임을 직접 삽입하지 않는다. 그렇지 않으면 장식이 새 행 또는 delegate로",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000027",
+        "line": 69,
+        "text": "않도록 한다. SDK 자체의 기본값이나 전역 Theme 배율은 변경하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000029",
+        "line": 73,
+        "text": "외곽선을 추가하지 않는다. 패널 간 간격·크기·컨트롤 상태도 유지한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000037",
+        "line": 88,
+        "text": "저장소나 모델 추론을 사용하지 않는다. 실제 앱 QML을 그린 검증 이미지는",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000039",
+        "line": 96,
+        "text": "원본 파일 수에 포함하지 않는다. 그 외 새 파일·누락·원본 바이트 변경은",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [
+      {
+        "block_id": "b000041",
+        "language": "sh",
+        "code": "cmake --build build --target DreamscapesPanelFrameTests\nctest --test-dir build -R '^Dreamscapes.PanelFrames$' --output-on-failure\ncmake --build build --target Dreamscapes\nctest --test-dir build -R '^Dreamscapes.PackagedApplication$' --output-on-failure\n"
+      }
+    ],
+    "links": [
+      {
+        "block_id": "b000017",
+        "label": "에디터 레이아웃",
+        "target": "EditorCompactLayout.md",
+        "kind": "relative",
+        "line": 42
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

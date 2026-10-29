@@ -22,7 +22,7 @@ LV.VStack {
     property bool loading: false
     property bool openFileAction: false
     property bool imageSelectionEnabled: false
-    readonly property var visibleFiles: Array.prototype.slice.call(files || [], 0, maximumItems)
+    readonly property var visibleFiles: NativeData.presentation.range(files || [], 0, maximumItems)
     readonly property alias count: cards.count
     readonly property real cardWidth: metrics.implicitWidth
     readonly property real cardHeight: metrics.implicitHeight

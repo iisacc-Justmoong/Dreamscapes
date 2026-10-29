@@ -1,4 +1,5 @@
 pragma ComponentBehavior: Bound
+import Dreamscapes.Storage 1.0
 import QtQuick
 import LVRS 1.0 as LV
 
@@ -7,8 +8,8 @@ LV.ComboBox {
     property var models: []
     property string selectedModel: ""
     property string settingLabel: ""
-    readonly property var entries: [{ id: "", name: qsTr("Automatic") }].concat(models)
-    readonly property int selectedIndex: entries.findIndex(function(entry) { return entry.id === root.selectedModel })
+    readonly property var entries: NativeData.presentation.prepend({ id: "", name: qsTr("Automatic") }, models)
+    readonly property int selectedIndex: NativeData.presentation.indexOf(entries, root.selectedModel, "id")
     signal modelSelected(string modelId)
     text: models.length === 0 && selectedModel.length === 0 ? qsTr("No models available")
         : selectedIndex >= 0 ? entries[selectedIndex].name : qsTr("Unavailable: %1").arg(selectedModel)

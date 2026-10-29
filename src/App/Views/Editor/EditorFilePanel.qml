@@ -15,20 +15,18 @@ Item {
     readonly property var information: toolState.projectRuntime && toolState.projectRuntime.currentCanvas === toolState.engine
         ? toolState.projectRuntime.fileInformation : toolState.engine ? toolState.engine.fileInformation : ({})
     readonly property var viewInformation: toolState.engine ? toolState.engine.fileViewInformation : ({})
-    readonly property int fieldCount: selectedView.sections.reduce(function(count, section) { return count + section.rows.length }, 0)
+    readonly property int fieldCount: NativeData.file.sectionRowCount(selectedView)
     readonly property int segmentCount: NativeData.file.views.length
     implicitWidth: 398
     implicitHeight: 766
 
     function selectView(id) {
-        if (!NativeData.file.views.some(function(view) { return view.id === id })) return false
+        if (!NativeData.file.containsView(id)) return false
         toolState.fileViewId = id
         return true
     }
     function value(key) {
-        if (Object.prototype.hasOwnProperty.call(viewInformation, key)) return String(viewInformation[key])
-        const recorded = information[key]
-        return recorded === undefined || recorded === null ? qsTr("Not available") : String(recorded)
+        return NativeData.presentation.fileField(viewInformation, information, key, qsTr("Not available"))
     }
     function sectionTitle(name) {
         if (name === "Sampling pass 01" && Number(information["StableDiffusionMetadata.samplingPasses"]) > 1) return qsTr("Sampling passes")

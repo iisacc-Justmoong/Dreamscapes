@@ -1,4 +1,5 @@
 #include "EditorViewOptions.h"
+#include "../../ViewModels/Native/ViewValue.h"
 #include <QColor>
 #include <QFile>
 #include <QJsonDocument>
@@ -247,4 +248,13 @@ bool EditorViewOptions::removeGuide(int index) {
     m_placedGuides.erase(m_placedGuides.begin() + index);
     emit guidesChanged();
     return true;
+}
+
+bool EditorViewOptions::editText(const QString &section,const QString &key,const QString &input) {
+    if(input.trimmed().isEmpty())return false;
+    if(key=="color")return edit(section,key,input.trimmed());
+    auto value=dreamscapes::vm::trim(input.toStdString());
+    for(const auto *unit:{"px","mm","pt","%","°"})if(value.ends_with(unit)){value=dreamscapes::vm::trim(value.substr(0,value.size()-std::char_traits<char>::length(unit)));break;}
+    const auto parsed=dreamscapes::vm::parseNumber(dreamscapes::vm::Value(dreamscapes::vm::Object{}),value,true);
+    return parsed.valid&&edit(section,key,dreamscapes::vm::number(parsed.value));
 }

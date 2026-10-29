@@ -66,12 +66,10 @@ FocusScope {
         return timelineView.frameLabel(frame);
     }
     function number(value) {
-        const match = String(value).match(/-?\d+/);
-        return match ? Number(match[0]) : NaN;
+        return stateModel.frameNumber(String(value));
     }
     function applyRange(first, last) {
-        if (Number.isInteger(first) && Number.isInteger(last))
-            stateModel.setRange(selected.id, first, last);
+        return stateModel.setRangeValues(selected.id, first, last);
     }
     function seekFrame(frame) {
         playing = false;
@@ -376,9 +374,7 @@ FocusScope {
                         text: root.frameLabel(root.stateModel.playhead)
                         Accessible.name: qsTr("Go to frame")
                         onAccepted: function (value) {
-                            const frame = root.number(value);
-                            if (Number.isFinite(frame))
-                                root.seekFrame(frame);
+                            root.stateModel.editFrameText(EditorTimelineModel.Seek, "", String(value));
                             root.editingTime = false;
                         }
                     }
@@ -822,7 +818,7 @@ FocusScope {
                                     clip: true
                                     color: LV.Theme.surfaceControl
                                     opacity: modelData.excluded || displayData.valid === false ? 0.4 : 1
-                                    border.width: root.stateModel.selectedIds.indexOf(modelData.id) >= 0 ? 1 : 0
+                                    border.width: NativeData.presentation.indexOf(root.stateModel.selectedIds, modelData.id) >= 0 ? 1 : 0
                                     border.color: LV.Theme.accent
                                     Image {
                                         id: preview
@@ -890,7 +886,7 @@ FocusScope {
                                         }
                                     }
                                     Repeater {
-                                        model: root.stateModel.selectedIds.indexOf(card.modelData.id) >= 0 && !card.modelData.locked ? ["in", "out"] : []
+                                        model: NativeData.presentation.indexOf(root.stateModel.selectedIds, card.modelData.id) >= 0 && !card.modelData.locked ? ["in", "out"] : []
                                         delegate: Rectangle {
                                             id: handle
                                             required property string modelData
@@ -1024,12 +1020,12 @@ FocusScope {
                                     root.stateModel.beginKeyDrag(pressedHit.id, mouse.x, timelineView.pixelsPerFrame, timelineView.snapTolerance);
                             } else if (pressedHit.kind === "clip") {
                                 const multiple = Boolean(mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier | Qt.ShiftModifier));
-                                if (multiple || root.stateModel.selectedIds.indexOf(pressedHit.id) < 0 || root.selectedKey.id)
+                                if (multiple || NativeData.presentation.indexOf(root.stateModel.selectedIds, pressedHit.id) < 0 || root.selectedKey.id)
                                     root.stateModel.selectClip(pressedHit.id, multiple);
                                 if (mouse.button === Qt.RightButton) {
                                     trackMenu.targetId = pressedHit.trackId;
                                     trackMenu.openFor(pointerInput, mouse.x, mouse.y);
-                                } else if (!pressedHit.locked && root.stateModel.tool !== "Blade" && root.stateModel.selectedIds.indexOf(pressedHit.id) >= 0) {
+                                } else if (!pressedHit.locked && root.stateModel.tool !== "Blade" && NativeData.presentation.indexOf(root.stateModel.selectedIds, pressedHit.id) >= 0) {
                                     root.stateModel.beginDrag(pressedHit.id, pressedHit.edge, mouse.x, timelineView.pixelsPerFrame, timelineView.snapTolerance);
                                 }
                             } else {
@@ -1150,7 +1146,7 @@ FocusScope {
                     enabled: !!root.selected.id && !root.selected.locked
                     Accessible.name: qsTr("Layer in frame")
                     onAccepted: function (value) {
-                        root.applyRange(root.number(value), root.selected.out);
+                        root.stateModel.editFrameText(EditorTimelineModel.In, root.selected.id, String(value));
                     }
                 }
                 Field {
@@ -1161,7 +1157,7 @@ FocusScope {
                     enabled: !!root.selected.id && !root.selected.locked
                     Accessible.name: qsTr("Layer out frame, exclusive")
                     onAccepted: function (value) {
-                        root.applyRange(root.selected.in, root.number(value));
+                        root.stateModel.editFrameText(EditorTimelineModel.Out, root.selected.id, String(value));
                     }
                 }
                 Field {
@@ -1172,7 +1168,7 @@ FocusScope {
                     enabled: !!root.selected.id && !root.selected.locked
                     Accessible.name: qsTr("Layer duration in frames")
                     onAccepted: function (value) {
-                        root.applyRange(root.selected.in, root.selected.in + root.number(value));
+                        root.stateModel.editFrameText(EditorTimelineModel.Duration, root.selected.id, String(value));
                     }
                 }
                 Field {
@@ -1183,8 +1179,7 @@ FocusScope {
                     enabled: !!root.selected.sourceEditable && !root.selected.locked
                     Accessible.name: qsTr("Source frame")
                     onAccepted: function (value) {
-                        const frame = root.number(value);
-                        if (Number.isInteger(frame)) root.stateModel.setSourceFrame(root.selected.id, frame);
+                        root.stateModel.editFrameText(EditorTimelineModel.Source, root.selected.id, String(value));
                     }
                 }
                 Repeater {
@@ -1255,7 +1250,7 @@ FocusScope {
                     visible: !!root.selectedKey.id
                     text: root.selectedKey.id ? "Key " + root.frameLabel(root.selectedKey.frame) : ""
                     onAccepted: function (value) {
-                        root.stateModel.moveKey(root.selectedKey.id, root.number(value));
+                        root.stateModel.editFrameText(EditorTimelineModel.Key, root.selectedKey.id, String(value));
                     }
                 }
                 Field {

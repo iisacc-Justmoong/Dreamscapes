@@ -1,0 +1,865 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:72f474e91c0abeddb47ad805e06829fadb5402171c6800debf0f2635b691298d",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/EditorLayerTimeline.md",
+    "sha256": "ecdeabcebd39b06c1b856b03e757808a98cd230e5e980ca2b3d6541dfc06ae11",
+    "bytes": 21862,
+    "line_count": 336,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "Native editor layer timeline",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Native editor layer timeline\n",
+      "level": 1,
+      "title": "Native editor layer timeline"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 6,
+      "raw": "데스크톱의 현재 표시 구조는 [간소화된 에디터 레이아웃](EditorCompactLayout.md)을\n따른다. 기본 타임라인은 높이 180px이며 재생·분할·삭제·맞춤만 한 줄에 표시한다.\n아래에 설명된 편집 도구, 키프레임·커브, 정밀 범위, 필터, 스냅 및 FPS 조작은\n`More`의 `Timeline options`에 그대로 존재한다. 모바일의 기존 조작 구조는 유지한다.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 8,
+      "end_line": 11,
+      "raw": "The editor implements the finalized Figma `1065:90081` layout. The design's\nShot terminology is replaced with **Layer**. `EditorTimelineModel` reads the\nopen native IISC document; the Video generation workspace retains its separate\nshot recipe.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 12,
+      "end_line": 12,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 13,
+      "end_line": 17,
+      "raw": "`Dreamscapes.Storage` is a static `NO_PLUGIN` module. The production entry point\nregisters `EditorTimelineModel` explicitly alongside `EditorCanvas`; the packaged\napplication startup regression verifies this path independently of test hosts.\nTool availability observes canvas/selection notifications, including documents\nopened after the view exists and lock changes on the selected layer.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "heading",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "## Data and timing\n",
+      "level": 2,
+      "title": "Data and timing"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 20,
+      "end_line": 20,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "list",
+      "start_line": 21,
+      "end_line": 53,
+      "raw": "- Visual rows use actual layer IDs and reverse document stack order, scoped to\n  the active artboard. Native audio tracks follow the visual rows.\n- Each visual layer has an independent duration. Parallel layers may overlap.\n  There is no summing of layer durations into a serial sequence.\n- An inclusive native range `[firstFrame, lastFrame]` appears as In\n  `firstFrame`, exclusive Out `lastFrame + 1`, and Duration `Out - In`.\n  Without an explicit range the layer spans `[0, document.frameCount)`.\n- Static bitmap/vector layers keep their source image/geometry throughout that\n  range. Dynamic sources use `resolveAssetAt`/native rendering for every frame;\n  existing sparse keys hold their previous content until the next key. Video\n  layers retain native source-in/out and end behavior.\n- New static layers without an authored range span at least one second at the\n  current native FPS: 24 frames at 24 fps, 30 at 30 fps, and 24 at 24000/1001 fps\n  (rounded up). A longer document gives the new layer its full existing extent.\n  Canvas backgrounds, image imports, paint, shapes and the Layer menu share this\n  default. One source asset is held across the range; no duplicate images or\n  synthetic frame keys are created.\n- A legacy one-frame, all-static document with no authored ranges, motion, frame\n  keys or audio receives the same default when opened. Normal file opening\n  synchronizes the updated native duration; opening a copy preserves its source.\n  Explicit short ranges remain editable, including a deliberately trimmed\n  one-frame still. Extending a document for a new still freezes any existing\n  implicit layer range at its previous extent, preserving animation timing.\n  Static layers spanning the complete document remain eligible for Merge Down,\n  whether their full range is explicit or implicit; trimmed ranges are protected.\n- The ruler, playback and precision controls use native frame count and\n  rational FPS. Ranges that extend past the document grow its frame extent;\n  invalid ranges never commit a partial change.\n- Thumbnails render the actual layer through `renderFrameLayerTiles`, including\n  its appearance, at a bounded 64-pixel output. Audio waveforms summarize the\n  clip's actual PCM samples and source offset. There are no sample assets.\n- Keyframes shows native content and motion keys. Curves shows native opacity\n  motion with Hold, Linear and SmoothStep interpolation.\n",
+      "items": [
+        {
+          "marker": "-",
+          "text": "Visual rows use actual layer IDs and reverse document stack order, scoped to",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "Each visual layer has an independent duration. Parallel layers may overlap.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "An inclusive native range `[firstFrame, lastFrame]` appears as In",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "Static bitmap/vector layers keep their source image/geometry throughout that",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "New static layers without an authored range span at least one second at the",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "A legacy one-frame, all-static document with no authored ranges, motion, frame",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "The ruler, playback and precision controls use native frame count and",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "Thumbnails render the actual layer through `renderFrameLayerTiles`, including",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "Keyframes shows native content and motion keys. Curves shows native opacity",
+          "checked": null
+        }
+      ]
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 54,
+      "end_line": 54,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "heading",
+      "start_line": 55,
+      "end_line": 55,
+      "raw": "## Editing\n",
+      "level": 2,
+      "title": "Editing"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 56,
+      "end_line": 56,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 57,
+      "end_line": 62,
+      "raw": "The model delegates document changes to the existing canvas commit/history and\nworking-file synchronization path. Range changes, native layer creation,\nrename, stack order, visibility, split, duplicate, removal, frame content and\naudio changes persist in IISC and participate in canvas undo/redo. Moving a\ndynamic layer shifts its content/motion keys and preserves the mandatory\nframe-zero source owner, while other overlapping layers remain in place.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 63,
+      "end_line": 63,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 64,
+      "end_line": 68,
+      "raw": "The Layer menu creates static/dynamic bitmap/vector layers, imports a native\nimage layer, or adds an empty native audio track. A dynamic bitmap's double-click\nopens a file picker for content at the captured frame; switching selection while\nthe picker is open does not change the destination layer ID/frame. A deleted or\nincompatible destination rejects the edit.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 69,
+      "end_line": 69,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 70,
+      "end_line": 78,
+      "raw": "Selection moves a clip. Link moves the explicit multi-selection together.\nMagnetic Snap uses nearby edit boundaries, the playhead and marked range;\nprecision fields and frame nudges remain exact. Range marks/selects content in\nan inclusive dragged frame interval. Blade splits at the playhead, and Trim\nchanges the selected edge. Slip uses native video/audio source offsets. Roll,\nSlide and Ripple trim operate on native audio clips when the selected track has\nthe required neighbors. These serial-clip tools are disabled for an individual\nvisual layer row. Ripple deletion rejects intervals occupied by other parallel\ncontent, preventing accidental truncation of artwork.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 79,
+      "end_line": 79,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 80,
+      "end_line": 83,
+      "raw": "L/S/M controls use existing layer locks, solo visibility and native visibility\nor audio mute. Layer/audio locks and editor selection/tool/zoom are session view\nstate; native visibility/mute changes are document edits. No caption track is\ninvented because the current IISC document schema has no caption-track type.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 84,
+      "end_line": 84,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "heading",
+      "start_line": 85,
+      "end_line": 85,
+      "raw": "## Layout and verification\n",
+      "level": 2,
+      "title": "Layout and verification"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 86,
+      "end_line": 86,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 87,
+      "end_line": 95,
+      "raw": "The LVRS implementation retains the Figma transport, Layers/Keyframes/Curves,\neight icon tools, filters, snap/link, zoom, fitted ruler, L/S/M headings, compact\ncards, exclusive-Out precision row and status footer. Selected buttons use their\npressed state without changing type to Accent. Transport, tool, precision and\nfooter controls each stay on one horizontal row at every width. Their contents\nkeep their natural sizes and are clipped at the row's right boundary when space\nruns out; hidden controls cannot receive pointer clicks outside that boundary.\nNarrowing the dock does not add control rows or increase their heights. Only\nzoomed lanes scroll horizontally, while the outer dock scrolls vertically.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 96,
+      "end_line": 96,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 97,
+      "end_line": 99,
+      "raw": "The timeline surface is transparent, including transport/tools, track headings,\nprecision controls and footer. Buttons, inputs, clips, grid lines and the\nplayhead retain their own theme colors.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 100,
+      "end_line": 100,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 101,
+      "end_line": 107,
+      "raw": "The displayed time extent is separate from the native document duration. At\nFit/100%, it contains at least one second of the native frame rate (or three\nframes for very low rates). An explicitly trimmed one-frame still therefore has\na readable ruler with frame labels and tick marks beyond the playhead marker;\nits native duration remains one frame. Every grid line, clip, key, curve, drag conversion,\nselection and playhead uses this same displayed extent. Zoom/pan changes the\ndisplayed range reported in the footer, without adding frames to the document.\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 108,
+      "end_line": 108,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "paragraph",
+      "start_line": 109,
+      "end_line": 116,
+      "raw": "The 44-pixel ruler follows the supplied reference and the editable Figma view:\n14-pixel major marks and 10-pixel minor marks are two pixels wide, with a shared\nbottom edge above a four-pixel yellow baseline. Minor steps divide the adaptive\nmajor interval into five or two integer-frame intervals; they never invent\nfractional frames. The playhead uses a 22-by-26-pixel downward-pointing pentagon\nwith a two-pixel vertical stem, replacing the previous numbered rounded badge.\nIts tip stays on the stem at the baseline while zooming or panning. The reference\nsRGB colors are tick `#8d8d8d`, baseline `#f0f000`, and playhead `#4096f3`.\n"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 117,
+      "end_line": 117,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "paragraph",
+      "start_line": 118,
+      "end_line": 127,
+      "raw": "`Dreamscapes.EditorLayerTimeline` uses native bitmap animation with different\ncontent on every frame, a static image with a shorter duration, and actual PCM\naudio. It checks forward/backward frame previews, IISC snapshot and working-file\nround trips, independent overlapping ranges, movement, history, track edits,\nlocks, solo and responsive layouts. `Dreamscapes.EditorTimeline` checks the\nmounted editor, Layer menu, native selection/precision edits, playback, keyboard\ncontrols and clipped single-row layout at six window sizes. Layer-menu\ninteraction uses a width where its button is visible. Overflow tests also check\nthat a clipped button ignores pointer input and works after widening. Tests use isolated files\nand settings under `build/`.\n"
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 128,
+      "end_line": 128,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "paragraph",
+      "start_line": 129,
+      "end_line": 134,
+      "raw": "Ruler regressions cover one-, six- and 120-frame documents at widths of 320,\n900 and 1,568 pixels, plus zoom/pan. They verify visible ticks beyond the badge,\nmatching clip/ruler/playhead coordinates and unchanged IISC bytes. A rendered\nbackground test checks that the parent surface shows through all panel regions.\nThe reference-style regression also verifies rendered tick/baseline/marker\ncolors, the marker silhouette and tip alignment, and unchanged IISC bytes.\n"
+    },
+    {
+      "id": "b000036",
+      "kind": "blank",
+      "start_line": 135,
+      "end_line": 135,
+      "raw": "\n"
+    },
+    {
+      "id": "b000037",
+      "kind": "fenced_code",
+      "start_line": 136,
+      "end_line": 139,
+      "raw": "```sh\ncmake --build build --target DreamscapesTimelineViewportTests DreamscapesEditorLayerTimelineTests DreamscapesGuiTests\nctest --test-dir build -R '^Dreamscapes\\.(TimelineViewport|EditorLayerTimeline|EditorTimeline)$' --output-on-failure\n```\n",
+      "language": "sh",
+      "code": "cmake --build build --target DreamscapesTimelineViewportTests DreamscapesEditorLayerTimelineTests DreamscapesGuiTests\nctest --test-dir build -R '^Dreamscapes\\.(TimelineViewport|EditorLayerTimeline|EditorTimeline)$' --output-on-failure\n",
+      "closed": true
+    },
+    {
+      "id": "b000038",
+      "kind": "blank",
+      "start_line": 140,
+      "end_line": 140,
+      "raw": "\n"
+    },
+    {
+      "id": "b000039",
+      "kind": "heading",
+      "start_line": 141,
+      "end_line": 141,
+      "raw": "## FilmCraft interaction architecture (2026-10-20)\n",
+      "level": 2,
+      "title": "FilmCraft interaction architecture (2026-10-20)"
+    },
+    {
+      "id": "b000040",
+      "kind": "blank",
+      "start_line": 142,
+      "end_line": 142,
+      "raw": "\n"
+    },
+    {
+      "id": "b000041",
+      "kind": "paragraph",
+      "start_line": 143,
+      "end_line": 151,
+      "raw": "The local reference is FilmCraft, checked out at\n`Reverse/Projects/Adobe/PremierePro`, revision\n`105c09bd80e2c86ec7464a2c59a2501eb89ffc5c`. Its\n`crates/ui-egui/src/panels/timeline.rs` separates transient `TlState`/`Pressed`\nfrom engine commands, culls rows and clips to the viewport, and preserves the\npointer's time when zooming. Dreamscapes adapts those patterns to its existing\nC++23/Qt Quick presentation and native IISC Layer/Audio model. The reference\ncheckout is unchanged; no Rust runtime, project format, media assets or arbitrary\nextra sequence duration is introduced.\n"
+    },
+    {
+      "id": "b000042",
+      "kind": "blank",
+      "start_line": 152,
+      "end_line": 152,
+      "raw": "\n"
+    },
+    {
+      "id": "b000043",
+      "kind": "paragraph",
+      "start_line": 153,
+      "end_line": 162,
+      "raw": "`EditorTimelineViewport` owns indexed presentation geometry: integer frame\nconversion, adaptive visible ruler ticks, overlapping clip interval lookup,\nvertically visible rows, visible keys and curve neighbours. It consumes the\nmodel's published metadata and has no canvas, document, storage or history\nreference. The horizontal Flickable remains the scroll owner. Geometry changes\npublish a new delegate list only when membership or metadata changes; scrolling\nby a pixel within the same range retains existing delegates. A 64-pixel overscan\nkeeps items ready near viewport boundaries. Thumbnails are requested only for\nvisible rows/clips. Waveform and curve paint surfaces are bounded by the viewport,\neven when a clip spans a greatly magnified timeline.\n"
+    },
+    {
+      "id": "b000044",
+      "kind": "blank",
+      "start_line": 163,
+      "end_line": 163,
+      "raw": "\n"
+    },
+    {
+      "id": "b000045",
+      "kind": "paragraph",
+      "start_line": 164,
+      "end_line": 170,
+      "raw": "A single stable pointer area captures the pressed target and trim edge. Clip and\nrow delegates only draw, so culling the pressed clip never destroys its pointer\ngrab. Drag updates remain native metadata previews; release commits once through\n`EditorTimelineModel`. Escape suppresses release until the button comes up.\nPointer cancellation, canvas/document replacement and hiding/disabling the view\nalso discard the gesture. Selection, pan, zoom and cancellation do not revise or\nsave IISC data.\n"
+    },
+    {
+      "id": "b000046",
+      "kind": "blank",
+      "start_line": 171,
+      "end_line": 171,
+      "raw": "\n"
+    },
+    {
+      "id": "b000047",
+      "kind": "paragraph",
+      "start_line": 172,
+      "end_line": 178,
+      "raw": "Navigation supports Control/Command + wheel zoom anchored under the pointer,\nShift + wheel or horizontal trackpad movement for horizontal scrolling, and the\nmiddle mouse button for panning. `+`/`-` zoom about the viewport centre; `0` and\nFit restore the fitted view. Dragging near a horizontal edge scrolls that view\nwith a bounded native velocity while updating the same preview. Magnetic Snap\nuses a nine-pixel screen tolerance converted to whole frames at the current zoom.\nUnmodified vertical scrolling and dragging empty lane space continue to scroll the dock.\n"
+    },
+    {
+      "id": "b000048",
+      "kind": "blank",
+      "start_line": 179,
+      "end_line": 179,
+      "raw": "\n"
+    },
+    {
+      "id": "b000049",
+      "kind": "paragraph",
+      "start_line": 180,
+      "end_line": 192,
+      "raw": "`Dreamscapes.TimelineViewport` checks 10,000 tracks, overlapping clip lookup,\nvisible tick/key limits, curve continuity neighbours, preview/cancel projection\npreservation, cursor-anchored zoom, edge scrolling and non-finite input handling.\n`virtualizedNavigationRetainsPointerAndCommitsOnce` renders 1,500 native layers,\nchecks bounded delegate counts and wheel/pan coordinates, scrolls to a distant\nrow, then removes the pressed card from the viewport. The stable input owner must\nretain the gesture: Escape leaves byte-identical IISC, while release produces\none revision and Undo restores the original document. These focused fixtures do\nnot measure whole-application frame rate or trained-model throughput.\nThe same native UI regression checks actual edge autoscroll and Escape without a\nrevision. A separate curve/key fixture verifies neighbour continuity, pointer\nselection of a visible native key, bounded waveform/curve paint surfaces at\n128× zoom, and fitting from the far end without changing IISC bytes.\n"
+    },
+    {
+      "id": "b000050",
+      "kind": "blank",
+      "start_line": 193,
+      "end_line": 193,
+      "raw": "\n"
+    },
+    {
+      "id": "b000051",
+      "kind": "paragraph",
+      "start_line": 194,
+      "end_line": 201,
+      "raw": "The pressed gesture also captures the affected clip metadata and a sorted index\nof other clips' edit boundaries once at press time. Pointer updates search the\ntwo neighbouring indexed boundaries, rather than walking every clip or looking\nup each selected ID again. Live playhead and In/Out marks remain separate snap\ncandidates, so changing navigation or marks does not make the index stale.\nEqual-distance candidates retain the existing edge and target priority. Document,\nselection, tool and lock changes cancel the gesture before its captured metadata\ncan be reused. This index is view state and never enters an IISC file.\n"
+    },
+    {
+      "id": "b000052",
+      "kind": "blank",
+      "start_line": 202,
+      "end_line": 202,
+      "raw": "\n"
+    },
+    {
+      "id": "b000053",
+      "kind": "paragraph",
+      "start_line": 203,
+      "end_line": 209,
+      "raw": "`denseTimelineDragDoesNotRescanEveryClip` exercises 480 snapped preview updates\nwith 10,000 real native layers. It checks unchanged IISC content, no revisions or\nprojection resets, and a generous 250 ms aggregate budget for the native metadata\nupdates. Construction, snap-index preparation, painting, rendering and release\nstorage are measured separately or excluded from that budget.\n`dragSnapTargetsStayLive` covers changing playhead/range marks, equal-distance\npriority and invalidation after a document edit.\n"
+    },
+    {
+      "id": "b000054",
+      "kind": "blank",
+      "start_line": 210,
+      "end_line": 210,
+      "raw": "\n"
+    },
+    {
+      "id": "b000055",
+      "kind": "heading",
+      "start_line": 211,
+      "end_line": 211,
+      "raw": "## Native playback ownership (2026-10-21)\n",
+      "level": 2,
+      "title": "Native playback ownership (2026-10-21)"
+    },
+    {
+      "id": "b000056",
+      "kind": "blank",
+      "start_line": 212,
+      "end_line": 212,
+      "raw": "\n"
+    },
+    {
+      "id": "b000057",
+      "kind": "paragraph",
+      "start_line": 213,
+      "end_line": 221,
+      "raw": "The same reference's `ui-egui/src/lib.rs::start_audio` / `advance_playback`\nstarts the device before using its sample clock; `play_ahead.rs` moves mixing\noff the UI/device callback. Dreamscapes adapts this ownership boundary with\n`EditorAudioPlayback` and `EditorTimelinePlayback.cpp`. QML delegates the play\ntoggle to the native model; it no longer advances frames with a JavaScript\nwall-clock timer. An audible timeline stays in preparation until its output\nactually starts. Device `processedUSecs()` drives frame navigation, while a\ntimeline without audio uses the native monotonic clock. The final frame remains\nvisible for its full duration, ending at the exclusive document boundary.\n"
+    },
+    {
+      "id": "b000058",
+      "kind": "blank",
+      "start_line": 222,
+      "end_line": 222,
+      "raw": "\n"
+    },
+    {
+      "id": "b000059",
+      "kind": "paragraph",
+      "start_line": 223,
+      "end_line": 230,
+      "raw": "Requests retain an immutable native document snapshot. One preparation worker\nruns with at most one latest pending request; cancellation is checked during\nclip traversal and every 8,192 output frames. Late results, errors and device\nevents carry request identities and cannot restart cancelled playback. Seek,\nexternal frame changes, document/canvas replacement, hiding/disabling the panel\nand destruction cancel the owning request. Starting a silent timeline also\nstops an unrelated asset preview on the shared output. Output failures and a\nfive-second device-start deadline surface through the existing editor notice.\n"
+    },
+    {
+      "id": "b000060",
+      "kind": "blank",
+      "start_line": 231,
+      "end_line": 231,
+      "raw": "\n"
+    },
+    {
+      "id": "b000061",
+      "kind": "paragraph",
+      "start_line": 232,
+      "end_line": 238,
+      "raw": "The device is still a Qt GUI/multimedia adapter. Mixing and retained request\nvalues use standard C++23 and native IISC data; this change does not import\nFilmCraft's Rust runtime or its streaming ring implementation. The bounded\ncomplete PCM mix is prepared before playback. Asset preview borrows the\nsnapshot's asset; little-endian PCM is shared with the output without a second\nfull byte-buffer copy. Audio state has its own notification and does not trigger\ncamera/tool-mask invalidation.\n"
+    },
+    {
+      "id": "b000062",
+      "kind": "blank",
+      "start_line": 239,
+      "end_line": 239,
+      "raw": "\n"
+    },
+    {
+      "id": "b000063",
+      "kind": "paragraph",
+      "start_line": 240,
+      "end_line": 249,
+      "raw": "`Dreamscapes.AudioPlayback` exercises gated preparation, latest-request\ncoalescing, input event delivery, cancellation/destruction/reentrancy, worker\nexceptions, stale device events, silent-timeline replacement and exact 24 / \n30000:1001 final-frame boundaries. It checks zero revisions/projection rebuilds\nand byte-identical native documents for playback/navigation.\n`Dreamscapes.AudioPlaybackHost` mounts the real QML editor and uses silent PCM\nwith the host output. Its log distinguishes an actual device start/playhead\nadvance from an explicit unavailable-device outcome; both verify seek, hide and\ndocument replacement without late playback. Deterministic clock tests use an\ninjected output, separately from host-device evidence.\n"
+    },
+    {
+      "id": "b000064",
+      "kind": "blank",
+      "start_line": 250,
+      "end_line": 250,
+      "raw": "\n"
+    },
+    {
+      "id": "b000065",
+      "kind": "heading",
+      "start_line": 251,
+      "end_line": 251,
+      "raw": "## FilmCraft gesture completion (2026-10-21)\n",
+      "level": 2,
+      "title": "FilmCraft gesture completion (2026-10-21)"
+    },
+    {
+      "id": "b000066",
+      "kind": "blank",
+      "start_line": 252,
+      "end_line": 252,
+      "raw": "\n"
+    },
+    {
+      "id": "b000067",
+      "kind": "paragraph",
+      "start_line": 253,
+      "end_line": 258,
+      "raw": "The same FilmCraft reference's clip press handler (`timeline.rs`, the `Hit::Clip`\narm) preserves an already selected group before starting `Drag::Move`; its release\nhandler emits one edit command. Dreamscapes now preserves the selected native\nLayer/Audio group when grabbing one of its members. Control/Command/Shift clicks\nstill toggle selection. Removing a member does not start a drag on that removed\nmember. Selection itself remains presentation state.\n"
+    },
+    {
+      "id": "b000068",
+      "kind": "blank",
+      "start_line": 259,
+      "end_line": 259,
+      "raw": "\n"
+    },
+    {
+      "id": "b000069",
+      "kind": "paragraph",
+      "start_line": 260,
+      "end_line": 272,
+      "raw": "Content and motion keyframes now use the same stable input owner and native\ngesture lifecycle as clips. `beginKeyDrag` captures the key and sorted occupied\nframe/snap indexes once. Pointer updates perform bounded metadata work and publish\n`keyDragPreview`, without editing a document, invalidating thumbnails, rendering\ncanvas pixels, writing a file, or rebuilding the timeline projection. Motion\ncurves and key markers share the viewport's temporary key placement; the original\nprojection is unchanged, even if the original marker leaves the visible range.\nCurve neighbours are found around the temporary position. A release commits one\nnative key move; Escape, pointer cancellation, document replacement, filter/mode\nchanges and locking discard it. A click at the original frame creates no history.\nOccupied keys cannot be overwritten, and the required content owner at frame zero\ncannot be dragged away. Moving a key keeps it selected at its new identity/frame.\nSelecting a key in Curves mode keeps that mode rather than collapsing the curve.\n"
+    },
+    {
+      "id": "b000070",
+      "kind": "blank",
+      "start_line": 273,
+      "end_line": 273,
+      "raw": "\n"
+    },
+    {
+      "id": "b000071",
+      "kind": "paragraph",
+      "start_line": 274,
+      "end_line": 283,
+      "raw": "`nativeKeyDragPreviewsCommitOnce` covers actual IISC working files for both key\nkinds, byte-preserving preview/cancel, no-op, invalid/colliding targets, persistence,\nselection and Undo. `denseKeyDragUsesPreparedIndex` covers 480 changing previews\nwith 10,000 native motion keys and a generous aggregate 250 ms native-update\nbudget, excluding setup, index preparation, painting and durable release. The\nmounted QML tests `pointerDragRetainsLinkedSelection` and\n`pointerKeyDragCommitsOnceAndEscapeCancels` exercise real pointer/keyboard events,\nmultiple selection, visible markers, a single revision and Undo. Viewport tests\ncover moving a key into/out of view and retaining curve continuity neighbours.\nThese focused timings do not establish whole-application frame rate.\n"
+    },
+    {
+      "id": "b000072",
+      "kind": "blank",
+      "start_line": 284,
+      "end_line": 284,
+      "raw": "\n"
+    },
+    {
+      "id": "b000073",
+      "kind": "paragraph",
+      "start_line": 285,
+      "end_line": 291,
+      "raw": "Key placement is also separate from delegate membership. A temporary frame change\nwithin the same visible key set retains the existing row/key objects. The native\nviewport supplies sorted `curveKeys` only when that visible curve is painted;\nmarker coordinates bind to the temporary placement. A membership-change spy and\nQPointer checks in real pointer tests guard against rebuilding delegates on every\nmove. The static projection is replaced only for an actual document/view change\nor when the visible set changes.\n"
+    },
+    {
+      "id": "b000074",
+      "kind": "blank",
+      "start_line": 292,
+      "end_line": 292,
+      "raw": "\n"
+    },
+    {
+      "id": "b000075",
+      "kind": "heading",
+      "start_line": 293,
+      "end_line": 293,
+      "raw": "## FilmCraft ruler and preview lifetime (2026-10-21)\n",
+      "level": 2,
+      "title": "FilmCraft ruler and preview lifetime (2026-10-21)"
+    },
+    {
+      "id": "b000076",
+      "kind": "blank",
+      "start_line": 294,
+      "end_line": 294,
+      "raw": "\n"
+    },
+    {
+      "id": "b000077",
+      "kind": "paragraph",
+      "start_line": 295,
+      "end_line": 298,
+      "raw": "FilmCraft's `timeline.rs::Drag::Scrub` retains the initial playhead and restores it\non Escape. Its optional media jobs own their source/cache values separately from\nthe mounted panel. Dreamscapes applies these boundaries in native C++23 without\nchanging the existing Figma appearance, IISC layer timing or LVRS controls.\n"
+    },
+    {
+      "id": "b000078",
+      "kind": "blank",
+      "start_line": 299,
+      "end_line": 299,
+      "raw": "\n"
+    },
+    {
+      "id": "b000079",
+      "kind": "paragraph",
+      "start_line": 300,
+      "end_line": 309,
+      "raw": "`EditorTimelineNavigation.cpp` owns ruler scrubbing. Press navigates immediately;\npointer moves retain one latest frame and publish at a 16 ms timer interval.\nContinuous movement does not restart that timer. Release flushes the actual final\npointer position synchronously, and Escape or pointer/view cancellation restores\nthe starting frame. Direct seek, external frame navigation, document/canvas\nreplacement and destruction drop queued input so it cannot write a stale frame\ninto a new owner. Keyboard/precision seeks stay immediate. The interval bounds\nrequest publication on an available event loop; it is not a frame-rate promise.\nScrubbing does not create IISC revisions, save working files, rebuild the timeline\nprojection or change undo history.\n"
+    },
+    {
+      "id": "b000080",
+      "kind": "blank",
+      "start_line": 310,
+      "end_line": 310,
+      "raw": "\n"
+    },
+    {
+      "id": "b000081",
+      "kind": "paragraph",
+      "start_line": 311,
+      "end_line": 317,
+      "raw": "The thumbnail queue has one running operation and at most 128 pending layers.\nReplacing a layer's queued frame retains its FIFO position. A worker retains only\nits immutable SDK snapshot and render arguments; completion returns to the GUI\nowner and is discarded after cancellation or replacement. Destroying a panel\ndoes not join that optional renderer. The snapshot is shared with the SDK's\nexisting canvas render snapshot, avoiding a second full document copy in the\ntimeline. The initial SDK snapshot capture can still copy raster data.\n"
+    },
+    {
+      "id": "b000082",
+      "kind": "blank",
+      "start_line": 318,
+      "end_line": 318,
+      "raw": "\n"
+    },
+    {
+      "id": "b000083",
+      "kind": "paragraph",
+      "start_line": 319,
+      "end_line": 323,
+      "raw": "Completion publishes `thumbnailReady(layerId)` only to that layer's image. The\nbroad thumbnail revision remains for document invalidation. Completed requests\nleave the in-flight map, allowing an evicted cached frame to be requested again;\nreturning to a cached frame retires obsolete queued work for that layer. Hidden\nor disabled timelines cancel pending delivery while retaining cached images.\n"
+    },
+    {
+      "id": "b000084",
+      "kind": "blank",
+      "start_line": 324,
+      "end_line": 324,
+      "raw": "\n"
+    },
+    {
+      "id": "b000085",
+      "kind": "paragraph",
+      "start_line": 325,
+      "end_line": 331,
+      "raw": "`Dreamscapes.TimelineThumbnails` gates a renderer to verify non-blocking owner\ndestruction, immutable work lifetime, latest-frame FIFO fairness, bounded backlog,\ncancellation, exceptions and completion-observer destruction. The native model\nand mounted QML tests in `Dreamscapes.EditorLayerTimeline` verify burst coalescing,\nongoing timer delivery, exact release, Escape/hide rollback, stale-frame rejection,\ncache eviction recovery, targeted completion and byte-identical IISC/working files.\nThese run offscreen without changing foreground application focus.\n"
+    },
+    {
+      "id": "b000086",
+      "kind": "blank",
+      "start_line": 332,
+      "end_line": 332,
+      "raw": "\n"
+    },
+    {
+      "id": "b000087",
+      "kind": "fenced_code",
+      "start_line": 333,
+      "end_line": 336,
+      "raw": "```sh\ncmake --build build --target DreamscapesTimelineThumbnailTests DreamscapesEditorLayerTimelineTests\nctest --test-dir build -R '^Dreamscapes\\.(TimelineThumbnails|TimelineViewport|EditorLayerTimeline|EditorTimeline|AudioPlayback)$' --output-on-failure\n```\n",
+      "language": "sh",
+      "code": "cmake --build build --target DreamscapesTimelineThumbnailTests DreamscapesEditorLayerTimelineTests\nctest --test-dir build -R '^Dreamscapes\\.(TimelineThumbnails|TimelineViewport|EditorLayerTimeline|EditorTimeline|AudioPlayback)$' --output-on-failure\n",
+      "closed": true
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Native editor layer timeline",
+      "anchor": "native-editor-layer-timeline",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000009",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Data and timing",
+      "anchor": "data-and-timing",
+      "start_line": 19
+    },
+    {
+      "block_id": "b000013",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Editing",
+      "anchor": "editing",
+      "start_line": 55
+    },
+    {
+      "block_id": "b000023",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Layout and verification",
+      "anchor": "layout-and-verification",
+      "start_line": 85
+    },
+    {
+      "block_id": "b000039",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "FilmCraft interaction architecture (2026-10-20)",
+      "anchor": "filmcraft-interaction-architecture-2026-10-20",
+      "start_line": 141
+    },
+    {
+      "block_id": "b000055",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Native playback ownership (2026-10-21)",
+      "anchor": "native-playback-ownership-2026-10-21",
+      "start_line": 211
+    },
+    {
+      "block_id": "b000065",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "FilmCraft gesture completion (2026-10-21)",
+      "anchor": "filmcraft-gesture-completion-2026-10-21",
+      "start_line": 251
+    },
+    {
+      "block_id": "b000075",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "FilmCraft ruler and preview lifetime (2026-10-21)",
+      "anchor": "filmcraft-ruler-and-preview-lifetime-2026-10-21",
+      "start_line": 293
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000011",
+        "line": 48,
+        "text": "invalid ranges never commit a partial change.",
+        "basis": "lexical_match",
+        "context": "list"
+      },
+      {
+        "block_id": "b000019",
+        "line": 76,
+        "text": "the required neighbors. These serial-clip tools are disabled for an individual",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000031",
+        "line": 112,
+        "text": "major interval into five or two integer-frame intervals; they never invent",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000045",
+        "line": 165,
+        "text": "row delegates only draw, so culling the pressed clip never destroys its pointer",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000045",
+        "line": 169,
+        "text": "also discard the gesture. Selection, pan, zoom and cancellation do not revise or",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000049",
+        "line": 185,
+        "text": "row, then removes the pressed card from the viewport. The stable input owner must",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000051",
+        "line": 201,
+        "text": "can be reused. This index is view state and never enters an IISC file.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000069",
+        "line": 270,
+        "text": "Occupied keys cannot be overwritten, and the required content owner at frame zero",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000071",
+        "line": 283,
+        "text": "These focused timings do not establish whole-application frame rate.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [
+      {
+        "block_id": "b000037",
+        "language": "sh",
+        "code": "cmake --build build --target DreamscapesTimelineViewportTests DreamscapesEditorLayerTimelineTests DreamscapesGuiTests\nctest --test-dir build -R '^Dreamscapes\\.(TimelineViewport|EditorLayerTimeline|EditorTimeline)$' --output-on-failure\n"
+      },
+      {
+        "block_id": "b000087",
+        "language": "sh",
+        "code": "cmake --build build --target DreamscapesTimelineThumbnailTests DreamscapesEditorLayerTimelineTests\nctest --test-dir build -R '^Dreamscapes\\.(TimelineThumbnails|TimelineViewport|EditorLayerTimeline|EditorTimeline|AudioPlayback)$' --output-on-failure\n"
+      }
+    ],
+    "links": [
+      {
+        "block_id": "b000003",
+        "label": "간소화된 에디터 레이아웃",
+        "target": "EditorCompactLayout.md",
+        "kind": "relative",
+        "line": 3
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

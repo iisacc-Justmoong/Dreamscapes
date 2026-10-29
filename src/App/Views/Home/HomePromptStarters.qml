@@ -1,4 +1,5 @@
 pragma ComponentBehavior: Bound
+import Dreamscapes.Storage 1.0
 import QtQuick
 import QtQuick.Layouts
 import LVRS 1.0 as LV
@@ -89,7 +90,7 @@ LV.VStack {
         objectName: "homePromptMenu"
         showIconSlot: false
         itemWidth: Math.max(0, Math.min(300, root.width - leftPadding - rightPadding - edgeMargin * 2))
-        items: root.starters.map(function(entry) { return entry.title })
+        items: NativeData.presentation.labels(root.starters, "title")
         onItemTriggered: function(index, entry) { root.promptRequested(root.starters[index].prompt) }
     }
 

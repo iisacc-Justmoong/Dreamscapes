@@ -1,0 +1,322 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:6600044c07e57a427b28e3c5d60eaedf34b7355007cae405b8aebaef298b0412",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/MobileNavigationIcons.md",
+    "sha256": "fe552d616d10e34c5079cb18f72793cf0a1ff4054f19db706c594cbce3ec2801",
+    "bytes": 4260,
+    "line_count": 32,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "모바일 내비게이션 아이콘 계약",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "html",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "<a id=\"mobile-navigation-icon-contract\"></a>\n"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "heading",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "# 모바일 내비게이션 아이콘 계약\n",
+      "level": 1,
+      "title": "모바일 내비게이션 아이콘 계약"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 5,
+      "end_line": 5,
+      "raw": "도구 모음은 Dreamscapes Figma `bn8O4AHKr1X9DWnhR1TgEy`, 노드 `103:1211`(2026-09-28)에서 정확하고 수정되지 않은 SVG 내보내기를 사용합니다. 자산은 `src/App/Views/Home/Assets/Navigation/`에 있으며 애플리케이션 리소스 컬렉션으로 컴파일되므로 설치된 장치는 Figma URL을 가져오지 않습니다.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "table",
+      "start_line": 7,
+      "end_line": 14,
+      "raw": "|슬롯|Figma 소스|로컬 SVG|아트웍 크기|\n| --- | --- | --- | --- |\n|홈| `.MobileNavigation/Icon/home-1` | home.svg | 24 × 24 |\n|도구| `collection` | tools.svg | 24 × 24 |\n|Storage|`sqlFile` / 데이터베이스| storage.svg | 17.5 × 20.5545 |\n|알림| `.MobileNavigation/Icon/toolwindownotifications` | notification.svg | 24 × 24 |\n|계정|`role`(라이트 변형)| account.svg | 24 × 24 |\n|검색| `.MobileNavigation/Icon/inputFieldSearch` | search.svg | 24 × 24 |\n",
+      "columns": [
+        "슬롯",
+        "Figma 소스",
+        "로컬 SVG",
+        "아트웍 크기"
+      ],
+      "rows": [
+        [
+          "홈",
+          "`.MobileNavigation/Icon/home-1`",
+          "home.svg",
+          "24 × 24"
+        ],
+        [
+          "도구",
+          "`collection`",
+          "tools.svg",
+          "24 × 24"
+        ],
+        [
+          "Storage",
+          "`sqlFile` / 데이터베이스",
+          "storage.svg",
+          "17.5 × 20.5545"
+        ],
+        [
+          "알림",
+          "`.MobileNavigation/Icon/toolwindownotifications`",
+          "notification.svg",
+          "24 × 24"
+        ],
+        [
+          "계정",
+          "`role`(라이트 변형)",
+          "account.svg",
+          "24 × 24"
+        ],
+        [
+          "검색",
+          "`.MobileNavigation/Icon/inputFieldSearch`",
+          "search.svg",
+          "24 × 24"
+        ]
+      ]
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 15,
+      "end_line": 15,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 16,
+      "end_line": 16,
+      "raw": "네비게이션은 `LV.MobileNavigationBar` 로 유지되며, 각 항목은 `preserveIconColors` 에 옵인하고 기존 일반 단색 모드는 LVRS 기본값으로 유지됩니다. 스토어지는 동일한 24px 아이콘 슬롯에 중앙 정렬된 내보낸 작품 차원을 사용하며, 데이터베이스 글리프를 전체 슬롯에 늘리지 않습니다. SVG 기하 구조나 루트 차원은 다시 작성되지 않습니다. 홈의 선택된 파란색과 다른 아이콘의 원래 색상/불투명도는 Figma 내보내기 파일에 포함되며, 홈은 `autoSelect: false` 를 사용합니다.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "회귀 : `DreamscapesGuiTests mobileHomeUsesFigmaSectionsLimitsAndLvrsNavigation` 는 모든 5 탭 소스, 비어 있지 않은 자산, 이미지 로딩, 페인팅된 차원, 소스 색상 보존 및 별도의 검색 소스를 확인합니다. `DREAMSCAPES_MOBILE_HOME_CAPTURE` 를 설정하여 호스트 렌더링된 모바일 화면을 포착합니다. `python3 -B tests/test_mobile_navigation_assets.py` 는 6 내보내기 해시, SVG 루트 차원, 소스 호출 사이트 및 리소스 등록을 잠급니다. LVRS `LVRSTests_mobile_navigation source_icon_colors_and_artwork_geometry` 는 재사용 가능한 속성, 변경되지 않은 기본값, 검색 전파, 및 비활성화된 알파를 테스트합니다. 호스트 스크린샷은 물리적 장치 설치 증거가 아닙니다; 서명된 iOS 번들, 장치 설치, 및 프로세스 시작을 별도로 확인하세요.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "html",
+      "start_line": 20,
+      "end_line": 20,
+      "raw": "<a id=\"verification--2026-09-28\"></a>\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 21,
+      "end_line": 21,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "heading",
+      "start_line": 22,
+      "end_line": 22,
+      "raw": "## 확인 — 2026-09-28\n",
+      "level": 2,
+      "title": "확인 — 2026-09-28"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 23,
+      "end_line": 23,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "list",
+      "start_line": 24,
+      "end_line": 30,
+      "raw": "- LVRS 모바일 내비게이션 테스트: 7는 통과했으며, 0는 실패했습니다; 선택적 갤러리 캡처 테스트는 건너뛰었습니다. macOS와 iOS LVRS 라이브러리가 모두 재구축되어 설치되었습니다.\n- 정확한 SVG 자산 계약: 내보낸 6개 전체가 통과했다.\n- Dreamscapes GUI 회귀 를 다시 구축: 3 통과, 0 실패, 0 건너뛰기, 5 탭 이미지 로딩/차원 주장을 포함하여 별도의 검색 소스.\n- Dreamscapes macOS 빌드와 번들 서명이 완료된 후 정규 `build/bin/Dreamscapes.app` 출력을 iOS로 전환합니다.\n- iOS 종속성 설치가 이 작업에서 소스를 변경하지 않고 iiSocietyContainer 0.14.1 및 iiSocietyHelper 0.7.2로 새로 고침되었습니다.\n- iOS 릴리스 빌드가 런타임 프로브가 비활성화된 상태로 성공했습니다. 짝지어진 iPhone 15 Pro Max 에 대한 완전한 `tests/verify_ios_bundle.py` 검사가 통과했습니다.\n- 기존 `com.iisacc.dreamscapes` 설치를 제거하지 않고 업데이트했으며, 성공적으로 실행하고 물리 장치 스크린샷을 확인했습니다. 모든 6 툴바 아이콘은 내보낸 형태, 색상 및 비율을 유지합니다.\n",
+      "items": [
+        {
+          "marker": "-",
+          "text": "LVRS 모바일 내비게이션 테스트: 7는 통과했으며, 0는 실패했습니다; 선택적 갤러리 캡처 테스트는 건너뛰었습니다. macOS와 iOS LVRS 라이브러리가 모두 재구축되어 설치되었습니다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "정확한 SVG 자산 계약: 내보낸 6개 전체가 통과했다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "Dreamscapes GUI 회귀 를 다시 구축: 3 통과, 0 실패, 0 건너뛰기, 5 탭 이미지 로딩/차원 주장을 포함하여 별도의 검색 소스.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "Dreamscapes macOS 빌드와 번들 서명이 완료된 후 정규 `build/bin/Dreamscapes.app` 출력을 iOS로 전환합니다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "iOS 종속성 설치가 이 작업에서 소스를 변경하지 않고 iiSocietyContainer 0.14.1 및 iiSocietyHelper 0.7.2로 새로 고침되었습니다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "iOS 릴리스 빌드가 런타임 프로브가 비활성화된 상태로 성공했습니다. 짝지어진 iPhone 15 Pro Max 에 대한 완전한 `tests/verify_ios_bundle.py` 검사가 통과했습니다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "기존 `com.iisacc.dreamscapes` 설치를 제거하지 않고 업데이트했으며, 성공적으로 실행하고 물리 장치 스크린샷을 확인했습니다. 모든 6 툴바 아이콘은 내보낸 형태, 색상 및 비율을 유지합니다.",
+          "checked": null
+        }
+      ]
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 32,
+      "end_line": 32,
+      "raw": "`build/` 하단의 로컬 증거: `mobile-toolbar-gui-test.log`, `mobile-toolbar-ios-build.log`, `mobile-toolbar-ios-verification.json`, `mobile-toolbar-install.json`, `mobile-toolbar-after-launch.json`, 및 `mobile-toolbar-after-app.png` 입니다. `mobile-toolbar-before-app.png` 는 실제 업데이트 전 장치 스크린샷이며, `mobile-toolbar-host.png` 는 오직 호스트 렌더링입니다. 이 확인은 도구 모음 및 앱 설치/시작을 포함하며, 이미지 생성 또는 저장 동기화 전체 테스트를 포함하지 않습니다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000003",
+      "parent_id": null,
+      "level": 1,
+      "title": "모바일 내비게이션 아이콘 계약",
+      "anchor": "모바일-내비게이션-아이콘-계약",
+      "start_line": 3
+    },
+    {
+      "block_id": "b000015",
+      "parent_id": "b000003",
+      "level": 2,
+      "title": "확인 — 2026-09-28",
+      "anchor": "확인--2026-09-28",
+      "start_line": 22
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [],
+    "commands": [],
+    "links": [],
+    "tables": [
+      {
+        "block_id": "b000007",
+        "columns": [
+          "슬롯",
+          "Figma 소스",
+          "로컬 SVG",
+          "아트웍 크기"
+        ],
+        "rows": [
+          [
+            "홈",
+            "`.MobileNavigation/Icon/home-1`",
+            "home.svg",
+            "24 × 24"
+          ],
+          [
+            "도구",
+            "`collection`",
+            "tools.svg",
+            "24 × 24"
+          ],
+          [
+            "Storage",
+            "`sqlFile` / 데이터베이스",
+            "storage.svg",
+            "17.5 × 20.5545"
+          ],
+          [
+            "알림",
+            "`.MobileNavigation/Icon/toolwindownotifications`",
+            "notification.svg",
+            "24 × 24"
+          ],
+          [
+            "계정",
+            "`role`(라이트 변형)",
+            "account.svg",
+            "24 × 24"
+          ],
+          [
+            "검색",
+            "`.MobileNavigation/Icon/inputFieldSearch`",
+            "search.svg",
+            "24 × 24"
+          ]
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

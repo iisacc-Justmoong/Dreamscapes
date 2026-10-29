@@ -1,5 +1,6 @@
 #pragma once
 #include "EditorCanvas.h"
+#include "../../ViewModels/Native/NumberInputs.h"
 #include <QCache>
 #include <QPointer>
 #include <QtQml/qqmlregistration.h>
@@ -51,6 +52,11 @@ class EditorTimelineModel : public QObject {
     Q_PROPERTY(bool playing READ playing WRITE setPlaying NOTIFY playbackChanged)
     Q_PROPERTY(bool preparing READ preparing NOTIFY playbackChanged)
 public:
+    enum FrameField { Seek, In, Out, Duration, Source, Key };
+    Q_ENUM(FrameField)
+    Q_INVOKABLE bool editFrameText(FrameField field, const QString &id, const QString &text);
+    Q_INVOKABLE QVariant frameNumber(const QString &text) const;
+    Q_INVOKABLE bool setRangeValues(const QString &id, double first, double last);
     explicit EditorTimelineModel(QObject *parent=nullptr);
     EditorTimelineModel(EditorAudioPlayback *playback,QObject *parent);
     ~EditorTimelineModel() override;
@@ -156,6 +162,7 @@ signals:
     void playbackChanged();
     void playbackFailed(const QString &message);
 private:
+    dreamscapes::vm::NumberInputs m_numberInputs;
     void navigateFrame(int frame,bool fromScrub=false);
     void flushScrub();
     bool discardScrub();

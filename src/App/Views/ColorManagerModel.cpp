@@ -1,4 +1,5 @@
 #include "ColorManagerModel.h"
+#include "../ViewModels/Native/ViewValue.h"
 #include <QImage>
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -29,6 +30,12 @@ void ColorManagerModel::beginColor(const QColor& value) { if(value.isValid()&&pi
 bool ColorManagerModel::editColor(const QColor& value) { if(!value.isValid()||!picker_.editColor(nativeColor(value)))return false;changed(true);return true; }
 bool ColorManagerModel::editHex(const QString& value) { if(!picker_.editHex(value.toStdString()))return false;changed(true);return true; }
 bool ColorManagerModel::editChannel(int c,double value) { if(!picker_.edit(CM::Channel(c),value))return false;changed(true);return true; }
+bool ColorManagerModel::editChannelText(int channel, const QString &input) {
+    const auto info=CM::channelInfo(CM::Channel(channel));if(!info)return false;
+    const dreamscapes::vm::Value field(dreamscapes::vm::Object{{"unit",dreamscapes::vm::Value(std::string(info->unit))}});
+    const auto parsed=dreamscapes::vm::parseNumber(field,input.toStdString(),true);
+    return parsed.valid && editChannel(channel,dreamscapes::vm::number(parsed.value));
+}
 double ColorManagerModel::channelValue(int c) const { return picker_.channelValue(CM::Channel(c)); }
 QVariantMap ColorManagerModel::channel(int c) const {
     const auto i=CM::channelInfo(CM::Channel(c));if(!i)return {};

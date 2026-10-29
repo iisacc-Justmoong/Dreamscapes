@@ -1,0 +1,264 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:a6d4f7deb96dbcea3a1616229c4edb87c73a1239adfdef8e60d7a1c506d911f7",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/StorageInitialization.md",
+    "sha256": "8553ce8aacae4fd2adf19981e0e0724f4714c75c936d8bb877fef8005bfafcc4",
+    "bytes": 4777,
+    "line_count": 77,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Storage initialization and view ownership",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Storage initialization and view ownership\n",
+      "level": 1,
+      "title": "Storage initialization and view ownership"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 5,
+      "raw": "An EditorCanvas is a document/view owner. Constructing it, creating an unsaved\ncanvas, changing its camera/frame or editing an unbound document must not discover\na Society drive, walk its public sections or start a storage mirror/monitor.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "heading",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "## SDK boundary\n",
+      "level": 2,
+      "title": "SDK boundary"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 17,
+      "raw": "The iiSocietyHelper default FileSystem constructor still discovers the configured\ndrive. Existing explicit storage owners retain that contract. View/data-only\nowners use `FileSystem::Initialization::Deferred`; this creates only the adapter\nand leaves selection, mirror timer and storage-monitor workers inactive.\n`open`, `openForSource` and storage commands retain their normal selection and\npersistence behavior. `readCanvas` is a detached read and needs no selection.\nThe existing canvas-presentation registration still runs when the adapter is\ncreated; deferred selection is not a claim that every first-use initializer is\nfree of cost.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 19,
+      "end_line": 27,
+      "raw": "The SDK also supplies immutable `PreparedStorage` values. An I/O owner captures an\nalready opened selection/mirror with `preparedStorage`; another owner can call\n`adoptStorage` without repeating discovery, directory scans or payload reads.\nAdoption checks the pinned drive identity, publishes captured metadata, invalidates\nolder mirror replies and starts the receiver's ordinary monitor. Writable file\nbindings, QObject owners, timers, workers and credentials are not transferred.\nThe asynchronous [working-file open command](WorkingFileOpen.md) uses this value\nto adopt its worker's selection without repeating the mirror scan on the GUI\nowner. Writable binding and final native validation remain owner operations.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 28,
+      "end_line": 28,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "heading",
+      "start_line": 29,
+      "end_line": 29,
+      "raw": "## Dreamscapes adoption\n",
+      "level": 2,
+      "title": "Dreamscapes adoption"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 31,
+      "end_line": 40,
+      "raw": "EditorCanvas owns its deferred FileSystem as the named QObject child\n`editorDocumentStorage`. Unbound editing and view commands leave that adapter\nunselected. An explicit open/save selects its appropriate drive. Existing Alias,\nexpected-version conflict checks, validated edits and synchronous durable writes\nremain in the existing file owner.\nThe value-owned QObject is parented after all canvas members are initialized and\ndetached in the destructor body. Child lifecycle events must not evaluate tool\nstate while those members are being constructed/destroyed. The canvas event\noverride evaluates derived interaction state only for keyboard, focus,\ntouch/tablet and shortcut events; other events pass directly to CanvasItem.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 41,
+      "end_line": 41,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 42,
+      "end_line": 49,
+      "raw": "Detached image reads and the original-image preparation worker use a deferred\nadapter. They no longer discover an unrelated default drive before reading a\nsource. Bitmap wrapper creation, native preview generation and explicit image\nstorage select their source/target drive once through their existing commands.\nHome attachment and explicit generation runtime/resource-directory helpers use\nthe same deferred selection, avoiding an unrelated default-drive scan before\nopening their requested drive. The long-lived GenerationController/Helper\nstorage owner keeps discovery because it actually supplies the application mirror.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 50,
+      "end_line": 50,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "heading",
+      "start_line": 51,
+      "end_line": 51,
+      "raw": "## Verification and scope\n",
+      "level": 2,
+      "title": "Verification and scope"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 52,
+      "end_line": 52,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 53,
+      "end_line": 59,
+      "raw": "The SDK tests cover deferred versus default discovery, cross-thread value\ntransfer after source destruction, captured-mirror publication without rescanning\nand rejection of replaced drives/default values. Its complete registered suite\nand a standalone installed-package consumer verify the new interface, durable\nsave/reopen and stale-version rejection. Bootstrap tests explicitly distinguish\nBLE disablement from invalid-endpoint unavailability; neither starts radio or\nrequests permissions.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 60,
+      "end_line": 60,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 61,
+      "end_line": 63,
+      "raw": "The native canvas regression checks that construction, unsaved creation,\nframe/zoom/pan and an unbound edit emit zero storage activation events. Explicit\nsave then activates the correct drive, and a later edit is durable when reopened.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 64,
+      "end_line": 64,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 65,
+      "end_line": 77,
+      "raw": "The constructor fixture contains 2000 ordinary files and records three samples.\nThe original installed-private SDK baseline and the refreshed-SDK baseline are\nkept separately so SDK replacement is not attributed to the consumer change.\nThis fixture excludes QML editor initialization, total file-open latency and FPS.\nThe corrected-source replay, with unchanged Helper/SharedCanvasQuick/LVRS\nlibraries, measured warm samples of 139639/138305 microseconds before and\n312/351 microseconds after (two-sample means of 138972 and 331.5 microseconds).\nFirst samples are retained separately. Their variation across runs does not\nestablish that cold application/editor startup is resolved.\nWorking-file decode/alias hashing now run in the open worker. Initial\nrender-snapshot copying, first-use media/device initialization and durable native\ncommits remain audit frontiers. No foreground input automation or\ninstalled-application replacement is implied by these component/build results.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Storage initialization and view ownership",
+      "anchor": "storage-initialization-and-view-ownership",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000005",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "SDK boundary",
+      "anchor": "sdk-boundary",
+      "start_line": 7
+    },
+    {
+      "block_id": "b000011",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Dreamscapes adoption",
+      "anchor": "dreamscapes-adoption",
+      "start_line": 29
+    },
+    {
+      "block_id": "b000017",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Verification and scope",
+      "anchor": "verification-and-scope",
+      "start_line": 51
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 4,
+        "text": "canvas, changing its camera/frame or editing an unbound document must not discover",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 37,
+        "text": "detached in the destructor body. Child lifecycle events must not evaluate tool",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000009",
+        "label": "working-file open command",
+        "target": "WorkingFileOpen.md",
+        "kind": "relative",
+        "line": 25
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

@@ -1,6 +1,6 @@
 #include "GenerationReviewModel.h"
+#include "NativeReviewSession.h"
 #include <QDateTime>
-#include <QFileInfo>
 #include <QUrl>
 #include <QJsonDocument>
 #include <algorithm>
@@ -14,8 +14,8 @@ QString sourceOf(const QVariantMap& entry) {
     return {};
 }
 bool imageEntry(const QVariantMap& entry) {
-    return entry.value("mediaType").toString() != "Video" && entry.value("mediaType").toString() != "Canvas"
-        && (entry.value("isImage", true).toBool() || !entry.value("documentSource").toString().isEmpty());
+    return dreamscapes::review::Session::imageEligible(entry.value("mediaType").toString().toStdString(),
+        entry.value("isImage", true).toBool(), !entry.value("documentSource").toString().isEmpty());
 }
 QString available(const QVariantMap& entry, const QString& key) {
     const auto value = entry.value(key);
@@ -90,13 +90,21 @@ void GenerationReviewModel::setEntries(const QVariantList& entries) {
         normalized.insert(key, entry); order.push_back(key.toStdString());
     }
     if (normalized == m_entries) return;
+    QSet<QString> metadataChanged;
+    for (auto it = normalized.cbegin(); it != normalized.cend(); ++it)
+        if (m_entries.value(it.key()) != it.value()) metadataChanged.insert(it.key());
     m_entries = std::move(normalized);
     m_selection.synchronize(order);
     if (m_entries.isEmpty()) m_selectionMode = false;
+    const auto previousOrdinals = m_ordinals;
     m_ordinals.clear();
     int ordinal = 0;
-    for (const auto& id : m_selection.order()) m_ordinals.insert(QString::fromStdString(id), ++ordinal);
-    publishState(true);
+    for (const auto& id : m_selection.order()) {
+        const auto key = QString::fromStdString(id);
+        m_ordinals.insert(key, ++ordinal);
+        if (previousOrdinals.value(key) != ordinal) metadataChanged.insert(key);
+    }
+    publishState(true, metadataChanged);
     emit entriesChanged();
 }
 QString GenerationReviewModel::stateName(State state) {
@@ -127,22 +135,73 @@ QStringList GenerationReviewModel::projection() const {
     });
     return visible;
 }
-void GenerationReviewModel::publishState(bool metadataChanged) {
-    const auto next = projection();
+GenerationReviewModel::RowState GenerationReviewModel::rowState(const QString& key) const {
+    const auto id = key.toStdString();
+    return {m_selection.state(id), m_selection.selected(id), m_selection.focusedKey() == id};
+}
+bool GenerationReviewModel::reviewFiltered() const {
+    return m_filter == "shortlisted" || m_filter == "rejected" || m_filter == "unreviewed";
+}
+void GenerationReviewModel::publishFocus(const QString& previous) {
+    // Focus cannot affect filtering, sorting, review counts or selection.
+    const auto current = focusedKey();
+    const int before = m_visibleIndices.value(previous, -1), after = m_visibleIndices.value(current, -1);
+    if (before >= 0) m_rowStates[before].focused = false;
+    if (after >= 0) m_rowStates[after].focused = true;
+    if (before >= 0) emit dataChanged(index(before), index(before), {FocusedRole});
+    if (after >= 0) emit dataChanged(index(after), index(after), {FocusedRole});
+    emit stateChanged();
+}
+void GenerationReviewModel::publishState(bool reproject, const QSet<QString>& metadataChanged) {
+    const auto next = reproject ? projection() : m_visible;
+    m_selectedCount = m_shortlistedCount = m_rejectedCount = 0;
+    for (const auto& id : m_selection.order()) {
+        m_selectedCount += m_selection.selected(id);
+        m_shortlistedCount += m_selection.state(id) == State::Shortlisted;
+        m_rejectedCount += m_selection.state(id) == State::Rejected;
+    }
+    m_hiddenSelectedCount = m_selectedCount;
+    for (const auto& key : next) m_hiddenSelectedCount -= m_selection.selected(key.toStdString());
+    const int previousSize = m_visible.size();
+    bool reset = false;
     if (next != m_visible) {
         emit projectionAboutToChange();
         const bool append = next.size() > m_visible.size()
             && std::equal(m_visible.begin(), m_visible.end(), next.begin());
-        if (append) {
-            beginInsertRows({}, m_visible.size(), next.size() - 1);
-            m_visible = next; endInsertRows();
-        } else {
-            beginResetModel(); m_visible = next; endResetModel();
-        }
+        reset = !append;
+        if (append) beginInsertRows({}, m_visible.size(), next.size() - 1);
+        else beginResetModel();
+        m_visible = next;
+        m_visibleIndices.clear();
+        for (int i = 0; i < m_visible.size(); ++i) m_visibleIndices.insert(m_visible[i], i);
+        if (reset) m_rowStates.clear();
+        for (int i = m_rowStates.size(); i < m_visible.size(); ++i) m_rowStates.append(rowState(m_visible[i]));
+        if (append) endInsertRows();
+        else endResetModel();
         emit projectionChanged();
     }
-    if (!m_visible.isEmpty()) emit dataChanged(index(0), index(m_visible.size() - 1), metadataChanged
-        ? QList<int>{} : QList<int>{SelectedRole,FocusedRole,ReviewStateRole});
+    // New/reset rows already expose their complete state through the model
+    // structure notification. Existing rows need only the roles that changed.
+    struct Change { int first, last; QList<int> roles; };
+    QList<Change> changes;
+    if (!reset) for (int i = 0; i < previousSize; ++i) {
+        const auto state = rowState(m_visible[i]);
+        const auto previous = m_rowStates[i];
+        QList<int> roles;
+        if (metadataChanged.contains(m_visible[i])) {
+            // Empty roles means all roles under the Qt model contract.
+        } else {
+            if (previous.selected != state.selected) roles.append(SelectedRole);
+            if (previous.focused != state.focused) roles.append(FocusedRole);
+            if (previous.review != state.review) roles.append(ReviewStateRole);
+            if (roles.isEmpty()) continue;
+        }
+        m_rowStates[i] = state;
+        if (!changes.isEmpty() && changes.last().last + 1 == i && changes.last().roles == roles)
+            changes.last().last = i;
+        else changes.append({i, i, roles});
+    }
+    for (const auto& change : changes) emit dataChanged(index(change.first), index(change.last), change.roles);
     emit stateChanged();
 }
 void GenerationReviewModel::setFilter(const QString& filter) {
@@ -162,13 +221,13 @@ void GenerationReviewModel::setSelectionMode(bool enabled) {
     m_selectionMode = enabled; emit stateChanged();
 }
 int GenerationReviewModel::shortlistedCount() const {
-    return int(std::count_if(m_selection.order().begin(),m_selection.order().end(),[this](const auto& key){ return m_selection.state(key)==State::Shortlisted; }));
+    return m_shortlistedCount;
 }
 int GenerationReviewModel::rejectedCount() const {
-    return int(std::count_if(m_selection.order().begin(),m_selection.order().end(),[this](const auto& key){ return m_selection.state(key)==State::Rejected; }));
+    return m_rejectedCount;
 }
 int GenerationReviewModel::hiddenSelectedCount() const {
-    return selectedCount() - int(std::count_if(m_visible.begin(),m_visible.end(),[this](const auto& key){ return m_selection.selected(key.toStdString()); }));
+    return m_hiddenSelectedCount;
 }
 QVariantList GenerationReviewModel::selectedEntries() const {
     QVariantList result;
@@ -191,10 +250,10 @@ QVariantList GenerationReviewModel::actionEntries() const {
     return result;
 }
 QString GenerationReviewModel::focusedKey() const { return QString::fromStdString(m_selection.focusedKey()); }
-int GenerationReviewModel::focusedIndex() const { return m_visible.indexOf(focusedKey()); }
+int GenerationReviewModel::focusedIndex() const { return indexForKey(focusedKey()); }
 QVariantMap GenerationReviewModel::focusedEntry() const { return m_entries.value(focusedKey()); }
 QVariantMap GenerationReviewModel::entryAt(int row) const { return row >= 0 && row < m_visible.size() ? m_entries.value(m_visible[row]) : QVariantMap{}; }
-int GenerationReviewModel::indexForKey(const QString& key) const { return m_visible.indexOf(key); }
+int GenerationReviewModel::indexForKey(const QString& key) const { return m_visibleIndices.value(key, -1); }
 bool GenerationReviewModel::isSelected(const QVariantMap& entry) const { return m_selection.selected(keyForEntry(entry).toStdString()); }
 std::vector<std::string> GenerationReviewModel::visibleKeys() const {
     std::vector<std::string> keys; keys.reserve(m_visible.size());
@@ -208,10 +267,11 @@ void GenerationReviewModel::selectAt(int row, int modifiers) {
     m_selection.select(m_visible[row].toStdString(), visibleKeys(), range ? (add ? Mode::AddRange : Mode::Range)
         : add ? Mode::Toggle : Mode::Replace);
     if (add || range) m_selectionMode = true;
-    publishState();
+    publishState(false);
 }
 void GenerationReviewModel::focusAt(int row) {
-    if (row >= 0 && row < m_visible.size() && m_selection.focus(m_visible[row].toStdString())) publishState();
+    const auto previous = focusedKey();
+    if (row >= 0 && row < m_visible.size() && m_selection.focus(m_visible[row].toStdString())) publishFocus(previous);
 }
 void GenerationReviewModel::focusSource(const QString& source) {
     if (source.isEmpty()) return;
@@ -221,7 +281,8 @@ void GenerationReviewModel::focusSource(const QString& source) {
         for (const auto* field : {"documentSource", "mediaSource", "image", "imageSource", "source", "path"}) {
             auto candidate=QUrl(entry.value(field).toString());candidate.setQuery(QString{});candidate.setFragment(QString{});
             if (!candidate.isEmpty() && candidate == requested) {
-                if (m_selection.focus(id)) publishState();
+                const auto previous = focusedKey();
+                if (m_selection.focus(id)) publishFocus(previous);
                 return;
             }
         }
@@ -231,14 +292,14 @@ void GenerationReviewModel::toggle(const QVariantMap& entry) {
     const auto key = keyForEntry(entry); auto keys = visibleKeys();
     if (std::find(keys.begin(), keys.end(), key.toStdString()) == keys.end()) keys.push_back(key.toStdString());
     m_selection.select(key.toStdString(), keys, dreamscapes::review::SelectionMode::Toggle);
-    m_selectionMode = true; publishState();
+    m_selectionMode = true; publishState(false);
 }
-void GenerationReviewModel::selectAll() { m_selection.selectAll(visibleKeys()); m_selectionMode = true; publishState(); }
-void GenerationReviewModel::clearSelection() { m_selection.clearSelection(); m_selectionMode = false; publishState(); }
-void GenerationReviewModel::toggleReview(const QString& state) { m_selection.toggleState(actionKeys(), parseState(state)); publishState(); }
-void GenerationReviewModel::setReview(const QString& state) { m_selection.setState(actionKeys(), parseState(state)); publishState(); }
+void GenerationReviewModel::selectAll() { m_selection.selectAll(visibleKeys()); m_selectionMode = true; publishState(false); }
+void GenerationReviewModel::clearSelection() { m_selection.clearSelection(); m_selectionMode = false; publishState(false); }
+void GenerationReviewModel::toggleReview(const QString& state) { m_selection.toggleState(actionKeys(), parseState(state)); publishState(reviewFiltered()); }
+void GenerationReviewModel::setReview(const QString& state) { m_selection.setState(actionKeys(), parseState(state)); publishState(reviewFiltered()); }
 void GenerationReviewModel::setEntryReview(const QString& key, const QString& state) {
-    m_selection.setState({key.toStdString()}, parseState(state)); publishState();
+    m_selection.setState({key.toStdString()}, parseState(state)); publishState(reviewFiltered());
 }
 QString GenerationReviewModel::reviewState(const QString& key) const { return stateName(m_selection.state(key.toStdString())); }
 
@@ -261,4 +322,63 @@ QVariantList GenerationReviewModel::inspectorRows() const {
         }),
         combined(tr("Prompt"), [](const auto& e){return available(e,"prompt");}),
         combined(tr("Negative prompt"), [](const auto& e){return available(e,"negativePrompt");})};
+}
+
+QVariantMap GenerationReviewModel::keyCommand(int key, int modifiers, int columns, bool overlay, bool detail, bool compare) {
+    using namespace dreamscapes::vm;
+    ReviewKeyInput input;
+    switch (key) {
+    case Qt::Key_Escape: input.key = ReviewKey::escape; break;
+    case Qt::Key_A: input.key = ReviewKey::all; break;
+    case Qt::Key_F: input.key = ReviewKey::shortlist; break;
+    case Qt::Key_X: input.key = ReviewKey::reject; break;
+    case Qt::Key_C: input.key = ReviewKey::compare; break;
+    case Qt::Key_Space: input.key = ReviewKey::space; break;
+    case Qt::Key_Return: case Qt::Key_Enter: input.key = ReviewKey::enter; break;
+    case Qt::Key_Left: input.key = ReviewKey::left; break;
+    case Qt::Key_Right: input.key = ReviewKey::right; break;
+    case Qt::Key_Up: input.key = ReviewKey::up; break;
+    case Qt::Key_Down: input.key = ReviewKey::down; break;
+    case Qt::Key_Home: input.key = ReviewKey::home; break;
+    case Qt::Key_End: input.key = ReviewKey::end; break;
+    default: return {};
+    }
+    input.command = modifiers & (Qt::ControlModifier | Qt::MetaModifier);
+    input.alt = modifiers & Qt::AltModifier; input.shift = modifiers & Qt::ShiftModifier;
+    input.overlay = overlay; input.detail = detail; input.compare = compare;
+    input.selected = selectedCount() > 0; input.selectionMode = selectionMode();
+    input.count = rowCount(); input.focusedIndex = focusedIndex(); input.columns = columns;
+    const auto plan = m_commands.keys().send(input); if (!plan) return {};
+    QString action;
+    switch (plan->action) {
+    case ReviewAction::ignored: return {};
+    case ReviewAction::back: action = "back"; break;
+    case ReviewAction::clear: clearSelection(); break;
+    case ReviewAction::selectAll: selectAll(); break;
+    case ReviewAction::shortlist: toggleReview("shortlisted"); break;
+    case ReviewAction::reject: toggleReview("rejected"); break;
+    case ReviewAction::compare: action = "compare"; break;
+    case ReviewAction::detail: if (focusedKey().isEmpty()) focusAt(0); action = "detail"; break;
+    case ReviewAction::edit: action = "edit"; break;
+    case ReviewAction::focus: if (input.shift) selectAt(plan->index, modifiers); else focusAt(plan->index); action = "focus"; break;
+    }
+    return {{"accepted", true}, {"action", action}, {"index", plan->index}};
+}
+bool GenerationReviewModel::validImages(const QVariantList &entries, int minimum, int maximum) const {
+    return entries.size() >= minimum && entries.size() <= maximum && std::all_of(entries.begin(), entries.end(), [](const auto &value) { return imageEntry(value.toMap()); });
+}
+void GenerationReviewModel::markEntries(const QVariantList &entries, const QString &state) {
+    std::vector<std::string> keys;
+    for (const auto &entry : entries) keys.push_back(keyForEntry(entry.toMap()).toStdString());
+    m_selection.setState(keys, parseState(state)); publishState(reviewFiltered());
+}
+QVariantList GenerationReviewModel::contextEntries() const { return isSelected(focusedEntry()) ? selectedEntries() : QVariantList{focusedEntry()}; }
+QString GenerationReviewModel::filterLabel(const QString &key) const {
+    if (key == "all") return tr("All %1").arg(totalCount());
+    if (key == "shortlisted") return tr("Shortlisted %1").arg(shortlistedCount());
+    if (key == "rejected") return tr("Rejected %1").arg(rejectedCount());
+    if (key == "unreviewed") return tr("Unreviewed");
+    if (key == "images") return tr("Images");
+    if (key == "videos") return tr("Videos");
+    return key;
 }

@@ -36,6 +36,7 @@ public:
     Q_INVOKABLE bool editColor(const QColor&);
     Q_INVOKABLE bool editHex(const QString&);
     Q_INVOKABLE bool editChannel(int,double);
+    Q_INVOKABLE bool editChannelText(int,const QString &);
     Q_INVOKABLE double channelValue(int) const;
     Q_INVOKABLE QVariantMap channel(int) const;
     Q_INVOKABLE void accept();

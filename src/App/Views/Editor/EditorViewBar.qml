@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import ".." as Frames
 import LVRS 1.0 as LV
 
@@ -89,13 +90,13 @@ Item {
         onItemTriggered: function(index) { root.canvas.viewOptions.edit("display", "composite", index === 0 ? "Composite" : "Outlines") }
     }
     LV.ContextMenu {
-        id: channelMenu; objectName: "editorViewChannelMenu"; selectedIndex: ["RGB","Red","Green","Blue","Alpha"].indexOf(root.canvas.viewOptions.display.channel); showIconSlot: false
-        items: ["RGB","Red","Green","Blue","Alpha"].map(function(name){return {label:name}})
+        id: channelMenu; objectName: "editorViewChannelMenu"; selectedIndex: NativeData.presentation.indexOf(["RGB","Red","Green","Blue","Alpha"], root.canvas.viewOptions.display.channel); showIconSlot: false
+        items: ["RGB","Red","Green","Blue","Alpha"]
         onItemTriggered: function(index) { root.canvas.viewOptions.edit("display","channel", ["RGB","Red","Green","Blue","Alpha"][index]) }
     }
     LV.ContextMenu {
-        id: presetMenu; objectName: "editorViewPresetMenu"; selectedIndex: ["Smart","Pixel","Vector","Layout"].indexOf(root.canvas.viewOptions.snap.preset); showIconSlot: false
-        items: ["Smart","Pixel","Vector","Layout"].map(function(name){return {label:name}})
+        id: presetMenu; objectName: "editorViewPresetMenu"; selectedIndex: NativeData.presentation.indexOf(["Smart","Pixel","Vector","Layout"], root.canvas.viewOptions.snap.preset); showIconSlot: false
+        items: ["Smart","Pixel","Vector","Layout"]
         onItemTriggered: function(index) { root.canvas.viewOptions.preset(["Smart","Pixel","Vector","Layout"][index]); root.canvas.viewOptions.edit("snap","enabled",true) }
     }
     LV.Popover {

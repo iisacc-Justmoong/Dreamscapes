@@ -1,0 +1,149 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:6a5ff18e8f330602eb9e49eef4d93f84e725b5558aac636c66f13f3da7df484c",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/SocietyAliases.md",
+    "sha256": "53c8514bc99c3c3fac14d8e680bfbb07a12885fb5d910c9d5df3b0548c22894c",
+    "bytes": 2990,
+    "line_count": 45,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Society container state and application Aliases",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Society container state and application Aliases\n",
+      "level": 1,
+      "title": "Society container state and application Aliases"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 8,
+      "raw": "Dreamscapes requires iiSocietyContainer 0.16.0 and iiSocietyHelper 0.8.0. Its\nGenerationController owns a Helper, which owns the FileSystem bridge and its\nread-only `iiSocietyContainer::Container` object. The application exposes this\nobject as `generation.container` and `Main.societyContainer`. Home recent files,\nPublished and Generation History use its Alias snapshots, including search.\nDreamscapes does not construct an independent dashboard filesystem scanner.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 10,
+      "end_line": 14,
+      "raw": "An Alias identifies a container and logical file key. It supplies existence,\nlocal availability, the source address, version and preview metadata. Existence\nchecks for published results and stored image previews go through Helper. Native\ncanvas previews are rendered and cached by Helper, with no application preview\nfile writer. Replica metadata remains usable when the payload is not downloaded.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 15,
+      "end_line": 15,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 16,
+      "end_line": 20,
+      "raw": "Generation produces transient engine output and asks Helper to publish the PNG in\nGeneration History. Using an image in the editor or a generation input requests\na native document in Files. A frame or input preview is received from Helper.\nApplication worker files and in-memory image encoders are transient generation\nresources; they do not publish documents or image originals into public sections.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 21,
+      "end_line": 21,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 22,
+      "end_line": 32,
+      "raw": "The editor holds an in-memory iiSharedCanvas Document and a file Alias. It has no\nnative writable DocumentFile binding. Save, Save As, completed strokes, document\nedits and undo/redo send a document snapshot and the expected version to Helper.\nHelper owns the native transaction. A conflicting external revision is reported\nwithout overwriting the stored document. Unsynchronized edits remain visible as\nmodified. File Alias availability is updated from Helper's container snapshot.\nHelper availability changes also notify GenerationController's connection and\ncontainer-path properties, including while generation is active.\nAlias content updates notify the container mirror without emitting an unrelated\nconnection-change signal or resetting the current result gallery selection.\nRaster exports, original-media downloads and native exports also use Helper.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 33,
+      "end_line": 33,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 34,
+      "end_line": 39,
+      "raw": "The previous PNG/Files contract remains: generated `.png` originals belong to\nGeneration History, while automatically created `.iisc` documents belong to\nFiles. Explicit external native open/save/export operations are supported even\nwithout a selected Society container. App storage selection, model\nresolution, download request state, input cleanup and legacy migration use the\nsame bridge. There is no application-owned SharedStorage or StorageMap writer.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 40,
+      "end_line": 40,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 41,
+      "end_line": 45,
+      "raw": "Verification includes Container Alias snapshots without disk probes, Helper\npublication/deletion and native version conflicts, Dreamscapes PNG publication\nand editor conversion, native document save/reopen/edit/undo, image export and\nthe Home/history/editor GUI routes. Native macOS installation and startup are\nverified separately from source tests.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Society container state and application Aliases",
+      "anchor": "society-container-state-and-application-aliases",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000007",
+        "line": 20,
+        "text": "resources; they do not publish documents or image originals into public sections.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

@@ -186,6 +186,8 @@ public:
     Q_INVOKABLE bool importToolSource(const QUrl &, const QString &tool, const QVariantMap &values);
     Q_INVOKABLE QVariantMap toolPreview(const QString &tool, const QString &field, const QVariantMap &values) const;
     Q_INVOKABLE QVariantMap toolControlState(const QString &tool, const QString &field, const QVariantMap &values) const;
+    Q_INVOKABLE QVariantList supportedToolFields(const QString &tool, const QVariantList &fields,
+                                               const QVariantMap &values) const;
     Q_INVOKABLE QVariantMap generationParameters(const QString &operation, const QVariantMap &values);
     Q_INVOKABLE bool placeGenerated(const QUrl &source, const QString &operation);
     Q_INVOKABLE void clearAreaSelection();

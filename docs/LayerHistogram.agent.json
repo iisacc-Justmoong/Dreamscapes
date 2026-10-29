@@ -1,0 +1,308 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:90469fdf1e0b1b59194a4c89615f997e49754f706db436aae914bdcb64f1a786",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/LayerHistogram.md",
+    "sha256": "39f41fc7e3ea8007d8acbd655f6137c35821dab7dcf0a316dc34592a2852af1c",
+    "bytes": 5350,
+    "line_count": 89,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Layer histogram presentation",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Layer histogram presentation\n",
+      "level": 1,
+      "title": "Layer histogram presentation"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 9,
+      "raw": "The Layer panel owns an `EditorLayerHistogram` presentation object. It is active\nonly while that panel is visible and its Histogram tab is selected. Opening or\nclosing this view does not edit, save or revise a document. The old synchronous\n`EditorCanvas::layerHistogram` entry point is removed. The document owner has no\ndependency on its analysis consumer; synchronous native pixel tests can call the\ndetached calculator without involving a live canvas. QML uses the view-owned\nasynchronous object exclusively.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "heading",
+      "start_line": 11,
+      "end_line": 11,
+      "raw": "## Work and data ownership\n",
+      "level": 2,
+      "title": "Work and data ownership"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 12,
+      "end_line": 12,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 13,
+      "end_line": 18,
+      "raw": "Canvas content/frame/artboard/selected-scope changes invalidate the presentation.\nA 60 ms coalescing delay captures the latest request. One worker runs at a time,\nwith at most one latest pending request. Hiding, rebinding or destroying the\nowner retires its intent without joining the renderer. A late result cannot\nreplace the current view. Each panel has its own owner; closing one panel does\nnot cancel another panel's request.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 20,
+      "end_line": 25,
+      "raw": "The request contains the SDK's shared immutable document snapshot, native frame\nand artboard IDs, authored visibility and selected scope. No live canvas,\nQObject, file binding or storage service crosses the worker boundary. Native\niiSharedCanvas compositing and all pixel counting run on the worker. Visibility\noverrides copy native raster values there, without an additional GUI payload\ncopy. Initial SDK snapshot capture still has its existing owner-thread cost.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 26,
+      "end_line": 26,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 27,
+      "end_line": 42,
+      "raw": "Completed native summaries use a bounded 32-entry cache. Cache keys describe the\ndocument revision, frame, artboard and scope. Cached views are checked before\nsnapshot capture. Actual content changes clear summaries. RGB/Red/Green/Blue\nswitching projects the same published result and starts no rendering. Repeated\nproperty reads return the published map and perform no work. Explicit Refresh\nretries an optional failure, while an error in the analysis never replaces a\ndocument's editing error.\nRepeated frame changes while the same pending state is displayed retire obsolete\nwork without rebuilding or republishing that identical state to chart bindings.\nThe gated negative control first observed 19 redundant notifications for 19\nframe changes; the regression requires zero after the pending state is published.\nFrame identity is needed only when relevant visible content may vary with time:\ndynamic/video sources, motion or partial frame ranges. A static full-duration\ncomposition retains its published histogram during navigation. Selected-layer\nscope considers that layer, so an unrelated animation starts no extra work.\nHidden panels ignore frame notifications without rebuilding placeholder maps.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 43,
+      "end_line": 43,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 44,
+      "end_line": 46,
+      "raw": "Live brush revisions defer capture and analysis until stroke completion or\ncancellation. Frame navigation can update a visible histogram, but neither the\nhistogram nor its completion sends file, project or document-edit notifications.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 47,
+      "end_line": 47,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "heading",
+      "start_line": 48,
+      "end_line": 48,
+      "raw": "## Numeric compatibility\n",
+      "level": 2,
+      "title": "Numeric compatibility"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 49,
+      "end_line": 49,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 50,
+      "end_line": 55,
+      "raw": "The plot retains 256 exact encoded-byte RGB bins and counts each positive-alpha\npixel once. Channel means and population standard deviations are in [0,255].\nThe RGB summary retains the previous integer gray value `(11R+16G+5B)/32`.\nTransparent pixels are excluded. Selected-layer scope retains the native\ntransform, opacity, mask and artboard region, with the existing background rule.\nThere is no downsampling or omitted parameter.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 56,
+      "end_line": 56,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "heading",
+      "start_line": 57,
+      "end_line": 57,
+      "raw": "## Layer command boundary\n",
+      "level": 2,
+      "title": "Layer command boundary"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 58,
+      "end_line": 58,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 59,
+      "end_line": 66,
+      "raw": "Reapplying a group's current visibility is an idempotent metadata check. It\ndoes not copy/serialize a document, create an edit/history entry, notify file\nobservers or cancel a live gesture. A real visibility change uses the typed\nnative DocumentEditor result and existing optimistic/durable storage path; an\nactive brush still rejects a real change. The negative working-file regression\nobserved revision 1 becoming 2 after reapplying `true`. Its corrected form checks\n201 unchanged assignments, byte/version/notification preservation, a live stroke\nand one real persisted change.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 67,
+      "end_line": 67,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 68,
+      "end_line": 73,
+      "raw": "The SDK's floating-point PhotoOperations histogram uses normalized RGBA and\nlinear-light Rec709 luminance. Expanding a full packed-ARGB frame to that format\nwould increase memory and change this established display contract. The view\nadapter therefore reduces the native packed renderer result directly in one\npass, using standard C++ data. It does not add a second rendering engine or a\nnew document format.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 74,
+      "end_line": 74,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "heading",
+      "start_line": 75,
+      "end_line": 75,
+      "raw": "## Verification and limits\n",
+      "level": 2,
+      "title": "Verification and limits"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 76,
+      "end_line": 76,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 77,
+      "end_line": 80,
+      "raw": "The negative native fixture used 32 layers and a 2048 by 2048 canvas. The old\nQML-exposed synchronous call took 4,534,296 microseconds and did not deliver an\nalready queued event before returning. This is a method-level reproduction,\nexcluding canvas creation, first QML initialization and storage.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 81,
+      "end_line": 81,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 82,
+      "end_line": 89,
+      "raw": "Regressions cover exact byte bins and alpha, immutable input/event delivery while\na renderer is held, latest-frame bounds, channel/cache reuse, hidden/live-stroke\ndeferral, owner/source lifetime, stale rebinding, direct terminal deletion,\noptional failure retry and artboard/selected scope. The mounted four-state Layer\npanel separately checks active ownership, asynchronous completion and read-only\nchannel changes. Renderer cancellation is cooperative; an already executing SDK\nrender may finish before its result is discarded. These checks do not establish\napplication-wide FPS or eliminate initial SDK snapshot capture costs.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Layer histogram presentation",
+      "anchor": "layer-histogram-presentation",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000005",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Work and data ownership",
+      "anchor": "work-and-data-ownership",
+      "start_line": 11
+    },
+    {
+      "block_id": "b000015",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Numeric compatibility",
+      "anchor": "numeric-compatibility",
+      "start_line": 48
+    },
+    {
+      "block_id": "b000019",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Layer command boundary",
+      "anchor": "layer-command-boundary",
+      "start_line": 57
+    },
+    {
+      "block_id": "b000025",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Verification and limits",
+      "anchor": "verification-and-limits",
+      "start_line": 75
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000011",
+        "line": 32,
+        "text": "retries an optional failure, while an error in the analysis never replaces a",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000029",
+        "line": 88,
+        "text": "render may finish before its result is discarded. These checks do not establish",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

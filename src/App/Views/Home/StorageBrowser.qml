@@ -20,86 +20,40 @@ Item {
     readonly property bool downloadVisible: !!container && downloadState.containerId === container.containerId
         && String(downloadState.key || "").startsWith(section + "/")
         && (downloading || downloadState.state === "failed" || downloadState.state === "cancelled")
-    property string section: "files"
-    property string directory: ""
-    property string query: ""
-    property string sortOrder: "newest"
-    property string selectedKey: ""
-    property string notice: ""
+    property alias section: nativeBrowser.section
+    property alias directory: nativeBrowser.directory
+    property alias query: nativeBrowser.query
+    property alias sortOrder: nativeBrowser.sortOrder
+    property alias selectedKey: nativeBrowser.selectedKey
+    property alias notice: nativeBrowser.notice
     property string errorText: ""
-    property bool initialized: false
-    property var mirroredAliases: []
-    property var mirrorRevision: -1
     readonly property bool available: container && container.available
-    readonly property string storageIdentity: container ? container.containerId + "|" + container.rootPath : ""
     readonly property string sectionTitle: section === "generation-history" ? qsTr("Generation History")
         : section === "published" ? qsTr("Published") : qsTr("Files")
-    readonly property var sectionFiles: available ? NativeData.storage.sectionFiles(mirroredAliases, section) : []
-    readonly property var entries: NativeData.storage.listing(sectionFiles, section, directory, query, sortOrder)
-    readonly property var selectedEntry: entries.find(file => file.key === selectedKey) || ({})
+    readonly property alias sectionFiles: nativeBrowser.sectionFiles
+    readonly property alias entries: nativeBrowser.entries
+    readonly property alias selectedEntry: nativeBrowser.selectedEntry
+    NativeStorageBrowser {
+        id: nativeBrowser
+        objectName: "storageNativeBrowser"
+        container: root.container
+        active: root.visible
+        onNavigationResetRequested: { search.text = ""; selection.reset(); grid.positionViewAtBeginning() }
+        onPositionResetRequested: grid.positionViewAtBeginning()
+        onFileRequested: file => root.fileRequested(file)
+    }
     signal backRequested()
     signal sectionRequested(string section)
     signal fileRequested(var file)
     signal imagesRequested(var images)
     signal openFileRequested()
 
-    function updateSnapshot() {
-        if (!initialized || !visible || !container || mirrorRevision === container.revision) return
-        mirroredAliases = container.aliases
-        mirrorRevision = container.revision
-    }
-
-    function resetNavigation() {
-        directory = ""
-        query = ""
-        search.text = ""
-        selectedKey = ""
-        notice = ""
-        selection.reset()
-        grid.positionViewAtBeginning()
-    }
+    function updateSnapshot() { nativeBrowser.updateSnapshot() }
+    function resetNavigation() { nativeBrowser.resetNavigation() }
     function focusSearch() { search.inputItem.forceActiveFocus() }
-    function up() {
-        if (!directory) return
-        directory = directory.indexOf("/") < 0 ? "" : directory.slice(0, directory.lastIndexOf("/"))
-        selectedKey = ""
-        grid.positionViewAtBeginning()
-    }
-    function activate(file) {
-        if (!file) return
-        notice = ""
-        if (file.isDirectory) {
-            directory = file.relativePath
-            selectedKey = ""
-            grid.positionViewAtBeginning()
-        } else if (file.key) root.fileRequested(file)
-    }
-    function downloadStatus() {
-        if (downloadState.state === "preparing") return qsTr("Preparing download…")
-        if (downloadState.state === "connecting") return qsTr("Connecting to drive…")
-        if (downloadState.state === "verifying") return qsTr("Verifying file…")
-        if (downloadState.state === "cancelled") return qsTr("Download cancelled")
-        if (downloadState.state === "failed") {
-            const error = downloadState.error || ""
-            if (error === "host_session_unavailable") return qsTr("Sign in to access this drive, then retry here.")
-            if (error === "object_changed_select_again" || error === "drive_file_changed") return qsTr("The file changed. Refresh files and try again.")
-            if (error === "remote_container_changed") return qsTr("The selected drive changed. Select the file again.")
-            if (error.indexOf("timeout") >= 0 || error === "host_disconnected" || error === "host_transport_unavailable")
-                return qsTr("The drive is unreachable. Check the connection and retry.")
-            return qsTr("Download failed. Retry or refresh files.")
-        }
-        return downloadState.total > 0 ? qsTr("Downloading… %1%").arg(Math.floor(100 * (downloadState.completed || 0) / downloadState.total))
-            : qsTr("Downloading…")
-    }
-    onSectionChanged: if (initialized) resetNavigation()
-    onStorageIdentityChanged: if (initialized) { mirrorRevision = -1; resetNavigation(); updateSnapshot() }
-    onVisibleChanged: updateSnapshot()
-    Component.onCompleted: { initialized = true; resetNavigation(); updateSnapshot() }
-    onEntriesChanged: if (!entries.some(file => file.key === selectedKey)) selectedKey = ""
-    Connections {
-        target: root.container
-        function onStateChanged() { root.updateSnapshot() }
-    }
+    function up() { nativeBrowser.up() }
+    function activate(file) { nativeBrowser.activate(file) }
+    function downloadStatus() { return nativeBrowser.downloadStatus(downloadState) }
     CanvasPreview { id: previews }
     Timer {
         id: searchDelay
@@ -230,8 +184,8 @@ Item {
                         root.imageOpenRequest.retry()
                         return
                     }
-                    const file = root.sectionFiles.find(entry => entry.key === root.downloadState.key)
-                    if (file) root.fileRequested(file)
+                    const file = NativeData.facts.fileForKey(root.sectionFiles, root.downloadState.key, "key")
+                    if (file.key) root.fileRequested(file)
                 }
             }
             LV.LabelButton {

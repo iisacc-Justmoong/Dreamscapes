@@ -28,6 +28,7 @@ class EditorViewOptions : public QObject {
     QVariantMap display() const {
         return m_display;
     }
+    Q_INVOKABLE bool editText(const QString &family, const QString &key, const QString &input);
     Q_INVOKABLE bool edit(const QString &family, const QString &key, const QVariant &value);
     Q_INVOKABLE void reset(const QString &family);
     Q_INVOKABLE bool preset(const QString &name);

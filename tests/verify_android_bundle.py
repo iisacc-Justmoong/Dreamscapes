@@ -14,7 +14,7 @@ def verify(apk, ndk):
     readers = list((ndk / "toolchains/llvm/prebuilt").glob("*/bin/llvm-readelf"))
     if len(readers) != 1:
         raise RuntimeError("The NDK must provide one host llvm-readelf executable")
-    names = ("libiiSocietyHelper.so", "libiiAcountManager.so")
+    names = ("libiiSocietyHelper.so", "libiiAccountManager.so")
     with zipfile.ZipFile(apk) as archive, tempfile.TemporaryDirectory(
         prefix="native-bundle-check-", dir=apk.parent
     ) as temporary:
@@ -30,7 +30,7 @@ def verify(apk, ndk):
         dynamic = subprocess.check_output(
             [str(readers[0]), "-d", str(Path(temporary) / names[0])], text=True
         )
-        if "Shared library: [libiiAcountManager.so]" not in dynamic:
+        if "Shared library: [libiiAccountManager.so]" not in dynamic:
             raise RuntimeError("Packaged Helper does not link the packaged account manager")
     print("Android arm64 Helper and account runtime dependencies verified; no account requests made.")
 

@@ -41,8 +41,7 @@ def main():
             value = re.search(r"^" + package + r":[^=]+=(.+)$", product_cache.read_text(), re.MULTILINE)
             if value:
                 options.append(f"-D{package}={value.group(1)}")
-    dependencies = {"METAL_CPP": "metal_cpp", "JSON": "json",
-                    "FMT": "fmt", "IILD_ONNXRUNTIME": "iild_onnxruntime"}
+    dependencies = {"METAL_CPP": "metal_cpp", "JSON": "json", "FMT": "fmt"}
     for name, folder in dependencies.items():
         source = cache / (folder + "-src")
         if source.is_dir():
@@ -96,26 +95,40 @@ def main():
         options.append(f"-DFETCHCONTENT_SOURCE_DIR_IILD_SDCPP={owned_source}")
     run("cmake", "-S", sdk, "-B", build, "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Release",
         f"-DCMAKE_INSTALL_PREFIX={prefix}", "-DBUILD_TESTING=ON", "-DIILD_BUILD_TOOLS=ON",
-        "-DIILD_ENABLE_NATIVE_DIFFUSION=ON", "-DIILD_ENABLE_POSE=ON",
+        "-DIILD_ENABLE_NATIVE_DIFFUSION=ON", "-UIILD_ENABLE_POSE", "-UiiOnnxRuntime_DIR",
+        "-UIILD_ONNXRUNTIME_*", "-UIILD_POSE_*", "-UFETCHCONTENT_SOURCE_DIR_IILD_ONNXRUNTIME",
         "-DIILD_ENABLE_MLX=ON", "-DIILD_ENABLE_COREML=ON", "-DIILD_ENABLE_LIBTORCH=OFF",
         "-DIILD_MLX_GPU_BACKEND=auto", "-DFETCHCONTENT_UPDATES_DISCONNECTED=ON", *options)
     if args.configure_only:
         return
     run("cmake", "--build", build, "--parallel", max(1, args.jobs), "--target",
         "iiLocalDiffusion", "iild-run", "iild-model-package", "ComputeTests", "RocmTests", "NativeDiffusionTests",
-        "NativePoseTests", "NativePoseDisabledTests")
+        "NativePoseTests")
     run("ctest", "--test-dir", build, "--output-on-failure", "-R",
-        "^(ComputeTests|RocmTests|NativeDiffusionTests|NativePoseTests|NativePoseDisabledTests)$")
+        "^(ComputeTests|RocmTests|NativeDiffusionTests|NativePoseTests)$")
     run("cmake", "--install", build)
     links = subprocess.check_output(["otool", "-L", prefix / "lib/libiiLocalDiffusion.dylib"], text=True)
     if "libtorch" in links or "libc10" in links:
         raise RuntimeError("The Apple runtime still links the optional LibTorch backend.")
+    if "onnx" in links.lower():
+        raise RuntimeError("The Apple runtime links a retired ONNX dependency.")
+    # The Python worker dlopens the installed SDK; it has none of the RPATHs
+    # CMake supplies to a linked native consumer. Reject an incomplete package.
+    run("cmake", "-E", "env", *("--unset=" + name for name in (
+        "DYLD_LIBRARY_PATH", "DYLD_FALLBACK_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH",
+        "DYLD_FALLBACK_FRAMEWORK_PATH", "DYLD_VERSIONED_LIBRARY_PATH", "DYLD_VERSIONED_FRAMEWORK_PATH")),
+        sys.executable, "-I", "-B", "-c",
+        "import ctypes, sys; lib = ctypes.CDLL(sys.argv[1]); "
+        "getattr(lib, 'iild_native_video_generate_v1')",
+        prefix / "lib/libiiLocalDiffusion.dylib")
     (build.parent / "profile.json").write_text(json.dumps({
         "sdkSource": str(sdk), "prefix": str(prefix), "libtorch": False,
-        "mlx": True, "coreml": True, "nativeDiffusion": True, "pose": True,
+        "mlx": True, "coreml": True, "nativeDiffusion": True, "pose": False, "onnx": False,
         "sdkTestsPassed": True,
+        "nativeLibraryLoaded": True,
     }, indent=2) + "\n")
     run("cmake", "-S", ROOT, "-B", ROOT / "build",
+        f"-DMLX_DIR={prefix / 'share/cmake/MLX'}",
         f"-DiiLocalDiffusion_DIR={prefix / 'lib/cmake/iiLocalDiffusion'}")
 
 

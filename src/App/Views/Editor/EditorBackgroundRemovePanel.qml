@@ -1,11 +1,16 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import LVRS 1.0 as LV
 
 Column {
     id: root
     objectName: "backgroundRemoveBody"
     required property var toolState
+    NativeBackgroundModel {
+        id: nativeBackground
+        toolState: root.toolState.nativeModel
+    }
     readonly property var values: toolState.values
     readonly property var engine: toolState.engine
     readonly property var preview: value("backgroundRemovalPreview",({}))
@@ -15,30 +20,11 @@ Column {
     width: parent.width; spacing: 16
     function value(key, fallback) { return values[key] === undefined ? fallback : values[key] }
     function edit(key, next) { toolState.setValue(key,next) }
-    function run() {
-        if (!engine) return
-        const result=engine.previewBackgroundRemoval(values)
-        edit("backgroundRemovalPreview",result)
-        toolState.notice=result.ready?"":result.error || ""
-    }
-    function refine(key,next) { const ready=preview.ready; edit(key,next); if(ready)run() }
-    function resetEdges() {
-        const defaults={removeThreshold:50,removeRadius:3,removeSmooth:20,removeFeather:.8,removeShift:0,removeHair:true,removeDecontaminate:true}
-        Object.keys(defaults).forEach(key=>edit(key,defaults[key]))
-        if(preview.ready)run()
-    }
-    function reset() {
-        edit("backgroundRemovalPreview",({}));resetEdges()
-        const defaults={removeInput:"Selected canvas layer",removeModel:"Automatic",removeKeep:"All foreground subjects",removeQuality:"Balanced",removeView:"Split",removeOverlay:false,removeResult:"New layer with mask",removePreserve:true}
-        Object.keys(defaults).forEach(key=>edit(key,defaults[key]));toolState.notice=""
-    }
-    function apply(asMask) {
-        if (!engine || !preview.ready) return
-        if (engine.applyBackgroundRemoval(values)) {
-            edit("backgroundRemovalPreview",({}))
-            if(asMask)edit("backgroundView","Mask")
-        } else toolState.notice=engine.error
-    }
+    function run() { nativeBackground.runRemoval() }
+    function refine(key, next) { nativeBackground.refineRemoval(key, next) }
+    function resetEdges() { nativeBackground.resetEdges() }
+    function reset() { nativeBackground.resetRemoval() }
+    function apply(asMask) { nativeBackground.applyRemoval(asMask === true) }
     EditorBackgroundSection {
         title:qsTr("ML background removal")
         Parameter { field:"removeInput"; title:qsTr("Input"); value:root.value(field,"Selected canvas layer"); options:["Selected canvas layer"]; onEdited:next=>root.edit(field,next) }

@@ -1,0 +1,534 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:495afeb3effddb42e4e9f82da7d5ca29c0040cf50ce4795ce6cf4832b015e671",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/HomePaintCanvas.md",
+    "sha256": "40b0f04fe374582e9a4fd231c4bd1dc63ddfd780abb36fa6e822284d2e084b52",
+    "bytes": 13831,
+    "line_count": 62,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "홈 페인트 캔버스",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "html",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "<a id=\"home-paint-canvas\"></a>\n"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "heading",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "# 홈 페인트 캔버스\n",
+      "level": 1,
+      "title": "홈 페인트 캔버스"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 5,
+      "end_line": 5,
+      "raw": "이미지 첨부는 같은 규격의 `.iisc` fill 문서를 영속화한 뒤 파생 PNG로 표시한다. 기존 `.iisc` 결과도 첨부할 수 있다. Society의 제출 입력 보존본 역시 `.iisc`이며 엔진용 PNG는 런타임 파생 캐시이다. 저장 위치와 원본 보존 규칙은 [이미지 캔버스 저장](ImageCanvasStorage.md)을 따른다.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "Dreamscapes 는 Figma `bn8O4AHKr1X9DWnhR1TgEy`, 노드 `261:3206` 를 구현하며, 설치된 LVRS 컨트롤과 iiSharedCanvas 편집 엔진을 사용합니다. 요청된 아이콘 도구대는 디자인의 텍스트 버튼을 대체합니다. `HomePaintCanvas.qml` 가 프레젠테이션을 담당하고, `HomeCanvas` 가 소비자의 첨부 파일 및 입력 변환을 담당하며, iiSharedCanvas 는 래스터 픽셀, 스트로크, 렌더링 및 되돌리기 이력을 담당합니다.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "현재 데스크톱 홈은 인라인 페인트 캔버스와 그 토글을 제거하여 QuickGenerate 의 프롬프트를 먼저 배치합니다. QuickGenerate 는 기존 숨겨진 컴포넌트를 참조 이미지 백킹 상태로 유지하며, 첨부 파일 카드들은 프롬프트 아래의 외부 슬롯에서 렌더링되고 캔버스 드래지 제스처는 비활성화됩니다. 유효성 검사 오류는 컴포저 공지사항에 표시됩니다. 아래에 설명된 독립형 컴포넌트의 페인팅 동작은 컴포넌트 수준의 사용 및 테스트를 위해 여전히 사용 가능합니다.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 11,
+      "end_line": 11,
+      "raw": "이미지 왼쪽의 플러스 버튼을 누르면 여러 이미지 파일 선택기가 열립니다. 프롬프트와 생성 컨트롤 사이에 첨부된 이미지가 나타나며, 썸네일을 캔버스에 드래그하면 디코딩된 픽셀이 선택된 래스터 레이어에 드롭 위치로 합성됩니다. 이미지는 포인터 중앙에 정렬되며 캔버스 내에 유지됩니다. 작은 입력은 원래 픽셀 크기를 유지하고, 과도하게 큰 입력은 비율을 변경하지 않고 캔버스에 맞게 축소됩니다. 붙여넣기는 하나의 되돌릴 수 있는 편집으로, 되실행과 이후 브러시/지우개 편집을 지원하며, 소스 첨부물이 제거되더라도 유지됩니다. 참조를 제거하면 픽셀이 지워지지 않습니다. 빈 첨부물 목록은 공간을 차지하지 않습니다.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 12,
+      "end_line": 12,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 13,
+      "end_line": 13,
+      "raw": "22px 도구 모음에는 18px 내보낸 Figma 브러시 아이콘과 설치된 LVRS 지우개, 되돌리기, 되실행 및 지우기 아이콘이 있습니다. LVRS ColorPickerButton 는 네이티브 LVRS 휠 ColorPicker 을 엽니다. 적용은 브러시 색상을 확정하고, 취소는 색상을 유지합니다. 도구 모음은 왼쪽에 너비가 고정된 LVRS 미니 슬라이더 컨트롤을 표시하며, 브러시 크기는 1 – 500 픽셀로 1 픽셀 간격으로, 불투명도는 0 – 100% 로 1% 단계로 ( SDK 의 0 – 1 값으로 매핑됩니다). 아이콘은 크기와 불투명도를 식별하며, 수치 읽기창은 현재 값을 표시합니다. 좁은 너비에서는 고정 너비 컨트롤 그룹이 줄바꿈됩니다. 0% 스트로크는 픽셀을 그리지 않습니다. 마우스 오버 툴팁과 접근성 이름은 아이콘 동작을 식별합니다. 좁은 홈은 플러스 버튼을 유지하고 비율 및 양 조절을 누그러뜨리지 않기 위해 22px 생성 화살표를 사용합니다.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 14,
+      "end_line": 14,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 15,
+      "end_line": 15,
+      "raw": "캔버스 출력 크기는 QuickGenerate를 따른다. 1:1 = 1024 × 1024, 4:3 = 1368 × 1024, 3:4 = 1024 × 1368, 16:9 = 1824 × 1024, 9:16 = 1024 × 1824이다. 비율 변경은 기존 픽셀을 늘이지 않고 중앙에 정렬된 새 문서에 맞춘다. 새 문서를 생성하며 이전 실행 취소 이력은 초기화한다. 표시 캔버스는 **너비1080 논리 픽셀**로 제한하고, 더 좁은 패널에서는 `displayWidth = min(1080, panelContentWidth)`와 `displayHeight = displayWidth * canvasHeight / canvasWidth`에 따라 축소한다. 넓은 패널은 캔버스를 중앙에 놓으며 좁은 패널은 가로 스크롤 없이 문서 전체를 보여 준다. 기존 12px 패널 패딩은 뷰포트 바깥에 유지한다. 그리는 동안 flicking을 임시 비활성화하여 브러시 획이 스크롤 제스처로 바뀌지 않도록 한다. 고정 stage 높이는 없다. 세로 비율은 스크롤되는 Home 본문을 늘리며 애플리케이션 창 크기를 바꾸지 않는다. HomeCanvas는 맞춘 문서를 확대/축소하는 대신 스크롤 호스트에 휠 입력을 전달하여 아래의 프롬프트와 생성 제어에 접근할 수 있게 한다. SDK의 일반 편집기 확대/축소 동작은 바꾸지 않는다. 표시 배율은 출력 크기를 변경하지 않는다. 초안 픽셀과 첨부는 공유 QuickGenerate 인스턴스에 속하며 경로 전환 뒤에도 유지한다. 모바일과 결과 작성기는 간결한 표시를 유지한다.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 16,
+      "end_line": 16,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "애플리케이션 창의 이동 핸들은 상단 40 논리 픽셀로 제한됩니다. LVRS 의 macOS 솔리드 크롬 백엔드는 네이티브 전체 창 배경 이동을 비활성화하므로 캔버스 스트로크는 창 이동이 아닌 캔버스 입력으로 유지됩니다. 기존 48px 네이티브 컨트롤 레이아웃과 8px 콘텐츠 분리는 그대로 유지됩니다.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "html",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "<a id=\"generation-inputs\"></a>\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 20,
+      "end_line": 20,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "heading",
+      "start_line": 21,
+      "end_line": 21,
+      "raw": "## 생성 입력\n",
+      "level": 2,
+      "title": "생성 입력"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 22,
+      "end_line": 22,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 23,
+      "end_line": 23,
+      "raw": "비어 있지 않은 캔버스는 UI 에 표시된 동일한 크림 배경을 가진 출력 해상도의 불변 PNG 로 내보내집니다. 그것은 첫 번째 `referenceImages` 항목이며, 첨부된 네이티브 문서의 파생 PNG가 그 뒤에 따른다. 비어 있는 캔버스 픽셀은 이미지를 추가하지 않습니다. 둘 다 비어 있으면 기존 텍스트 전용 `enqueue` 경로가 계속 사용됩니다. 기존 네이티브 고급 생성 경로는 이미지 참조, 프롬프트, 모델, 출력 크기와 개수를 받습니다. 프로세스 전용 런타임은 지원되지 않는 이미지 참조를 명시적으로 거부합니다. `enqueueHomeCanvas` 는 선택된 비율 레이블을 보존하며 모든 참조를 고유한 Society Files `Dreamscapes/GenerationInputs` 디렉터리에 `.iisc`로 저장하고 엔진용 PNG를 런타임 캐시에 생성한 후 대기열에 추가하므로, 대기 중인 작업은 초안 편집이나 원본 삭제로 인해 영향을 받지 않습니다. 실패한 제출은 입력 디렉토리를 제거하며, 성공적인 작업은 재현성을 위해 기록된 파라미터와 함께 입력을 유지합니다.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 24,
+      "end_line": 24,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 25,
+      "end_line": 25,
+      "raw": "QuickGenerate는 레시피 유형과 관계없이 활성 제출을 식별합니다. 따라서 홈 참조 제출은 공유 결과 화면을 즉시 열어 모델이 로드되는 동안 허용된 모든 작업을 표시합니다. 고급 작업 영역 제출은 해당 작업 영역의 자체 진행률 보기를 계속 사용합니다.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 26,
+      "end_line": 26,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 27,
+      "end_line": 27,
+      "raw": "읽을 수 있는 로컬 이미지만 허용되며, 256 MiB / 64 메가픽셀 제한이 있습니다. 최대 19 개의 첨부 파일은 캔버스에 한 개의 슬롯을 남겨 SDK 의 20참조 제한 내에서 작동합니다. 지원되지 않거나 제거된 파일은 캔버스 픽셀을 변경하지 않고 입력 오류를 표시합니다. 앱에는 플레이스홀더 장면이나 샘플 파일이 설치되어 있지 않습니다.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 28,
+      "end_line": 28,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "html",
+      "start_line": 29,
+      "end_line": 29,
+      "raw": "<a id=\"verification\"></a>\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "heading",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "## 검증\n",
+      "level": 2,
+      "title": "검증"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 32,
+      "end_line": 32,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "list",
+      "start_line": 33,
+      "end_line": 43,
+      "raw": "- `DreamscapesGuiTests homeCanvasMaxWidthAndAutoHeight` 는 5 의 모든 비율을 248, 432, 1103, 1104, 1105, 1121 및 1600px의 패널 너비에서 다룹니다. 1080px 의 최대치를 확인하고 그 한도 아래로 축소하며, 프레임 내 양쪽 가장자리, 중앙 정렬, 자동 스테이지 높이, 출력 차원 및 리사이징이 붙여넣은 픽셀과 되돌림을 보존하는지 확인합니다.\n- `homeCanvasScalesToFramePreservingPainting`는 오른쪽 가장자리가 수평 스크롤 없이 보이는지 확인하고, 휠 입력이 확대/축소를 변경하지 않으며, 페인팅이 반응성을 유지하고, 반대로 실행 취소/재시도와 축소·넓이·좁은 크기 조정으로 픽셀을 보존합니다.\n- `homePromptDragDoesNotMoveWindow`는 데스크톱 및 컴팩트 폭에서 실제 메인/홈 계층 구조를 로드하고, 39px/40px 이동 경계를 확인하며, 초안을 변경하거나 창을 이동하지 않고 프롬프트 텍스트를 선택하고, 상단 스트립 이동 핸들러를 검증합니다.\n- 홈 인터랙션은 자동 높이 캔버스가 창의 보이는 본문을 넘어 확장될 때 포인터 입력보다 먼저 스크롤 컨트롤을 화면에 표시하도록 테스트합니다.\n- `desktopHomeContinuousRowsAndPromptStarters`는 프롬프트가 첫 번째이고 캔버스와 토글이 없으며 참조 첨부 파일이 계속 표시되고 제거 가능하며 페인트 영역을 드러내지 않은 채 생성 입력에 포함되는지 검증한다.\n- `Dreamscapes.HomeCanvas` 는 실제 픽셀, 드롭 검증, 되돌림/다시 실행/지우기, 제거 의미론, 비율 보존 및 내보낸 생성물 PNG 를 확인합니다.\n- `DreamscapesGuiTests homeCanvasSliderRanges`는 슬라이더 제한, SDK 브러시 업데이트, 마우스 입력, 0% 스트로크 및 좁은 레이아웃을 모두 검증합니다.\n- `DreamscapesGuiTests homeCanvasDragPaintAndColorPicker`는 마우스 이벤트를 사용하여 썸네일을 드래그하고, 실행 취소/다시 실행하고, 색상을 선택하고, 래스터 픽셀을 색칠하고 지웁니다. 렌더링된 캡처를 위해 `DREAMSCAPES_HOME_CANVAS_CAPTURE`를 PNG 경로로 설정하십시오.\n- `DreamscapesGenerationTests homeCanvasOwnsReferencesAndForwardsNativePixels`는 대기열 후에 원본을 삭제하고, 네이티브 콜백이 소유 스냅샷으로부터 원본 RGB 픽셀을 수신하고 작업이 완료되는지 확인합니다. 네이티브 콜백은 픽스처이며, 확산 모델을 실행하지 않습니다.\n- 기존 QuickGenerate , 홈, 탐색 및 생성물 회귀는 공유 초안, 컴팩트 레이아웃, 카운트 및 결과 계약을 다룹니다.\n- `referenceGenerateOpensResultImmediately` 는 단일 및 배치 출력에 첨부된 이미지가 있는 실제 생성 클릭, 즉각적인 피드백, 소유된 입력 픽셀 및 네이티브 콜백 픽스처 를 통한 최종 3:4 PNG 차원을 다룹니다.\n",
+      "items": [
+        {
+          "marker": "-",
+          "text": "`DreamscapesGuiTests homeCanvasMaxWidthAndAutoHeight` 는 5 의 모든 비율을 248, 432, 1103, 1104, 1105, 1121 및 1600px의 패널 너비에서 다룹니다. 1080px 의 최대치를 확인하고 그 한도 아래로 축소하며, 프레임 내 양쪽 가장자리, 중앙 정렬, 자동 스테이지 높이, 출력 차원 및 리사이징이 붙여넣은 픽셀과 되돌림을 보존하는지 확인합니다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`homeCanvasScalesToFramePreservingPainting`는 오른쪽 가장자리가 수평 스크롤 없이 보이는지 확인하고, 휠 입력이 확대/축소를 변경하지 않으며, 페인팅이 반응성을 유지하고, 반대로 실행 취소/재시도와 축소·넓이·좁은 크기 조정으로 픽셀을 보존합니다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`homePromptDragDoesNotMoveWindow`는 데스크톱 및 컴팩트 폭에서 실제 메인/홈 계층 구조를 로드하고, 39px/40px 이동 경계를 확인하며, 초안을 변경하거나 창을 이동하지 않고 프롬프트 텍스트를 선택하고, 상단 스트립 이동 핸들러를 검증합니다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "홈 인터랙션은 자동 높이 캔버스가 창의 보이는 본문을 넘어 확장될 때 포인터 입력보다 먼저 스크롤 컨트롤을 화면에 표시하도록 테스트합니다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`desktopHomeContinuousRowsAndPromptStarters`는 프롬프트가 첫 번째이고 캔버스와 토글이 없으며 참조 첨부 파일이 계속 표시되고 제거 가능하며 페인트 영역을 드러내지 않은 채 생성 입력에 포함되는지 검증한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`Dreamscapes.HomeCanvas` 는 실제 픽셀, 드롭 검증, 되돌림/다시 실행/지우기, 제거 의미론, 비율 보존 및 내보낸 생성물 PNG 를 확인합니다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`DreamscapesGuiTests homeCanvasSliderRanges`는 슬라이더 제한, SDK 브러시 업데이트, 마우스 입력, 0% 스트로크 및 좁은 레이아웃을 모두 검증합니다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`DreamscapesGuiTests homeCanvasDragPaintAndColorPicker`는 마우스 이벤트를 사용하여 썸네일을 드래그하고, 실행 취소/다시 실행하고, 색상을 선택하고, 래스터 픽셀을 색칠하고 지웁니다. 렌더링된 캡처를 위해 `DREAMSCAPES_HOME_CANVAS_CAPTURE`를 PNG 경로로 설정하십시오.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`DreamscapesGenerationTests homeCanvasOwnsReferencesAndForwardsNativePixels`는 대기열 후에 원본을 삭제하고, 네이티브 콜백이 소유 스냅샷으로부터 원본 RGB 픽셀을 수신하고 작업이 완료되는지 확인합니다. 네이티브 콜백은 픽스처이며, 확산 모델을 실행하지 않습니다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "기존 QuickGenerate , 홈, 탐색 및 생성물 회귀는 공유 초안, 컴팩트 레이아웃, 카운트 및 결과 계약을 다룹니다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`referenceGenerateOpensResultImmediately` 는 단일 및 배치 출력에 첨부된 이미지가 있는 실제 생성 클릭, 즉각적인 피드백, 소유된 입력 픽셀 및 네이티브 콜백 픽스처 를 통한 최종 3:4 PNG 차원을 다룹니다.",
+          "checked": null
+        }
+      ]
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 44,
+      "end_line": 44,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "paragraph",
+      "start_line": 45,
+      "end_line": 45,
+      "raw": "`cmake -S . -B build`, `cmake --build build` 및 `ctest --test-dir build`를 사용합니다. 제품은 단일 표준 `build/bin/Dreamscapes.app` 번들로 유지됩니다.\n"
+    },
+    {
+      "id": "b000036",
+      "kind": "blank",
+      "start_line": 46,
+      "end_line": 46,
+      "raw": "\n"
+    },
+    {
+      "id": "b000037",
+      "kind": "html",
+      "start_line": 47,
+      "end_line": 47,
+      "raw": "<a id=\"home-body-layout-figma-2613148\"></a>\n"
+    },
+    {
+      "id": "b000038",
+      "kind": "blank",
+      "start_line": 48,
+      "end_line": 48,
+      "raw": "\n"
+    },
+    {
+      "id": "b000039",
+      "kind": "heading",
+      "start_line": 49,
+      "end_line": 49,
+      "raw": "## 홈 본체 레이아웃(Figma 261:3148)\n",
+      "level": 2,
+      "title": "홈 본체 레이아웃(Figma 261:3148)"
+    },
+    {
+      "id": "b000040",
+      "kind": "blank",
+      "start_line": 50,
+      "end_line": 50,
+      "raw": "\n"
+    },
+    {
+      "id": "b000041",
+      "kind": "paragraph",
+      "start_line": 51,
+      "end_line": 51,
+      "raw": "Figma `261:3217` 는 비율 인식 페인팅 단계를 제공하고 자동으로 높이를 설정합니다. 독립형 페인팅 컴포넌트는 너비를 1080px 로 제한하고 좁은 프레임에 맞게 조정하며, 현재 데스크톱 홈에는 이 단계를 표시하지 않습니다. 기존 12px 패널 패딩은 캔버스 바깥에 유지되며, 문서는 전체 단계를 덮습니다. 빈 상태 지침은 가시적인 뷰포트 내에서 감싸집니다. 시각적인 Figma 풍경은 설치된 기본 그림이나 생성된 결과가 아닌 편집 가능한 샘플 콘텐츠입니다.\n"
+    },
+    {
+      "id": "b000042",
+      "kind": "blank",
+      "start_line": 52,
+      "end_line": 52,
+      "raw": "\n"
+    },
+    {
+      "id": "b000043",
+      "kind": "paragraph",
+      "start_line": 53,
+      "end_line": 53,
+      "raw": "현재 홈은 캔버스를 생략하고 프롬프트로 시작합니다. 독립형 페인팅 컴포넌트에서 브러시와 지우개는 브러시 크기 아이콘과 고정 120px LVRS 미니 슬라이더 (1 – 500px), 불투명도 아이콘과 고정 120px LVRS 미니 슬라이더 (0 – 100%), 그리고 LVRS 색상 휠에 이어집니다. 수치 읽기 표시는 가시적으로 유지되며, 단어 레이블은 설치된 LVRS SVG 로 대체됩니다. 도구 모드는 좁은 너비에서 그룹을 감싸며, 취소/다시 실행/지우기 기능을 접근 가능하게 유지합니다. 비율 상태는 실제 캔버스 차원을 보고합니다. 초기 브러시는 24px 로 유지되며, 디자인의 51px 값은 변경된 기본값이 아닌 예시입니다.\n"
+    },
+    {
+      "id": "b000044",
+      "kind": "blank",
+      "start_line": 54,
+      "end_line": 54,
+      "raw": "\n"
+    },
+    {
+      "id": "b000045",
+      "kind": "paragraph",
+      "start_line": 55,
+      "end_line": 55,
+      "raw": "첨부 파일은 340 × 64 카드이며 48px 이미지 미리보기, 파일명, 크기와 제거 동작을 포함합니다. 공유 데스크톱 컴포저에서 시각적 호스트는 프롬프트와 컨트롤 사이에 위치합니다. HomePaintCanvas 는 기존 HomeCanvas 와 네이티브 드래그/드롭 로직을 계속 소유하므로 첨부 파일 호스트를 이동해도 초안을 다시 생성하거나 잃지 않습니다. 독립형 HomePaintCanvas 는 캔버스 아래에 첨부 파일을 유지합니다. 기존 참조 이미지 생성 경로는 변경되지 않습니다. 첨부 파일은 지원되는 이미지 형식이며, Figma 에 표시된 설명적 PDF 는 이미지 전용 추론 API 에 전달되지 않습니다.\n"
+    },
+    {
+      "id": "b000046",
+      "kind": "blank",
+      "start_line": 56,
+      "end_line": 56,
+      "raw": "\n"
+    },
+    {
+      "id": "b000047",
+      "kind": "heading",
+      "start_line": 57,
+      "end_line": 57,
+      "raw": "## 첨부 이미지 생성의 모델별 설정\n",
+      "level": 2,
+      "title": "첨부 이미지 생성의 모델별 설정"
+    },
+    {
+      "id": "b000048",
+      "kind": "blank",
+      "start_line": 58,
+      "end_line": 58,
+      "raw": "\n"
+    },
+    {
+      "id": "b000049",
+      "kind": "paragraph",
+      "start_line": 59,
+      "end_line": 59,
+      "raw": "QuickGenerate의 첨부·캔버스 요청은 enqueue 시점에 iiLocalDiffusion의 `nativeImageParameterDefaults`로 모델 텐서 메타데이터를 확인한다. Krea2에는 52 steps·native CFG 7을 적용하고, 실제 적용한 값을 작업 스냅샷과 출력 PNG 메타데이터에 저장한다. 고급 생성 폼의 명시적 설정은 변경하지 않는다. 이미지 강도 0.65와 사용자가 선택한 출력 비율·크기·개수는 유지한다. SDK는 Krea2의 단일 입력을 img2img 시작 이미지로 처리하고 별도 편집 모델용 참조 조건을 중복 적용하지 않는다. `homeKreaDefaultsAndAdvancedOverrides` 회귀 검사는 중립적인 파일명의 Krea2 메타데이터, 기본값 저장, 고급 설정 보존을 확인한다.\n"
+    },
+    {
+      "id": "b000050",
+      "kind": "blank",
+      "start_line": 60,
+      "end_line": 61,
+      "raw": "\n\n"
+    },
+    {
+      "id": "b000051",
+      "kind": "paragraph",
+      "start_line": 62,
+      "end_line": 62,
+      "raw": "Society의 네이티브 입력 저장 및 프리뷰는 iiSocietyHelper가 소유한다. Home은 실제 파일 사본 대신 소스 식별자와 Helper가 반환한 문서 Alias·프리뷰를 유지한다. 컨테이너 모델의 존재 여부는 Helper의 상태 동기화로 갱신된다. [Society Alias 구조](SocietyAliases.md)를 참조한다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000003",
+      "parent_id": null,
+      "level": 1,
+      "title": "홈 페인트 캔버스",
+      "anchor": "홈-페인트-캔버스",
+      "start_line": 3
+    },
+    {
+      "block_id": "b000021",
+      "parent_id": "b000003",
+      "level": 2,
+      "title": "생성 입력",
+      "anchor": "생성-입력",
+      "start_line": 21
+    },
+    {
+      "block_id": "b000031",
+      "parent_id": "b000003",
+      "level": 2,
+      "title": "검증",
+      "anchor": "검증",
+      "start_line": 31
+    },
+    {
+      "block_id": "b000039",
+      "parent_id": "b000003",
+      "level": 2,
+      "title": "홈 본체 레이아웃(Figma 261:3148)",
+      "anchor": "홈-본체-레이아웃figma-2613148",
+      "start_line": 49
+    },
+    {
+      "block_id": "b000047",
+      "parent_id": "b000003",
+      "level": 2,
+      "title": "첨부 이미지 생성의 모델별 설정",
+      "anchor": "첨부-이미지-생성의-모델별-설정",
+      "start_line": 57
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000015",
+        "line": 15,
+        "text": "캔버스 출력 크기는 QuickGenerate를 따른다. 1:1 = 1024 × 1024, 4:3 = 1368 × 1024, 3:4 = 1024 × 1368, 16:9 = 1824 × 1024, 9:16 = 1024 × 1824이다. 비율 변경은 기존 픽셀을 늘이지 않고 중앙에 정렬된 새 문서에 맞춘다. 새 문서를 생성하며 이전 실행 취소 이력은 초기화한다. 표시 캔버스는 **너비1080 논리 픽셀**로 제한하고, 더 좁은 패널에서는 `displayWidth = min(1080, panelContentWidth)`와 `displayHeight = displayWidth * canvasHeight / canvasWidth`에 따라 축소한다. 넓은 패널은 캔버스를 중앙에 놓으며 좁은 패널은 가로 스크롤 없이 문서 전체를 보여 준다. 기존 12px 패널 패딩은 뷰포트 바깥에 유지한다. 그리는 동안 flicking을 임시 비활성화하여 브러시 획이 스크롤 제스처로 바뀌지 않도록 한다. 고정 stage 높이는 없다. 세로 비율은 스크롤되는 Home 본문을 늘리며 애플리케이션 창 크기를 바꾸지 않는다. HomeCanvas는 맞춘 문서를 확대/축소하는 대신 스크롤 호스트에 휠 입력을 전달하여 아래의 프롬프트와 생성 제어에 접근할 수 있게 한다. SDK의 일반 편집기 확대/축소 동작은 바꾸지 않는다. 표시 배율은 출력 크기를 변경하지 않는다. 초안 픽셀과 첨부는 공유 QuickGenerate 인스턴스에 속하며 경로 전환 뒤에도 유지한다. 모바일과 결과 작성기는 간결한 표시를 유지한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000049",
+        "line": 59,
+        "text": "QuickGenerate의 첨부·캔버스 요청은 enqueue 시점에 iiLocalDiffusion의 `nativeImageParameterDefaults`로 모델 텐서 메타데이터를 확인한다. Krea2에는 52 steps·native CFG 7을 적용하고, 실제 적용한 값을 작업 스냅샷과 출력 PNG 메타데이터에 저장한다. 고급 생성 폼의 명시적 설정은 변경하지 않는다. 이미지 강도 0.65와 사용자가 선택한 출력 비율·크기·개수는 유지한다. SDK는 Krea2의 단일 입력을 img2img 시작 이미지로 처리하고 별도 편집 모델용 참조 조건을 중복 적용하지 않는다. `homeKreaDefaultsAndAdvancedOverrides` 회귀 검사는 중립적인 파일명의 Krea2 메타데이터, 기본값 저장, 고급 설정 보존을 확인한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000005",
+        "label": "이미지 캔버스 저장",
+        "target": "ImageCanvasStorage.md",
+        "kind": "relative",
+        "line": 5
+      },
+      {
+        "block_id": "b000051",
+        "label": "Society Alias 구조",
+        "target": "SocietyAliases.md",
+        "kind": "relative",
+        "line": 62
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

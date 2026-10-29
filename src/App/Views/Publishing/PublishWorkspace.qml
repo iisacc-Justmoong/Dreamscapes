@@ -71,8 +71,8 @@ Item {
         id: compactNavigation
         objectName: "publishCompactNavigation"
         x: 24; y: 78; width: Math.max(0,root.width-48); height: visible ? implicitHeight : 0
-        visible: root.compact && !root.reviewing; value: root.sectionNames[root.sectionKeys.indexOf(root.section)]; options: root.sectionNames
-        onChosen: next => root.selectSection(root.sectionKeys[root.sectionNames.indexOf(next)])
+        visible: root.compact && !root.reviewing; value: root.sectionNames[NativeData.presentation.indexOf(root.sectionKeys, root.section)]; options: root.sectionNames
+        onChosen: next => root.selectSection(root.sectionKeys[NativeData.presentation.indexOf(root.sectionNames, next)])
     }
     Item {
         id: authoringBody
@@ -131,8 +131,9 @@ Item {
                 width: document.width; spacing: LV.Theme.gap16
                 LV.LabelButton { objectName: "publishAddCanvas"; width: parent.width; text: qsTr("Add ↓"); tone: LV.AbstractButton.Default; visible: !root.previewing; onClicked: addMenu.openFor(this,0,height+4) }
                 Rectangle {
+                    objectName: "publishCreditsPanel"
                     width: parent.width; height: credits.implicitHeight+32
-                    color: "transparent"; radius: 0; border.width: 1; border.color: LV.Theme.accentGrayMuted
+                    color: "transparent"; radius: 0; border.width: 1; border.color: documentFrame.panelBorderColor
                     Column {
                         id: credits
                         x: 16; y: 16; width: parent.width-32; spacing: LV.Theme.gap8
@@ -175,7 +176,7 @@ Item {
     FileDialog { id: openDialog; objectName: "publishOpenDialog"; title: qsTr("Open publication canvas"); nameFilters: [qsTr("Shared canvas (*.iisc)")]; onAccepted: draft.load(selectedFile) }
     Shortcut { sequence: StandardKey.Save; enabled: root.visible; onActivated: root.saveDraft() }
     onVisibleChanged: if (!visible) { draftsMenu.close(); addMenu.close(); openDialog.close(); saveDialog.close() }
-    readonly property Item documentPanelFrame: Frames.PanelFrame { parent: document; panelId: "publish-document" }
+    readonly property Item documentPanelFrame: Frames.PanelFrame { id: documentFrame; parent: document; panelId: "publish-document" }
     readonly property Item headerPanelFrame: Frames.PanelFrame { parent: headerViewport; panelId: "publish-header" }
     readonly property Item inspectorPanelFrame: Frames.PanelFrame { parent: inspectorScroll; panelId: "publish-inspector" }
 }

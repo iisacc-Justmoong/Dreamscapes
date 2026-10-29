@@ -23,11 +23,11 @@ private slots:
         QVERIFY(state.updateParameters({{"prompt", "coastal house"}, {"transparentBackground", true},
             {"faceRestore", true}, {"watermark", true}, {"safetyFilter", "standard"}}));
         const auto first = state.addControlNet("Canny");
-        const auto second = state.addControlNet("Pose");
+        const auto second = state.addControlNet("Tile");
         QVERIFY(!first.isEmpty()); QVERIFY(!second.isEmpty());
         QVERIFY(state.updateControlNet(first, {{"imageSource", "reference.png"}, {"model", "canny.safetensors"},
             {"ipAdapter", true}, {"weight", 0.3}}));
-        QVERIFY(state.updateControlNet(second, {{"imageSource", "pose.png"}, {"model", "pose.safetensors"},
+        QVERIFY(state.updateControlNet(second, {{"imageSource", "tile.png"}, {"model", "tile.safetensors"},
             {"regionalMask", true}, {"maskSource", "mask.png"}, {"weight", 0.7}}));
         QVERIFY(state.applyControlNet(first)); QVERIFY(state.applyControlNet(second));
         const auto expected = state.parameters();
@@ -41,13 +41,26 @@ private slots:
             rejected.append(issue.toMap().value("field").toString());
         QVERIFY(!rejected.contains("watermark"));
         for (const auto &field : QStringList{"transparentBackground", "faceRestore",
-                "safetyFilter", "controlNets." + first + ".ipAdapterModel", "controlNets." + second + ".poseDetector"})
+                "safetyFilter", "controlNets." + first + ".ipAdapterModel"})
             QVERIFY2(rejected.contains(field), qPrintable(field));
         QCOMPARE(state.parameters(), expected); // Capability inspection must not change the editable draft.
         QVERIFY(state.savePreset("Full Figma draft"));
         state.reset();
         QVERIFY(state.loadPreset("Full Figma draft"));
         QCOMPARE(state.parameters(), expected); // Unsupported effects are saved, never silently dropped.
+    }
+    void retiredAutomaticPoseDoesNotMutateDraft()
+    {
+        QTemporaryDir dir(DREAMSCAPES_TEST_DIRECTORY "/retired-pose-XXXXXX"); QVERIFY(dir.isValid());
+        AdvancedImageParameters state(dir.filePath("presets.json"));
+        const auto id = state.addControlNet("Canny"); QVERIFY(!id.isEmpty());
+        const auto initial = state.parameters();
+        QSignalSpy changes(&state, &AdvancedImageParameters::parametersChanged);
+        QVERIFY(state.addControlNet("Pose").isEmpty());
+        QVERIFY(!state.selectPose(id, QUrl::fromLocalFile("/missing/detector.weights"),
+                                 QUrl::fromLocalFile("/missing/pose.weights")));
+        QCOMPARE(state.parameters(), initial);
+        QCOMPARE(changes.size(), 0);
     }
     void referenceDecodingIsOrderedBoundedAndAtomic()
     {
@@ -286,9 +299,9 @@ private slots:
         for (int i = 0; i < 20; ++i) QVERIFY(state.addReferenceImage(QString("image-%1.png").arg(i)));
         QVERIFY(!state.addReferenceImage("overflow.png"));
         QVERIFY(!state.removeReferenceImage(20)); QVERIFY(state.removeReferenceImage(0));
-        const auto id = state.addControlNet("Pose"); QVERIFY(!id.isEmpty());
+        const auto id = state.addControlNet("Canny"); QVERIFY(!id.isEmpty());
         QVERIFY(!state.applyControlNet(id));
-        QVERIFY(state.updateControlNet(id, {{"imageSource", "pose.png"}, {"model", "pose.safetensors"}, {"weight", 0.6}}));
+        QVERIFY(state.updateControlNet(id, {{"imageSource", "control.png"}, {"model", "canny.safetensors"}, {"weight", 0.6}}));
         QVERIFY(state.applyControlNet(id));
         QVERIFY(state.parameters().value("controlNets").toList()[0].toMap().value("applied").toBool());
         QVERIFY(state.updateControlNet(id, {{"weight", 0.7}}));
@@ -362,8 +375,7 @@ private slots:
         const auto control = first.addControlNet("Canny"); QVERIFY(!control.isEmpty());
         QVERIFY(first.updateControlNet(control, {{"model", "canny.safetensors"}, {"imageSource", "canny.png"},
             {"regionalMask", true}, {"maskSource", "mask.png"}, {"ipAdapter", true}, {"weight", 0.6},
-            {"ipAdapterModel", "ip.safetensors"}, {"ipAdapterVision", "vision.safetensors"},
-            {"poseDetector", "detector.onnx"}, {"poseModel", "pose.onnx"}}));
+            {"ipAdapterModel", "ip.safetensors"}, {"ipAdapterVision", "vision.safetensors"}}));
         QVERIFY(first.applyControlNet(control));
         const auto expected = first.parameters();
         QVERIFY(first.savePreset(" Portrait "));

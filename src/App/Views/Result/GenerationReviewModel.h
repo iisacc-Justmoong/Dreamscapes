@@ -1,8 +1,10 @@
 #pragma once
 #include "ReviewSelection.h"
+#include "../../ViewModels/Native/ReviewCommands.h"
 #include <QAbstractListModel>
 #include <QVariantList>
 #include <QHash>
+#include <QSet>
 
 class GenerationReviewModel : public QAbstractListModel {
     Q_OBJECT
@@ -36,7 +38,7 @@ public:
     int totalCount() const { return int(m_selection.order().size()); }
     int shortlistedCount() const;
     int rejectedCount() const;
-    int selectedCount() const { return int(m_selection.selectedKeys().size()); }
+    int selectedCount() const { return m_selectedCount; }
     int hiddenSelectedCount() const;
     QVariantList selectedEntries() const;
     QVariantList selectedImages() const;
@@ -67,6 +69,11 @@ public:
     Q_INVOKABLE void toggleReview(const QString& state);
     Q_INVOKABLE void setReview(const QString& state);
     Q_INVOKABLE void setEntryReview(const QString& key, const QString& state);
+    Q_INVOKABLE QVariantMap keyCommand(int key, int modifiers, int columns, bool overlay, bool detail, bool compare);
+    Q_INVOKABLE bool validImages(const QVariantList &entries, int minimum = 1, int maximum = 1000) const;
+    Q_INVOKABLE void markEntries(const QVariantList &entries, const QString &state);
+    Q_INVOKABLE QVariantList contextEntries() const;
+    Q_INVOKABLE QString filterLabel(const QString &key) const;
     Q_INVOKABLE QString reviewState(const QString& key) const;
 signals:
     void entriesChanged();
@@ -77,17 +84,28 @@ signals:
     void sortChanged();
 private:
     using State = dreamscapes::review::State;
-    void publishState(bool metadataChanged = false);
+    struct RowState {
+        State review;
+        bool selected, focused;
+    };
+    void publishState(bool reproject = true, const QSet<QString>& metadataChanged = {});
+    void publishFocus(const QString& previous);
+    bool reviewFiltered() const;
+    RowState rowState(const QString& key) const;
     QStringList projection() const;
     std::vector<std::string> visibleKeys() const;
     std::vector<std::string> actionKeys() const;
     static QString stateName(State state);
     static State parseState(const QString& state);
     dreamscapes::review::Selection m_selection;
+    dreamscapes::vm::ReviewCommands m_commands;
     QHash<QString,QVariantMap> m_entries;
     QHash<QString,int> m_ordinals;
+    QHash<QString,int> m_visibleIndices;
     QStringList m_visible;
+    QList<RowState> m_rowStates;
     QString m_filter = QStringLiteral("all"), m_sort = QStringLiteral("arrival");
     QString m_jobFilter;
     bool m_selectionMode = false;
+    int m_selectedCount = 0, m_shortlistedCount = 0, m_rejectedCount = 0, m_hiddenSelectedCount = 0;
 };

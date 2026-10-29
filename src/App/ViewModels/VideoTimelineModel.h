@@ -36,58 +36,135 @@ class VideoTimelineModel : public QObject {
     Q_PROPERTY(bool canUndo READ canUndo NOTIFY canUndoChanged)
     Q_PROPERTY(bool canRedo READ canRedo NOTIFY canRedoChanged)
     Q_PROPERTY(QString clipboardKey READ clipboardKey NOTIFY clipboardKeyChanged)
-public:
+    Q_PROPERTY(int keptShotCount READ keptShotCount NOTIFY keptFramesChanged)
+    Q_PROPERTY(QString referenceSource READ referenceSource NOTIFY referenceSourceChanged)
+    Q_PROPERTY(int nextId READ nextId NOTIFY nextIdChanged)
+  public:
     explicit VideoTimelineModel(QObject *parent = nullptr);
-    double fps() const { return state_.value("fps").toDouble(); }
+    double fps() const {
+        return state_.value("fps").toDouble();
+    }
     void setFps(double value);
-    int minimumFrames() const { return state_.value("minimumFrames").toInt(); }
+    int minimumFrames() const {
+        return state_.value("minimumFrames").toInt();
+    }
     void setMinimumFrames(int value);
-    int playhead() const { return state_.value("playhead").toInt(); }
+    int playhead() const {
+        return state_.value("playhead").toInt();
+    }
     void setPlayhead(int value);
-    QString mode() const { return state_.value("mode").toString(); }
+    QString mode() const {
+        return state_.value("mode").toString();
+    }
     void setMode(QString value);
-    QString tool() const { return state_.value("tool").toString(); }
+    QString tool() const {
+        return state_.value("tool").toString();
+    }
     void setTool(QString value);
-    QString filter() const { return state_.value("filter").toString(); }
+    QString filter() const {
+        return state_.value("filter").toString();
+    }
     void setFilter(QString value);
-    bool snap() const { return state_.value("snap").toBool(); }
+    bool snap() const {
+        return state_.value("snap").toBool();
+    }
     void setSnap(bool value);
-    bool linked() const { return state_.value("linked").toBool(); }
+    bool linked() const {
+        return state_.value("linked").toBool();
+    }
     void setLinked(bool value);
-    bool multiSelect() const { return state_.value("multiSelect").toBool(); }
+    bool multiSelect() const {
+        return state_.value("multiSelect").toBool();
+    }
     void setMultiSelect(bool value);
-    int markIn() const { return state_.value("markIn").toInt(); }
+    int markIn() const {
+        return state_.value("markIn").toInt();
+    }
     void setMarkIn(int value);
-    int markOut() const { return state_.value("markOut").toInt(); }
+    int markOut() const {
+        return state_.value("markOut").toInt();
+    }
     void setMarkOut(int value);
-    int compositionFrames() const { return state_.value("compositionFrames").toInt(); }
+    int compositionFrames() const {
+        return state_.value("compositionFrames").toInt();
+    }
     void setCompositionFrames(int value);
-    QVariantList trackTypes() const { return state_.value("trackTypes").toList(); }
-    QVariantList tracks() const { return state_.value("tracks").toList(); }
+    QVariantList trackTypes() const {
+        return state_.value("trackTypes").toList();
+    }
+    QVariantList tracks() const {
+        return state_.value("tracks").toList();
+    }
     void setTracks(QVariantList value);
-    QString selectedTrackId() const { return state_.value("selectedTrackId").toString(); }
+    QString selectedTrackId() const {
+        return state_.value("selectedTrackId").toString();
+    }
     void setSelectedTrackId(QString value);
-    QString error() const { return state_.value("error").toString(); }
+    QString error() const {
+        return state_.value("error").toString();
+    }
     void setError(QString value);
-    QVariantMap selectedTrack() const { return state_.value("selectedTrack").toMap(); }
-    QVariantList shots() const { return state_.value("shots").toList(); }
+    QVariantMap selectedTrack() const {
+        return state_.value("selectedTrack").toMap();
+    }
+    QVariantList shots() const {
+        return state_.value("shots").toList();
+    }
     void setShots(QVariantList value);
-    QVariantList selectedIds() const { return state_.value("selectedIds").toList(); }
+    QVariantList selectedIds() const {
+        return state_.value("selectedIds").toList();
+    }
     void setSelectedIds(QVariantList value);
-    QVariantList keys() const { return state_.value("keys").toList(); }
+    QVariantList keys() const {
+        return state_.value("keys").toList();
+    }
     void setKeys(QVariantList value);
-    QString selectedKeyId() const { return state_.value("selectedKeyId").toString(); }
+    QString selectedKeyId() const {
+        return state_.value("selectedKeyId").toString();
+    }
     void setSelectedKeyId(QString value);
-    int totalFrames() const { return state_.value("totalFrames").toInt(); }
-    int keptFrames() const { return state_.value("keptFrames").toInt(); }
-    int outputFrames() const { return state_.value("outputFrames").toInt(); }
-    QVariantMap selectedShot() const { return state_.value("selectedShot").toMap(); }
-    QVariantMap selectedKey() const { return state_.value("selectedKey").toMap(); }
-    int selectedStart() const { return state_.value("selectedStart").toInt(); }
-    int selectedEnd() const { return state_.value("selectedEnd").toInt(); }
-    bool canUndo() const { return state_.value("canUndo").toBool(); }
-    bool canRedo() const { return state_.value("canRedo").toBool(); }
-    QString clipboardKey() const { return state_.value("clipboardKey").toString(); }
+    int totalFrames() const {
+        return state_.value("totalFrames").toInt();
+    }
+    int keptFrames() const {
+        return state_.value("keptFrames").toInt();
+    }
+    int outputFrames() const {
+        return state_.value("outputFrames").toInt();
+    }
+    QVariantMap selectedShot() const {
+        return state_.value("selectedShot").toMap();
+    }
+    QVariantMap selectedKey() const {
+        return state_.value("selectedKey").toMap();
+    }
+    int selectedStart() const {
+        return state_.value("selectedStart").toInt();
+    }
+    int selectedEnd() const {
+        return state_.value("selectedEnd").toInt();
+    }
+    bool canUndo() const {
+        return state_.value("canUndo").toBool();
+    }
+    bool canRedo() const {
+        return state_.value("canRedo").toBool();
+    }
+    QString clipboardKey() const {
+        return state_.value("clipboardKey").toString();
+    }
+    QString referenceSource() const {
+        return state_.value("referenceSource").toString();
+    }
+    int nextId() const {
+        return state_.value("nextId").toInt();
+    }
+    std::size_t undoDepth() const {
+        return model_.undoDepth();
+    }
+    std::size_t redoDepth() const {
+        return model_.redoDepth();
+    }
     Q_INVOKABLE bool selectTrack(const QString &id);
     Q_INVOKABLE QString addTrack(const QString &type, const QString &name = {}, int position = -1);
     Q_INVOKABLE bool renameTrack(const QString &id, const QString &name);
@@ -107,7 +184,8 @@ public:
     Q_INVOKABLE bool addShotToTrack(const QString &trackId);
     Q_INVOKABLE void duplicateShot();
     Q_INVOKABLE bool rippleDelete();
-    Q_INVOKABLE bool resizeComposition(double frames, double frameRate = -1);
+    Q_INVOKABLE bool resizeComposition(double frames);
+    Q_INVOKABLE bool resizeComposition(double frames, double frameRate);
     Q_INVOKABLE bool slipKeys(const QString &id, int delta);
     Q_INVOKABLE bool trim(const QString &id, const QString &edge, double delta, const QString &editTool);
     Q_INVOKABLE bool nudgeShot(int delta);
@@ -126,9 +204,20 @@ public:
     Q_INVOKABLE QString destinationTrack(const QString &, const QString &) const;
     Q_INVOKABLE int startOf(const QString &) const;
     Q_INVOKABLE int snappedFrame(double) const;
+    int keptShotCount() const {
+        return state_.value("keptShotCount").toInt();
+    }
+    Q_INVOKABLE void selectShotRange(const QString &id);
+    Q_INVOKABLE void selectAllShots(bool selected = true);
+    Q_INVOKABLE bool setRangeText(const QString &field, const QString &text);
+    Q_INVOKABLE int shotIndex(const QString &id) const;
+    Q_INVOKABLE QString shotReference(const QString &id) const;
+    Q_INVOKABLE QVariantList trackShots(const QString &id) const;
+    Q_INVOKABLE QVariantList trackKeys(const QString &id, bool ordered = false) const;
     Q_INVOKABLE QVariantList recipeShots(const QString &) const;
-signals:
+  signals:
     void resetCompleted();
+    void nextIdChanged();
     void compositionRestored();
     void fpsChanged();
     void minimumFramesChanged();
@@ -161,7 +250,9 @@ signals:
     void canUndoChanged();
     void canRedoChanged();
     void clipboardKeyChanged();
-private:
+    void referenceSourceChanged();
+
+  private:
     QVariant send(vm::TimelineAction, std::initializer_list<QVariant>);
     void refresh();
     vm::VideoTimeline model_;

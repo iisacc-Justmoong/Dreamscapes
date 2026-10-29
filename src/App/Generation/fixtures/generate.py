@@ -55,6 +55,10 @@ parser.add_argument('--default-modifiers', action=argparse.BooleanOptionalAction
 def generate(arguments, request_count=1):
     args = parser.parse_args(arguments)
     if args.backend == 'video':
+        if args.prompt == 'video-diagnostic-failure':
+            print('IILD_VIDEO_PROGRESS ' + json.dumps({'schema': 'iild-video-progress-v1',
+                  'stage': 'denoising', 'step': 0, 'total': args.steps}), flush=True)
+            raise SystemExit('fixture video weight preparation failed')
         if args.prompt in ('video-preparing-progress', 'video-preparing-stall', 'video-computing-progress'):
             args.cache_dir.mkdir(parents=True, exist_ok=True)
             cached = args.cache_dir / 'verified-encoder-fixture'

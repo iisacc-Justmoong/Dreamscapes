@@ -1,4 +1,5 @@
 pragma ComponentBehavior: Bound
+import Dreamscapes.Storage 1.0
 import QtQuick
 import LVRS 1.0 as LV
 
@@ -7,7 +8,7 @@ ListView {
     property var files: []
     property int maximumItems: 4
     property bool desktopStyle: false
-    readonly property var visibleFiles: Array.prototype.slice.call(files || [], 0, maximumItems)
+    readonly property var visibleFiles: NativeData.presentation.range(files || [], 0, maximumItems)
     signal fileRequested(var file)
 
     implicitHeight: LV.Theme.scaleMetric(280)
@@ -89,9 +90,7 @@ ListView {
                 y: LV.Theme.scaleMetric(34)
                 width: parent.width - x - LV.Theme.scaleMetric(44)
                 height: LV.Theme.scaleMetric(18)
-                text: [row.modelData.description || "", row.modelData.dateText || ""].filter(function(value) {
-                    return String(value).length > 0
-                }).join(" · ")
+                text: NativeData.presentation.join([row.modelData.description || "", row.modelData.dateText || ""], " · ")
                 style: caption
                 elide: Text.ElideRight
             }

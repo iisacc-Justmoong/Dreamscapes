@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import LVRS 1.0 as LV
 
 Column {
@@ -14,11 +15,7 @@ Column {
         const sections = {cover: cover, details: details, rights: rights, publishing: publishing}
         return sections[section] ? sections[section].y : 0
     }
-    function coverPage() {
-        for (let index = 0; index < draft.count; ++index)
-            if (draft.canvas(index).id === draft.values.coverId) return draft.canvas(index).page
-        return 0
-    }
+    function coverPage() { draft.values; draft.count; return draft.coverPage() }
     component Field: PublishField {
         property string field
         width: root.width
@@ -65,7 +62,7 @@ Column {
                 return ""
             }
             onChosen: next => {
-                const index = names.indexOf(next)
+                const index = NativeData.presentation.indexOf(names, next)
                 if (index >= 0) root.draft.edit("coverId", root.draft.canvas(index).id)
             }
         }
@@ -83,7 +80,7 @@ Column {
         Flow {
             width: root.width; spacing: LV.Theme.gap4
             Repeater {
-                model: String(root.draft.values.tags || "").split(",").map(tag => tag.trim()).filter(tag => tag.length)
+                model: { root.draft.values; return root.draft.tags() }
                 Rectangle {
                     id: tag
                     required property string modelData

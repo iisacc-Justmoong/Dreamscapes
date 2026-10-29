@@ -55,6 +55,26 @@ def expand(path, loader, executable):
                 .replace("@executable_path", str(executable.parent)))
 
 
+def reject_retired_runtime(path):
+    name = Path(path).name.lower()
+    if "onnx" in name or "opencv_dnn" in name or name.startswith("libpiper."):
+        raise RuntimeError(f"Retired model runtime is forbidden in product deployment: {path}")
+
+
+def purge_retired_runtimes(app):
+    removed = []
+    for path in sorted(app.rglob("*"), key=lambda item: len(item.parts), reverse=True):
+        try:
+            reject_retired_runtime(path)
+        except RuntimeError:
+            removed.append(str(path.relative_to(app)))
+            if path.is_symlink() or path.is_file():
+                path.unlink()
+            elif path.is_dir():
+                shutil.rmtree(path)
+    return removed
+
+
 def native_sources(executable, libraries, search_paths, runtime_plugins=()):
     """Resolve before rewriting; explicitly selected SDK versions take precedence."""
     preferred = {}
@@ -66,6 +86,7 @@ def native_sources(executable, libraries, search_paths, runtime_plugins=()):
             preferred[Path(name).name] = library
     result = {}
     for plugin in runtime_plugins:
+        reject_retired_runtime(plugin)
         if not plugin.is_file():
             raise RuntimeError(f"Missing native runtime plugin: {plugin}")
         result[plugin.name] = plugin.resolve()
@@ -76,6 +97,7 @@ def native_sources(executable, libraries, search_paths, runtime_plugins=()):
             if link.startswith(SYSTEM_PREFIXES) or not link.endswith(".dylib"):
                 continue
             name = Path(link).name
+            reject_retired_runtime(name)
             if name in result or binary != executable and name == binary.name:
                 continue
             candidates = [preferred[name]] if name in preferred else []
@@ -359,7 +381,18 @@ def localize(app):
             run("install_name_tool", *changes, binary)
 
 
+def remove_signing_temporaries(app):
+    """Discard incomplete codesign output inside the generated bundle only."""
+    removed = []
+    for path in app.rglob("*.cstemp"):
+        if path.is_file() or path.is_symlink():
+            removed.append(str(path.relative_to(app)))
+            path.unlink()
+    return removed
+
+
 def sign(app, identity, entitlements):
+    remove_signing_temporaries(app)
     for binary in binaries(app):
         if binary == app / "Contents/MacOS" / app.stem:
             continue  # The main executable is sealed with its bundle.
@@ -396,6 +429,8 @@ def deploy(args):
 
 
 def _deploy_locked(args, app):
+    removed_retired_runtimes = purge_retired_runtimes(app)
+    removed_signing_temporaries = remove_signing_temporaries(app)
     helpers = [path for path in (app / "Contents/MacOS").iterdir()
                if path.is_file() and path.name != app.stem]
     qt = args.macdeployqt.resolve().parent.parent
@@ -422,6 +457,7 @@ def _deploy_locked(args, app):
     config.parent.mkdir(parents=True, exist_ok=True)
     config.write_text("[Paths]\nPlugins = PlugIns\nQmlImports = Resources/qml\nQml2Imports = Resources/qml\n")
     report = {"qmlModules": copied_modules if args.qml_dir else [],
+              "removedSigningTemporaries": removed_signing_temporaries,
               "compact": args.compact, "quickStyle": args.quick_style,
               "embeddedResourceModules": args.embedded_resources_module,
               "runtimePlugins": [plugin.name for plugin in runtime_plugins]}
@@ -444,6 +480,7 @@ def _deploy_locked(args, app):
         # The plugin closure must exist before pruning validates every link.
         report["removedNativeEntries"] = prune_native(app, runtime_plugins)
         report["removedFrameworkDevelopmentEntries"] = prune_framework_development_files(app)
+    report["removedRetiredRuntimes"] = removed_retired_runtimes + purge_retired_runtimes(app)
     localize(app)
     if args.compact and args.configuration in ("Release", "MinSizeRel"):
         report["thinnedBytes"] = thin_native(app)

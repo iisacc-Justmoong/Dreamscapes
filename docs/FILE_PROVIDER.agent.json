@@ -1,0 +1,173 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:e95eb632df2d28db0f2b3ddbc44d02437b81c9b24ee5ab97a13cb6b1f750cebe",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/FILE_PROVIDER.md",
+    "sha256": "4a49996a99a951cfd6eb824f2a3f3153724eb0bdb94fbebd5f4267a3a4af61f2",
+    "bytes": 1150,
+    "line_count": 22,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "File creation ownership in Dreamscapes",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# File creation ownership in Dreamscapes\n",
+      "level": 1,
+      "title": "File creation ownership in Dreamscapes"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "Native AI PNG publication, generation-worker staging, image presets/preferences, editor capture/reference files and home previews use iiFileProvider. Android package assembly includes its storage bridge. Generation History preserves PNG and editor persistence preserves IISC.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 5,
+      "end_line": 8,
+      "raw": "The common [ownership contract](../../../SDK/iiFileProvider/docs/FILE_OWNERSHIP.md) defines stream, staging, control-file and\ninstalled-package rules. Source regression tests remain with this module; the\nworkspace creation audit also checks these boundaries. Build/deployment and target\nruntime validation are separate evidence.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "Changed boundaries:\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 11,
+      "end_line": 12,
+      "raw": "\n\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "list",
+      "start_line": 13,
+      "end_line": 22,
+      "raw": "- `src/App/Generation/AdvancedImageParameters.cpp`\n- `src/App/Generation/GenerationController.cpp`\n- `src/App/Generation/GenerationController.h`\n- `src/App/Generation/ModelPreferences.cpp`\n- `src/App/Views/Editor/EditorCameraPhoto.cpp`\n- `src/App/Views/Editor/EditorCameraPhoto.h`\n- `src/App/Views/Editor/EditorToolActions.cpp`\n- `src/App/Views/Home/HomeCanvas.cpp`\n- `src/App/Views/Home/HomeCanvas.h`\n- `src/platform/android/src/com/iisacc/dreamscapes/DreamscapesActivity.java`\n",
+      "items": [
+        {
+          "marker": "-",
+          "text": "`src/App/Generation/AdvancedImageParameters.cpp`",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`src/App/Generation/GenerationController.cpp`",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`src/App/Generation/GenerationController.h`",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`src/App/Generation/ModelPreferences.cpp`",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`src/App/Views/Editor/EditorCameraPhoto.cpp`",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`src/App/Views/Editor/EditorCameraPhoto.h`",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`src/App/Views/Editor/EditorToolActions.cpp`",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`src/App/Views/Home/HomeCanvas.cpp`",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`src/App/Views/Home/HomeCanvas.h`",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`src/platform/android/src/com/iisacc/dreamscapes/DreamscapesActivity.java`",
+          "checked": null
+        }
+      ]
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "File creation ownership in Dreamscapes",
+      "anchor": "file-creation-ownership-in-dreamscapes",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000005",
+        "label": "ownership contract",
+        "target": "../../../SDK/iiFileProvider/docs/FILE_OWNERSHIP.md",
+        "kind": "relative",
+        "line": 5
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

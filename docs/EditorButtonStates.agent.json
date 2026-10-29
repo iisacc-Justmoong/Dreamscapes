@@ -1,0 +1,177 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:b2863990d7090d4835f240cc7d6a9a661dfbc5e9ce9a1331fd0cf05859ceccae",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/EditorButtonStates.md",
+    "sha256": "76a31eb700739c00622a8d906a102b7076dd30ad1a766ea41fe07b99a46530f9",
+    "bytes": 3506,
+    "line_count": 54,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Editor button interaction states",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Editor button interaction states\n",
+      "level": 1,
+      "title": "Editor button interaction states"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 9,
+      "raw": "An editor button's LVRS `tone` is its fixed visual role. Mouse hover, mouse or\nkeyboard press, click, accessibility activation and persistent selection must\nnot switch Default or Borderless into Primary (Figma Accent), or switch between\nDefault and Borderless. Each action keeps the role specified by its design.\nIn Background Figma `1023:70875`, Apply color, Remove background, New mask,\nApply mask, Generate replacement and Apply replacement use Default rather than\nPrimary. Apply removal also keeps Default through its disabled/ready transition.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 11,
+      "end_line": 15,
+      "raw": "The editor uses the existing LVRS default, hover and pressed surfaces. A selected\noption holds its fixed tone's `backgroundColorPressed`; disabled state takes\nprecedence. Unselected controls return to hover while the pointer remains over\nthem and to default when it leaves. Button geometry, icons, focus rings and\nactivation timing remain owned by LVRS.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 16,
+      "end_line": 16,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 17,
+      "end_line": 24,
+      "raw": "`EditorButtonState.qml` is a nonvisual state binding for existing LVRS buttons.\nIt binds native `checkable` and `checked` state to the accepted model and restores\nthat binding after native toggles. Repeated activation cannot clear a required\nselection, and a rejected edit cannot leave a false selected surface. The\nbutton's existing action remains responsible for accepting a selection. Layer\ncommands without an `active` state remain ordinary noncheckable actions.\nAccessibility toggle actions call that same action path. Elements retains its\nexisting exclusive selection binding and applies the same pressed-surface rule.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 25,
+      "end_line": 25,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 26,
+      "end_line": 30,
+      "raw": "The rule covers common tool choices, Elements, Text, Layers and the document\nlayer picker, File, Camera/Photo, Background Color/Remove/Mask/Replace, and the\nshared Graphic navigation, choices and galleries. Parameter storage and document\noperations are unchanged. The generic first action's index assigns a fixed\nprimary role; it is not a selection state.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 32,
+      "end_line": 35,
+      "raw": "The editable Figma Editor page (`107:1235`) follows the same axes: `Kind` is\nliteral, while selection variables and prototype assignments drive\n`Interaction state` (`default` / `press`). Existing library hover/press variants\nretain their Kind. This update adds no local design components or annotations.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 36,
+      "end_line": 36,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 37,
+      "end_line": 43,
+      "raw": "Static Figma state views use the same rule as the prototype. Header tabs retain\nBorderless; parameter choices and function palettes retain their source-defined\nDefault or Borderless role. A selected tab or option sets `Interaction state`\nto `press` instead of encoding selection in `Kind`. Existing state-variable\nbindings remain attached to the state axis when normalizing static views and\nright-hand copies. Camera and Capture timer Off and Camera Photo mode show their\naccepted default selection through the same pressed state.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 44,
+      "end_line": 44,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 45,
+      "end_line": 54,
+      "raw": "`Dreamscapes.EditorButtonStatePolicy` checks every editor QML tone binding and\nrejects state-dependent or imperative type changes. `Dreamscapes.EditorButtonStates`\nexercises real LVRS label/icon controls through hover, press, release, repeated\nselection, keyboard and accessibility activation, rejected selection, disabled\nstate and deselection. It also visits each editor tool and panel state selectors to\nverify fixed roles and persistent pressed surfaces in the composed panels.\nCamera/Photo choices and timer presets must participate in the actual native\nchecked-state binding. The integration test changes camera and capture timer\npresets and shutter modes, verifies the pressed surface and restores Off/Photo\nwithout starting acquisition.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Editor button interaction states",
+      "anchor": "editor-button-interaction-states",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 4,
+        "text": "keyboard press, click, accessibility activation and persistent selection must",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000007",
+        "line": 19,
+        "text": "that binding after native toggles. Repeated activation cannot clear a required",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 51,
+        "text": "Camera/Photo choices and timer presets must participate in the actual native",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

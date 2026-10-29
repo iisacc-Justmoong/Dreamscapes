@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+import subprocess
 from unittest import mock
 
 
@@ -59,9 +60,22 @@ class RuntimeProfileTests(unittest.TestCase):
         self.assertEqual((self.product / 'build/CMakeCache.txt').read_text().splitlines()[0],
                          'iiFileProvider_DIR:PATH=/selected/provider')
 
+    def test_retired_pose_backend_is_never_configured_or_advertised(self):
+        self.invoke()
+        configure = next(call for call in self.calls if call[:2] == ('cmake', '-S'))
+        self.assertNotIn('-DIILD_ENABLE_POSE=ON', configure)
+        self.assertIn('-UIILD_ENABLE_POSE', configure)
+        self.assertFalse(__import__('json').loads((self.product / 'build/apple-runtime/profile.json').read_text())['pose'])
+
     def test_link_audit_rejects_libtorch_before_reconfiguring_the_product(self):
         with self.assertRaisesRegex(RuntimeError, 'still links'):
             self.invoke(links='@rpath/libtorch_cpu.dylib')
+        self.assertFalse((self.product / 'build/apple-runtime/profile.json').exists())
+        self.assertFalse(any(call[:3] == ('cmake', '-S', str(self.product)) for call in self.calls))
+
+    def test_link_audit_rejects_retired_model_runtime(self):
+        with self.assertRaisesRegex(RuntimeError, 'retired ONNX'):
+            self.invoke(links='@rpath/libiiOnnxRuntime.0.1.dylib')
         self.assertFalse((self.product / 'build/apple-runtime/profile.json').exists())
         self.assertFalse(any(call[:3] == ('cmake', '-S', str(self.product)) for call in self.calls))
 
@@ -73,6 +87,33 @@ class RuntimeProfileTests(unittest.TestCase):
         self.assertEqual(configure[:3], ('cmake', '-S', str(self.product)))
         self.assertIn('-DiiLocalDiffusion_DIR=' + str(self.product / 'build/runtime-sdk/iiLocalDiffusion-apple/lib/cmake/iiLocalDiffusion'), configure)
         self.assertTrue(any(call[0] == 'ctest' for call in self.calls))
+
+    def test_native_worker_load_is_checked_before_accepting_the_profile(self):
+        self.invoke()
+        probes = [call for call in self.calls if call[:3] == ('cmake', '-E', 'env')]
+        self.assertEqual(len(probes), 1)
+        self.assertIn('--unset=DYLD_LIBRARY_PATH', probes[0])
+        self.assertIn('--unset=DYLD_FALLBACK_LIBRARY_PATH', probes[0])
+        self.assertIn('-I', probes[0])
+        self.assertIn(str(self.product / 'build/runtime-sdk/iiLocalDiffusion-apple/lib/libiiLocalDiffusion.dylib'), probes[0])
+        self.assertLess(self.calls.index(probes[0]), len(self.calls) - 1)
+
+    def test_native_load_failure_does_not_accept_or_configure_the_profile(self):
+        def record(*arguments):
+            call = tuple(map(str, arguments))
+            self.calls.append(call)
+            if call[:3] == ('cmake', '-E', 'env'):
+                raise subprocess.CalledProcessError(1, call)
+
+        with mock.patch.object(profile, 'ROOT', self.product), \
+             mock.patch.object(profile.sys, 'platform', 'darwin'), \
+             mock.patch.object(profile.sys, 'argv', ['build-macos-runtime.py']), \
+             mock.patch.object(profile, 'run', side_effect=record), \
+             mock.patch.object(profile.subprocess, 'check_output', return_value='@rpath/libmlx.dylib'):
+            with self.assertRaises(subprocess.CalledProcessError):
+                profile.main()
+        self.assertFalse((self.product / 'build/apple-runtime/profile.json').exists())
+        self.assertFalse(any(call[:3] == ('cmake', '-S', str(self.product)) for call in self.calls))
 
 
 if __name__ == '__main__':

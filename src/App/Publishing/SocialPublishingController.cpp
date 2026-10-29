@@ -350,3 +350,19 @@ void SocialPublishingController::complete(const QString& id, Outcome result, std
     emit jobFinished(id, snapshot);
     if (owner) emit changed();
 }
+
+QVariantList SocialPublishingController::accountsFor(const QString &platform) const {
+    QVariantList result; for (const auto &account : accounts()) if (account.toMap().value("provider").toString() == platform) result.push_back(account); return result;
+}
+QStringList SocialPublishingController::providerNames() const {
+    QStringList result; for (const auto &provider : providers()) result.push_back(provider.toMap().value("name").toString()); return result;
+}
+QString SocialPublishingController::providerId(const QString &name) const {
+    for (const auto &provider : providers()) if (provider.toMap().value("name").toString() == name) return provider.toMap().value("id").toString(); return {};
+}
+QStringList SocialPublishingController::accountIds(const QString &platform) const {
+    QStringList result; for (const auto &account : accountsFor(platform)) result.push_back(account.toMap().value("id").toString()); return result;
+}
+QString SocialPublishingController::matchingAccount(const QString &platform, const QString &preferred) const {
+    const auto ids = accountIds(platform); return ids.contains(preferred) ? preferred : ids.isEmpty() ? QString() : ids.front();
+}

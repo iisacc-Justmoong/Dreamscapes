@@ -1,8 +1,8 @@
 #pragma once
 
-#include <iiSDKCore/Core/Value/Value.h>
 #include <algorithm>
 #include <cmath>
+#include <iiSDKCore/Core/Value/Value.h>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -29,30 +29,39 @@ inline const Value &get(const Value &value, std::string_view key) {
     const auto found = o.find(key);
     return found == o.end() ? empty : found->second;
 }
-inline bool has(const Value &value, std::string_view key) { return object(value).contains(key); }
+inline bool has(const Value &value, std::string_view key) {
+    return object(value).contains(key);
+}
 inline std::string text(const Value &value, std::string fallback = {}) {
-    if (const auto *p = std::get_if<std::string>(&value.storage())) return *p;
+    if (const auto *p = std::get_if<std::string>(&value.storage()))
+        return *p;
     return fallback;
 }
 inline double number(const Value &value, double fallback = 0) {
-    return std::visit([fallback](const auto &v) -> double {
-        using T = std::decay_t<decltype(v)>;
-        if constexpr (std::is_arithmetic_v<T> && !std::same_as<T, bool>) return static_cast<double>(v);
-        return fallback;
-    }, value.storage());
+    return std::visit(
+        [fallback](const auto &v) -> double {
+            using T = std::decay_t<decltype(v)>;
+            if constexpr (std::is_arithmetic_v<T> && !std::same_as<T, bool>)
+                return static_cast<double>(v);
+            return fallback;
+        },
+        value.storage());
 }
 inline bool boolean(const Value &value, bool fallback = false) {
-    if (const auto *p = std::get_if<bool>(&value.storage())) return *p;
+    if (const auto *p = std::get_if<bool>(&value.storage()))
+        return *p;
     return fallback;
 }
 inline Value merged(const Value &base, const Value &patch) {
     auto result = object(base);
-    for (const auto &[key, value] : object(patch)) result[key] = value;
+    for (const auto &[key, value] : object(patch))
+        result[key] = value;
     return Value(std::move(result));
 }
 inline std::string trim(std::string value) {
     const auto first = value.find_first_not_of(" \n\r\t");
-    if (first == std::string::npos) return {};
+    if (first == std::string::npos)
+        return {};
     return value.substr(first, value.find_last_not_of(" \n\r\t") - first + 1);
 }
 inline std::string lower(std::string value) {
@@ -71,7 +80,10 @@ Value withPath(const Value &source, std::string_view path, const Value &value);
 Value nested(const Value &flat, const Value &overlay = {});
 Value flatten(const Value &value, std::string_view prefix = {});
 std::string resolvedPath(std::string_view path, const Value &indices);
-struct ParsedNumber { bool valid = false; Value value; };
+struct ParsedNumber {
+    bool valid = false;
+    Value value;
+};
 ParsedNumber parseNumber(const Value &field, std::string input, bool graphic);
 std::string numberText(const Value &field, const Value &value, bool graphic, bool desktop = false);
 Value buttonRows(double width, const Value &widths, int columns, double height, double gap, bool rightAligned);

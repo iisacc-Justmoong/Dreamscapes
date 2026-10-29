@@ -30,9 +30,9 @@ Column {
     readonly property var presentedFields: {
         if (!definition) return []
         if (!engine) return definition.fields
-        return NativeData.tools.applicableFields(definition, values).filter(function(field) {
-            return root.capability(field.id).supported
-        })
+        const revision = engine.revision
+        const state = engineState
+        return engine.supportedToolFields(definition.key, NativeData.tools.applicableFields(definition, values), values)
     }
     readonly property int fieldCount: presentedFields.length
 
@@ -147,7 +147,7 @@ Column {
         implicitHeight: layout.height
         Repeater {
             id: actionOptions
-            model: root.presentedFields.filter(function(field) { return field.type === "Action" })
+            model: NativeData.tools.fieldsByType(root.presentedFields, "Action")
             onItemAdded: Qt.callLater(function() { actions.layoutRevision++ })
             onItemRemoved: Qt.callLater(function() { actions.layoutRevision++ })
             Item {

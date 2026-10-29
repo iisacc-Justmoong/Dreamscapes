@@ -140,13 +140,8 @@ Item {
                     Accessible.name: root.field.label + (index === 0 ? " width" : " height")
                     function commit() {
                         textModified = false
-                        const raw = text.trim().replace(/\s*px$/, "")
-                        const number = Number(raw)
-                        if (/^\d+$/.test(raw) && number >= 1 && number <= 65536) {
-                            const next = root.value.slice()
-                            next[index] = number
-                            root.edited(next)
-                        }
+                        const next = NativeData.tools.dimensionInput(root.value,index,text)
+                        if (next !== null) root.edited(next)
                         text = Qt.binding(function() { return root.value[index] + " px" })
                     }
                     onAccepted: commit()
@@ -222,7 +217,7 @@ Item {
                         height: parent.height
                         width: Math.min(implicitWidth, parent.width)
                         tone: LV.AbstractButton.Default
-                        enabled: !root.field.disabledOptions || root.field.disabledOptions.indexOf(optionSlot.modelData) < 0
+                        enabled: !root.field.disabledOptions || NativeData.presentation.indexOf(root.field.disabledOptions, optionSlot.modelData) < 0
                         Accessible.description: enabled ? root.capability.reason || "" : qsTr("This option is unavailable in the connected editing engine.")
                         Accessible.name: root.field.label + ": " + optionSlot.modelData
                         Accessible.checkable: true
@@ -298,7 +293,8 @@ Item {
                 Accessible.name: root.field.label + " hex"
                 function commit() {
                     textModified = false
-                    if (/^#[0-9a-fA-F]{6}$/.test(text.trim())) root.edited(text.trim().toUpperCase())
+                    const next = NativeData.tools.hexInput(text)
+                    if (next !== null) root.edited(next)
                     text = Qt.binding(function() { return root.value })
                 }
                 onAccepted: commit()

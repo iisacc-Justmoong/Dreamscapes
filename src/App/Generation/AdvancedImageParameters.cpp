@@ -27,9 +27,19 @@ void AdvancedImageParameters::recordValidity(const QString &key, bool valid) { v
 bool AdvancedImageParameters::updateDraft(const QVariantMap &patch, const QString &key) { const auto accepted = updateParameters(patch); recordValidity(key, accepted); return accepted; }
 bool AdvancedImageParameters::edit(const QString &key, const QVariant &value) { return updateDraft({{key, value}}, key); }
 bool AdvancedImageParameters::editNumber(const QString &key, const QString &text) {
-    bool valid = false; const auto value = text.trimmed().toDouble(&valid);
-    if (!valid || !std::isfinite(value)) { recordValidity(key, false); return false; }
-    return edit(key, value);
+    const auto value = m_numbers.queries().send({dreamscapes::vm::NumberInputKind::number,text.toStdString()});
+    if (!value || !value->accepted) { recordValidity(key, false); return false; }
+    return edit(key, value->value);
+}
+bool AdvancedImageParameters::editControlWeight(const QString &id, const QString &text) {
+    const auto input = m_numbers.queries().send({dreamscapes::vm::NumberInputKind::number,text.toStdString()});
+    const bool accepted = input && input->accepted && updateControlNet(id,{{"weight",input->value}});
+    recordValidity("control." + id,accepted); return accepted;
+}
+bool AdvancedImageParameters::editLoraWeight(const QString &id, const QString &text) {
+    const auto input = m_numbers.queries().send({dreamscapes::vm::NumberInputKind::number,text.toStdString()});
+    const bool accepted = input && input->accepted && updateLora(id,{{"weight",input->value}});
+    recordValidity("lora." + id,accepted); return accepted;
 }
 void AdvancedImageParameters::applyPromptDefaults() {
     const auto *generation = qobject_cast<GenerationController *>(m_generation.data()); if (!generation) return;
@@ -43,7 +53,7 @@ bool AdvancedImageParameters::selectLearnedUpscaler(const QUrl &source) { return
 bool AdvancedImageParameters::selectDetailer(const QUrl &source) { return updateDraft({{"detailer", true}, {"detailerModel", source.toString()}}, "detailerModel"); }
 bool AdvancedImageParameters::selectRefiner(const QUrl &source) { return updateDraft({{"refiner", true}, {"refinerModel", source.toString()}}, "refinerModel"); }
 bool AdvancedImageParameters::selectIPAdapter(const QString &id, const QUrl &model, const QUrl &vision) { return !model.isEmpty() && !vision.isEmpty() && updateControlNet(id, {{"ipAdapter", true}, {"ipAdapterModel", model.toString()}, {"ipAdapterVision", vision.toString()}}); }
-bool AdvancedImageParameters::selectPose(const QString &id, const QUrl &detector, const QUrl &model) { return !detector.isEmpty() && !model.isEmpty() && updateControlNet(id, {{"process", "Pose"}, {"poseDetector", detector.toString()}, {"poseModel", model.toString()}}); }
+bool AdvancedImageParameters::selectPose(const QString &, const QUrl &, const QUrl &) { return false; }
 QVariantMap AdvancedImageParameters::controlNet(const QString &id) const { for (const auto &value : parameters().value("controlNets").toList()) if (value.toMap().value("id").toString() == id) return value.toMap(); return {}; }
 bool AdvancedImageParameters::addReferenceDocument(const QUrl &source) {
     if (parameters().value("referenceImages").toList().size() >= 20) { emit referenceImageLimitReached(); return false; }
@@ -99,6 +109,7 @@ bool AdvancedImageParameters::removeReferenceImage(int index)
 }
 QString AdvancedImageParameters::addControlNet(const QString &process)
 {
+    if (process == QStringLiteral("Pose")) return {};
     const auto id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     auto values = parameters().value("controlNets").toList();
     values.append(QVariantMap{{"id", id}, {"process", process}});

@@ -3,13 +3,20 @@
 #include "ViewModels/WorkspaceSession.h"
 #include "Generation/VideoDraftModel.h"
 #include "Generation/GenerationComposerModel.h"
+#include "Generation/GenerationSubmissionModel.h"
 #include "Views/Home/HomeCanvas.h"
 #include "Views/Home/CanvasPresets.h"
 #include "Views/Home/CanvasPreview.h"
 #include "Views/Home/HomeFileDetails.h"
 #include "Views/Home/ImageOpenRequest.h"
+#include "Views/Home/StorageBrowserModel.h"
+#include "Views/Home/ImageSelectionModel.h"
+#include "Views/Home/NewCanvasModel.h"
 #include "Views/Editor/EditorCanvas.h"
 #include "Views/Editor/EditorToolStateModel.h"
+#include "Views/Editor/EditorGraphicDraftModel.h"
+#include "Views/Editor/EditorBackgroundModel.h"
+#include "Views/Editor/EditorWorkspaceModel.h"
 #include "Views/Editor/EditorCanvasFeedback.h"
 #include "Views/Editor/EditorAlignmentOverlay.h"
 #include "Views/Editor/EditorClippingOverlay.h"
@@ -41,6 +48,7 @@ void registerStorageViewTypes()
         dreamscapes::registerNativeViewModelTypes();
         qmlRegisterType<dreamscapes::WorkspaceSession>(uri, 1, 0, "NativeWorkspaceSession");
         qmlRegisterType<GenerationComposerModel>(uri, 1, 0, "NativeGenerationComposer");
+        qmlRegisterType<GenerationSubmissionModel>(uri, 1, 0, "NativeGenerationSubmission");
         qmlRegisterType<VideoDraftModel>(uri, 1, 0, "NativeVideoDraft");
         registerColorManagerTypes();
         qmlRegisterUncreatableType<iiSocietyContainer::Container>(uri, 1, 0,
@@ -58,7 +66,13 @@ void registerStorageViewTypes()
         qmlRegisterType<CanvasPreview>(uri, 1, 0, "CanvasPreview");
         qmlRegisterType<HomeFileDetails>(uri, 1, 0, "HomeFileDetails");
         qmlRegisterType<ImageOpenRequest>(uri, 1, 0, "ImageOpenRequest");
+        qmlRegisterType<StorageBrowserModel>(uri, 1, 0, "NativeStorageBrowser");
+        qmlRegisterType<ImageSelectionModel>(uri, 1, 0, "NativeImageSelection");
+        qmlRegisterType<NewCanvasModel>(uri, 1, 0, "NativeCanvasDraft");
         qmlRegisterType<EditorToolStateModel>(uri, 1, 0, "NativeEditorToolState");
+        qmlRegisterType<EditorGraphicDraftModel>(uri, 1, 0, "NativeGraphicDraft");
+        qmlRegisterType<EditorBackgroundModel>(uri, 1, 0, "NativeBackgroundModel");
+        qmlRegisterType<EditorWorkspaceModel>(uri, 1, 0, "NativeEditorWorkspace");
         qmlRegisterType<EditorCanvas>(uri, 1, 0, "EditorCanvas");
         qmlRegisterType<EditorCanvasFeedback>(uri, 1, 0, "EditorCanvasFeedback");
         qmlRegisterType<EditorAlignmentOverlay>(uri, 1, 0, "EditorAlignmentOverlay");

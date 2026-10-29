@@ -4,18 +4,56 @@
 
 namespace dreamscapes::vm {
 enum class TimelineAction {
-    write, reset, restore, selectTrack, addTrack, renameTrack, moveTrack, removeTrack,
-    assignShotTrack, checkpoint, undo, redo, seek, selectShot, jumpCut, changeShot,
-    toggleExclude, split, addShot, duplicateShot, rippleDelete, resizeComposition,
-    slipKeys, trim, nudgeShot, addKey, editKey, deleteKey, copyKey, pasteKey
+    write,
+    reset,
+    restore,
+    selectTrack,
+    addTrack,
+    renameTrack,
+    moveTrack,
+    removeTrack,
+    assignShotTrack,
+    checkpoint,
+    undo,
+    redo,
+    seek,
+    selectShot,
+    selectShotRange,
+    selectAllShots,
+    setRangeText,
+    jumpCut,
+    changeShot,
+    toggleExclude,
+    split,
+    addShot,
+    duplicateShot,
+    rippleDelete,
+    resizeComposition,
+    slipKeys,
+    trim,
+    nudgeShot,
+    addKey,
+    editKey,
+    deleteKey,
+    copyKey,
+    pasteKey
 };
-struct TimelineCommand { TimelineAction action; std::vector<Value> arguments; };
-struct TimelineReply { Value returned; bool reset = false, compositionRestored = false; };
+struct TimelineCommand {
+    TimelineAction action;
+    std::vector<Value> arguments;
+    bool invalidNumericInput = false;
+};
+struct TimelineReply {
+    Value returned;
+    bool reset = false, compositionRestored = false;
+};
 
 class VideoTimeline final {
-public:
+  public:
     VideoTimeline();
-    const ii::runtime::QueryPort<TimelineCommand, TimelineReply> &commands() const { return commands_; }
+    const ii::runtime::QueryPort<TimelineCommand, TimelineReply> &commands() const {
+        return commands_;
+    }
     Value presentation() const;
     Value snapshot() const;
     Value track(std::string_view) const;
@@ -25,7 +63,18 @@ public:
     int startOf(std::string_view) const;
     int snappedFrame(double) const;
     Value recipeShots(std::string_view) const;
-private:
+    Value trackShots(std::string_view) const;
+    Value trackKeys(std::string_view, bool ordered) const;
+    int shotIndex(std::string_view) const;
+    std::string shotReference(std::string_view) const;
+    std::size_t undoDepth() const {
+        return undo_.size();
+    }
+    std::size_t redoDepth() const {
+        return redo_.size();
+    }
+
+  private:
     TimelineReply execute(const TimelineCommand &);
     bool reject(std::string);
     void checkpoint();

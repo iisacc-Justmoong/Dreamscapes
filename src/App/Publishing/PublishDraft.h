@@ -53,6 +53,8 @@ public:
     Q_INVOKABLE bool editCanvas(const QString &id, const QString &key, const QString &value);
     Q_INVOKABLE bool moveCanvas(int index, int direction);
     Q_INVOKABLE QVariantMap canvas(int index) const;
+    Q_INVOKABLE int coverPage() const;
+    Q_INVOKABLE QStringList tags() const;
     Q_INVOKABLE bool save(const QUrl &destination);
     Q_INVOKABLE bool load(const QUrl &source);
 signals:

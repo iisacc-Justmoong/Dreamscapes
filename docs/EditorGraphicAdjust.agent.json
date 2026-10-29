@@ -1,0 +1,632 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:09ea7d1c50c8c46da0972317d3220fea39bc1812f5bdc4c908ff3087a6ba302f",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/EditorGraphicAdjust.md",
+    "sha256": "6c6d430c546f2518c4ba62e0d16ce4404606dfc4c402d678b60c8d406f193831",
+    "bytes": 11797,
+    "line_count": 203,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Editor graphic processing adapter",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Editor graphic processing adapter\n",
+      "level": 1,
+      "title": "Editor graphic processing adapter"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 6,
+      "raw": "`EditorGraphicAdjust.h/.cpp` is Dreamscapes' product adapter for the installed\n**iiGraphicAdjust 0.4.0** package. It uses the SDK's typed public options and\nfunctions; image algorithms remain in the Qt-free C++23 leaf SDK. It does not\nreplace the document, canvas selection, history, timeline or drawing engine.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 8,
+      "end_line": 14,
+      "raw": "The editable Figma Color, Adjust, Mask and Effects views use the API and option\ncontracts recorded in `Design/Dreamscapes/figma-adjust-filter-20261008/`.\n`SDK/iiGraphicAdjust/docs/filter-catalog.json` supplies the Filter command aliases.\nThe current adapter has 250 image processing API entries, eight mask operations,\nand eight automatic or sample settings actions. Its image entries include all\n47 Gallery effects, the 22 Lightcraft looks and 41 Lightcraft presets. A command\nalias refers to the same operation; it is not an additional algorithm.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 15,
+      "end_line": 15,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "heading",
+      "start_line": 16,
+      "end_line": 16,
+      "raw": "## Calls and ownership\n",
+      "level": 2,
+      "title": "Calls and ownership"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "fenced_code",
+      "start_line": 18,
+      "end_line": 26,
+      "raw": "```cpp\nconst auto result = EditorGraphicAdjust::process(\n    originalImage, \"developLight\", {{\"exposure\", .5}, {\"shadows\", 20.0}});\nif (!result.ok()) {\n    // Present result.error. A failure contains no output image.\n    return;\n}\n// Commit result.image through the existing EditorCanvas document/history path.\n```\n",
+      "language": "cpp",
+      "code": "const auto result = EditorGraphicAdjust::process(\n    originalImage, \"developLight\", {{\"exposure\", .5}, {\"shadows\", 20.0}});\nif (!result.ok()) {\n    // Present result.error. A failure contains no output image.\n    return;\n}\n// Commit result.image through the existing EditorCanvas document/history path.\n",
+      "closed": true
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 27,
+      "end_line": 27,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 28,
+      "end_line": 32,
+      "raw": "`process(source, operation, parameters)` borrows its QImage argument and returns\na detached QImage. All settings are values and the SDK only borrows converted\npixels for the synchronous call. The adapter keeps reference images, masks and\nother span resources alive throughout processing. Calls have no shared mutable\nstate and can run on separate workers while their supplied values remain alive.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 33,
+      "end_line": 33,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 34,
+      "end_line": 40,
+      "raw": "The source is converted from its declared color space to sRGB when necessary,\nthen to straight-alpha ARGB32. Numeric words pass through the SDK's\n`fromArgb32`/`toArgb32` conversion; no premultiplied Qt scanline is passed as\nstraight-alpha SDK input. Output images are tagged sRGB. Untagged images are\ninterpreted as sRGB. Source storage is never overwritten. Alpha and invisible\nRGB follow the chosen SDK operation's actual contract: color operations preserve\ncoverage, whereas geometric and spatial filters may transport it.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 41,
+      "end_line": 41,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 42,
+      "end_line": 49,
+      "raw": "The host must retain its source snapshot before a preview, blend the result\nagainst its existing layer/selection mask, and commit through its existing undo\npath. The adapter never writes a document or a file, never creates a layer and\nnever records history. Preview cancellation and Reset restore the host snapshot;\ncalling the adapter repeatedly with the same original gives a fresh evaluation.\n`EditorCanvas` must avoid applying a second time to an already-previewed image.\n`applyLocalAdjustments` already applies supplied coverage inside the SDK; the\nhost must not blend that result against the same selection a second time.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 50,
+      "end_line": 50,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "heading",
+      "start_line": 51,
+      "end_line": 51,
+      "raw": "## EditorCanvas integration\n",
+      "level": 2,
+      "title": "EditorCanvas integration"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 52,
+      "end_line": 52,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 53,
+      "end_line": 58,
+      "raw": "`previewGraphicOperation` returns a detached encoded preview and any estimated\nsettings. It does not replace layer pixels, change the document revision, add\nhistory entries or replace the active selection. `applyGraphicOperation` commits\nimage results through `replaceSelectedPixels`, preserving the editor's existing\nUndo path. Repeated edits of the same tool/API/layer/revision session evaluate\nthe retained original rather than accumulating the previously applied effect.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 59,
+      "end_line": 59,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 60,
+      "end_line": 74,
+      "raw": "Mask generation commits an editor selection only. The eight mask APIs use\n`makeMask`; diagnostics use the five `maskColorOverlay`,\n`maskColorOnBwOverlay`, `maskImageOnBlack`, `maskImageOnWhite` and\n`maskWhiteOnBlack` APIs and remain preview-only. Local adjustments, diagnostics,\ninvert and refine require an existing selection and receive that selection in\nraster-local `mask` coordinates. `combineMasks` receives the active selection as\n`base`. When a second generated mask replaces an existing active selection,\nthe editor retains the previous raster-local mask as the default `operand`.\nThus Combine uses the current selection as `base` and the previous selection as\n`operand`; the caller supplies `operation` and may override `operand` explicitly.\nThe retained operand is tied to the current document generation and selected\nlayer. A different layer or reopened/replaced document cannot consume it.\nWithout a retained or explicit operand, Combine asks the user to create a second\nmask. Invert, Refine and Combine preserve the retained operand so they do not\nsilently replace it with their own previous result.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 75,
+      "end_line": 75,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 76,
+      "end_line": 84,
+      "raw": "Layer transforms are document-world coordinates. Mask-to-selection mapping\nsubtracts the active artboard origin, and selection-to-layer mapping uses the\nsame origin before reading coverage. This keeps masks and subsequent image\nadjustments aligned on artboards located away from `(0,0)`. SDK coverage is\nquantized to the existing editor's 8-bit selection representation once. General\nimage filters blend against this selection; local adjustments use SDK coverage\ndirectly. Unsupported processors, missing raster inputs, hidden layers or\nartboards, pixel locks and invalid\nparameters return explicit errors before document replacement.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 85,
+      "end_line": 85,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 86,
+      "end_line": 91,
+      "raw": "Canvas color sampling exposes `layerColorSample.sequence`. Only a successful\nsample increments it; entering or canceling picking and rejected coordinates\nleave it unchanged. A canceled pick retains the previous valid color, so sample\nhelpers must compare the captured sequence with the current sequence before\nconsuming that color. The sample state remains editor UI state and never rewrites\ndocument pixels.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 92,
+      "end_line": 92,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "heading",
+      "start_line": 93,
+      "end_line": 93,
+      "raw": "## Operation and parameter names\n",
+      "level": 2,
+      "title": "Operation and parameter names"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 94,
+      "end_line": 94,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 95,
+      "end_line": 99,
+      "raw": "Use the exact public API name, for example `developLight`, `developColor`,\n`developCurve`, `developDetail`, `correctOptics`, `cameraRawFilter`,\n`filterGaussianBlur` or `lightcraftPresetWarmGlow`. Filter command names such as\n`filter.blur.gaussianBlur` also work. `look.CineTealAmber` and `preset.WarmGlow`\nare explicit aliases for named Lightcraft APIs.\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 100,
+      "end_line": 100,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "paragraph",
+      "start_line": 101,
+      "end_line": 105,
+      "raw": "`supports(operation)`, `canonicalOperation(operation)`, `operations()` and\n`parameterNames(operation)` describe the adapter's executable contract.\n`parameterNames` lists top-level typed option/resource fields. Automatic actions\nand mask APIs are listed as supported; call `makeMask` for mask generation.\nAn unknown operation returns a reason and no image.\n"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 106,
+      "end_line": 106,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "paragraph",
+      "start_line": 107,
+      "end_line": 112,
+      "raw": "Options use the SDK's **actual units**. `developLight.exposure` is EV and its\nother signed sliders are `[-100,100]`. `hueSaturation.saturation` is normalized\n`[-1,1]`. `whiteBalance.temperature` is Kelvin, while\n`cameraRawFilter.temperature` is a relative `[-100,100]` slider. The adapter\nnever guesses a conversion between these operations. The Figma spec's `sdkUnit`\nconversion must occur before the host submits a value.\n"
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 113,
+      "end_line": 113,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "paragraph",
+      "start_line": 114,
+      "end_line": 115,
+      "raw": "Parameters may be a nested object, a dotted or indexed property path, or an\n`options` object together with explicit resources:\n"
+    },
+    {
+      "id": "b000036",
+      "kind": "blank",
+      "start_line": 116,
+      "end_line": 116,
+      "raw": "\n"
+    },
+    {
+      "id": "b000037",
+      "kind": "fenced_code",
+      "start_line": 117,
+      "end_line": 127,
+      "raw": "```cpp\nEditorGraphicAdjust::process(image, \"developColor\", {\n    {\"mixer[3].hue\", 35.0},\n    {\"grading.shadows.hue\", 210.0},\n    {\"grading.shadows.saturation\", 25.0}\n});\nEditorGraphicAdjust::process(image, \"developCurve\", {\n    {\"master.points[0].output\", .08},\n    {\"master.points[1].output\", .94}\n});\n```\n",
+      "language": "cpp",
+      "code": "EditorGraphicAdjust::process(image, \"developColor\", {\n    {\"mixer[3].hue\", 35.0},\n    {\"grading.shadows.hue\", 210.0},\n    {\"grading.shadows.saturation\", 25.0}\n});\nEditorGraphicAdjust::process(image, \"developCurve\", {\n    {\"master.points[0].output\", .08},\n    {\"master.points[1].output\", .94}\n});\n",
+      "closed": true
+    },
+    {
+      "id": "b000038",
+      "kind": "blank",
+      "start_line": 128,
+      "end_line": 128,
+      "raw": "\n"
+    },
+    {
+      "id": "b000039",
+      "kind": "paragraph",
+      "start_line": 129,
+      "end_line": 139,
+      "raw": "Partial indexed edits preserve every unedited SDK initializer. Full arrays must\nhave the exact length required by a fixed SDK array. A collection accepts a\nQVariantList of typed option objects, or bounded indexed edits of its current\nSDK default collection. Curves, pins, paths, points, lights, strokes, mesh quads,\nLUT rows and normalized coverage reach the corresponding typed structs.\nColors accept normalized RGB/RGBA arrays, `QColor`, color strings, or an RGBA\nobject where that SDK field is `Rgba`. Enum strings use public enum values;\ncase, spaces and punctuation are ignored. Valid integer enum values also work.\nUnknown enums, fractional integers, nonfinite values, unsupported parameter\nnames, malformed arrays and SDK range/geometry violations return explicit\nerrors. Unsupported fields do not become no-op success.\n"
+    },
+    {
+      "id": "b000040",
+      "kind": "blank",
+      "start_line": 140,
+      "end_line": 140,
+      "raw": "\n"
+    },
+    {
+      "id": "b000041",
+      "kind": "paragraph",
+      "start_line": 141,
+      "end_line": 147,
+      "raw": "Compatibility aliases are limited to known source contracts: Gaussian menu\n`radius` becomes `sigma`; `hslSat`/`hslLum` become Camera Raw's\n`hslSaturation`/`hslLuminance`; Liquify `meshSize` becomes `cell`; Lens Blur's\n`bladeCurvature`, `invert` and named aperture shape become the public SDK fields;\nPuppet/Perspective `src`/`dst` become source/destination. Typed API member names\nare preferred. Host-only fields such as a document layer ID are not pixel options\nand must be consumed by the host before calling this adapter.\n"
+    },
+    {
+      "id": "b000042",
+      "kind": "blank",
+      "start_line": 148,
+      "end_line": 148,
+      "raw": "\n"
+    },
+    {
+      "id": "b000043",
+      "kind": "heading",
+      "start_line": 149,
+      "end_line": 149,
+      "raw": "## Resources, masks and automatic settings\n",
+      "level": 2,
+      "title": "Resources, masks and automatic settings"
+    },
+    {
+      "id": "b000044",
+      "kind": "blank",
+      "start_line": 150,
+      "end_line": 150,
+      "raw": "\n"
+    },
+    {
+      "id": "b000045",
+      "kind": "paragraph",
+      "start_line": 151,
+      "end_line": 156,
+      "raw": "An `ImageView` resource such as `reference`, `map`, `guide`, `depthMap` or a\nVanishing Point paste image accepts a QImage, a local path/file URL, or an\nobject with `source`, `path` or `image`. Remote URLs are not decoded. A color LUT\nis a typed `lut` object with its kind, size, values and optional domain. The host\ncan call `iiGraphicAdjust::parseCubeLut` to read supported Cube text and pass the\nresulting values; filesystem import remains an application action.\n"
+    },
+    {
+      "id": "b000046",
+      "kind": "blank",
+      "start_line": 157,
+      "end_line": 157,
+      "raw": "\n"
+    },
+    {
+      "id": "b000047",
+      "kind": "paragraph",
+      "start_line": 158,
+      "end_line": 163,
+      "raw": "`makeMask(source, operation, parameters)` returns width, height and detached\nnormalized float coverage. Supported operations are `brushMask`, `linearMask`,\n`radialMask`, `colorRangeMask`, `luminanceRangeMask`, `invertMask`, `refineMask`\nand `combineMasks`. Source dimensions come from the selected bitmap. Brush\nparameters may be a single `BrushStroke` object as shown in Figma, or a `strokes`\narray. Stroke coordinates are supplied by the host.\n"
+    },
+    {
+      "id": "b000048",
+      "kind": "blank",
+      "start_line": 164,
+      "end_line": 164,
+      "raw": "\n"
+    },
+    {
+      "id": "b000049",
+      "kind": "paragraph",
+      "start_line": 165,
+      "end_line": 169,
+      "raw": "Image operations accepting a mask use `{width,height,coverage}`; width and\nheight default to source dimensions. `applyLocalAdjustments` accepts the SDK's\n`adjustments` array, or one local adjustment with a `mask` and the\n`LocalAdjustmentOptions` fields at the parameter root. Diagnostic mask views\nprocess actual supplied coverage instead of a decorative sample.\n"
+    },
+    {
+      "id": "b000050",
+      "kind": "blank",
+      "start_line": 170,
+      "end_line": 170,
+      "raw": "\n"
+    },
+    {
+      "id": "b000051",
+      "kind": "paragraph",
+      "start_line": 171,
+      "end_line": 181,
+      "raw": "`autoDevelopLight`, `autoWhiteBalance`, `sampledWhiteBalance`,\n`whiteBalancePreset`, `autoBlackAndWhiteMix`, `samplePointColor` and\n`autoLensScale` and `estimateChromaticAberration` call the real SDK estimators. Their `Result.parameters` contains\nthe returned settings for the host to merge into its current draft.\n`samplePointColor` returns the detached source and the sampled Point Color\nsettings; the host chooses which point receives those settings.\n`estimateChromaticAberration` returns `redChromaticAberration`,\n`blueChromaticAberration` and `autoChromaticAberration=false` for the\n`correctOptics` draft, together with the corrected detached image. Disabling\nautomatic estimation in the returned settings avoids estimating the same\naberration again when the returned manual slider values are applied.\n"
+    },
+    {
+      "id": "b000052",
+      "kind": "blank",
+      "start_line": 182,
+      "end_line": 182,
+      "raw": "\n"
+    },
+    {
+      "id": "b000053",
+      "kind": "heading",
+      "start_line": 183,
+      "end_line": 183,
+      "raw": "## Validation\n",
+      "level": 2,
+      "title": "Validation"
+    },
+    {
+      "id": "b000054",
+      "kind": "blank",
+      "start_line": 184,
+      "end_line": 184,
+      "raw": "\n"
+    },
+    {
+      "id": "b000055",
+      "kind": "paragraph",
+      "start_line": 185,
+      "end_line": 192,
+      "raw": "`tests/tst_editorgraphicadjust.cpp` checks independently calculated one-stop\nexposure, encoded brightness units, original/alpha preservation, premultiplied\ninput conversion, partial indexed edits, SDK initializer preservation, typed\nLUT/reference resources, invalid parameters, real coverage geometry and local\nadjustments, automatic settings, named Look/Preset output and Gallery ordering.\nTests compare selected operations against direct installed SDK calls while also\nasserting pixel properties and numerical oracles. No product session or active\nrendering job is restarted by these checks.\n"
+    },
+    {
+      "id": "b000056",
+      "kind": "blank",
+      "start_line": 193,
+      "end_line": 193,
+      "raw": "\n"
+    },
+    {
+      "id": "b000057",
+      "kind": "paragraph",
+      "start_line": 194,
+      "end_line": 197,
+      "raw": "The product CMake target must find `iiGraphicAdjust 0.4.0` and link\n`iiGraphicAdjust::iiGraphicAdjust`; tests run from `build/`. Packaged application\nloading, editable panel routing and target-device execution\nrequire their separate product checks.\n"
+    },
+    {
+      "id": "b000058",
+      "kind": "blank",
+      "start_line": 198,
+      "end_line": 198,
+      "raw": "\n"
+    },
+    {
+      "id": "b000059",
+      "kind": "paragraph",
+      "start_line": 199,
+      "end_line": 203,
+      "raw": "`tests/tst_editortools.cpp` also covers the actual EditorCanvas connection:\nnonmutating preview, Apply/Undo and original-pixel reevaluation, alpha retention,\ninvalid input and pixel-lock preservation, local soft coverage against a\nseparate sRGB exposure calculation, active mask inversion/refinement/combination,\ndiagnostic-only views and independent masks on a nonzero second artboard.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Editor graphic processing adapter",
+      "anchor": "editor-graphic-processing-adapter",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000007",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Calls and ownership",
+      "anchor": "calls-and-ownership",
+      "start_line": 16
+    },
+    {
+      "block_id": "b000017",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "EditorCanvas integration",
+      "anchor": "editorcanvas-integration",
+      "start_line": 51
+    },
+    {
+      "block_id": "b000027",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Operation and parameter names",
+      "anchor": "operation-and-parameter-names",
+      "start_line": 93
+    },
+    {
+      "block_id": "b000043",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Resources, masks and automatic settings",
+      "anchor": "resources-masks-and-automatic-settings",
+      "start_line": 149
+    },
+    {
+      "block_id": "b000053",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Validation",
+      "anchor": "validation",
+      "start_line": 183
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000013",
+        "line": 38,
+        "text": "interpreted as sRGB. Source storage is never overwritten. Alpha and invisible",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 42,
+        "text": "The host must retain its source snapshot before a preview, blend the result",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 44,
+        "text": "path. The adapter never writes a document or a file, never creates a layer and",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 45,
+        "text": "never records history. Preview cancellation and Reset restore the host snapshot;",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 47,
+        "text": "`EditorCanvas` must avoid applying a second time to an already-previewed image.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 49,
+        "text": "host must not blend that result against the same selection a second time.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000021",
+        "line": 73,
+        "text": "mask. Invert, Refine and Combine preserve the retained operand so they do not",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000025",
+        "line": 89,
+        "text": "helpers must compare the captured sequence with the current sequence before",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000025",
+        "line": 90,
+        "text": "consuming that color. The sample state remains editor UI state and never rewrites",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000033",
+        "line": 111,
+        "text": "never guesses a conversion between these operations. The Figma spec's `sdkUnit`",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000033",
+        "line": 112,
+        "text": "conversion must occur before the host submits a value.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000039",
+        "line": 129,
+        "text": "Partial indexed edits preserve every unedited SDK initializer. Full arrays must",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000039",
+        "line": 130,
+        "text": "have the exact length required by a fixed SDK array. A collection accepts a",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000039",
+        "line": 139,
+        "text": "errors. Unsupported fields do not become no-op success.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000041",
+        "line": 147,
+        "text": "and must be consumed by the host before calling this adapter.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000057",
+        "line": 194,
+        "text": "The product CMake target must find `iiGraphicAdjust 0.4.0` and link",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

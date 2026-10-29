@@ -10,46 +10,18 @@ Column {
     readonly property string toolId: toolState.toolId
     readonly property var definition: toolState.definition
     readonly property var values: toolState.values
-    readonly property var viewCatalog: NativeData.compact.viewsFor(toolId)
-    readonly property string currentViewId: {
-        const saved = NativeData.compact.view(toolId, toolState.compactViewsByTool[toolId])
-        const operation = viewCatalog.find(function(view) { return view.mode === values.selector })
-        return saved && (!saved.mode || saved.mode === values.selector) ? saved.id
-            : operation ? operation.id : viewCatalog.length ? viewCatalog[0].id : ""
-    }
-    readonly property var selectedView: NativeData.compact.view(toolId, currentViewId)
-    readonly property var presentedFields: selectedView ? selectedView.fields.map(function(row) {
-        const field = definition.fields.find(function(entry) { return entry.id === row.id })
-        // Live model choices come from the generation runtime, not the atlas examples.
-        if (toolId === "generative" && row.id === "field-2" && toolState.generationRuntime)
-            return Object.assign({}, field, {icon: row.icon, height: row.height})
-        return Object.assign({}, field, row)
-    }) : []
+    readonly property var viewCatalog: toolState.nativeModel.compactViewCatalog
+    readonly property string currentViewId: toolState.nativeModel.compactCurrentViewId
+    readonly property var selectedView: toolState.nativeModel.compactSelectedView
+    readonly property var presentedFields: toolState.nativeModel.compactPresentedFields
     readonly property int fieldCount: presentedFields.length
     spacing: 12
     width: 398
 
-    function selectView(id) {
-        const view = NativeData.compact.view(toolId, id)
-        if (!view) return
-        const next = Object.assign({}, toolState.compactViewsByTool)
-        next[toolId] = id
-        toolState.compactViewsByTool = next
-        if (view.mode && values.selector !== view.mode) toolState.setValue("selector", view.mode)
-    }
-    function capability(field) {
-        if (field.unsupported) return {supported: false, enabled: false, reason: qsTr("This option is unavailable in the connected editing engine.")}
-        if (!toolState.engine) return {supported: true, enabled: true, reason: ""}
-        const revision = toolState.engine.revision
-        const state = toolState.engine.toolState
-        return toolState.engine.toolControlState(toolId, field.id, values)
-    }
+    function selectView(id) { toolState.nativeModel.selectCompactView(id) }
+    function capability(field) { const revision = toolState.nativeModel.revision; return toolState.nativeModel.capability(field) }
     function request(field) { toolState.actionRequested(toolId, field.id, values) }
-    function resetCurrentView() {
-        const view = selectedView
-        toolState.resetTool()
-        if (view && view.mode) toolState.setValue("selector", view.mode)
-    }
+    function resetCurrentView() { toolState.nativeModel.resetCompactView() }
 
     Row {
         width: parent.width
@@ -69,7 +41,7 @@ Column {
                         objectName: "compactNavigation-" + index
                         forceBorderlessTone: false
                         Repeater {
-                            model: root.toolId === "generative" ? root.viewCatalog.slice(group.index * 4, (group.index + 1) * 4) : root.viewCatalog
+                            model: root.toolId === "generative" ? NativeData.presentation.range(root.viewCatalog, group.index * 4, (group.index + 1) * 4) : root.viewCatalog
                             LV.IconButton {
                                 id: tab
                                 required property var modelData

@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import ".." as Frames
 import LVRS 1.0 as LV
 
@@ -56,8 +57,15 @@ Rectangle {
     }
     function syncTool(index) {
         if (index < 0 || index >= tools.length) return
+        let focused = toolList.Window.window ? toolList.Window.window.activeFocusItem : null
+        let retainFocus = false
+        while (focused) {
+            if (focused === toolList) { retainFocus = true; break }
+            focused = focused.parent
+        }
         toolList.currentIndex = index
         toolList.positionViewAtIndex(index, ListView.Contain)
+        if (retainFocus) focusCurrent()
     }
     function moveFocus(index, step) { selectTool(Math.max(0, Math.min(tools.length - 1, index + step))) }
     function focusBoundary(last) { selectTool(last ? tools.length - 1 : 0) }
@@ -89,7 +97,7 @@ Rectangle {
             id: host
             required property int index
             required property var modelData
-            readonly property int groupOffset: !root.mobileLayout && [4, 9, 12].indexOf(index) >= 0 ? 5 : 0
+            readonly property int groupOffset: !root.mobileLayout && NativeData.presentation.indexOf([4, 9, 12], index) >= 0 ? 5 : 0
             readonly property var button: buttonLoader.item
             width: root.mobileLayout ? 86 : 22
             height: (root.mobileLayout ? 68 : 22) + groupOffset
@@ -158,6 +166,16 @@ Rectangle {
                 event.accepted = !root.mobileLayout
                 if (event.accepted) root.moveFocus(index, 1)
             }
+            Keys.onPressed: function(event) {
+                if (event.key === Qt.Key_Home || event.key === Qt.Key_End) {
+                    root.focusBoundary(event.key === Qt.Key_End)
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Right) {
+                    root.moveFocus(index,event.key === Qt.Key_Left ? -1 : 1)
+                    event.accepted = true
+                }
+            }
+
 
             background: Rectangle {
                 radius: tool.cornerRadius

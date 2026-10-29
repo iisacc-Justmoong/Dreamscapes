@@ -14,7 +14,7 @@ LV.VStack { alignment: Qt.AlignLeft;
     onFilesChanged: {
         const retainedKey = focusedKey, retainedY = grid.contentY
         Qt.callLater(function() {
-            const index = root.files.findIndex(f => NativeData.facts.key(f) === retainedKey)
+            const index = NativeData.facts.fileIndex(root.files, retainedKey)
             if (index >= 0) grid.currentIndex = index
             grid.contentY = Math.max(0, Math.min(retainedY, grid.contentHeight - grid.height))
         })

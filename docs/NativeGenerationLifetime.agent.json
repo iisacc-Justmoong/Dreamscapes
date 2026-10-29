@@ -1,0 +1,376 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:723c61fe236920ec87f1de8607c4942b51bd8dbc633fa064e2f53f1ced6266d0",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/NativeGenerationLifetime.md",
+    "sha256": "cb0f7b8e0111f08e9a9426413dce2a63919aff4b92cfab6f9629a0bdd3142e3a",
+    "bytes": 4499,
+    "line_count": 58,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "네이티브 생성 작업과 표시 소유자의 수명",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# 네이티브 생성 작업과 표시 소유자의 수명\n",
+      "level": 1,
+      "title": "네이티브 생성 작업과 표시 소유자의 수명"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 7,
+      "raw": "`NativeGenerationWork`는 생성 요청·옵션·호출 함수·취소 상태와 원본 수명을 값으로\n보유한다. 컨트롤러나 GUI 파일시스템을 작업자에서 참조하지 않는다. 컨트롤러 종료는\n공유 취소 상태를 반영하고 정지된 실행 제어를 깨운 뒤 반환한다. SDK가 현재 커널에서\n즉시 반환할 수 없어도 표시 객체의 파괴자가 생성·캐시 이행 작업자를 합류 대기하지\n않는다. 실제 SDK 커널의 중단 시간과 앱 프로세스 전체 종료는 별도 계약이다.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "heading",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "## 작업의 연결과 자원 수명\n",
+      "level": 2,
+      "title": "작업의 연결과 자원 수명"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "list",
+      "start_line": 11,
+      "end_line": 21,
+      "raw": "- 기본·고급 생성은 같은 값형 실행 경계를 사용한다. 기존 고급 파라미터의 변환,\n  참조·ControlNet 디코딩과 네이티브 모델 호출은 유지한다.\n- 취소 상태는 작업별 공유 객체이다. 생성 함수에 전달한 원자적 취소 참조가 UI\n  소유자보다 오래 살아도 유효하다. 원본 임시 디렉터리와 미리보기 디렉터리도 작업\n  실행 동안 유지하며, 결과 전달 전에 작업자의 원본 임대를 반납한다.\n- 진행·미리보기는 독립적인 GUI 전달 객체에 값으로 게시한다. 작업자는 컨트롤러를\n  역참조하지 않는다. GUI에서 약한 소유 참조와 현재 작업 ID·완료 단계를 확인한다.\n  생성 호출이 끝나거나 취소되면 이후의 공급자 알림을 생략한다.\n- 네이티브 미리보기는 작업자에서 크기·순서·경로를 검사하고 PNG로 준비한다.\n  GUI는 준비된 파일의 표시 상태만 반영하며 PNG를 다시 인코딩·디코딩하지 않는다.\n  프로세스가 보내는 기존 미리보기의 검증 경로는 별도이다.\n",
+      "items": [
+        {
+          "marker": "-",
+          "text": "기본·고급 생성은 같은 값형 실행 경계를 사용한다. 기존 고급 파라미터의 변환,",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "취소 상태는 작업별 공유 객체이다. 생성 함수에 전달한 원자적 취소 참조가 UI",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "진행·미리보기는 독립적인 GUI 전달 객체에 값으로 게시한다. 작업자는 컨트롤러를",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "네이티브 미리보기는 작업자에서 크기·순서·경로를 검사하고 PNG로 준비한다.",
+          "checked": null
+        }
+      ]
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 22,
+      "end_line": 22,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "heading",
+      "start_line": 23,
+      "end_line": 23,
+      "raw": "## 캐시 이행과 해제\n",
+      "level": 2,
+      "title": "캐시 이행과 해제"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 24,
+      "end_line": 24,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 25,
+      "end_line": 27,
+      "raw": "이전 캐시 이행은 원본·목적지 경로와 공유 취소 상태를 보유한다. 종료 시 중단을\n요청하되 이동이 끝날 때까지 UI를 기다리게 하지 않는다. SDK의 기존 충돌·리디렉션·\n원본 보존 규칙은 유지한다.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 28,
+      "end_line": 28,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 29,
+      "end_line": 33,
+      "raw": "네이티브 모델 캐시 해제도 값형 호출 함수를 작업자에서 실행한다. 영상 작업은\n캐시 해제 완료 후에만 실제 생성 프로세스를 시작한다. 대기 중 취소하면 프로세스를\n시작하지 않으며, 해제 실패는 명시적인 작업 실패로 전달한다. 소유자 종료 시 이미\n진행 중인 해제를 중복 실행하지 않는다. 일반 생성·저장과 다음 작업의 기존 순서는\n[GenerationPublication.md](GenerationPublication.md)를 따른다.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 34,
+      "end_line": 34,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "heading",
+      "start_line": 35,
+      "end_line": 35,
+      "raw": "## 알림과 최신 의도\n",
+      "level": 2,
+      "title": "알림과 최신 의도"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 36,
+      "end_line": 36,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 37,
+      "end_line": 41,
+      "raw": "로딩·진행·준비 완료 알림은 화면 소유자를 닫거나 다른 상태 요청을 실행할 수 있다.\n각 알림 이후 소유자와 현재 작업을 다시 확인한다. 준비 완료 알림에서 취소를\n수락했다면 파일 저장을 시작하지 않는다. 전경 상태 변경도 현재 값과 소유자를\n확인하고 마지막 알림 뒤에 컨트롤러를 사용하지 않는다. 프로세스의 출력 파서와\n종료·오류·시간 제한 호출부도 이러한 삭제 경계를 유지한다.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 42,
+      "end_line": 42,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "heading",
+      "start_line": 43,
+      "end_line": 43,
+      "raw": "## 실행 근거와 범위\n",
+      "level": 2,
+      "title": "실행 근거와 범위"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 44,
+      "end_line": 44,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 45,
+      "end_line": 48,
+      "raw": "`tst_Generation.cpp`는 기본·고급 생성의 반환을 보류한 채 소유자를 닫고, 취소 참조와\n입력 수명이 유지되는지 검사한다. 캐시 이행·해제와 영상 시작을 보류하는 검사,\n상태 관찰자 삭제, 준비 완료 시 취소, GUI 이벤트를 처리하기 전 실제 미리보기 PNG가\n준비되는 검사도 포함한다. 이전 생성·영상·고급 파라미터·Society 검사는 유지한다.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 49,
+      "end_line": 49,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 50,
+      "end_line": 55,
+      "raw": "동일 프로브의 750ms 보류 조건에서 기존 소유자 종료가 공급자 반환을 기다리는\n현상을 재현했다. 수정 후에는 공급자의 반환을 보류한 상태에서도 종료한다. 원자료와\n최종 검증은 `build/verification/generation-lifetime-20261021-195059/`에 보관한다.\n이 관측은 실제 GPU 지연이나 설치 앱의 전경 FPS를 뜻하지 않는다. 프로세스 작업자의\n기존 종료 대기, 더 넓은 앱 종료·다른 관찰자 경계와 프로세스 미리보기 검증은 전체\n점검의 잔여 범위이다.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "heading",
+      "start_line": 56,
+      "end_line": 56,
+      "raw": "## 외부 프로세스 경로\n",
+      "level": 2,
+      "title": "외부 프로세스 경로"
+    },
+    {
+      "id": "b000025",
+      "kind": "blank",
+      "start_line": 57,
+      "end_line": 57,
+      "raw": "\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "paragraph",
+      "start_line": 58,
+      "end_line": 58,
+      "raw": "외부 추론 경로도 화면 소멸자에서 기다리지 않는다. 프로세스와 파이프는 iiSDKCore 작업자가 소유하고 임시 파일을 회수 이후까지 유지한다. 상세 계약과 검증 범위는 [GenerationProcess.md](GenerationProcess.md)에 있다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "네이티브 생성 작업과 표시 소유자의 수명",
+      "anchor": "네이티브-생성-작업과-표시-소유자의-수명",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000005",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "작업의 연결과 자원 수명",
+      "anchor": "작업의-연결과-자원-수명",
+      "start_line": 9
+    },
+    {
+      "block_id": "b000009",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "캐시 이행과 해제",
+      "anchor": "캐시-이행과-해제",
+      "start_line": 23
+    },
+    {
+      "block_id": "b000015",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "알림과 최신 의도",
+      "anchor": "알림과-최신-의도",
+      "start_line": 35
+    },
+    {
+      "block_id": "b000019",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "실행 근거와 범위",
+      "anchor": "실행-근거와-범위",
+      "start_line": 43
+    },
+    {
+      "block_id": "b000024",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "외부 프로세스 경로",
+      "anchor": "외부-프로세스-경로",
+      "start_line": 56
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 4,
+        "text": "보유한다. 컨트롤러나 GUI 파일시스템을 작업자에서 참조하지 않는다. 컨트롤러 종료는",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000007",
+        "line": 17,
+        "text": "역참조하지 않는다. GUI에서 약한 소유 참조와 현재 작업 ID·완료 단계를 확인한다.",
+        "basis": "lexical_match",
+        "context": "list"
+      },
+      {
+        "block_id": "b000007",
+        "line": 20,
+        "text": "GUI는 준비된 파일의 표시 상태만 반영하며 PNG를 다시 인코딩·디코딩하지 않는다.",
+        "basis": "lexical_match",
+        "context": "list"
+      },
+      {
+        "block_id": "b000011",
+        "line": 26,
+        "text": "요청하되 이동이 끝날 때까지 UI를 기다리게 하지 않는다. SDK의 기존 충돌·리디렉션·",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 32,
+        "text": "진행 중인 해제를 중복 실행하지 않는다. 일반 생성·저장과 다음 작업의 기존 순서는",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000017",
+        "line": 39,
+        "text": "수락했다면 파일 저장을 시작하지 않는다. 전경 상태 변경도 현재 값과 소유자를",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000017",
+        "line": 40,
+        "text": "확인하고 마지막 알림 뒤에 컨트롤러를 사용하지 않는다. 프로세스의 출력 파서와",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000023",
+        "line": 53,
+        "text": "이 관측은 실제 GPU 지연이나 설치 앱의 전경 FPS를 뜻하지 않는다. 프로세스 작업자의",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000013",
+        "label": "GenerationPublication.md",
+        "target": "GenerationPublication.md",
+        "kind": "relative",
+        "line": 33
+      },
+      {
+        "block_id": "b000026",
+        "label": "GenerationProcess.md",
+        "target": "GenerationProcess.md",
+        "kind": "relative",
+        "line": 58
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

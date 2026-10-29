@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import LVRS 1.0 as LV
@@ -160,12 +161,7 @@ LV.HStack {
         objectName: "desktopNotificationMenu"
         showIconSlot: false
         itemWidth: 260
-        items: root.jobs.length ? root.jobs.slice(0, 8).map(function(job) {
-            const labels = {queued: qsTr("Queued"), running: qsTr("Generating"), completed: qsTr("Completed"),
-                failed: qsTr("Failed"), cancelled: qsTr("Cancelled"), interrupted: qsTr("Interrupted"),
-                downloading: qsTr("Downloading"), "connecting-host": qsTr("Connecting")}
-            return (labels[job.state] || job.state) + " · " + (job.prompt || qsTr("Generation"))
-        }) : [qsTr("No generation notifications")]
+        items: NativeData.presentation.notifications(root.jobs)
         onItemTriggered: root.activityRequested()
     }
 }

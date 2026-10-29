@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 
@@ -60,7 +61,7 @@ Item {
     function optionAt(options, index) { return !options || index < 0 ? null : typeof options.get === "function" ? options.get(index) : options[index] }
     function optionText(option, fallback) { return option === undefined || option === null ? fallback : typeof option === "object" ? String(configValue(option, "text", configValue(option, "label", fallback))) : String(option) }
     function editValue(field, next) {
-        if (!enabled || ["checked", "selectorIndex", "inputText1"].indexOf(field) < 0 || root[field] === next) return false
+        if (!enabled || NativeData.presentation.indexOf(["checked", "selectorIndex", "inputText1"], field) < 0 || root[field] === next) return false
         root[field] = next
         edited(field, next)
         return true

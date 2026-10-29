@@ -9,8 +9,7 @@ Column {
     objectName: "editorTextPanel"
     required property var toolState
     property int panelIndex: 0
-    readonly property var values: Object.assign({}, NativeData.text.defaultsFor(NativeData.text.definition().fields),
-        toolState.toolId === "text" ? toolState.values : (toolState.settingsByTool.text || {}))
+    readonly property var values: toolState.nativeModel.textValues
     readonly property var engine: toolState.engine
     readonly property var tabs: ["Content", "Typography", "Layout", "Appearance"]
     readonly property string readout: NativeData.text.readout(values)
@@ -18,38 +17,12 @@ Column {
     spacing: 12
     function asset(name) { return Qt.resolvedUrl("Assets/Text/" + name + ".svg") }
     function value(id) { return values[id] }
-    function edit(id, next) {
-        if (toolState.toolId !== "text" || next === value(id)) return
-        toolState.setValue(id, next)
-        if (id === "field-5" || id.indexOf("Constraint") >= 0 || id === "textReference" || id === "textOffsetX" || id === "textOffsetY") toolState.setValue("textLayoutEnabled", true)
-        if (id === "textHorizontalConstraint" && ["Left", "Center", "Right"].indexOf(next) >= 0) {
-            const placement = String(value("field-5"))
-            const vertical = placement.indexOf("Top") === 0 ? "Top" : placement.indexOf("Bottom") === 0 ? "Bottom" : ""
-            toolState.setValue("field-5", vertical ? vertical + (next === "Center" ? "" : " " + next.toLowerCase()) : next)
-        }
-        if (id === "textVerticalConstraint" && ["Top", "Center", "Bottom"].indexOf(next) >= 0) {
-            const placement = String(value("field-5"))
-            const horizontal = placement.toLowerCase().indexOf("left") >= 0 ? "left" : placement.toLowerCase().indexOf("right") >= 0 ? "right" : ""
-            toolState.setValue("field-5", next === "Center" ? (horizontal ? horizontal.charAt(0).toUpperCase() + horizontal.slice(1) : "Center") : next + (horizontal ? " " + horizontal : ""))
-        }
-        if (id === "field-2" && value("textLinePreset") === "Token") toolState.setValue("textLineHeight", next)
-        if (id === "textLineHeight") toolState.setValue("textLinePreset", "Token")
-    }
-    function patch(next) { Object.keys(next).forEach(function(id) { root.edit(id, next[id]) }) }
-    function resetView() {
-        patch(NativeData.text.defaultsFor(panelIndex === 1 ? NativeData.text.typography : panelIndex === 2 ? NativeData.text.layout : NativeData.text.appearance))
-        if (panelIndex === 2) edit("textLayoutEnabled", false)
-    }
-    function applyRole(role) { patch(NativeData.text.roleValues(role)) }
-    function optionAvailable(fieldId, option) {
-        return !(fieldId === "textBlend" && ["Soft light", "Difference"].indexOf(option) >= 0)
-            && !(fieldId === "textNoisePattern" && option === "Blue noise")
-            && !(["textHorizontalConstraint", "textVerticalConstraint"].indexOf(fieldId) >= 0 && option === "Scale")
-    }
-    function linePreset(preset) {
-        edit("textLinePreset", preset)
-        toolState.setValue("textLineHeight", Math.round(Number(value("field-2")) * (preset === "Token" ? 1 : parseInt(preset) / 100) * 100) / 100)
-    }
+    function edit(id, next) { toolState.nativeModel.editText(id, next) }
+    function patch(next) { toolState.nativeModel.patchText(next) }
+    function resetView() { toolState.nativeModel.resetTextView(panelIndex) }
+    function applyRole(role) { toolState.nativeModel.applyTextRole(role) }
+    function optionAvailable(fieldId, option) { return toolState.nativeModel.textOptionAvailable(fieldId, option) }
+    function linePreset(preset) { toolState.nativeModel.textLinePreset(preset) }
 
     component Heading: Views.PanelRow {
         type: LV.ListItem.Mini
@@ -78,9 +51,8 @@ Column {
         Accessible.name: spec.label
         function commit() {
             textModified = false
-            const input = text.trim().replace(/\s*(px|%|°)$/, "")
-            const next = Number(input)
-            if (input.length && isFinite(next) && next >= spec.minimum && next <= spec.maximum) root.edit(fieldId, next)
+            const next = NativeData.tools.numberInput(text,spec.minimum,spec.maximum,spec.unit)
+            if (next !== null) root.edit(fieldId,next)
             text = Qt.binding(function() { return Number(root.value(numberField.fieldId)).toFixed(numberField.fieldId === "textGamma" ? 2 : 0) + (numberField.spec.unit === "px" ? " px" : numberField.spec.unit === "%" ? "%" : numberField.spec.unit === "°" ? "°" : "") })
         }
         onAccepted: commit()
@@ -183,7 +155,7 @@ Column {
                         contentItem: Item {
                             implicitWidth: 18; implicitHeight: 18
                             Image {
-                                readonly property bool insetArtwork: ["LeftAlign", "CenterAlign", "RightAlign"].indexOf(choices.icons[choice.index]) >= 0
+                                readonly property bool insetArtwork: NativeData.presentation.indexOf(["LeftAlign", "CenterAlign", "RightAlign"], choices.icons[choice.index]) >= 0
                                 width: insetArtwork ? 16 : 18; height: width
                                 source: alignmentButton.iconSource
                                 sourceSize: Qt.size(width * 4, height * 4)
@@ -384,7 +356,7 @@ Column {
                     required property int index
                     width: parent.width; spacing: 8
                     Repeater {
-                        model: NativeData.text.roles.slice(roleRow.index * 2, roleRow.index * 2 + 2)
+                        model: NativeData.presentation.range(NativeData.text.roles, roleRow.index * 2, roleRow.index * 2 + 2)
                         Rectangle {
                             id: roleTile
                             required property var modelData
@@ -473,7 +445,7 @@ Column {
             text: root.panelIndex === 3 && root.value("field-0") === "Enter your text…" ? qsTr("Your words, in focus") : root.value("field-0")
             color: root.panelIndex === 3 ? NativeData.text.fillColor(root.value("textFill"), root.value("textCustomFill")) : LV.Theme.bodyColor
             opacity: root.panelIndex === 3 ? root.value("textOpacity") / 100 : 1
-            horizontalAlignment: root.panelIndex === 3 || ["Bottom", "Center", "Top"].indexOf(root.value("field-5")) >= 0 ? Text.AlignHCenter : String(root.value("field-5")).indexOf("right") >= 0 || root.value("field-5") === "Right" ? Text.AlignRight : Text.AlignLeft
+            horizontalAlignment: root.panelIndex === 3 || NativeData.presentation.indexOf(["Bottom", "Center", "Top"], root.value("field-5")) >= 0 ? Text.AlignHCenter : String(root.value("field-5")).indexOf("right") >= 0 || root.value("field-5") === "Right" ? Text.AlignRight : Text.AlignLeft
             elide: Text.ElideRight
         }
     }
@@ -583,7 +555,7 @@ Column {
         id: options
         property string fieldId: "field-1"
         showIconSlot: false
-        items: NativeData.text.byId(fieldId).options.map(function(option) { return {label: option} })
+        items: NativeData.presentation.labels(NativeData.text.byId(fieldId).options, "")
         onItemTriggered: function(index) { root.edit(fieldId, items[index].label) }
     }
     LV.Label { visible: root.toolState.notice.length > 0; width: parent.width; style: caption; text: root.toolState.notice; wrapMode: Text.Wrap; sizeToContentHeight: true }

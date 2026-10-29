@@ -222,7 +222,9 @@ void GenerationController::acceptWorkerResult(const QByteArray &line)
     m_active["worker"] = event; // Timing/cache diagnostics remain in the app's memory.
     auto status = event.value("residency").toObject();
     status["pid"] = event.value("pid");
-    setInferenceStatus(status);
+    // The result's residency describes the idle worker after execution, not
+    // the last generation stage captured for a failure report.
+    setInferenceStatus(status, false);
     if (!owner || !busy() || m_active.value("id") != event.value("id") || m_cancelled || m_finishing || m_publicationPending) return;
     if (!event.value("ok").toBool()) {
         auto error = event.value("error").toString();

@@ -1,0 +1,321 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:355895fb2889aa5bce3e87f886f4e4ba17b14bfb7ba4f62e677427e13a54b7d9",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/CanvasFramePresentation.md",
+    "sha256": "9b6965b377e10113ba9daf0a3258d9caa370060a8bebe4df3c93e9d30eafd75d",
+    "bytes": 3664,
+    "line_count": 31,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "에디터의 프레임 표시와 재생",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# 에디터의 프레임 표시와 재생\n",
+      "level": 1,
+      "title": "에디터의 프레임 표시와 재생"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "heading",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "## 앱 책임과 표시 계약\n",
+      "level": 2,
+      "title": "앱 책임과 표시 계약"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 5,
+      "end_line": 5,
+      "raw": "Dreamscapes의 `.iisc` 타임라인은 `EditorCanvas`가 마지막으로 완성해 표시한 장면을 유지한다. 다음 프레임의 비동기 타일이 준비 중이라는 이유로 현재 화면을 비우지 않는다. 새 타일이 준비되면 하나의 장면 그래프 갱신에서 교체한다. SDK의 파일 형식·합성기·타일 캐시는 변경하지 않는다.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "`EditorCanvasPresentation.cpp`는 SDK가 반환한 장면 노드를 불투명한 자식으로 소유하는 앱 표시 경계이다. 기존 텍스처를 유지하므로 전체 캔버스의 추가 비트맵 복사나 별도 합성 경로가 필요하지 않다. 프레임 대기 중 팬·확대는 기존 표시 시점과 현재 뷰포트 사이의 변환으로 반영한다. 준비 완료된 투명 프레임은 실제 결과이므로 이전 이미지를 정상적으로 대체한다.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "문서 교체·닫기, 문서 리비전, 렌더 대상 아트보드 변경은 표시 세대를 바꾼다. 새 소유자의 첫 결과가 없더라도 다른 문서나 편집 이전의 화면을 재사용하지 않는다. 읽기·렌더 오류로 다음 프레임을 완성하지 못한 경우에는 SDK의 오류를 유지하면서 마지막 완성 화면을 보존한다. 파일의 알파 값이나 레이어 불투명도를 변경하는 방식으로 화면을 가리지 않는다.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "heading",
+      "start_line": 11,
+      "end_line": 11,
+      "raw": "## 재생 요청\n",
+      "level": 2,
+      "title": "재생 요청"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 12,
+      "end_line": 12,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 13,
+      "end_line": 13,
+      "raw": "`EditorTimelineModel`은 캔버스가 현재 프레임을 준비하는 동안 추가 프레임 요청을 보내지 않는다. 준비가 끝난 뒤 다음 타이머 틱에서 단조 시계 또는 오디오 시계가 가리키는 최신 프레임을 요청한다. 느린 렌더링 때문에 지난 요청이 쌓이거나 진행 중인 요청을 매 틱 취소하지 않는다. 프레임을 생략할 수 있으며 모든 프레임의 실시간 처리를 보장한다는 뜻은 아니다.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 14,
+      "end_line": 14,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 15,
+      "end_line": 15,
+      "raw": "재생·탐색·표시는 문서 편집이 아니다. 문서 리비전, Undo, 저장 파일 바이트는 바뀌지 않는다. 일시 정지 뒤 이미 접수한 마지막 프레임이 준비되는 경로와 재생 끝의 마지막 프레임 표시도 유지한다.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 16,
+      "end_line": 16,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "전체 재생 시간이 끝나면 렌더 대기를 이유로 재생 시계를 연장하지 않는다. 마지막 프레임을 한 번 수락하고 재생을 종료하며, 해당 프레임이 준비되면 정지 상태에서도 표시를 교체한다. 오디오가 끝났다는 알림에서도 같은 마지막 프레임 계약을 유지한다.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "heading",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "## 회귀 검증\n",
+      "level": 2,
+      "title": "회귀 검증"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 20,
+      "end_line": 20,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 21,
+      "end_line": 21,
+      "raw": "`Dreamscapes.CanvasPresentation`은 실제 `.iisc`와 소프트웨어 장면 그래프의 화면 픽셀을 사용한다.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 22,
+      "end_line": 22,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "list",
+      "start_line": 23,
+      "end_line": 29,
+      "raw": "- 실제 정적·동적 `.iisc` 각각에서 프레임 요청 직후 작업 이벤트를 처리하기 전에 기존 불투명 픽셀이 유지되는지 검사한다.\n- 준비 완료 후 새 프레임의 색으로 교체되는지 여러 차례 왕복한다.\n- 실제 투명 프레임은 배경을 드러내는지 검사한다.\n- 다음 프레임 대기 중 팬이 기존 프레임에 적용되는지 검사한다.\n- 문서 교체·닫기에서 다른 문서의 그림이 남지 않는지 검사한다.\n- 렌더링이 대기 중인 동안 시계를 전진시켜도 추가 탐색을 하지 않으며, 이후 재생이 진행되는지 검사한다.\n- 재생·탐색 전후 문서 리비전·Undo·원본 `.iisc` 바이트를 비교한다.\n",
+      "items": [
+        {
+          "marker": "-",
+          "text": "실제 정적·동적 `.iisc` 각각에서 프레임 요청 직후 작업 이벤트를 처리하기 전에 기존 불투명 픽셀이 유지되는지 검사한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "준비 완료 후 새 프레임의 색으로 교체되는지 여러 차례 왕복한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "실제 투명 프레임은 배경을 드러내는지 검사한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "다음 프레임 대기 중 팬이 기존 프레임에 적용되는지 검사한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "문서 교체·닫기에서 다른 문서의 그림이 남지 않는지 검사한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "렌더링이 대기 중인 동안 시계를 전진시켜도 추가 탐색을 하지 않으며, 이후 재생이 진행되는지 검사한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "재생·탐색 전후 문서 리비전·Undo·원본 `.iisc` 바이트를 비교한다.",
+          "checked": null
+        }
+      ]
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "이 검증은 GPU의 실측 FPS, 특정 `.iisc`의 실시간 렌더 처리량이나 오디오 장치 지연의 보증이 아니다. 기존 `EditorLayerTimeline`, `AudioPlayback` 검증은 타이밍·탐색·취소 계약을 별도로 확인한다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "에디터의 프레임 표시와 재생",
+      "anchor": "에디터의-프레임-표시와-재생",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000003",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "앱 책임과 표시 계약",
+      "anchor": "앱-책임과-표시-계약",
+      "start_line": 3
+    },
+    {
+      "block_id": "b000011",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "재생 요청",
+      "anchor": "재생-요청",
+      "start_line": 11
+    },
+    {
+      "block_id": "b000019",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "회귀 검증",
+      "anchor": "회귀-검증",
+      "start_line": 19
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000005",
+        "line": 5,
+        "text": "Dreamscapes의 `.iisc` 타임라인은 `EditorCanvas`가 마지막으로 완성해 표시한 장면을 유지한다. 다음 프레임의 비동기 타일이 준비 중이라는 이유로 현재 화면을 비우지 않는다. 새 타일이 준비되면 하나의 장면 그래프 갱신에서 교체한다. SDK의 파일 형식·합성기·타일 캐시는 변경하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000009",
+        "line": 9,
+        "text": "문서 교체·닫기, 문서 리비전, 렌더 대상 아트보드 변경은 표시 세대를 바꾼다. 새 소유자의 첫 결과가 없더라도 다른 문서나 편집 이전의 화면을 재사용하지 않는다. 읽기·렌더 오류로 다음 프레임을 완성하지 못한 경우에는 SDK의 오류를 유지하면서 마지막 완성 화면을 보존한다. 파일의 알파 값이나 레이어 불투명도를 변경하는 방식으로 화면을 가리지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 13,
+        "text": "`EditorTimelineModel`은 캔버스가 현재 프레임을 준비하는 동안 추가 프레임 요청을 보내지 않는다. 준비가 끝난 뒤 다음 타이머 틱에서 단조 시계 또는 오디오 시계가 가리키는 최신 프레임을 요청한다. 느린 렌더링 때문에 지난 요청이 쌓이거나 진행 중인 요청을 매 틱 취소하지 않는다. 프레임을 생략할 수 있으며 모든 프레임의 실시간 처리를 보장한다는 뜻은 아니다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000017",
+        "line": 17,
+        "text": "전체 재생 시간이 끝나면 렌더 대기를 이유로 재생 시계를 연장하지 않는다. 마지막 프레임을 한 번 수락하고 재생을 종료하며, 해당 프레임이 준비되면 정지 상태에서도 표시를 교체한다. 오디오가 끝났다는 알림에서도 같은 마지막 프레임 계약을 유지한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import QtQuick.Dialogs
 import LVRS 1.0 as LV
 
@@ -7,6 +8,11 @@ Column {
     id: root
     objectName:"backgroundReplaceBody"
     required property var toolState
+    NativeBackgroundModel {
+        id: nativeBackground
+        toolState: root.toolState.nativeModel
+        onActionRequested: (tool, field, values) => root.toolState.actionRequested(tool, field, values)
+    }
     readonly property var values:toolState.values
     readonly property var engine:toolState.engine
     property bool dropdownActive: false
@@ -16,11 +22,11 @@ Column {
     width:parent.width; spacing:16
     function value(field,fallback){return values[field]===undefined?fallback:values[field]}
     function edit(field,next){toolState.setValue(field,next)}
-    function choose(source,kind){edit(kind==="Image"?"replaceImage":"replaceFile",String(source));edit("replaceSource",kind);edit("replaceRecentFiles",[String(source)].concat(recent.filter(url=>url!==String(source))).slice(0,10))}
+    function choose(source, kind) { nativeBackground.chooseReplacement(source, kind) }
     function pick(kind){sourceDialog.kind=kind;sourceDialog.open()}
-    function generate(){if(!engine||!engine.documentReady){toolState.notice=qsTr("Open a canvas first.");return}const next=Object.assign({},values,{"field-12":value("replacePrompt","Soft studio background, warm daylight"),"field-13":"Generate"});toolState.actionRequested("background","field-15",next)}
-    function reset(){const defaults={replaceSource:"Generative",replacePrompt:"Soft studio background, warm daylight",replaceModel:"Current generation model",replaceVariations:4,replaceStrength:60,replaceSeed:-1,replaceFit:"Fill",replaceScale:100,replaceAngle:0,replaceX:0,replaceY:0,replaceBlend:"Normal",replaceOpacity:100,replaceMatch:84,replacePreserve:true,replaceLighting:true,replaceResult:"New editable layer"};Object.keys(defaults).forEach(key=>edit(key,defaults[key]));toolState.notice=""}
-    function apply(){const source=value("replaceSource","Generative");if(source==="Generative"){generate();return}if(engine)toolState.notice=engine.applyBackgroundReplacement(source==="Image"?value("replaceImage",""):value("replaceFile",""),values)?"":engine.error}
+    function generate() { nativeBackground.generateReplacement() }
+    function reset() { nativeBackground.resetReplacement() }
+    function apply() { nativeBackground.applyReplacement() }
     component IconAction: LV.IconButton {
         required property string actionName
         width:22; height:22; iconSize:18; tone:LV.AbstractButton.Borderless
@@ -53,7 +59,7 @@ Column {
         title:qsTr("Generate")
         LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; width:parent.width; height:18; style:body; color:LV.Theme.titleHeaderColor; text:qsTr("Prompt") }
         Parameter { field:"replacePrompt"; type:"text"; value:root.value(field,"Soft studio background, warm daylight"); onEdited:next=>root.edit(field,next) }
-        Parameter { field:"replaceModel"; title:qsTr("Model"); value:root.value(field,"Current generation model"); options:["Current generation model"].concat(root.toolState.generationRuntime?root.toolState.generationRuntime.models.map(model=>({label:model.name || model.id,value:model.id})):[]); onEdited:next=>root.edit(field,next) }
+        Parameter { field:"replaceModel"; title:qsTr("Model"); value:root.value(field,"Current generation model"); options:NativeData.presentation.prepend("Current generation model", NativeData.presentation.choices(root.toolState.generationRuntime ? root.toolState.generationRuntime.models : [])); onEdited:next=>root.edit(field,next) }
         Parameter { field:"replaceVariations"; title:qsTr("Variations"); type:"number"; unit:""; minimum:1; maximum:16; value:root.value(field,4); onEdited:next=>root.edit(field,next) }
         Parameter { field:"replaceStrength"; title:qsTr("Strength"); type:"slider"; value:root.value(field,60); onEdited:next=>root.edit(field,next) }
         Row {
@@ -121,5 +127,5 @@ Column {
     }
     LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; visible:root.toolState.notice.length>0; width:parent.width; style:caption; color:LV.Theme.bodyColor; text:root.toolState.notice; wrapMode:Text.WordWrap; sizeToContentHeight:true }
     FileDialog { id:sourceDialog; property string kind:"Image"; title:kind==="Image"?qsTr("Choose image"):qsTr("Choose image or canvas"); nameFilters:kind==="Image"?[qsTr("Images (*.png *.jpg *.jpeg *.webp *.bmp *.tif *.tiff *.heic)")]:[qsTr("Images and canvas (*.iisc *.png *.jpg *.jpeg *.webp *.bmp *.tif *.tiff *.heic)")]; onAccepted:root.choose(selectedFile,kind) }
-    LV.ContextMenu { id:recentMenu; showIconSlot:false; items:root.recent.map(url=>({label:url.split("/").pop()})); onItemTriggered:index=>root.choose(root.recent[index],"File") }
+    LV.ContextMenu { id:recentMenu; showIconSlot:false; items:NativeData.presentation.filenames(root.recent); onItemTriggered:index=>root.choose(root.recent[index],"File") }
 }

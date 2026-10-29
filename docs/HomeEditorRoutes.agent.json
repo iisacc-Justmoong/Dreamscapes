@@ -1,0 +1,811 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:9e787114a7624d4a90bc18508190babf5320ee57146265592185151963b48012",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/HomeEditorRoutes.md",
+    "sha256": "846d467b7d71482ae92a863313b59190843eba2a9688388ce50c15e7d90a57e0",
+    "bytes": 15411,
+    "line_count": 140,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "Home에서 Editor로 진입하는 흐름",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Home에서 Editor로 진입하는 흐름\n",
+      "level": 1,
+      "title": "Home에서 Editor로 진입하는 흐름"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "Home의 파일 열기, 새 캔버스 생성, 최근 파일과 생성 이미지 선택은 `Main.qml`이 소유한 Editor 진입 경로를 사용한다. 데스크톱과 모바일은 같은 `CanvasEditor`와 네이티브 iiSharedCanvas 문서를 사용한다.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 5,
+      "end_line": 5,
+      "raw": "Home의 All files와 Generation History / View all은 Dreamscapes 내부의 전체 파일·갤러리 화면을 연다. 같은 `iiSocietyContainer` 미러의 전체 Alias 목록을 읽으며, Society로 이동하지 않는다. 폴더 탐색, 검색, 정렬과 다중 이미지 편집을 지원한다. 이 화면에서 에디터를 열었다가 닫으면 탐색하던 위치를 유지한다. 상세한 범위와 검증은 [내부 저장소 탐색](StorageBrowser.md)에 정리한다.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "다운로드되지 않은 항목은 Download and open으로 Dreamscapes 내부에서 직접 내려받는다. `iiSocietyHelper::FileDownload`가 선택된 `.societycontainer`의 메타데이터와 인증된 원격 저장소를 사용하며, 다른 앱에 IPC나 다운로드 요청 파일을 전달하지 않는다. 검증을 마친 실제 파일의 최신 Alias로 에디터 또는 비디오 뷰어를 연다. 진행률·취소·재시도는 같은 화면에서 제공하고, 화면이나 저장소 변경 후에는 자동 열기를 취소한다.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "heading",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "## 진입점\n",
+      "level": 2,
+      "title": "진입점"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "table",
+      "start_line": 11,
+      "end_line": 17,
+      "raw": "| 동작 | 입력 UI | Editor에 전달하는 내용 |\n| --- | --- | --- |\n| 파일 열기 | 데스크톱 Continue creating의 Open file, 모바일 Open file, 플랫폼 Open 단축키 | `.iiscp` 프로젝트, `.iisc` 작업 문서 또는 이미지 원본 |\n| 최근 파일 열기 | Home의 최근 파일 카드 | 실제 `path`의 문서·이미지. 미리보기는 실제 경로가 없을 때 사용한다. |\n| 새 캔버스 | 데스크톱 Canvas, 모바일 새 캔버스, 플랫폼 New 단축키 | 기존 NewCanvasDialog가 검증한 치수·배경의 새 네이티브 문서 |\n| 생성 이미지 한 장 | 생성 이력 카드, 결과 화면 Select → 한 장 선택 → Edit (1), 고급 생성 Open in canvas | 원본 비트맵 레이어와 선택 항목의 메타데이터 |\n| 생성 이미지 여러 장 | 생성 이력·결과 갤러리·고급 생성의 Select → 항목 선택 → Edit (개수) | 하나의 `.iisc` 문서 안의 독립적인 대지들 |\n",
+      "columns": [
+        "동작",
+        "입력 UI",
+        "Editor에 전달하는 내용"
+      ],
+      "rows": [
+        [
+          "파일 열기",
+          "데스크톱 Continue creating의 Open file, 모바일 Open file, 플랫폼 Open 단축키",
+          "`.iiscp` 프로젝트, `.iisc` 작업 문서 또는 이미지 원본"
+        ],
+        [
+          "최근 파일 열기",
+          "Home의 최근 파일 카드",
+          "실제 `path`의 문서·이미지. 미리보기는 실제 경로가 없을 때 사용한다."
+        ],
+        [
+          "새 캔버스",
+          "데스크톱 Canvas, 모바일 새 캔버스, 플랫폼 New 단축키",
+          "기존 NewCanvasDialog가 검증한 치수·배경의 새 네이티브 문서"
+        ],
+        [
+          "생성 이미지 한 장",
+          "생성 이력 카드, 결과 화면 Select → 한 장 선택 → Edit (1), 고급 생성 Open in canvas",
+          "원본 비트맵 레이어와 선택 항목의 메타데이터"
+        ],
+        [
+          "생성 이미지 여러 장",
+          "생성 이력·결과 갤러리·고급 생성의 Select → 항목 선택 → Edit (개수)",
+          "하나의 `.iisc` 문서 안의 독립적인 대지들"
+        ]
+      ]
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "모바일 Home의 파일 카드 클릭과 다중 선택을 Main에 연결한다. 모바일 Storage는 내부 전체 파일 탐색, Tools는 Editor 진입, Home은 Home 스크롤 복귀를 수행한다. 영상은 기존 영상 결과 화면으로 이어지며 이미지 다중 선택에 포함하지 않는다.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 20,
+      "end_line": 20,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 21,
+      "end_line": 21,
+      "raw": "Home 모델의 로컬 경로는 `QUrl::fromLocalFile()`로 변환해 전달한다. 공백, `%`와 `#`가 포함된 파일명을 URL의 쿼리·프래그먼트로 해석하지 않는다. Editor 진입과 고급 생성 화면 전환 중에 숨겨진 Home 카드는 미리보기 로딩을 중단하며, 카드 모델과 선택 상태는 유지한다.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 22,
+      "end_line": 22,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "heading",
+      "start_line": 23,
+      "end_line": 23,
+      "raw": "## 여러 이미지의 프로젝트 구성\n",
+      "level": 2,
+      "title": "여러 이미지의 프로젝트 구성"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 24,
+      "end_line": 24,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 25,
+      "end_line": 25,
+      "raw": "`EditorProject::openImages()`는 모든 이미지를 검증한 뒤 한 프로젝트로 채택한다. 각 이미지는 단일 iiSharedCanvas 문서 안에서 원본 치수의 대지와 독립적인 fill 레이어를 갖는다. Editor는 대지를 수평으로 표시하며 가로 스크롤, 대지 이름 선택, 이전·다음 버튼과 Alt+Left/Right, Page Up/Down으로 탐색한다. 편집 이력은 문서 전체에서 공유한다.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 26,
+      "end_line": 26,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 27,
+      "end_line": 27,
+      "raw": "동일한 실제 파일 경로는 중복 제거하며 최대 1000개, 누적 64×1024×1024 픽셀을 가져올 수 있다. 실패하면 이전 프로젝트를 유지한다. 전체 프로젝트를 `.iisc`로 저장한다. 기존 `.iiscp`는 원본을 보존하면서 대지 문서로 변환하여 연다. 자세한 파일 구성과 복수 선택 규칙은 [여러 캔버스 프로젝트](MultiCanvasProject.md)에 정리한다.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 28,
+      "end_line": 28,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "heading",
+      "start_line": 29,
+      "end_line": 29,
+      "raw": "## 선택과 돌아가기\n",
+      "level": 2,
+      "title": "선택과 돌아가기"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "네이티브 저장소 항목의 선택 상태는 드라이브 ID와 논리 파일 키를 기준으로 유지하며, 그 밖의 생성 결과는 원본 문서·이미지 식별자를 사용한다. 같은 생성 작업이 여러 출력 이미지를 반환해도 각각 선택할 수 있다. 새 결과가 추가되면 기존 선택을 유지하고, 목록에서 사라진 항목만 선택에서 제거한다. Select 모드에서는 카드를 누르면 선택을 토글한다. 결과 갤러리는 Cmd/Ctrl·Shift 클릭과 키보드 복수 선택도 지원한다. 선택 모드의 Cancel은 선택 모드와 선택을 초기화한다. 기본 모드의 생성 이력 카드 클릭은 한 장을 바로 연다. 결과 갤러리는 클릭으로 이미지를 선택하고 더블 클릭으로 상세 보기를 연다.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 32,
+      "end_line": 32,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 33,
+      "end_line": 33,
+      "raw": "결과 화면에서 상세 이미지 보기 중 Select를 누르면 갤러리로 돌아가 여러 항목을 선택할 수 있다. 선택 중에 결과가 한 장으로 줄어도 선택 갤러리를 유지한다.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 34,
+      "end_line": 34,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 35,
+      "end_line": 35,
+      "raw": "2026-10-24부터 빠른 생성과 이미지·비디오 고급 생성은 요청 접수 즉시 공통 Generation Review 작업 공간으로 이동한다. 고급 설정 초안은 보존한다. 상단 `Back`은 원래 생성 화면으로 복귀하고, 진행 중 배치에는 `Cancel batch`를 제공한다. 하단 Select·Edit 및 후보 선정·제외·비교·내보내기는 검토 모델을 사용한다. 생성 Cancel은 선택 모드의 Cancel과 별개이며, 현재 제출 배치의 대기 작업을 먼저 취소한 뒤 실행 중인 작업에 엔진 취소를 요청하고 같은 입력 처리에서 Home으로 돌아간다. 다른 배치와 완료 결과는 보존한다. 완료·실패 후의 화면 복귀는 `Back`을 사용한다. 홈의 `View queue`는 세션 큐와 검토 상태를 다시 연다. 전체 상태·필터·단축키 계약은 [GenerationReview.md](GenerationReview.md)에 있다.\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 36,
+      "end_line": 36,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "paragraph",
+      "start_line": 37,
+      "end_line": 37,
+      "raw": "하단 QuickGenerate의 Generate는 현재 제출에 대기·실행·호스트 연결·다운로드 중인 작업이 있으면 비활성화된다. Enter와 직접 `submit()` 호출도 같은 상태 검사로 중복 제출을 차단한다. 배치 전체가 완료·실패·취소 상태가 되면 Generate를 다시 활성화한다. Home 복귀는 현재 결과·미리보기·선택을 정리하며, 프롬프트·비율·개수와 참조 이미지 초안은 유지한다.\n"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 38,
+      "end_line": 38,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "paragraph",
+      "start_line": 39,
+      "end_line": 39,
+      "raw": "Editor를 닫으면 진입한 Home 또는 결과 화면으로 돌아간다. 프롬프트 초안, 결과 갤러리와 기존 선택은 유지한다. 파일 선택 대화상자의 취소와 열기 실패는 화면 전환을 일으키지 않는다. 파일 열기 오류는 현재 화면에 표시한다. 생성 작업을 취소하거나 변경하지 않는다.\n"
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 40,
+      "end_line": 40,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "paragraph",
+      "start_line": 41,
+      "end_line": 41,
+      "raw": "고급 생성 썸네일은 고정 크기의 LVRS AbstractButton으로 제공한다. 비동기 이미지의 원본 치수가 바뀌어도 입력 영역은 64px로 유지하며, 선택 테두리와 키보드 포커스를 제공한다.\n"
+    },
+    {
+      "id": "b000036",
+      "kind": "blank",
+      "start_line": 42,
+      "end_line": 42,
+      "raw": "\n"
+    },
+    {
+      "id": "b000037",
+      "kind": "heading",
+      "start_line": 43,
+      "end_line": 43,
+      "raw": "## 검증\n",
+      "level": 2,
+      "title": "검증"
+    },
+    {
+      "id": "b000038",
+      "kind": "blank",
+      "start_line": 44,
+      "end_line": 44,
+      "raw": "\n"
+    },
+    {
+      "id": "b000039",
+      "kind": "list",
+      "start_line": 45,
+      "end_line": 49,
+      "raw": "- `Dreamscapes.EditorProject`와 `Dreamscapes.MultiCanvasGui`: 캔버스별 치수·픽셀·편집·보기와 실행 취소 이력, 수정 키 선택, 페이지 전환, 전체 저장·재개방과 실패 시 프로젝트 유지 여부를 검사한다.\n- `Dreamscapes.HomeEditorRoutes`: 데스크톱·모바일의 실제 Open file 버튼과 대화상자 콜백, 최근 파일 카드, 새 캔버스 버튼, 생성 이력 다중 선택, 상세 보기에서 결과 갤러리 다중 선택으로의 전환과 Editor 복귀를 검사한다. `advancedCanvasMatchesResolutionAndStreamsItsBatch`도 포함해 생성된 고급 배치의 여러 이미지 선택과 Editor 전달을 검사한다.\n- 기존 EditorCanvasGui, DesktopHome, NewCanvasGui, QuickGenerate 검사로 단일 이미지 경로와 초안·결과·선택 보존을 함께 확인한다.\n- `resultCancelsTheActiveGeneration`은 데스크톱·모바일 레이아웃의 대기 배치, 모델 로딩, 미리보기, 네이티브 콜백 실행 중 취소를 검사한다. 취소 즉시 Home 표시, 배치 전체 취소, 중복 클릭·Enter 차단, 초안 보존과 늦은 콜백으로 결과가 다시 열리지 않는 동작을 검증한다. 네이티브 콜백은 취소 플래그를 수신한 뒤 테스트가 해제할 때까지 종료를 보류하여 Home 전환이 엔진 종료를 기다리지 않는지 확인한다.\n- `Dreamscapes.LiveGeneration`은 위 취소 검사와 미리보기 갱신·완료 후 Generate 재활성화·다른 제출 보존·단일 이미지 Select 편집·읽을 수 없는 이미지의 편집 실패를 함께 실행한다. GUI의 Society 임시 저장소는 현재 SDK의 `.societycontainer` 패키지 경계에 맞춘다.\n",
+      "items": [
+        {
+          "marker": "-",
+          "text": "`Dreamscapes.EditorProject`와 `Dreamscapes.MultiCanvasGui`: 캔버스별 치수·픽셀·편집·보기와 실행 취소 이력, 수정 키 선택, 페이지 전환, 전체 저장·재개방과 실패 시 프로젝트 유지 여부를 검사한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`Dreamscapes.HomeEditorRoutes`: 데스크톱·모바일의 실제 Open file 버튼과 대화상자 콜백, 최근 파일 카드, 새 캔버스 버튼, 생성 이력 다중 선택, 상세 보기에서 결과 갤러리 다중 선택으로의 전환과 Editor 복귀를 검사한다. `advancedCanvasMatchesResolutionAndStreamsItsBatch`도 포함해 생성된 고급 배치의 여러 이미지 선택과 Editor 전달을 검사한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "기존 EditorCanvasGui, DesktopHome, NewCanvasGui, QuickGenerate 검사로 단일 이미지 경로와 초안·결과·선택 보존을 함께 확인한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`resultCancelsTheActiveGeneration`은 데스크톱·모바일 레이아웃의 대기 배치, 모델 로딩, 미리보기, 네이티브 콜백 실행 중 취소를 검사한다. 취소 즉시 Home 표시, 배치 전체 취소, 중복 클릭·Enter 차단, 초안 보존과 늦은 콜백으로 결과가 다시 열리지 않는 동작을 검증한다. 네이티브 콜백은 취소 플래그를 수신한 뒤 테스트가 해제할 때까지 종료를 보류하여 Home 전환이 엔진 종료를 기다리지 않는지 확인한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`Dreamscapes.LiveGeneration`은 위 취소 검사와 미리보기 갱신·완료 후 Generate 재활성화·다른 제출 보존·단일 이미지 Select 편집·읽을 수 없는 이미지의 편집 실패를 함께 실행한다. GUI의 Society 임시 저장소는 현재 SDK의 `.societycontainer` 패키지 경계에 맞춘다.",
+          "checked": null
+        }
+      ]
+    },
+    {
+      "id": "b000040",
+      "kind": "blank",
+      "start_line": 50,
+      "end_line": 50,
+      "raw": "\n"
+    },
+    {
+      "id": "b000041",
+      "kind": "fenced_code",
+      "start_line": 51,
+      "end_line": 56,
+      "raw": "```sh\ncmake -S . -B build\ncmake --build build --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(HomeEditorRoutes|EditorCanvas|EditorCanvasGui|DesktopHome|NewCanvas|NewCanvasGui|QuickGenerate|LiveGeneration)$' --output-on-failure\nQT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QML_DISABLE_DISK_CACHE=1 build/bin/DreamscapesGuiTests advancedCanvasMatchesResolutionAndStreamsItsBatch\n```\n",
+      "language": "sh",
+      "code": "cmake -S . -B build\ncmake --build build --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(HomeEditorRoutes|EditorCanvas|EditorCanvasGui|DesktopHome|NewCanvas|NewCanvasGui|QuickGenerate|LiveGeneration)$' --output-on-failure\nQT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QML_DISABLE_DISK_CACHE=1 build/bin/DreamscapesGuiTests advancedCanvasMatchesResolutionAndStreamsItsBatch\n",
+      "closed": true
+    },
+    {
+      "id": "b000042",
+      "kind": "blank",
+      "start_line": 57,
+      "end_line": 57,
+      "raw": "\n"
+    },
+    {
+      "id": "b000043",
+      "kind": "paragraph",
+      "start_line": 58,
+      "end_line": 58,
+      "raw": "GUI 자동 입력은 macOS 빌드의 데스크톱·모바일 레이아웃에서 실행한다. iOS·Android의 실제 시스템 파일 선택기와 기기 입력은 별도 실기 검증 대상이다. 검증 로그와 캡처·네이티브 문서는 `build/home-editor/`에 보관한다.\n"
+    },
+    {
+      "id": "b000044",
+      "kind": "blank",
+      "start_line": 59,
+      "end_line": 59,
+      "raw": "\n"
+    },
+    {
+      "id": "b000045",
+      "kind": "paragraph",
+      "start_line": 60,
+      "end_line": 60,
+      "raw": "2026-10-03 초기 단일 문서 연결 검증에서는 관련 CTest 9개를 통과했다. 여러 캔버스 프로젝트로 변경한 이후의 최종 검사·설치 결과는 `build/multi-canvas/`에 기록한다. 최종 다중 선택 보완 후 HomeEditorRoutes를 다시 실행해 데스크톱·모바일 문서 저장과 재개방을 확인하고, 렌더링된 캔버스 중앙 픽셀이 SDK의 문서 렌더링 결과와 일치한 뒤 화면을 캡처했다. 고급 생성 배치 선택 검사와 Cocoa 플랫폼의 실제 번들 기동 검사도 별도로 통과했다.\n"
+    },
+    {
+      "id": "b000046",
+      "kind": "blank",
+      "start_line": 61,
+      "end_line": 61,
+      "raw": "\n"
+    },
+    {
+      "id": "b000047",
+      "kind": "paragraph",
+      "start_line": 62,
+      "end_line": 62,
+      "raw": "offscreen 검사 로그에는 Qt Labs Platform의 네이티브 메뉴 지원 진단과 LVRS CardImageContent의 `drawImage(), index size error` 경고가 발생했다. 이 진단이 남아 있음을 기록하며, 네이티브 캔버스의 저장·표시 결과는 실제 픽셀 비교로 확인한다. 새 모델을 이용한 AI 추론이나 모바일 실기 실행을 이 경로 검증으로 주장하지 않는다.\n"
+    },
+    {
+      "id": "b000048",
+      "kind": "blank",
+      "start_line": 63,
+      "end_line": 63,
+      "raw": "\n"
+    },
+    {
+      "id": "b000049",
+      "kind": "paragraph",
+      "start_line": 64,
+      "end_line": 71,
+      "raw": "Application-level open commands return whether the operation was accepted. Stored\nvideo opens return true after selecting their result view. Unavailable file opens\nrequire the native drive/key identity; missing identity or a rejected download\nstart reports an error, and a rejected start retires its pending open intent.\nManual file results have no submission job owner, so unrelated generation result\nupdates cannot clear or replace that view. Desktop/mobile unsupported Home actions\nshare one explicit response and preserve the existing prompt. These contracts are\ncovered by `Dreamscapes.InteractionRoutes` in addition to native file round trips.\n"
+    },
+    {
+      "id": "b000050",
+      "kind": "blank",
+      "start_line": 72,
+      "end_line": 72,
+      "raw": "\n"
+    },
+    {
+      "id": "b000051",
+      "kind": "paragraph",
+      "start_line": 73,
+      "end_line": 77,
+      "raw": "The desktop Recent files row explicitly enables its Open file action. The row\ncomponent otherwise defaults that optional control to hidden, which previously\nleft the Home open-file signal connected to an invisible button. The existing\nHome-to-native-document round-trip regression exercises an actual button click\nbefore selecting and opening the file.\n"
+    },
+    {
+      "id": "b000052",
+      "kind": "blank",
+      "start_line": 78,
+      "end_line": 78,
+      "raw": "\n"
+    },
+    {
+      "id": "b000053",
+      "kind": "heading",
+      "start_line": 79,
+      "end_line": 79,
+      "raw": "## Original preparation for selected images (2026-10-21)\n",
+      "level": 2,
+      "title": "Original preparation for selected images (2026-10-21)"
+    },
+    {
+      "id": "b000054",
+      "kind": "blank",
+      "start_line": 80,
+      "end_line": 80,
+      "raw": "\n"
+    },
+    {
+      "id": "b000055",
+      "kind": "paragraph",
+      "start_line": 81,
+      "end_line": 85,
+      "raw": "`ImageSelection.key` uses container ID plus logical file key for native Aliases;\nunbound generated images continue to use their original document/image identity.\nAvailability and preview URLs do not define selection. Files and History retain\nunavailable image records in Select, and an Alias becoming resident keeps its\nselection. `previewSource` and `thumbnailSource` are never editor command sources.\n"
+    },
+    {
+      "id": "b000056",
+      "kind": "blank",
+      "start_line": 86,
+      "end_line": 86,
+      "raw": "\n"
+    },
+    {
+      "id": "b000057",
+      "kind": "paragraph",
+      "start_line": 87,
+      "end_line": 97,
+      "raw": "`Main.openImages` accepts an open intent through the C++ `ImageOpenRequest` GUI\nadapter. The adapter reads the owner's in-memory Alias snapshot, resolves each\noriginal in order, and starts the existing native `FileDownload` only when an\noriginal is absent. Transfer/filesystem work stays in that SDK's existing worker.\nEach completed transfer is resolved again from the owner; all original URLs must\nbe ready before the editor receives one open command. The original local result\nmetadata is retained separately from those command URLs. `EditorImageImportRequest`\nthen prepares the native document on a worker. Successful adoption publishes\nrecords mapped to the actual artboards before Main reveals the editor. Existing\nnative validation and atomic project replacement still apply. See\n[EditorImageImport](EditorImageImport.md) for worker, cancellation and storage scope.\n"
+    },
+    {
+      "id": "b000058",
+      "kind": "blank",
+      "start_line": 98,
+      "end_line": 98,
+      "raw": "\n"
+    },
+    {
+      "id": "b000059",
+      "kind": "paragraph",
+      "start_line": 99,
+      "end_line": 106,
+      "raw": "An accepted intent owns the captured ordered selection, container ID and root.\nLeaving the collection, choosing a different open command, changing the drive or\ndestroying the view retires it. A shared downloader replacement cannot cancel the\nnew owner's transfer. Late/mismatched ready events are ignored. A failed transfer\nreports its outcome without opening a partial project; Retry in the same download\nsurface retries the accepted image selection rather than opening only its last\nfile. Direct navigation/cancellation discards that retry intent. No generation\nqueue, inference or Society application launch is part of preparation.\n"
+    },
+    {
+      "id": "b000060",
+      "kind": "blank",
+      "start_line": 107,
+      "end_line": 107,
+      "raw": "\n"
+    },
+    {
+      "id": "b000061",
+      "kind": "paragraph",
+      "start_line": 108,
+      "end_line": 116,
+      "raw": "`Dreamscapes.ImageOpen` tests source priority, deferred delivery, native download\nhandoff from stale snapshots, rejection, cancellation, drive replacement,\nshared-transfer ownership, reentrancy and destruction. `Dreamscapes.ImageOpenGui`\nuses a real replica StorageMap record and a cached 12x8 JPEG in Files/History for\ndesktop/mobile layouts. It selects the absent original and models full PNG bytes\narriving after acceptance, then checks the editor's 503x299 artboard and stable\nselection. This is an original-arrival/native-SDK handoff fixture; authenticated\nnetwork transfer remains covered by the SDK Client suite, separately from these\napplication tests. Evidence is in `build/verification/image-open-20261021/`.\n"
+    },
+    {
+      "id": "b000062",
+      "kind": "blank",
+      "start_line": 117,
+      "end_line": 117,
+      "raw": "\n"
+    },
+    {
+      "id": "b000063",
+      "kind": "paragraph",
+      "start_line": 118,
+      "end_line": 121,
+      "raw": "Result-gallery navigation retains its viewport position across detail and editor\nround trips. Wheel deltas are bounded to the visible grid and do not enter the\ngeneration backend. Existing LiveGeneration gallery cases include wheel/touch,\n1000-image virtualization, result append, editor return and queue preservation.\n"
+    },
+    {
+      "id": "b000064",
+      "kind": "blank",
+      "start_line": 122,
+      "end_line": 122,
+      "raw": "\n"
+    },
+    {
+      "id": "b000065",
+      "kind": "paragraph",
+      "start_line": 123,
+      "end_line": 127,
+      "raw": "Production and source fixtures share registerStorageViewTypes. The focused\nPackagedApplication test loads the canonical application's embedded Main and\nchecks actual helper discovery; source-only GUI registration cannot satisfy that\ngate. The first missing ImageOpenRequest registration was caught by the installed\nstartup check and rolled back before the shared registry repair.\n"
+    },
+    {
+      "id": "b000066",
+      "kind": "heading",
+      "start_line": 128,
+      "end_line": 128,
+      "raw": "# Working-file completion boundary\n",
+      "level": 1,
+      "title": "Working-file completion boundary"
+    },
+    {
+      "id": "b000067",
+      "kind": "blank",
+      "start_line": 129,
+      "end_line": 129,
+      "raw": "\n"
+    },
+    {
+      "id": "b000068",
+      "kind": "paragraph",
+      "start_line": 130,
+      "end_line": 135,
+      "raw": "`openCanvas` accepts a file-open intent and retains its selected generation\nmetadata while native preparation is running. `CanvasEditor.documentOpened`\ncompletes the transition after Project adoption. Failure or cancellation keeps\nthe old visible document and its metadata. Opening a blank canvas remains an\nimmediate native creation command. A cancellable status is available while\nworking-file preparation is pending in Home, Files or the editor.\n"
+    },
+    {
+      "id": "b000069",
+      "kind": "blank",
+      "start_line": 136,
+      "end_line": 136,
+      "raw": "\n"
+    },
+    {
+      "id": "b000070",
+      "kind": "paragraph",
+      "start_line": 137,
+      "end_line": 139,
+      "raw": "Home hydration captures file key, container ID and section. View cancellation\nonly cancels its matching active transfer, and a stale completion from a changed\ndrive cannot open another drive's file with the same key.\n"
+    },
+    {
+      "id": "b000071",
+      "kind": "blank",
+      "start_line": 140,
+      "end_line": 140,
+      "raw": "\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Home에서 Editor로 진입하는 흐름",
+      "anchor": "home에서-editor로-진입하는-흐름",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000009",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "진입점",
+      "anchor": "진입점",
+      "start_line": 9
+    },
+    {
+      "block_id": "b000017",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "여러 이미지의 프로젝트 구성",
+      "anchor": "여러-이미지의-프로젝트-구성",
+      "start_line": 23
+    },
+    {
+      "block_id": "b000023",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "선택과 돌아가기",
+      "anchor": "선택과-돌아가기",
+      "start_line": 29
+    },
+    {
+      "block_id": "b000037",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "검증",
+      "anchor": "검증",
+      "start_line": 43
+    },
+    {
+      "block_id": "b000053",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Original preparation for selected images (2026-10-21)",
+      "anchor": "original-preparation-for-selected-images-2026-10-21",
+      "start_line": 79
+    },
+    {
+      "block_id": "b000066",
+      "parent_id": null,
+      "level": 1,
+      "title": "Working-file completion boundary",
+      "anchor": "working-file-completion-boundary",
+      "start_line": 128
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000005",
+        "line": 5,
+        "text": "Home의 All files와 Generation History / View all은 Dreamscapes 내부의 전체 파일·갤러리 화면을 연다. 같은 `iiSocietyContainer` 미러의 전체 Alias 목록을 읽으며, Society로 이동하지 않는다. 폴더 탐색, 검색, 정렬과 다중 이미지 편집을 지원한다. 이 화면에서 에디터를 열었다가 닫으면 탐색하던 위치를 유지한다. 상세한 범위와 검증은 [내부 저장소 탐색](StorageBrowser.md)에 정리한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000007",
+        "line": 7,
+        "text": "다운로드되지 않은 항목은 Download and open으로 Dreamscapes 내부에서 직접 내려받는다. `iiSocietyHelper::FileDownload`가 선택된 `.societycontainer`의 메타데이터와 인증된 원격 저장소를 사용하며, 다른 앱에 IPC나 다운로드 요청 파일을 전달하지 않는다. 검증을 마친 실제 파일의 최신 Alias로 에디터 또는 비디오 뷰어를 연다. 진행률·취소·재시도는 같은 화면에서 제공하고, 화면이나 저장소 변경 후에는 자동 열기를 취소한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 19,
+        "text": "모바일 Home의 파일 카드 클릭과 다중 선택을 Main에 연결한다. 모바일 Storage는 내부 전체 파일 탐색, Tools는 Editor 진입, Home은 Home 스크롤 복귀를 수행한다. 영상은 기존 영상 결과 화면으로 이어지며 이미지 다중 선택에 포함하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 21,
+        "text": "Home 모델의 로컬 경로는 `QUrl::fromLocalFile()`로 변환해 전달한다. 공백, `%`와 `#`가 포함된 파일명을 URL의 쿼리·프래그먼트로 해석하지 않는다. Editor 진입과 고급 생성 화면 전환 중에 숨겨진 Home 카드는 미리보기 로딩을 중단하며, 카드 모델과 선택 상태는 유지한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000033",
+        "line": 39,
+        "text": "Editor를 닫으면 진입한 Home 또는 결과 화면으로 돌아간다. 프롬프트 초안, 결과 갤러리와 기존 선택은 유지한다. 파일 선택 대화상자의 취소와 열기 실패는 화면 전환을 일으키지 않는다. 파일 열기 오류는 현재 화면에 표시한다. 생성 작업을 취소하거나 변경하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000047",
+        "line": 62,
+        "text": "offscreen 검사 로그에는 Qt Labs Platform의 네이티브 메뉴 지원 진단과 LVRS CardImageContent의 `drawImage(), index size error` 경고가 발생했다. 이 진단이 남아 있음을 기록하며, 네이티브 캔버스의 저장·표시 결과는 실제 픽셀 비교로 확인한다. 새 모델을 이용한 AI 추론이나 모바일 실기 실행을 이 경로 검증으로 주장하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000055",
+        "line": 83,
+        "text": "Availability and preview URLs do not define selection. Files and History retain",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000055",
+        "line": 85,
+        "text": "selection. `previewSource` and `thumbnailSource` are never editor command sources.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000057",
+        "line": 91,
+        "text": "Each completed transfer is resolved again from the owner; all original URLs must",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000063",
+        "line": 119,
+        "text": "round trips. Wheel deltas are bounded to the visible grid and do not enter the",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [
+      {
+        "block_id": "b000041",
+        "language": "sh",
+        "code": "cmake -S . -B build\ncmake --build build --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(HomeEditorRoutes|EditorCanvas|EditorCanvasGui|DesktopHome|NewCanvas|NewCanvasGui|QuickGenerate|LiveGeneration)$' --output-on-failure\nQT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QML_DISABLE_DISK_CACHE=1 build/bin/DreamscapesGuiTests advancedCanvasMatchesResolutionAndStreamsItsBatch\n"
+      }
+    ],
+    "links": [
+      {
+        "block_id": "b000005",
+        "label": "내부 저장소 탐색",
+        "target": "StorageBrowser.md",
+        "kind": "relative",
+        "line": 5
+      },
+      {
+        "block_id": "b000021",
+        "label": "여러 캔버스 프로젝트",
+        "target": "MultiCanvasProject.md",
+        "kind": "relative",
+        "line": 27
+      },
+      {
+        "block_id": "b000029",
+        "label": "GenerationReview.md",
+        "target": "GenerationReview.md",
+        "kind": "relative",
+        "line": 35
+      },
+      {
+        "block_id": "b000057",
+        "label": "EditorImageImport",
+        "target": "EditorImageImport.md",
+        "kind": "relative",
+        "line": 97
+      }
+    ],
+    "tables": [
+      {
+        "block_id": "b000011",
+        "columns": [
+          "동작",
+          "입력 UI",
+          "Editor에 전달하는 내용"
+        ],
+        "rows": [
+          [
+            "파일 열기",
+            "데스크톱 Continue creating의 Open file, 모바일 Open file, 플랫폼 Open 단축키",
+            "`.iiscp` 프로젝트, `.iisc` 작업 문서 또는 이미지 원본"
+          ],
+          [
+            "최근 파일 열기",
+            "Home의 최근 파일 카드",
+            "실제 `path`의 문서·이미지. 미리보기는 실제 경로가 없을 때 사용한다."
+          ],
+          [
+            "새 캔버스",
+            "데스크톱 Canvas, 모바일 새 캔버스, 플랫폼 New 단축키",
+            "기존 NewCanvasDialog가 검증한 치수·배경의 새 네이티브 문서"
+          ],
+          [
+            "생성 이미지 한 장",
+            "생성 이력 카드, 결과 화면 Select → 한 장 선택 → Edit (1), 고급 생성 Open in canvas",
+            "원본 비트맵 레이어와 선택 항목의 메타데이터"
+          ],
+          [
+            "생성 이미지 여러 장",
+            "생성 이력·결과 갤러리·고급 생성의 Select → 항목 선택 → Edit (개수)",
+            "하나의 `.iisc` 문서 안의 독립적인 대지들"
+          ]
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

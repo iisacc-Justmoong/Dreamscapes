@@ -1,0 +1,438 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:e2759563c6416a97c276eb8664fbf07ee8f3da6c73acddf71c615c083763f10c",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/MultiCanvasProject.md",
+    "sha256": "8f9f2a767bf2667e70fc14dbcc2140ede1ec1a08b109a0d81e4cd84691345054",
+    "bytes": 12611,
+    "line_count": 189,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Image artboards in one native project",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Image artboards in one native project\n",
+      "level": 1,
+      "title": "Image artboards in one native project"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 10,
+      "raw": "Multiple images selected in Home, generation history or a result gallery become\nindependent artboards in **one iiSharedCanvas Document and one `.iisc` file**.\nEach board keeps the source pixel dimensions, a transparent background, and its\nown bitmap fill layer. Sources retain their native editable layers when importing\n`.iisc` canvases. IDs are namespaced per attachment, so matching fill IDs never\nalias another image's assets. Existing artboards, static/dynamic content,\nkeyframes and document audio survive native imports; incompatible frame rates\nand infinite-canvas attachments are rejected before replacing the current project.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 11,
+      "end_line": 11,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 12,
+      "end_line": 16,
+      "raw": "Newly imported image artboards retain their native left-to-right geometry at y=0\nwith a 64-document-pixel gap. Existing documents may use arbitrary artboard\ncoordinates. The Editor presents either document as a horizontal sequence of\npages in its persisted artboard order without changing native positions, layer\ntransforms, source pixels or saved document content.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 18,
+      "end_line": 41,
+      "raw": "The selected page is centered and fitted in the available editing viewport.\nOne live full-resolution native CanvasItem remains the editing owner. The\niiSharedCanvas 0.29.0 `renderArtboardId` presentation focus selects the active\nartboard's background and owned artwork, excluding other boards and loose layers\neven when their native regions overlap. A page clip frames that focused native\nrender while keeping the complete workspace origin and document input coordinates\nconsistent. Focus does not modify the bound document, hide its source layers,\nreset selection or undo, or add a field to `.iisc`; the Editor continues to scope\nediting to the selected board. See the\n[SDK presentation contract](../../../SDK/iiSharedCanvas/docs/ARTBOARD_PRESENTATION.md).\nNearby pages use bounded renders of their actual\nartboard content. They share a horizontal center baseline and overlap in depth:\nthe active page is in front, nearer pages cover farther pages, and distance from\nthe selection progressively reduces scale, increases blur and darkens content.\nEach farther page's width, height and scale are at most 86% of the preceding\npage's values while preserving its own aspect ratio. Its outer edge advances\nthrough 62%, 80% and 98% of the available margin beside the active page. This\nkeeps pages ordered and exposes successive farther edges even with mixed portrait\nand landscape artboards. An opaque matte sits behind each preview, and the\ndistance-based Darken overlay covers both the image and matte.\nThe deck creates at most seven slots, and only the three nearest pages on each\nside render neighboring content.\nBlur uses Qt Quick's GPU effect path; darkening and page navigation remain\navailable with the software renderer.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 42,
+      "end_line": 42,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 43,
+      "end_line": 66,
+      "raw": "Click a neighboring page to select it. A compact 76-pixel strip below the editing\nviewport shows the real page previews in a horizontal ListView, using 88×68\ncontrols with 72×48 image areas. The list creates visible delegates and keeps the\nselected page in view; clicking a preview selects the page and refits it. The deck\nrequests renders within 512×512 pixels, and the strip within 144×96 pixels. The\npreview API limits either requested dimension to 1024 pixels and caches at most\n128 results by native revision, frame, page and output size. Duplicate revision\nand document-change notifications are coalesced. Presentation preview updates\nwait until a live brush stroke ends or is cancelled, then refresh once; the active\nnative canvas continues displaying the stroke. A hidden preview strip creates no\ndelegates or preview renders. Edits and frame changes invalidate cached content.\nWhile the editor is hidden, page presentation retains the strip's reserved\n76-pixel height. Showing it again restores the ListView's current-index binding\nfrom `project.currentIndex` and scrolls the selected preview into view after\nrecreating delegates. Dock and toolbar widths, frame-control height, and document\ncommand/navigation/error areas likewise keep their reserved size according to\nthe actual layout state. Inherited invisibility does not resize the editing\nviewport or trigger an automatic Fit; the native zoom and pan remain intact.\nPrevious/Next, Alt+Left/Right and Page Up/Down provide the same page navigation.\nNavigation shortcuts require editor/canvas focus and stay inactive in dialogs.\nHorizontal trackpad/wheel input and Shift+wheel pan only a magnified active page;\na fitted page stays centered. Ordinary vertical wheel input retains zoom.\nWheel and middle-button camera gestures also work in the canvas background\noutside the clipped page, using the same SDK zoom and pan coordinates.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 67,
+      "end_line": 67,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 68,
+      "end_line": 71,
+      "raw": "The Editor command menu (or mobile command bar) also provides **Add Images**.\nIts file dialog accepts multiple images and appends new artboards to the current\nproject as one atomic, undoable edit, preserving existing artboards and its saved\nworking-file path. A failed attachment leaves the current document intact.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 72,
+      "end_line": 72,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 73,
+      "end_line": 82,
+      "raw": "The layer panel, brush, selections, fills, shapes, text, image placement, generation\nreferences and image exports use the active board's dimensions and local coordinates.\nNew artwork belongs to that board and cannot appear on another board or in a gap.\nResize, rotate and generated outpaint modify only that board and its owned layers.\nResizing repositions following boards in the imported row to retain the gap. Native\nfiles opened directly preserve their persisted artboard geometry. Save stores all\nboards, editable layers, assets and timeline; image export renders the selected board.\nUndo/redo is document-wide, matching the single persisted editing owner. Board\nselection and viewport are editor state and are not serialized into `.iisc`.\nA live brush stroke blocks board navigation and saving.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 83,
+      "end_line": 83,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 84,
+      "end_line": 89,
+      "raw": "All inputs are validated before project replacement. Identical canonical paths are\nonly imported once. Attachment limits remain 1000 images/artboards, a cumulative\n64×1024×1024 source pixels and SDK serialization/geometry bounds. Image usage first\npersists the same-size PNG-to-IISC fill wrapper described in\n[ImageCanvasStorage.md](ImageCanvasStorage.md). The combined project embeds assets\nand does not need the original image paths after saving.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 90,
+      "end_line": 90,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 91,
+      "end_line": 95,
+      "raw": "New projects save as `.iisc` using the SDK's atomic working-file persistence. Changes\nto a saved working file commit synchronously. Existing `.iiscp` files are accepted\nfor migration: their pages are imported as native artboards without flattening their\nlayers, the original file is preserved, and Save As requests an `.iisc` destination.\nAn invalid or truncated legacy file leaves the current editor document intact.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 96,
+      "end_line": 96,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "heading",
+      "start_line": 97,
+      "end_line": 97,
+      "raw": "## Validation\n",
+      "level": 2,
+      "title": "Validation"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 98,
+      "end_line": 98,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 99,
+      "end_line": 109,
+      "raw": "`Dreamscapes.EditorProject` checks mixed dimensions, alpha, membership, native\nsave/reopen without originals, brush independence, new layer ownership, placement,\nundo/redo, working-file persistence, scoped resize, deduplication, rejected import\natomicity, and legacy migration. `Dreamscapes.MultiCanvasGui` exercises actual gallery\nselection, the desktop/mobile page deck, depth/stacking/effect states, compact\npreview sizing and refreshed content, page clicks, navigation, active-page panning,\nbrushing and the `.iisc` save dialog. It also opens a fixture with scattered native\nartboard coordinates, including two overlapping boards, and checks that the view\nfollows page order, displays the selected board's own pixels and leaves serialized\ncontent unchanged. HomeEditorRoutes and EditorCanvasGui cover the\nshared entry routes and existing editor interactions.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 110,
+      "end_line": 110,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 111,
+      "end_line": 113,
+      "raw": "The multi-canvas GUI contract also hides and shows the editor twice, checking the\nlast selected page and its visible preview, native viewport size, zoom and pan,\nand unchanged serialized document bytes after each restoration.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 114,
+      "end_line": 114,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 115,
+      "end_line": 121,
+      "raw": "On a GPU renderer, the same GUI fixture compares a neighboring page with blur\nenabled and disabled. It measures squared RGB edge energy in exposed high-contrast\nstripes and checks a separate solid-blue region against the configured Darken\namount. The effect toggle leaves serialized document content unchanged. Software\nruns check effect state and layout; they do not count as GPU blur pixel proof.\nWith `DREAMSCAPES_CAPTURE_DIR` set, the native comparison saves `*-blur-on.png`\nand `*-blur-off.png` alongside the page-view captures.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 122,
+      "end_line": 122,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 123,
+      "end_line": 126,
+      "raw": "EditorCanvas retains the complete iiPaintEngine pixel-parity and working-file\npersistence checks. Its CTest timeout is 240 seconds: the earlier 24-case suite\ncompleted successfully in 126 seconds during the row-view verification, exceeding\nthe former 120-second budget.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 127,
+      "end_line": 127,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "fenced_code",
+      "start_line": 128,
+      "end_line": 131,
+      "raw": "```sh\ncmake --build build --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(EditorProject|EditorCanvas|EditorTools|MultiCanvasGui|HomeEditorRoutes|EditorCanvasGui)$' --output-on-failure -j2\n```\n",
+      "language": "sh",
+      "code": "cmake --build build --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(EditorProject|EditorCanvas|EditorTools|MultiCanvasGui|HomeEditorRoutes|EditorCanvasGui)$' --output-on-failure -j2\n",
+      "closed": true
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 132,
+      "end_line": 132,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "paragraph",
+      "start_line": 133,
+      "end_line": 134,
+      "raw": "Earlier row-view verification artifacts remain under `build/artboard-verification/`.\nDesktop/mobile layout tests on macOS do not constitute iOS/Android device proof.\n"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 135,
+      "end_line": 135,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "paragraph",
+      "start_line": 136,
+      "end_line": 146,
+      "raw": "The earlier 2026-10-08 row-view verification passed the full product build, four scoped core CTest\ngroups (ImageCanvas, EditorTools, EditorCanvas and EditorProject), and the latest\nsuccessful runs of all three GUI groups. A separate Cocoa/Metal desktop run\ncompared the visible artboard pixels and exercised scrolling, editing, saving and\nattachment. The installed `/Applications/Dreamscapes.app` matched the canonical\nbundle's file hashes, modes and symlinks, passed strict recursive signature\nverification, and loaded its real entry point with isolated Society storage.\nThe build tree contains one app and no nested apps. A forced Cocoa/software run\nfailed its captured-pixel comparison; that diagnostic remains recorded and is not\ncounted as passing native verification. Evidence, including earlier failures and\nthe final successful results, is indexed by `verification.json` in that directory.\n"
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 147,
+      "end_line": 147,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "heading",
+      "start_line": 148,
+      "end_line": 148,
+      "raw": "### Horizontal page presentation verification — 2026-10-09\n",
+      "level": 3,
+      "title": "Horizontal page presentation verification — 2026-10-09"
+    },
+    {
+      "id": "b000036",
+      "kind": "blank",
+      "start_line": 149,
+      "end_line": 149,
+      "raw": "\n"
+    },
+    {
+      "id": "b000037",
+      "kind": "paragraph",
+      "start_line": 150,
+      "end_line": 154,
+      "raw": "The page-deck implementation passed the full product build and a subsequent\nincremental build that required no recompilation. The final scoped CTest run\npassed 10/10 groups in 125.60 seconds: EditorProject, EditorCanvas, EditorTools,\nEditorGraphicAdjust, MultiCanvasGui, EditorCanvasGui, HomeEditorRoutes,\nEditorLayout, EditorPanelResize and EditorRenderQuality.\n"
+    },
+    {
+      "id": "b000038",
+      "kind": "blank",
+      "start_line": 155,
+      "end_line": 155,
+      "raw": "\n"
+    },
+    {
+      "id": "b000039",
+      "kind": "paragraph",
+      "start_line": 156,
+      "end_line": 165,
+      "raw": "A separate Cocoa/Metal run on Apple M1 Max passed both desktop (1280×900) and\nmobile-layout (390×844) page fixtures, with four QtTest results including setup\nand cleanup, no failures or skips, and no QML binding-loop warnings. Actual\nneighbor-preview edge energy decreased from 618.556 to 461.492 on desktop and\nfrom 2735.34 to 1375.2 in the mobile layout when blur was enabled. The solid-blue\nsample became `#0000cc`, matching 20% Darken. Those fixtures also exercise\nscattered and overlapping native artboards, selected-page pixel isolation,\nneighbor and bottom-preview clicks, brush/undo/save/reopen, appended pages,\nshortcuts, background camera gestures, and two editor hide/show cycles. Both\nsaved SQLite working documents passed `PRAGMA quick_check` with `ok`.\n"
+    },
+    {
+      "id": "b000040",
+      "kind": "blank",
+      "start_line": 166,
+      "end_line": 166,
+      "raw": "\n"
+    },
+    {
+      "id": "b000041",
+      "kind": "paragraph",
+      "start_line": 167,
+      "end_line": 176,
+      "raw": "The canonical `build/bin/Dreamscapes.app` passed strict recursive signature\nverification and a fresh single-app audit: one app and no nested apps. Its real\nentry point loaded one window and the QML root in 1.700260 seconds using native\nCocoa, isolated temporary Society storage/settings/helper endpoints and disabled\nsession restoration. Loader output confirmed the embedded iiSharedCanvas 0.29\nlibrary, and the executable hash stayed unchanged during that probe. The separate\nMetal fixture above supplies actual GPU-effect proof; requesting Metal during the\nstartup probe alone is not counted as that proof. A parallel QtTest packaged-start\nrun exceeded its root-load deadline; its diagnostic is retained separately from\nthe successful isolated entry-point probe.\n"
+    },
+    {
+      "id": "b000042",
+      "kind": "blank",
+      "start_line": 177,
+      "end_line": 177,
+      "raw": "\n"
+    },
+    {
+      "id": "b000043",
+      "kind": "paragraph",
+      "start_line": 178,
+      "end_line": 183,
+      "raw": "iiSharedCanvas 0.29.0 passed 59 source tests, 23 staged-package consumer tests and\n23 host-installed consumer tests before adoption by Dreamscapes. The previous\n0.28 library remains available. The installed `/Applications` app was not replaced,\nand no already-running user app was restarted. Software rendering retains\ndarkening and page navigation; GPU blur and native Windows/iOS/Android device\nexecution are separate verification boundaries.\n"
+    },
+    {
+      "id": "b000044",
+      "kind": "blank",
+      "start_line": 184,
+      "end_line": 184,
+      "raw": "\n"
+    },
+    {
+      "id": "b000045",
+      "kind": "paragraph",
+      "start_line": 185,
+      "end_line": 189,
+      "raw": "Evidence, source checkpoints, screenshots, retained diagnostics and artifact\nhashes are indexed by `build/page-document-20261009/final-verification.json`.\nThe GUI results apply to the recorded compiled source checkpoint; concurrent\nchanges to unrelated shared GUI test helpers after that compilation are recorded\nseparately and are not claimed as tested by this run.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Image artboards in one native project",
+      "anchor": "image-artboards-in-one-native-project",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000019",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Validation",
+      "anchor": "validation",
+      "start_line": 97
+    },
+    {
+      "block_id": "b000035",
+      "parent_id": "b000019",
+      "level": 3,
+      "title": "Horizontal page presentation verification — 2026-10-09",
+      "anchor": "horizontal-page-presentation-verification--2026-10-09",
+      "start_line": 148
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 7,
+        "text": "`.iisc` canvases. IDs are namespaced per attachment, so matching fill IDs never",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000025",
+        "line": 119,
+        "text": "runs check effect state and layout; they do not count as GPU blur pixel proof.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000031",
+        "line": 134,
+        "text": "Desktop/mobile layout tests on macOS do not constitute iOS/Android device proof.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000037",
+        "line": 151,
+        "text": "incremental build that required no recompilation. The final scoped CTest run",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [
+      {
+        "block_id": "b000029",
+        "language": "sh",
+        "code": "cmake --build build --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(EditorProject|EditorCanvas|EditorTools|MultiCanvasGui|HomeEditorRoutes|EditorCanvasGui)$' --output-on-failure -j2\n"
+      }
+    ],
+    "links": [
+      {
+        "block_id": "b000007",
+        "label": "SDK presentation contract",
+        "target": "../../../SDK/iiSharedCanvas/docs/ARTBOARD_PRESENTATION.md",
+        "kind": "relative",
+        "line": 27
+      },
+      {
+        "block_id": "b000015",
+        "label": "ImageCanvasStorage.md",
+        "target": "ImageCanvasStorage.md",
+        "kind": "relative",
+        "line": 88
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

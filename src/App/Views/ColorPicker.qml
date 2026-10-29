@@ -93,7 +93,7 @@ Item {
             valueText: String(Math.round(row.info.value))
             inputMethodHints: Qt.ImhFormattedNumbersOnly
             Accessible.name: row.info.name
-            onCommitted: function(value) { if (value.trim().length && isFinite(Number(value))) colorState.editChannel(row.channel, Number(value)) }
+            onCommitted: function(value) { colorState.editChannelText(row.channel,value) }
         }
         LV.Label { x: row.width - 14; width: 14; anchors.verticalCenter: parent.verticalCenter; text: row.info.unit; style: caption; color: LV.Theme.descriptionColor }
     }
@@ -228,7 +228,7 @@ Item {
         id: modeMenu
         objectName: "colorPicker_modeMenu"
         showIconSlot: false
-        items: colorState.modeNames.map(function(name, index) { return { label: (root.effectiveType === index ? "✓ " : "") + name } })
+        items: NativeData.presentation.labels(colorState.modeNames, "", "", root.effectiveType)
         onItemTriggered: function(index) { root.type = index }
     }
 }

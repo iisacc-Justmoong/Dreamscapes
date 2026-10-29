@@ -1,0 +1,452 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:66c537d1218ac6347c7b8f3effca6f1aea32efc3593263e2b6b84e742785c026",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/EditorToolBehavior.md",
+    "sha256": "04d75178cfec33ae3361de89dab922ac2d5a5a2d47c06bfc859a4c1e0e0791ab",
+    "bytes": 13213,
+    "line_count": 120,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Editor tool execution",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Editor tool execution\n",
+      "level": 1,
+      "title": "Editor tool execution"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 7,
+      "raw": "The editor now connects its tool controls to native document edits instead of\nshowing a generic action acknowledgement. The visual controls remain installed\nLVRS controls. `EditorCanvas` is the application bridge; detached color, effect,\nfill and mask operations and native brush dynamics belong to iiSharedCanvas\n0.26.0. The document format remains `.iisc` 1.17.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "heading",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "## Executed operations\n",
+      "level": 2,
+      "title": "Executed operations"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "table",
+      "start_line": 11,
+      "end_line": 30,
+      "raw": "| Tool | Native behavior |\n| --- | --- |\n| Elements | Drag to create rectangles, ellipse sectors/rings, polygons/stars and marked lines. Geometry, outline placement/caps, color, opacity and blend update the selected session-created element. Solid geometry is vector; gradient/image fills are committed raster content. |\n| Text | Click to place glyph outlines. Text, typography, alignment, caption timing/backdrop, heading scale, callout shape/pointer and footer placement update the session-created text. Glyph outlines persist independently of the font installation. |\n| Camera/Photo | Full-resolution camera capture uses Qt's camera permission/capture boundary; local photo import and scan color conversion produce real layers. RAW/depth and exposure-lock controls are unavailable when the capture backend cannot provide them. |\n| File | Native open/copy, Fit/Fill/1:1 image placement, layered `.iisc`/project saving and flattened `.iisc`/PNG/JPEG/TIFF frame export. Unsupported persistent links/smart objects are explicitly inactive. |\n| Background | Dedicated Color/Remove/Mask/Replace panels follow Figma 777:82068. Color drafts apply solid or multi-stop linear/radial fills in one transaction. Supplied semantic regions produce a removal preview and editable mask. Image/file replacement preserves native transforms and blend settings. Generated replacements use the existing queue and are placed after choosing a result. See [Background panel](EditorBackgroundPanel.md). |\n| Audio | WAV import, mono/stereo/split tracks, sample-rate conversion, trim, fades, gain, pan, activity-based ducking, offset and stretching write real PCM/tracks. The waveform displays edited PCM. Preview plays the chosen edited track. Timeline playback mixes enabled clips and unmuted tracks from the current frame, including source offsets and track/clip gains, into stereo 48 kHz PCM. Beat sync aligns an analyzed onset to the current frame. |\n| Canvas | Extent changes scale or anchor existing content; rotate/mirror transform real layers. Mirror canvas only reflects the complete interactive preview, including overlays, without writing pixels. Crop, bleed and safe-inset guides use document coordinates and zoom. Resolution controls mm-to-pixel guide conversion and exported image density. Format-level ICC/profile and destructive crop options remain inactive. |\n| Generative | Text/image generation queues the existing advanced runtime. Current model, negative prompt, image reference, denoise, LoRA and VAE are passed to its typed contract. Inpaint/fill blend a chosen generated result through the active mask. Outpaint prepares an expanded reference, changes extent on placement and places generated content behind the existing composition. Upscale performs the selected native resampling method. |\n| Layers | Inspect/select actual layers, edit opacity/blend and enforce session pixel/position locks. Rasterize native geometry/dynamic content at the current frame; inspect/move actual vector paths; apply Union/Subtract/Intersect to the selected vector asset's path footprints; apply an actual pixel mask. Boolean output uses the first path's paint and commits editable filled outlines. Group/adjustment-layer semantics absent from the format are inactive. |\n| Select | Rectangle, triangle, lasso, connected/global color wand, object-layer hit testing and supplied semantic selection. Selection coverage is rendered on the canvas and constrains supported pixel edits. |\n| Color | Nonaccumulating exposure/contrast/tone/white-balance/saturation/grading/curve edits on the selected layer. Histogram, clipping and tone response use real pixel data. White/black clipping overlays never rewrite artwork. A neutral picker samples the actual frame. |\n| Effects | Native blur, texture/clarity, haze, vignette (including manual vignette), deterministic grain/uniform noise, sharpening and luminance/color denoise, manual distortion and color-fringe reduction. The attached UI names Uniform noise honestly; unimplemented Gaussian/Poisson distributions and calibrated lens profiles are not advertised. |\n| Retouch | Clone source picking, source scale/rotation and local color-matched healing. Selected repair regions use boundary propagation and relaxation. This is a local repair algorithm, not learned content synthesis. Inpaint uses generation and mask placement. Face detection/refinement requires a separate model and is inactive. |\n| Fill | Connected/selected solid, gradient and pattern fills, with opacity and blend applied to pixels. Palette choices update the actual fill color. A click in Generative mode selects the connected region without changing artwork; Generate fill queues its replacement and later uses mask placement. |\n| Brush | Installed iiPaintEngine tip shape, spacing, hardness, opacity/flow, blend, pressure size/opacity, pressure inversion, color dynamics and wet mix. Rope, predictive and pulled pointer filters use the configured strength/delay, with streamline filtering, optional catch-up and 45-degree angle snapping. Only supported brush shapes/blends are offered. Stylus tilt forwarding and build-up control remain inactive. |\n| Auto enhance | Analyze actual luminance/color statistics and apply tone/color corrections; denoise and sharpen detail. Manual geometric correction transforms the canvas. Learned face refinement/calibrated lens detection is inactive. |\n| Masking | Brush/linear/radial masks, edge-aware brush restriction, luminance/color ranges, supplied semantic subjects/regions, feather/contrast and mask combination. |\n| Eraser | Real pixel erasing, transparent object removal, local repair, vector split/trim/stroke removal, and recorded-pixel restore/protection. Boundary expansion grows the actual object mask before local removal or generation. Restore/Protect uses the configured feather on its painted coverage. |\n",
+      "columns": [
+        "Tool",
+        "Native behavior"
+      ],
+      "rows": [
+        [
+          "Elements",
+          "Drag to create rectangles, ellipse sectors/rings, polygons/stars and marked lines. Geometry, outline placement/caps, color, opacity and blend update the selected session-created element. Solid geometry is vector; gradient/image fills are committed raster content."
+        ],
+        [
+          "Text",
+          "Click to place glyph outlines. Text, typography, alignment, caption timing/backdrop, heading scale, callout shape/pointer and footer placement update the session-created text. Glyph outlines persist independently of the font installation."
+        ],
+        [
+          "Camera/Photo",
+          "Full-resolution camera capture uses Qt's camera permission/capture boundary; local photo import and scan color conversion produce real layers. RAW/depth and exposure-lock controls are unavailable when the capture backend cannot provide them."
+        ],
+        [
+          "File",
+          "Native open/copy, Fit/Fill/1:1 image placement, layered `.iisc`/project saving and flattened `.iisc`/PNG/JPEG/TIFF frame export. Unsupported persistent links/smart objects are explicitly inactive."
+        ],
+        [
+          "Background",
+          "Dedicated Color/Remove/Mask/Replace panels follow Figma 777:82068. Color drafts apply solid or multi-stop linear/radial fills in one transaction. Supplied semantic regions produce a removal preview and editable mask. Image/file replacement preserves native transforms and blend settings. Generated replacements use the existing queue and are placed after choosing a result. See [Background panel](EditorBackgroundPanel.md)."
+        ],
+        [
+          "Audio",
+          "WAV import, mono/stereo/split tracks, sample-rate conversion, trim, fades, gain, pan, activity-based ducking, offset and stretching write real PCM/tracks. The waveform displays edited PCM. Preview plays the chosen edited track. Timeline playback mixes enabled clips and unmuted tracks from the current frame, including source offsets and track/clip gains, into stereo 48 kHz PCM. Beat sync aligns an analyzed onset to the current frame."
+        ],
+        [
+          "Canvas",
+          "Extent changes scale or anchor existing content; rotate/mirror transform real layers. Mirror canvas only reflects the complete interactive preview, including overlays, without writing pixels. Crop, bleed and safe-inset guides use document coordinates and zoom. Resolution controls mm-to-pixel guide conversion and exported image density. Format-level ICC/profile and destructive crop options remain inactive."
+        ],
+        [
+          "Generative",
+          "Text/image generation queues the existing advanced runtime. Current model, negative prompt, image reference, denoise, LoRA and VAE are passed to its typed contract. Inpaint/fill blend a chosen generated result through the active mask. Outpaint prepares an expanded reference, changes extent on placement and places generated content behind the existing composition. Upscale performs the selected native resampling method."
+        ],
+        [
+          "Layers",
+          "Inspect/select actual layers, edit opacity/blend and enforce session pixel/position locks. Rasterize native geometry/dynamic content at the current frame; inspect/move actual vector paths; apply Union/Subtract/Intersect to the selected vector asset's path footprints; apply an actual pixel mask. Boolean output uses the first path's paint and commits editable filled outlines. Group/adjustment-layer semantics absent from the format are inactive."
+        ],
+        [
+          "Select",
+          "Rectangle, triangle, lasso, connected/global color wand, object-layer hit testing and supplied semantic selection. Selection coverage is rendered on the canvas and constrains supported pixel edits."
+        ],
+        [
+          "Color",
+          "Nonaccumulating exposure/contrast/tone/white-balance/saturation/grading/curve edits on the selected layer. Histogram, clipping and tone response use real pixel data. White/black clipping overlays never rewrite artwork. A neutral picker samples the actual frame."
+        ],
+        [
+          "Effects",
+          "Native blur, texture/clarity, haze, vignette (including manual vignette), deterministic grain/uniform noise, sharpening and luminance/color denoise, manual distortion and color-fringe reduction. The attached UI names Uniform noise honestly; unimplemented Gaussian/Poisson distributions and calibrated lens profiles are not advertised."
+        ],
+        [
+          "Retouch",
+          "Clone source picking, source scale/rotation and local color-matched healing. Selected repair regions use boundary propagation and relaxation. This is a local repair algorithm, not learned content synthesis. Inpaint uses generation and mask placement. Face detection/refinement requires a separate model and is inactive."
+        ],
+        [
+          "Fill",
+          "Connected/selected solid, gradient and pattern fills, with opacity and blend applied to pixels. Palette choices update the actual fill color. A click in Generative mode selects the connected region without changing artwork; Generate fill queues its replacement and later uses mask placement."
+        ],
+        [
+          "Brush",
+          "Installed iiPaintEngine tip shape, spacing, hardness, opacity/flow, blend, pressure size/opacity, pressure inversion, color dynamics and wet mix. Rope, predictive and pulled pointer filters use the configured strength/delay, with streamline filtering, optional catch-up and 45-degree angle snapping. Only supported brush shapes/blends are offered. Stylus tilt forwarding and build-up control remain inactive."
+        ],
+        [
+          "Auto enhance",
+          "Analyze actual luminance/color statistics and apply tone/color corrections; denoise and sharpen detail. Manual geometric correction transforms the canvas. Learned face refinement/calibrated lens detection is inactive."
+        ],
+        [
+          "Masking",
+          "Brush/linear/radial masks, edge-aware brush restriction, luminance/color ranges, supplied semantic subjects/regions, feather/contrast and mask combination."
+        ],
+        [
+          "Eraser",
+          "Real pixel erasing, transparent object removal, local repair, vector split/trim/stroke removal, and recorded-pixel restore/protection. Boundary expansion grows the actual object mask before local removal or generation. Restore/Protect uses the configured feather on its painted coverage."
+        ]
+      ]
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "heading",
+      "start_line": 32,
+      "end_line": 32,
+      "raw": "## Capability and lifecycle contract\n",
+      "level": 2,
+      "title": "Capability and lifecycle contract"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 33,
+      "end_line": 33,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 34,
+      "end_line": 52,
+      "raw": "`toolControlState()` separates a `supported` capability from the current\n`enabled` state and its reason. The historical\n428-field design catalog includes capabilities not exposed by the current\nnative file format, model resource bindings, camera backend or local library.\nThe attached editor does not render these unsupported design placeholders as\nediting controls. The original Figma fixture remains intact for design\ncomparisons; Asset is excluded from the application's active tool and panel catalog.\nMode selectors now show the parameters belonging to their actual operation;\nRAW Capture, dynamic/group layer authoring and Face Refine are omitted until a\nconnected implementation exists. A supported operation missing its current\nselection, device or semantic input remains visibly inactive with its reason.\nThe Info button lists the exact missing capability for the current tool.\nOmission is not implementation of the removed capability. Advanced generation\nopens the existing resource-aware form, including ControlNet, reference and enhancement bindings. This\nimplementation does not claim that all 428 original catalog fields execute.\nEditable layer preservation is offered for IISC; PNG/JPEG/TIFF export disables\nthat option and exports a flattened frame without rebinding the working file.\nThe compact generative controls do not silently substitute an unattached\nControlNet/IP-Adapter/lens/face model.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 53,
+      "end_line": 53,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 54,
+      "end_line": 59,
+      "raw": "Pixel locks block fill, repair, mask placement, rasterization, generated masked placement and painting before mutating the document. Position locks also block individual path movement. Rectangle selection rotation and rounded triangle coverage are computed from the actual drawn geometry. Non-resampled canvas resizing offers center, top-left and bottom-right anchors.\nThe Layers controls display the selected layer's actual opacity, blend and session lock; its Reset action applies default opacity/blend and clears session locks. Canvas dimensions display the current document extent. Vector stroke erasing intersects the stroked outline, including open lines. Trim and split commit filled native outlines where a stroke is cut. Generative object erasing queues the masked-generation workflow using the Generative tool's prompt and model settings.\nAlpha protection is per layer, initially off for a newly created bitmap. Visiting\nLayers or protecting another layer does not make a new transparent paint layer\nunpaintable. The displayed switch follows the selected layer, and Reset clears\nits protection. The current implementation protects brush-painted alpha.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 60,
+      "end_line": 60,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 61,
+      "end_line": 70,
+      "raw": "Manual distortion exposes a signed coefficient and chromatic-fringe reduction\nuses a separate native pixel operation. Both restore the original preview when\nreturned to neutral, without requiring or claiming a calibrated lens profile.\nRetouch can sample the selected bitmap or the actual composited frame, mapping\nsource points through the layer transform. The source overlay shows the chosen\ncanvas point. Heal adaptation selects color matching, rotation, or both.\nLayer name edits write the selected native layer name. File Save as uses the\nrequested name and directory; the document-level Save button still saves its\nexisting working file. A generated Remove fill queues generation rather than\nsilently applying the local repair algorithm.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 71,
+      "end_line": 71,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 72,
+      "end_line": 76,
+      "raw": "Edits go through validated native transactions. Full-document undo/redo includes\ntext, geometry, transforms, audio and raster edits. Undo/redo also restores the session tool drafts so subsequent edits use the restored text and parameter values. History retains at most 32\nstates and prunes raster-heavy history toward a 128 MiB budget. Working-file\nedits commit synchronously; Undo writes the restored state back to that file.\nDo not use an original working `.iisc` for destructive verification.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 77,
+      "end_line": 77,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 78,
+      "end_line": 94,
+      "raw": "Tool settings, source brush history and editable text/element authoring data are\nsession state. Saved files preserve the actual native paths, pixels, transforms,\naudio and timing; reopened glyph outlines remain editable as native paths.\nThey do not restore the session's original text string/font authoring controls,\nsource audio before trimming, or persistent layer locks. These boundaries are\nnot inferred from a successful raster round trip.\nTimeline scrubbing pauses playback. Resuming renders audio from the chosen\nframe rather than restarting a selected track at sample zero. Frame advancement\nuses elapsed wall time, so a delayed timer does not slow the frame sequence\nrelative to audio. The detached PCM mix is bounded to 16,777,216 sample frames;\nlonger remaining timelines report a limit error. Physical output latency and\ndevice A/V synchronization still require hardware verification.\nPrint resolution and guides are session controls; image export stores pixel\ndensity where supported by its codec. The current IISC format does not store\nprint density or ICC tags. Bleed describes an outer guide; it does not expand\nthe saved document by itself. Safe inset accepts percent, mm or px and rejects\nmalformed values before replacing the draft.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 95,
+      "end_line": 95,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 96,
+      "end_line": 106,
+      "raw": "Generation batches retain their owning canvas. Results are shown without\nreplacing current artwork automatically. Unsupported input/model resources\nproduce the existing runtime error; queue acceptance alone is not inference\nproof. Playback and capture are conditional on the actual device.\nNative inference is the Apple/Android platform default. An explicit\n`IILD_GENERATOR_EXECUTABLE` selects the process backend on macOS too;\nit does not silently load process-protocol fixtures as native model weights.\nThe application MCP generation/cancellation test uses that explicit backend\nand verifies the generated PNG and session queue, independently of learned\ninference quality. Queue entries are not restored across new sessions.\nMasked generation placement maps the full generated canvas through the selected layer's inverse transform before blending its pixels. A moved or scaled target therefore receives the corresponding canvas region, rather than a shrunken copy of the complete generated image.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 107,
+      "end_line": 107,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "heading",
+      "start_line": 108,
+      "end_line": 108,
+      "raw": "## Verification\n",
+      "level": 2,
+      "title": "Verification"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 109,
+      "end_line": 109,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 110,
+      "end_line": 120,
+      "raw": "`Dreamscapes.EditorTools` exercises native text/shape edits, masked fill,\nnonaccumulating color processing, effects, transforms, full-document undo,\noriginal image preservation and native save/reopen including PCM audio.\n`editorToolbarOperations` exercises toolbar selection, parameter edits, pointer\nselection/fill, text placement, actual preview and Undo through the QML view.\nExisting native-canvas and render-quality tests continue to cover `.iisc`\nmounting and presentation. Camera capture, physical audio output and fresh\nlearned inference need corresponding runtime/device evidence.\nThe catalog sweep dismisses real editing surfaces opened by both choices and\nactions before testing panel Escape. Selecting Image fill opens a source chooser;\nEscape closes that chooser before it can close the underlying tool panel.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Editor tool execution",
+      "anchor": "editor-tool-execution",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000005",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Executed operations",
+      "anchor": "executed-operations",
+      "start_line": 9
+    },
+    {
+      "block_id": "b000009",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Capability and lifecycle contract",
+      "anchor": "capability-and-lifecycle-contract",
+      "start_line": 32
+    },
+    {
+      "block_id": "b000023",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Verification",
+      "anchor": "verification",
+      "start_line": 108
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000007",
+        "line": 23,
+        "text": "| Color | Nonaccumulating exposure/contrast/tone/white-balance/saturation/grading/curve edits on the selected layer. Histogram, clipping and tone response use real pixel data. White/black clipping overlays never rewrite artwork. A neutral picker samples the actual frame. |",
+        "basis": "lexical_match",
+        "context": "table"
+      },
+      {
+        "block_id": "b000011",
+        "line": 51,
+        "text": "The compact generative controls do not silently substitute an unattached",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000017",
+        "line": 76,
+        "text": "Do not use an original working `.iisc` for destructive verification.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000019",
+        "line": 81,
+        "text": "They do not restore the session's original text string/font authoring controls,",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000007",
+        "label": "Background panel",
+        "target": "EditorBackgroundPanel.md",
+        "kind": "relative",
+        "line": 17
+      }
+    ],
+    "tables": [
+      {
+        "block_id": "b000007",
+        "columns": [
+          "Tool",
+          "Native behavior"
+        ],
+        "rows": [
+          [
+            "Elements",
+            "Drag to create rectangles, ellipse sectors/rings, polygons/stars and marked lines. Geometry, outline placement/caps, color, opacity and blend update the selected session-created element. Solid geometry is vector; gradient/image fills are committed raster content."
+          ],
+          [
+            "Text",
+            "Click to place glyph outlines. Text, typography, alignment, caption timing/backdrop, heading scale, callout shape/pointer and footer placement update the session-created text. Glyph outlines persist independently of the font installation."
+          ],
+          [
+            "Camera/Photo",
+            "Full-resolution camera capture uses Qt's camera permission/capture boundary; local photo import and scan color conversion produce real layers. RAW/depth and exposure-lock controls are unavailable when the capture backend cannot provide them."
+          ],
+          [
+            "File",
+            "Native open/copy, Fit/Fill/1:1 image placement, layered `.iisc`/project saving and flattened `.iisc`/PNG/JPEG/TIFF frame export. Unsupported persistent links/smart objects are explicitly inactive."
+          ],
+          [
+            "Background",
+            "Dedicated Color/Remove/Mask/Replace panels follow Figma 777:82068. Color drafts apply solid or multi-stop linear/radial fills in one transaction. Supplied semantic regions produce a removal preview and editable mask. Image/file replacement preserves native transforms and blend settings. Generated replacements use the existing queue and are placed after choosing a result. See [Background panel](EditorBackgroundPanel.md)."
+          ],
+          [
+            "Audio",
+            "WAV import, mono/stereo/split tracks, sample-rate conversion, trim, fades, gain, pan, activity-based ducking, offset and stretching write real PCM/tracks. The waveform displays edited PCM. Preview plays the chosen edited track. Timeline playback mixes enabled clips and unmuted tracks from the current frame, including source offsets and track/clip gains, into stereo 48 kHz PCM. Beat sync aligns an analyzed onset to the current frame."
+          ],
+          [
+            "Canvas",
+            "Extent changes scale or anchor existing content; rotate/mirror transform real layers. Mirror canvas only reflects the complete interactive preview, including overlays, without writing pixels. Crop, bleed and safe-inset guides use document coordinates and zoom. Resolution controls mm-to-pixel guide conversion and exported image density. Format-level ICC/profile and destructive crop options remain inactive."
+          ],
+          [
+            "Generative",
+            "Text/image generation queues the existing advanced runtime. Current model, negative prompt, image reference, denoise, LoRA and VAE are passed to its typed contract. Inpaint/fill blend a chosen generated result through the active mask. Outpaint prepares an expanded reference, changes extent on placement and places generated content behind the existing composition. Upscale performs the selected native resampling method."
+          ],
+          [
+            "Layers",
+            "Inspect/select actual layers, edit opacity/blend and enforce session pixel/position locks. Rasterize native geometry/dynamic content at the current frame; inspect/move actual vector paths; apply Union/Subtract/Intersect to the selected vector asset's path footprints; apply an actual pixel mask. Boolean output uses the first path's paint and commits editable filled outlines. Group/adjustment-layer semantics absent from the format are inactive."
+          ],
+          [
+            "Select",
+            "Rectangle, triangle, lasso, connected/global color wand, object-layer hit testing and supplied semantic selection. Selection coverage is rendered on the canvas and constrains supported pixel edits."
+          ],
+          [
+            "Color",
+            "Nonaccumulating exposure/contrast/tone/white-balance/saturation/grading/curve edits on the selected layer. Histogram, clipping and tone response use real pixel data. White/black clipping overlays never rewrite artwork. A neutral picker samples the actual frame."
+          ],
+          [
+            "Effects",
+            "Native blur, texture/clarity, haze, vignette (including manual vignette), deterministic grain/uniform noise, sharpening and luminance/color denoise, manual distortion and color-fringe reduction. The attached UI names Uniform noise honestly; unimplemented Gaussian/Poisson distributions and calibrated lens profiles are not advertised."
+          ],
+          [
+            "Retouch",
+            "Clone source picking, source scale/rotation and local color-matched healing. Selected repair regions use boundary propagation and relaxation. This is a local repair algorithm, not learned content synthesis. Inpaint uses generation and mask placement. Face detection/refinement requires a separate model and is inactive."
+          ],
+          [
+            "Fill",
+            "Connected/selected solid, gradient and pattern fills, with opacity and blend applied to pixels. Palette choices update the actual fill color. A click in Generative mode selects the connected region without changing artwork; Generate fill queues its replacement and later uses mask placement."
+          ],
+          [
+            "Brush",
+            "Installed iiPaintEngine tip shape, spacing, hardness, opacity/flow, blend, pressure size/opacity, pressure inversion, color dynamics and wet mix. Rope, predictive and pulled pointer filters use the configured strength/delay, with streamline filtering, optional catch-up and 45-degree angle snapping. Only supported brush shapes/blends are offered. Stylus tilt forwarding and build-up control remain inactive."
+          ],
+          [
+            "Auto enhance",
+            "Analyze actual luminance/color statistics and apply tone/color corrections; denoise and sharpen detail. Manual geometric correction transforms the canvas. Learned face refinement/calibrated lens detection is inactive."
+          ],
+          [
+            "Masking",
+            "Brush/linear/radial masks, edge-aware brush restriction, luminance/color ranges, supplied semantic subjects/regions, feather/contrast and mask combination."
+          ],
+          [
+            "Eraser",
+            "Real pixel erasing, transparent object removal, local repair, vector split/trim/stroke removal, and recorded-pixel restore/protection. Boundary expansion grows the actual object mask before local removal or generation. Restore/Protect uses the configured feather on its painted coverage."
+          ]
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

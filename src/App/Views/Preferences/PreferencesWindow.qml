@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import ".." as Frames
 import QtQuick.Layouts
 import LVRS 1.0 as LV
@@ -11,7 +12,7 @@ LV.ApplicationWindow {
     required property var generation
     property var account: null
     property string currentCategory: "General"
-    readonly property bool generationCategory: ["Image", "Video", "Audio", "Agents"].indexOf(currentCategory) >= 0
+    readonly property bool generationCategory: NativeData.presentation.indexOf(["Image", "Video", "Audio", "Agents"], currentCategory) >= 0
     property string locationMessage: ""
     property bool locationFailed: false
     property string driveLocationDraft: generation.containerPath

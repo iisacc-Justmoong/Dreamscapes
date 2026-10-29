@@ -1,5 +1,9 @@
 # Runtime size and UI responsiveness
 
+결과 검토의 포커스·선택·리뷰 변경은 필요한 행과 역할만 알린다. 포커스 이동과
+개수 조회의 불필요한 전체 순회·정렬 제거는 [검토 모델 성능](ReviewModelPerformance.md)에
+계약과 검증 방법을 기록한다.
+
 Layer histogram presentation now uses a view-owned C++ worker and a bounded
 native summary cache. Hidden panels and live strokes defer its work, channel
 switching reuses the same result, and property reads do not render or scan
@@ -78,6 +82,72 @@ and prefer matching jaccl headers over an unrelated installed include path.
 
 The recipe does not download model weights or generate content. Backend tests
 and launch checks do not prove trained-model output quality.
+
+## 폐기한 추론 런타임
+
+ONNX·자동 Pose·Laya 경로를 제거하였다. 현재 계약은 [런타임 폐기](RuntimeRetirement.md)를 따른다.
+
+## 패키지 검사 부모 실행기의 의존성
+
+`Dreamscapes.PackagedApplication`의 부모 프로세스는 실제 앱을 실행하고 Helper
+상호 발견을 확인한다. 기존의 전체 GUI 실행기는 앱 실행 전에 에디터·QML·추론
+라이브러리까지 초기화했다. 2026-10-27 프로파일에서는 자식 앱을 실행하기까지
+약 52초를 사용했다. 이 비용을 실제 배포 앱의 루트 생성 시간과 구분한다.
+
+부모를 Qt Core 기반의 `DreamscapesPackagedApplicationTests`로 분리한다.
+기존 검사 함수의 본문과 환경 값을 보존하며 실제 앱의 루트 생성, 두 Helper의
+상호 발견, 앱 ID, 단일 창과 리소스 오류를 계속 확인한다. 전체 CTest 제한은
+120초, 함수 내부 루트·상호 발견 대기는 각각 90초·15초이다. SDK 설정 파일,
+임시 디렉터리와 생성기 fixture도 동일하게 전달한다. 소스 GUI fixture의 타입
+등록은 이 실제 배포 진입점의 검증 조건에 포함하지 않는다.
+
+`Dreamscapes.DependencyBoundary`는 생성된 링크 선언과 실제 부모 실행 파일에
+에디터·QML·위젯·LVRS·추론 모듈의 직접 참조가 없는지 확인한다.
+
+GUI 회귀 목록의 `-functions` 조회는 QObject 메타데이터만 사용한다. 이 경로는
+Qt Core 애플리케이션에서 실제 QtTest 목록을 반환하며, QApplication·QML 타입·
+스토리지 fixture를 초기화하지 않는다. 일반 GUI 함수 실행의 기존 부트스트랩은
+유지한다. 변경 전후 실제 실행 파일의 함수 목록을 비교하고,
+`Dreamscapes.GuiRegistry`로 모든 함수가 CTest 그룹에 포함되는지도 확인한다.
+
+## 2026-10-27 최종 최적화 검증
+
+macOS arm64 Release에서 전체 제품 빌드와 배포를 완료했다. 이후 변경한 GUI
+함수 목록 조회 경로도 다시 빌드했다. 실제 배포 후보의 패키지 시작 검사는
+최종 전체 CTest 안에서 83.98초에 통과했다. 부모 실행기의 불필요한 직접
+라이브러리·프레임워크 참조 27개를 제거했으며 검사 본문과 120초 제한을
+유지했다. 이 시간은 루트 생성과 Helper 상호 발견을 포함한 검사 전체 시간이다.
+
+최종 전체 CTest는 127개 묶음 중 103개 통과, 24개 실패이고 총 3793초이다.
+ViewCatalog, ViewModelAdapters, ReviewSelectionCore, ReviewModel,
+ReviewWorkspace, ReviewExport, NativeViewBoundary, DependencyBoundary,
+GuiRegistry와 PackagedApplication은 통과했다. NativeViewBoundary는 원래
+30초 제한 안에서 9.79초에 완료했다. 목록·카탈로그의 독립 측정과 이 전체
+회귀 결과를 구분한다.
+
+이전 전체 실행의 104개 통과·23개 실패와 비교하면 NativeViewBoundary,
+PackagedApplication, HomeCanvasPreviews, FrameExporterHost와 EditorCanvasGui는
+이번에 통과했다. EditorElements, PromptFields, GraphicCommand, TypedMaskInput,
+EditorTools와 NewCanvasGui는 이전 전체 실행에서 통과했으나 이번에는 실패했다.
+따라서 모든 실패를 기존 문제나 실행 환경 문제로 일괄 분류하지 않는다.
+
+EditorElements의 모바일 캔버스 레이어 선택 실패는 동일한 소스·단언과
+설정된 CTest 환경을 사용한 단일 데이터 행 실행에서 62.96초에 통과했다.
+단일 행 통과는 전체 EditorElements 묶음의 실패 기록을 대체하지 않는다.
+원래 제한 시간을 늘리거나 실패 단언을 완화하지 않았다.
+
+공통 ONNX 로더·설치 위치 변경 소비자, 실제 Pose·Laya 추론과 취소·캐시
+계약은 별도 SDK 검사로 확인했다. 두 제품의 배포 번들에서도 Piper를 먼저
+로딩한 뒤 실제 ONNX API와 Pose 추론이 통과했다. 음성 기능이 사용하는
+ONNX 1.22와 선택적 Pose·의사결정 백엔드는 함께 보존한다. 다른 플랫폼의
+실행 결과로 확대하지 않으며, 이 검증의 대상은 macOS arm64이다.
+
+전체 원자료는 `build/optimization-20261027/full-ctest-lazy-onnx-final.xml`과
+`full-ctest-lazy-onnx-final.log`에 있다. 실패 비교는
+`whole-regression-lazy-comparison.json`, 모바일 행 재검사는
+`canvas-route-isolated.json`과 `canvas-route-isolated.log`에 보존한다.
+빌드 후보는 `build/bin/Dreamscapes.app`이고 버전·빌드는 모두 0.1.1이다.
+설치 앱 교체와 기존 사용자 프로세스 재시작은 수행하지 않았다.
 
 ## UI lifecycle and invalidation
 
@@ -855,3 +925,7 @@ dispatch measurements and the remaining native adoption/render/commit costs.
 Dreamscapes의 표시 노드는 다음 프레임의 타일 준비 중에도 마지막 완성 텍스처를 유지한다. 비어 있는 중간 캐시를 화면에 반영하지 않으며, 준비된 프레임을 한 번에 교체한다. 전체 캔버스의 추가 비트맵 복사 없이 기존 장면 노드를 유지하고, 대기 중 팬·확대도 뷰포트 변환으로 처리한다. 실제 투명 프레임과 문서 교체는 각각 새 결과와 새 소유자이므로 이전 그림을 유지하지 않는다.
 
 재생 타이머는 현재 렌더링이 완료된 뒤 최신 벽시계·오디오 시각의 프레임을 요청한다. 이로써 느린 프레임을 매 틱 취소하는 요청 폭주를 방지하며, 문서 리비전·Undo·파일 쓰기는 발생시키지 않는다. 실제 화면 픽셀 및 원본 무변경 검증은 `Dreamscapes.CanvasPresentation`을 사용한다. 상세 계약과 측정 한계는 [CanvasFramePresentation.md](CanvasFramePresentation.md)에 있다.
+
+## QML 상태 계산의 네이티브 이전
+
+생성·도구·타임라인·선택의 상태 계산과 명령 조합은 `DreamscapesViewModelsNative`와 앱 연결 모델로 이전했다. 짧은 입력은 타입이 정해진 iiSDKCore QueryPort에서 동기 실행하며, 파일 목록의 대량 투영은 두 작업자의 제한된 Runtime에서 비동기로 수행한다. 입력마다 스레드를 만들거나 작업 완료를 GUI에서 기다리지 않는다. 정렬·필터·선택과 파일 편집을 구분하며, 늦게 도착한 목록 결과는 세대 번호로 버린다. 자세한 계층과 검증 범위는 [네이티브 뷰모델](NativeViewModels.md)에 있다. 이것은 전체 앱의 Qt 제거 또는 측정되지 않은 전체 FPS 향상 보고가 아니다.

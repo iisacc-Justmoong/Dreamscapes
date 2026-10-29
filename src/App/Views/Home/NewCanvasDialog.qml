@@ -27,95 +27,40 @@ Controls.Popup {
     x: availableBounds.x + (availableBounds.width - width) / 2
     y: availableBounds.y + (availableBounds.height - height) / 2
     readonly property bool compact: availableBounds.width < 1000
-    property int categoryIndex: 0
-    property string query: ""
-    property bool custom: false
-    property var selectedPreset: ({})
-    property string draftWidth: "1080"
-    property string draftHeight: "1080"
-    property string unit: "px"
-    property string resolution: "300"
-    property string canvasBackground: "White"
-    property string creationError: ""
+    property alias categoryIndex: nativeCanvas.categoryIndex
+    property alias query: nativeCanvas.query
+    property alias custom: nativeCanvas.custom
+    property alias selectedPreset: nativeCanvas.selectedPreset
+    property alias draftWidth: nativeCanvas.draftWidth
+    property alias draftHeight: nativeCanvas.draftHeight
+    property alias unit: nativeCanvas.unit
+    property alias resolution: nativeCanvas.resolution
+    property alias canvasBackground: nativeCanvas.canvasBackground
+    property alias creationError: nativeCanvas.creationError
     readonly property Flickable galleryViewport: galleryScroll.contentItem as Flickable
     readonly property Flickable compactViewport: compactScroll.contentItem as Flickable
     readonly property Flickable categoryViewport: categoryScroll.contentItem as Flickable
-    readonly property var sections: catalogue.sections(categoryIndex, query)
-    readonly property int resultCount: {
-        let total = 0
-        for (const section of sections) total += section.presets.length
-        return total
-    }
-    readonly property var specification: custom || selectedPreset.id
-        ? catalogue.specification(Number(draftWidth), Number(draftHeight), unit, Number(resolution), canvasBackground)
-        : ({valid: false, error: ""})
-    readonly property string selectionName: custom ? qsTr("Custom canvas") : selectedPreset.name || qsTr("Choose a canvas")
-    readonly property string dimensionText: draftWidth + " × " + draftHeight + " " + unit
-    readonly property string aspectRatio: {
-        if (!specification.valid) return "—"
-        let a = specification.pixelWidth, b = specification.pixelHeight
-        while (b) { const remainder = a % b; a = b; b = remainder }
-        return specification.pixelWidth / a + ":" + specification.pixelHeight / a
-    }
+    readonly property alias sections: nativeCanvas.sections
+    readonly property alias resultCount: nativeCanvas.resultCount
+    readonly property alias specification: nativeCanvas.specification
+    readonly property alias selectionName: nativeCanvas.selectionName
+    readonly property alias dimensionText: nativeCanvas.dimensionText
+    readonly property alias aspectRatio: nativeCanvas.aspectRatio
     signal canvasRequested(var specification)
-    CanvasPresets { id: catalogue }
+    readonly property var catalogue: nativeCanvas.catalogue
+    NativeCanvasDraft {
+        id: nativeCanvas
+        objectName: "newCanvasNativeModel"
+        onCanvasRequested: specification => root.canvasRequested(specification)
+    }
 
-    function choose(preset) {
-        selectedPreset = preset
-        custom = false
-        draftWidth = String(preset.width)
-        draftHeight = String(preset.height)
-        unit = preset.unit
-        resolution = String(preset.ppi || 300)
-        creationError = ""
-    }
-    function chooseCategory(index) {
-        categoryIndex = index
-        query = ""
-        custom = false
-        const groups = catalogue.sections(index, "")
-        if (groups.length) choose(groups[0].presets[0])
-    }
-    function search(text) {
-        query = text
-        custom = false
-        if (sections.length) choose(sections[0].presets[0])
-        else selectedPreset = ({})
-    }
-    function customSize() {
-        query = ""
-        custom = true
-        selectedPreset = ({})
-        draftWidth = "1800"
-        draftHeight = "1200"
-        unit = "px"
-        resolution = "300"
-        creationError = ""
-    }
-    function begin() {
-        canvasBackground = "White"
-        creationError = ""
-        chooseCategory(0)
-        open()
-    }
-    function changeUnit(next) {
-        const ppi = Number(resolution)
-        const w = catalogue.convert(Number(draftWidth), unit, next, ppi)
-        const h = catalogue.convert(Number(draftHeight), unit, next, ppi)
-        custom = true
-        unit = next
-        draftWidth = String(next === "px" ? Math.round(w) : Math.round(w * 1000) / 1000)
-        draftHeight = String(next === "px" ? Math.round(h) : Math.round(h * 1000) / 1000)
-    }
-    function create() {
-        if (!specification.valid) return
-        const value = Object.assign({}, specification, {
-            name: selectionName, presetId: custom ? "" : selectedPreset.id,
-            category: custom ? "Custom size" : selectedPreset.category,
-            section: custom ? "Your dimensions" : selectedPreset.section
-        })
-        canvasRequested(value)
-    }
+    function choose(preset) { nativeCanvas.choose(preset) }
+    function chooseCategory(index) { nativeCanvas.chooseCategory(index) }
+    function search(text) { nativeCanvas.search(text) }
+    function customSize() { nativeCanvas.customSize() }
+    function begin() { nativeCanvas.begin(); open() }
+    function changeUnit(next) { nativeCanvas.changeUnit(next) }
+    function create() { nativeCanvas.create() }
     function scrollIntoView(control, viewport) {
         if (!viewport) return
         const point = control.mapToItem(viewport.contentItem, 0, 0)
@@ -623,7 +568,7 @@ Controls.Popup {
     }
     LV.ContextMenu {
         id: categoryMenu
-        items: catalogue.categories.map(function(category) { return {label: category.name} })
+        items: NativeData.presentation.labels(catalogue.categories, "name")
         onItemTriggered: function(index, item) { root.chooseCategory(index) }
     }
     LV.ContextMenu {

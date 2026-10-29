@@ -12,6 +12,7 @@ Rectangle {
     property bool rightEdge: true
     property bool bottomEdge: true
     property bool leftEdge: true
+    readonly property color panelBorderColor: "#0c0c0c"
     readonly property int strokeWidth: 1
     readonly property bool completeBorder: topEdge && rightEdge && bottomEdge && leftEdge
     readonly property point origin: {
@@ -35,7 +36,7 @@ Rectangle {
     color: "transparent"
     radius: 0
     border.width: completeBorder ? strokeWidth : 0
-    border.color: LV.Theme.accentGrayMuted
+    border.color: panelBorderColor
     antialiasing: false
     enabled: false
     Accessible.ignored: true

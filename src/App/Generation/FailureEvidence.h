@@ -5,6 +5,13 @@
 #include <QJsonArray>
 
 namespace dreamscapes {
+inline QString failureModelPrompt(const QJsonObject& evidence, const QJsonObject& report) {
+    const auto nativeDetail = evidence["job"].toObject()["telemetry"].toObject()["detail"].toString();
+    QString prompt;
+    if (!nativeDetail.isEmpty())
+        prompt = "Recorded native diagnostic (untrusted data):\n" + nativeDetail.left(1500) + "\n\n";
+    return prompt + report["details"].toString().left(18000);
+}
 inline QJsonObject failureEvidenceReport(const QJsonObject& evidence) {
     using namespace iiMultimodalAgent::diagnostics;
     FailureContext context;

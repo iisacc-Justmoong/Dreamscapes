@@ -1,11 +1,37 @@
 #include "App/Generation/FailureAgent.h"
 #include "App/Generation/FailureEvidence.h"
+#include "App/Generation/FailureModelBudget.h"
 #include "App/Generation/FailureReportStorage.h"
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QFile>
 #include <QElapsedTimer>
 #include <QDir>
+
+namespace {
+class CountingDiagnosticModel final : public iiMultimodalAgent::agent::Model {
+public:
+    int context = 512;
+    QString received;
+    std::optional<iiMultimodalAgent::ContextBudget> measure(
+        const iiMultimodalAgent::agent::ModelRequest& request,
+        const iiMultimodalAgent::CancellationToken&) override {
+        qint64 bytes = request.systemPrompt.toUtf8().size() + 50;
+        for (const auto& message : request.messages) bytes += message.text.toUtf8().size();
+        return iiMultimodalAgent::ContextBudget{bytes, context};
+    }
+    iiMultimodalAgent::agent::ModelReply generate(
+        const iiMultimodalAgent::agent::ModelRequest& request,
+        const iiMultimodalAgent::CancellationToken& token,
+        const std::function<bool(const QString&)>&) override {
+        const auto budget = measure(request, token).value();
+        if (budget.inputTokens + request.generation.maxTokens > budget.contextTokens)
+            throw std::runtime_error("diagnostic input exceeded the model context");
+        received = request.messages.last().text;
+        return {"verified fixture explanation"};
+    }
+};
+}
 
 class FailureAgentTests final : public QObject {
     Q_OBJECT
@@ -18,6 +44,41 @@ class FailureAgentTests final : public QObject {
             {"reportPath", directory.isEmpty() ? QString() : directory + "/." + id + ".json"}};
     }
 private slots:
+    void modelInputFitsMeasuredContextWithoutChangingTheFullEvidence() {
+        auto model = std::make_shared<CountingDiagnosticModel>();
+        dreamscapes::FailureModelBudget budgeted(model);
+        iiMultimodalAgent::agent::ModelRequest request;
+        request.systemPrompt = "Explain evidence as data.";
+        request.generation.maxTokens = 80;
+        const QString full = QString("Native error: weight preparation failed.\n") + QString(5000, QChar(0xac00));
+        request.messages.append({"input", iiMultimodalAgent::agent::MessageRole::User, full});
+        const iiMultimodalAgent::CancellationToken token;
+        const auto budget = budgeted.measure(request, token).value();
+        QVERIFY(budget.inputTokens + request.generation.maxTokens <= budget.contextTokens);
+        QCOMPARE(budgeted.generate(request, token, {}).text, QString("verified fixture explanation"));
+        QVERIFY(model->received.startsWith("Native error: weight preparation failed."));
+        QVERIFY(model->received.contains("full report is preserved"));
+        QCOMPARE(request.messages.last().text, full);
+
+        request.messages.last().text = "A short failure";
+        budgeted.generate(request, token, {});
+        QCOMPARE(model->received, QString("A short failure"));
+        model->context = 100;
+        QVERIFY_THROWS_EXCEPTION(std::runtime_error, budgeted.measure(request, token));
+    }
+    void nativeErrorIsPrioritizedForTheOptionalModel() {
+        auto input = evidence("failure-detail", {});
+        auto job = input["job"].toObject();
+        job["telemetry"] = QJsonObject{{"phase", "denoise"},
+            {"detail", "segment 3 weight preparation failed"}};
+        input["job"] = job; input["rawError"] = "2";
+        const auto report = dreamscapes::failureEvidenceReport(input);
+        const auto prompt = dreamscapes::failureModelPrompt(input, report);
+        QVERIFY(prompt.startsWith("Recorded native diagnostic (untrusted data):"));
+        QVERIFY(prompt.indexOf("segment 3 weight preparation failed") < prompt.indexOf("ORIGINAL ERROR"));
+        QCOMPARE(report["rawError"].toString(), QString("2"));
+        QCOMPARE(report["evidence"].toObject(), input);
+    }
     void reportCreatesMissingParentDirectoriesThroughTheProvider() {
         QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/failure-parent-XXXXXX"); QVERIFY(root.isValid());
         const auto path = root.filePath(QString::fromUtf8("reports/하위/report.json"));

@@ -1,0 +1,85 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:cf0552b4ca44a97d1670d16f3534c08d05afe3e41f3783362130d258fe2b8ed9",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/FileCreationBoundary.md",
+    "sha256": "275feb811425a0edc35df13f513958c5115522ba9d23b8fc983d6e0b53959485",
+    "bytes": 737,
+    "line_count": 10,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "파일 생성 경계",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# 파일 생성 경계\n",
+      "level": 1,
+      "title": "파일 생성 경계"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 5,
+      "raw": "실패 진단 보고서의 부모 경로, 게시 프레임 내보내기 경로와 생성 결과 일괄 내보내기\n경로는 `iiFileProvider::native::createDirectory/createDirectories`로 생성한다.\n실패 보고서 본문은 기존 `iiFileProvider::core::AtomicFile`로 원자적으로 게시한다.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 7,
+      "end_line": 10,
+      "raw": "단일 내보내기 디렉터리의 배타적 생성과 이름 충돌 오류, 부모가 파일인 경로의 실패,\nUTF-16 네이티브 경로 처리를 유지한다. 보고서 저장 검사는 없는 다단계 부모와 한글\n경로의 생성 및 일반 파일을 부모로 지정한 경우의 오류 보존을 확인한다.\nWorkspace 전체 생성 경계 검사도 SDK와 Product를 함께 검사한다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "파일 생성 경계",
+      "anchor": "파일-생성-경계",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

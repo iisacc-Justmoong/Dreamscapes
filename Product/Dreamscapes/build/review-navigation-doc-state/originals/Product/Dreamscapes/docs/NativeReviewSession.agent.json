@@ -1,0 +1,297 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:11f978458fd7fa15fd808de8c52fee2c11dfc78f14f22e16cd81ed0173cbb5b2",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/NativeReviewSession.md",
+    "sha256": "409c57af40175618323c693889c98db032ac390199c2581229b19c87a46d6a50",
+    "bytes": 4373,
+    "line_count": 60,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "생성 결과 검토의 네이티브 세션",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# 생성 결과 검토의 네이티브 세션\n",
+      "level": 1,
+      "title": "생성 결과 검토의 네이티브 세션"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "heading",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "## 범위\n",
+      "level": 2,
+      "title": "범위"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 5,
+      "end_line": 9,
+      "raw": "`src/App/Views/Result/NativeReviewSession`은 이미지와 비디오 생성 결과의 검토 상태를\nQt와 QML 없이 보관하는 C++23 모델이다. 제품의 `DreamscapesViewModelsNative`에 포함되며\niiSDKCore의 값과 조회 포트를 사용한다. 결과의 원본 메타데이터는 그대로 유지하고\n선택·포커스·후보·제외·필터·정렬은 실행 중인 화면의 상태로만 관리한다. 모델은 저장소,\n캔버스 문서, 생성 작업, Undo 기록에 쓰지 않는다.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 11,
+      "end_line": 15,
+      "raw": "기존 Qt 화면은 아직 `GenerationReviewModel`을 사용한다. 이미지 선택·비교·편집의\n대상 판정은 기존 화면과 새 네이티브 세션이 같은 C++ 정책을 사용한다. 세션의 나머지\n상태는 기존 화면에 아직 연결되어 있지 않다. 이 모델의 추가만으로 LVUI 화면, 작업 큐,\n미리보기 디코딩, 비교·내보내기, 편집기 연결 또는 앱 전체의 Qt 제거가 완료된 것은 아니다.\n네이티브 화면을 연결할 때 기존 동작과 디자인을 별도로 검증한다.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 16,
+      "end_line": 16,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "heading",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "## 상태와 화면 연결\n",
+      "level": 2,
+      "title": "상태와 화면 연결"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "list",
+      "start_line": 19,
+      "end_line": 33,
+      "raw": "- 제공된 Society 별칭의 `containerId`와 `key`를 우선하여 결과를 식별한다. 별칭이 없으면\n  작업 ID와 원본 경로를 사용하고 미리보기의 URL 질의와 프래그먼트는 식별에서 제외한다.\n- 여러 결과, 숨겨진 선택, 현재 포커스와 후보·제외 상태를 결과 키로 보관한다. 새 결과가\n  도착하거나 필터·정렬이 바뀌어도 유지되는 결과의 검토 상태는 유지한다.\n- `rowAt`은 가시 투영의 한 결과만 읽으며, Inspector는 원본이 제공하는 정보만 표시한다.\n  값이 없으면 `Unavailable`, 복수 선택의 다른 값은 `Mixed`로 구별한다. 큰 정수 시드는\n  부동소수점으로 바꾸지 않는다.\n- 조회 포트의 변경 알림은 전체 투영 교체, 뒤에 추가된 행, 기존 행의 메타데이터·선택·\n  포커스·검토 상태 변경을 구별한다. 포커스 이동만으로 전체 투영을 다시 만들지 않는다.\n  네이티브 가상 그리드는 가시 항목만 조회하고 자체 스크롤 기준점을 보존해야 한다.\n- 세션과 알림 수신자는 소유 스레드에서 조작한다. 수신 중 재진입하는 변경은 거부하며,\n  구독은 약한 참조이다. 수신자 예외가 발생해도 나머지 수신자에게 알린 뒤 예외를\n  전달한다. 예외는 이미 적용된 화면 상태를 되돌린다는 보장이 아니다.\n- 키보드 명령은 텍스트 입력에 포커스가 있을 때 실행하지 않는다. 편집·비교 명령의\n  대상은 원래 결과 값으로 반환하며, 실행 자체는 상위 화면과 기존 서비스의 책임이다.\n",
+      "items": [
+        {
+          "marker": "-",
+          "text": "제공된 Society 별칭의 `containerId`와 `key`를 우선하여 결과를 식별한다. 별칭이 없으면",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "여러 결과, 숨겨진 선택, 현재 포커스와 후보·제외 상태를 결과 키로 보관한다. 새 결과가",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`rowAt`은 가시 투영의 한 결과만 읽으며, Inspector는 원본이 제공하는 정보만 표시한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "조회 포트의 변경 알림은 전체 투영 교체, 뒤에 추가된 행, 기존 행의 메타데이터·선택·",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "세션과 알림 수신자는 소유 스레드에서 조작한다. 수신 중 재진입하는 변경은 거부하며,",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "키보드 명령은 텍스트 입력에 포커스가 있을 때 실행하지 않는다. 편집·비교 명령의",
+          "checked": null
+        }
+      ]
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 34,
+      "end_line": 34,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "heading",
+      "start_line": 35,
+      "end_line": 35,
+      "raw": "## 검증\n",
+      "level": 2,
+      "title": "검증"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 36,
+      "end_line": 36,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 37,
+      "end_line": 42,
+      "raw": "`Dreamscapes.NativeReview`는 선택·범위 선택·결과 추가·필터·정렬·알림 범위·\n메타데이터·단축키·스레드와 수명을 검사한다. 1,000개 결과는 메모리 내 테스트 값이며\n실제 대량 이미지의 디코딩 속도나 GUI 프레임 성능을 측정한 결과는 아니다.\n`Dreamscapes.NativeReviewParity`는 기존 Qt 모델을 테스트 전용 기준으로 사용하여 같은\n입력과 무작위 조작의 결과를 비교한다. Qt는 이 비교 실행 파일에만 필요하며 네이티브\n세션 자체의 의존성이 아니다.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 43,
+      "end_line": 43,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 44,
+      "end_line": 46,
+      "raw": "Qt를 사용하지 않는 제품 뷰모델 기반과 기존 네이티브 회귀 검사도 프로젝트 루트의\n`DREAMSCAPES_NATIVE_FOUNDATION_ONLY` 구성으로 빌드할 수 있다. 이 구성은 앱을\n만들거나 설치하지 않는다.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 47,
+      "end_line": 47,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "fenced_code",
+      "start_line": 48,
+      "end_line": 55,
+      "raw": "```sh\ncmake -S . -B build/native-foundation/build -G Ninja \\\n  -DDREAMSCAPES_NATIVE_FOUNDATION_ONLY=ON \\\n  -DiiSDKCore_DIR=$HOME/.local/SDK/iiSDKCore/lib/cmake/iiSDKCore \\\n  -DiiJson_DIR=$HOME/.local/SDK/iiJson/lib/cmake/iiJson\ncmake --build build/native-foundation/build\nctest --test-dir build/native-foundation/build --output-on-failure\n```\n",
+      "language": "sh",
+      "code": "cmake -S . -B build/native-foundation/build -G Ninja \\\n  -DDREAMSCAPES_NATIVE_FOUNDATION_ONLY=ON \\\n  -DiiSDKCore_DIR=$HOME/.local/SDK/iiSDKCore/lib/cmake/iiSDKCore \\\n  -DiiJson_DIR=$HOME/.local/SDK/iiJson/lib/cmake/iiJson\ncmake --build build/native-foundation/build\nctest --test-dir build/native-foundation/build --output-on-failure\n",
+      "closed": true
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 56,
+      "end_line": 56,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 57,
+      "end_line": 60,
+      "raw": "검토 모델만 빌드하는 독립 프로젝트는 `tests/native-review`에 있다. 기존 모델과의\n비교는 별도 `build/native-review-reference/build`에서\n`DREAMSCAPES_REFERENCE_QT_TESTS=ON`과 기존 Qt 6.8.3 설치 경로로 구성한다.\n독립 모델 검사는 실제 GUI, 전체 제품 빌드, 시스템 설치 또는 다른 플랫폼 검증을 대신하지 않는다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "생성 결과 검토의 네이티브 세션",
+      "anchor": "생성-결과-검토의-네이티브-세션",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000003",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "범위",
+      "anchor": "범위",
+      "start_line": 3
+    },
+    {
+      "block_id": "b000009",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "상태와 화면 연결",
+      "anchor": "상태와-화면-연결",
+      "start_line": 17
+    },
+    {
+      "block_id": "b000013",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "검증",
+      "anchor": "검증",
+      "start_line": 35
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000011",
+        "line": 28,
+        "text": "네이티브 가상 그리드는 가시 항목만 조회하고 자체 스크롤 기준점을 보존해야 한다.",
+        "basis": "lexical_match",
+        "context": "list"
+      },
+      {
+        "block_id": "b000011",
+        "line": 32,
+        "text": "- 키보드 명령은 텍스트 입력에 포커스가 있을 때 실행하지 않는다. 편집·비교 명령의",
+        "basis": "lexical_match",
+        "context": "list"
+      },
+      {
+        "block_id": "b000017",
+        "line": 46,
+        "text": "만들거나 설치하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000021",
+        "line": 60,
+        "text": "독립 모델 검사는 실제 GUI, 전체 제품 빌드, 시스템 설치 또는 다른 플랫폼 검증을 대신하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [
+      {
+        "block_id": "b000019",
+        "language": "sh",
+        "code": "cmake -S . -B build/native-foundation/build -G Ninja \\\n  -DDREAMSCAPES_NATIVE_FOUNDATION_ONLY=ON \\\n  -DiiSDKCore_DIR=$HOME/.local/SDK/iiSDKCore/lib/cmake/iiSDKCore \\\n  -DiiJson_DIR=$HOME/.local/SDK/iiJson/lib/cmake/iiJson\ncmake --build build/native-foundation/build\nctest --test-dir build/native-foundation/build --output-on-failure\n"
+      }
+    ],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

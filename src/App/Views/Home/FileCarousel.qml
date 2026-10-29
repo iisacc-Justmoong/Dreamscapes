@@ -17,7 +17,7 @@ LV.VStack {
     property bool imageSelectionEnabled: false
     property bool wrapCards: false
     property string emptyText: qsTr("No files yet")
-    readonly property var visibleFiles: Array.prototype.slice.call(files || [], 0, maximumItems)
+    readonly property var visibleFiles: NativeData.presentation.range(files || [], 0, maximumItems)
     signal viewAllRequested()
     signal fileRequested(var file)
     signal imagesRequested(var images)

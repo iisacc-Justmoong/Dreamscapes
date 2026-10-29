@@ -1,4 +1,5 @@
 pragma ComponentBehavior: Bound
+import Dreamscapes.Storage 1.0
 import QtQuick
 import ".." as Frames
 import QtQuick.Dialogs
@@ -15,11 +16,9 @@ Item {
     property string accountId: ""
     property string lastJob: ""
     readonly property var providers: backend.providers
-    readonly property var availableAccounts: backend.accounts.filter(a => a.provider === review.platform)
+    readonly property var availableAccounts: { backend.accounts; return backend.accountsFor(review.platform) }
     signal closed()
-    function matchingAccount() {
-        return availableAccounts.some(a => a.id === accountId) ? accountId : availableAccounts.length ? availableAccounts[0].id : ""
-    }
+    function matchingAccount() { return backend.matchingAccount(review.platform,accountId) }
     objectName: "publishDestinationReview"
     RowLayout {
         id: heading
@@ -30,8 +29,8 @@ Item {
             objectName: "publishReviewPlatform"
             Layout.fillWidth: true
             value: root.review.view.name || "X"
-            options: root.providers.map(p => p.name)
-            onChosen: next => root.review.platform = root.providers.find(p => p.name === next).id
+            options: root.backend.providerNames()
+            onChosen: next => root.review.platform = root.backend.providerId(next)
         }
     }
     Flickable {
@@ -93,7 +92,7 @@ Item {
                     objectName: "publishReviewAccount"
                     width: parent.width
                     value: root.matchingAccount() || qsTr("No connected account")
-                    options: root.availableAccounts.map(a => a.id)
+                    options: { root.availableAccounts; return root.backend.accountIds(root.review.platform) }
                     onChosen: next => root.accountId = next
                 }
                 LV.Label { width: parent.width; visible: root.availableAccounts.length === 0; text: qsTr("Connect an account through the native account service to enable uploading."); style: description; wrapMode: Text.Wrap; sizeToContentHeight: true }
@@ -109,7 +108,7 @@ Item {
                 }
                 LV.Label { width: parent.width; text: root.review.error || root.backend.errorString || (root.lastJob ? qsTr("Job: %1").arg(root.lastJob) : ""); style: description; wrapMode: Text.Wrap; sizeToContentHeight: true; visible: text.length > 0 }
                 Repeater {
-                    model: root.backend.jobs.filter(j => j.id === root.lastJob)
+                    model: NativeData.presentation.matching(root.backend.jobs, root.lastJob, "id")
                     LV.Label { required property var modelData; width: settings.width; text: modelData.state + (modelData.result ? " · " + modelData.result.message : ""); style: description; wrapMode: Text.Wrap; sizeToContentHeight: true }
                 }
             }

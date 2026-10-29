@@ -1,0 +1,121 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:6a668e41205b309c6356f1b4da0a72b40e49283fc5232675064a89b59861d2a9",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/PanelRows.md",
+    "sha256": "c215ec2257613835e4c4cfd8bcbdb8c4e35c65d4eea2fffe28d217a609bc8669",
+    "bytes": 1732,
+    "line_count": 9,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Passive parameter rows",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Passive parameter rows\n",
+      "level": 1,
+      "title": "Passive parameter rows"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "Editor, Layer, image generation and video generation panels use `App/Views/PanelRow.qml` for headings and parameter rows. The row is a plain `Item` composed from the installed LVRS labels, layouts and value controls. It does not inherit `ListItem` or `AbstractButton`, accept mouse buttons, observe hover, or enter the keyboard focus chain. Labels and unused row space therefore have no hover, pressed, selected or focus surface.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 5,
+      "end_line": 5,
+      "raw": "The row preserves the existing LVRS geometry: mini headings use 4 px horizontal and 2 px vertical insets; standard rows use 12 px horizontal and 8 px vertical insets with a 44 px minimum height. Label and description typography, selector, input and action widths retain their native LVRS values. Editor preview overrides retain the original 280 by 44 px geometry and disclosure position.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "Interactions belong to the value control. Toggles, selectors, text inputs and action buttons retain their editing signals, validation, menu and keyboard behavior. Expanding a section, adding a control and opening a preview use the right-hand control instead of clicking the label. Video validation tooltips are attached to the input field. Actual selectable layer hierarchy items, asset cards and application navigation remain interactive.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "`panelRowsKeepLabelsPassive` checks all seven used row variants. Rendered pixels must remain identical while the pointer hovers over or clicks a label, and no edit, navigation or action signal may fire. It then exercises the actual value controls. The editor panel catalog, Layer four-state, advanced-image draft/control and video workspace tests check integration with the real panel presenters and retain their geometry and editing contracts.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Passive parameter rows",
+      "anchor": "passive-parameter-rows",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000009",
+        "line": 9,
+        "text": "`panelRowsKeepLabelsPassive` checks all seven used row variants. Rendered pixels must remain identical while the pointer hovers over or clicks a label, and no edit, navigation or action signal may fire. It then exercises the actual value controls. The editor panel catalog, Layer four-state, advanced-image draft/control and video workspace tests check integration with the real panel presenters and retain their geometry and editing contracts.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

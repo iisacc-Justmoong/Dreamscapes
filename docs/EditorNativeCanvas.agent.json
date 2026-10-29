@@ -1,0 +1,897 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:8213616aa778f4b5ac8d31402cd39513324eb378a54a3e1b7c70e70e1efaa2da",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/EditorNativeCanvas.md",
+    "sha256": "f4a0c7d55c2bfa27cf48c6f79f02f27281b0b2990ba659433c22657d5979ec8b",
+    "bytes": 23026,
+    "line_count": 188,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "Editor와 네이티브 iiSharedCanvas 문서 연결",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Editor와 네이티브 iiSharedCanvas 문서 연결\n",
+      "level": 1,
+      "title": "Editor와 네이티브 iiSharedCanvas 문서 연결"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "Editor의 중앙 영역은 `EditorCanvas`, 즉 `iiSharedCanvas::CanvasItem`의 소비자 어댑터이다. 기본 화면에는 1024×1024 흰색 네이티브 `Document`를 생성한다. `New canvas`에서 선택한 치수와 배경도 동일한 문서 경로를 사용한다. Figma의 회색 예시 사각형과 별도의 PNG 표시용 `Image`는 제거했다. 흰색·검은색 배경은 벡터 자산이며, 투명 배경은 빈 문서이다.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "heading",
+      "start_line": 5,
+      "end_line": 5,
+      "raw": "## 열기와 저장\n",
+      "level": 2,
+      "title": "열기와 저장"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "드래그 중 선택·도형 윤곽, 확정 선택 영역의 점선, 브러시 크기 커서와 입력 취소는 [캔버스 도구 피드백](CanvasToolFeedback.md)에 정리한다. 표시층은 입력을 받지 않으며 문서와 별도로 작은 영역만 그린다.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "Open, platform shortcuts, local drops and Home file selection use `openDocumentSource()`. Helper reads SQLite or serialized `.iisc` documents and returns detached data and a file Alias. The editor binds its in-memory document; Helper owns file transactions. Explicit external `.iisc` open/save operations also work when no Society container is selected. Society destinations must still belong to the selected container's Files section. Invalid formats and corrupt documents preserve the current editor document. Artboard presentation uses iiSharedCanvas 0.30.0 with iiSocietyHelper 0.8.1 and retains the asset/layer contracts through `.iisc` 1.20, including older document reads.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 11,
+      "end_line": 11,
+      "raw": "Save와 플랫폼 Save 단축키는 아직 Alias에 연결되지 않은 문서에 저장 대화상자를 연다. 에디터는 메모리 문서와 Alias를 보유하며, `.iisc` 생성·갱신은 iiSocietyHelper에 요청한다. Helper가 SDK의 SQLite 작업 파일이나 직렬화 문서의 트랜잭션을 소유한다. 브러시 완료, Undo/Redo와 레이어 편집도 예상 버전과 문서 스냅샷을 전달하여 동기 커밋한다. 외부에서 바뀐 문서는 덮어쓰지 않고 오류를 표시한다. Save As는 기존 다른 파일을 덮어쓰지 않는다. 앱이 수정 가능한 DocumentFile에 직접 바인딩하지 않는다. [Society Alias 구조](SocietyAliases.md)에 소유권과 상태 동기화를 정리한다.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 12,
+      "end_line": 12,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 13,
+      "end_line": 13,
+      "raw": "PNG·JPEG 등은 Society의 Files에 같은 크기의 `.iisc` fill 문서로 먼저 영속화하고 `RasterAsset`과 `StaticBitmapLayer`로 가져온다. 기존 `.iisc` 생성 결과는 네이티브 문서를 직접 연다. File 패널의 Place Image는 현재 문서에 별도 비트맵 레이어를 추가하며 Fit, Fill, 1:1 배치를 지원한다. 원본 이미지는 보존하며 선택적인 외부 코덱 실행은 활성화하지 않는다. 래핑 위치, 재사용 및 파생 PNG 계약은 [이미지 캔버스 저장](ImageCanvasStorage.md)에 정의한다.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 14,
+      "end_line": 14,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 15,
+      "end_line": 15,
+      "raw": "Home의 파일 선택기, 최근 파일, 새 캔버스와 생성 이미지 단일·다중 선택은 같은 Editor를 사용한다. 여러 원본은 하나의 `.iisc` 문서 안의 독립적인 대지로 가져오고 문서 순서에 따른 수평 페이지 뷰로 표시한다. 선택 페이지는 중앙에 맞추며 이웃 페이지와 하단의 작은 프리뷰를 눌러 이동한다. 모든 입력을 먼저 검증하고 실패 시 현재 프로젝트를 유지한다. [여러 캔버스 프로젝트](MultiCanvasProject.md)에 선택·대지 탐색·저장을, [Home 연결](HomeEditorRoutes.md)에 진입·복귀를 정리한다.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 16,
+      "end_line": 16,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "File 패널의 Open as copy를 켜면 작업 파일도 분리된 메모리 문서로 가져와 원본에 바인딩하지 않는다. 새 `.iisc` 경로에 저장하기 전까지 그 편집은 원본 파일에 반영되지 않는다. 상단 Open과 Home 파일 열기는 해당 작업 파일을 직접 편집하는 경로이다. Place Image의 Embed 모드를 연결했으며 Link와 Smart 모드는 안내 후 거부한다. 네이티브 저장은 레이어를 항상 보존한다. File 패널의 형식 필터·외부 변경 감시·평탄화 같은 나머지 초안 설정은 아직 적용하지 않는다.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "heading",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "## 보기와 편집\n",
+      "level": 2,
+      "title": "보기와 편집"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 20,
+      "end_line": 20,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 21,
+      "end_line": 21,
+      "raw": "에디터 하단의 상시 안내문을 제거했다. 유한 캔버스는 실제 캔버스 표시 영역을 기준으로 중앙 정렬되며, 화면 안에 들어오는 축은 패닝할 수 없다. 확대되어 화면을 넘는 축은 캔버스 가장자리까지만 이동할 수 있다. 상세 계약과 검증은 [EditorViewport.md](EditorViewport.md)에 정리했다.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 22,
+      "end_line": 22,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 23,
+      "end_line": 23,
+      "raw": "여러 대지의 보기 배치는 저장된 X/Y 위치와 독립적이다. 선택 대지는 실제 네이티브 렌더러로 편집하며 SDK의 `renderArtboardId`로 해당 대지의 배경과 소유 레이어만 표시한다. 원래 좌표에서 다른 대지와 겹쳐도 다른 대지·소속 없는 레이어가 선택 페이지 위에 나타나지 않는다. 대지 경계의 클립은 이 선택 렌더를 감싸며 입력 좌표와 전체 문서의 원점은 유지한다. 표시 focus는 원본 레이어의 표시 여부, 선택·Undo 이력, 문서 revision이나 저장 형식을 바꾸지 않는다. [SDK의 대지 표시 계약](../../../SDK/iiSharedCanvas/docs/ARTBOARD_PRESENTATION.md)에 렌더와 편집의 경계를 정리한다.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 24,
+      "end_line": 24,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 25,
+      "end_line": 25,
+      "raw": "앞뒤 세 페이지는 실제 문서의 작은 렌더를 수평으로 배치한다. 선택 페이지를 가장 위에 두고 가까운 페이지부터 먼 페이지 순서로 겹친다. 멀어지는 페이지의 너비·높이·축소율을 앞 단계의 86% 이하로 제한하므로 가로·세로 대지가 섞여도 멀리 있는 페이지가 커지지 않는다. 페이지 바깥쪽 경계는 선택 페이지 양옆 여백의 62%·80%·98%에 배치하여 먼 페이지의 가장자리가 단계별로 드러나게 한다. 각 프리뷰 뒤에 불투명 매트 바탕을 두고 이미지와 매트 전체에 Darken을 적용한다. 블러·Darken은 거리에 따라 강해지며, 수직 중심선은 동일하게 유지한다. 확대·패닝은 선택 페이지에 적용하며 클립 바깥의 캔버스 배경에서도 휠·중간 버튼 이동을 사용할 수 있다.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 26,
+      "end_line": 26,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 27,
+      "end_line": 27,
+      "raw": "하단의 76px 프리뷰 스트립은 88×68px 선택 영역과 72×48px 이미지 영역을 사용하며 수평으로 스크롤하고 누른 페이지를 선택한다. 덱은 최대 512×512px, 하단 프리뷰는 최대 144×96px로 실제 대지를 렌더한다. 프리뷰 API는 축별 1024px와 128개 캐시 항목으로 제한한다. 같은 편집에서 발생한 revision·문서 변경 알림은 합치며, 브러시 스트로크 중에는 UI 프리뷰 갱신을 유예하여 완료·취소 시 한 번 갱신한다. 편집 중인 네이티브 캔버스는 계속 표시한다. 숨겨진 프리뷰 스트립은 렌더하지 않는다. 페이지를 선택하거나 화면 구성을 바꾸어도 네이티브 대지 좌표와 저장 문서는 바뀌지 않는다.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 28,
+      "end_line": 28,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 29,
+      "end_line": 29,
+      "raw": "에디터를 숨기면 프리뷰 delegate는 제거하되 페이지 표시 모드의 76px 예약 높이는 유지한다. 다시 표시하면 `project.currentIndex`에 대한 ListView의 선택 binding을 복구하고 현재 페이지의 프리뷰가 보이도록 스크롤한다. 도크·툴바의 예약 너비와 프레임 컨트롤 높이, 문서 명령·페이지 탐색·오류 영역의 예약 높이도 실제 레이아웃 상태를 기준으로 유지한다. 부모 뷰가 숨겨졌다는 이유만으로 편집 영역의 치수를 바꾸거나 자동 Fit을 호출하지 않으므로 네이티브 viewport와 확대율·패닝을 보존한다. `multiCanvasProjectSelection`의 회귀 검사는 두 차례 숨김·재표시 후 마지막 페이지 선택과 프리뷰 노출, viewport·zoom·pan 및 직렬화 문서 바이트의 불변성을 확인하도록 구성한다.\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "list",
+      "start_line": 31,
+      "end_line": 35,
+      "raw": "- SDK의 혼합 레이어 렌더러가 현재 프레임의 실제 문서를 표시한다. Fit 버튼, SDK 확대·축소, 중간 버튼 이동을 사용한다. 저장된 무한 캔버스와 자산·타임라인 정보도 네이티브 문서에 보존한다. 현재 화면에는 프레임 탐색 컨트롤을 추가하지 않았다.\n- Brush는 크기, 경도, 투명도, 흐름, 간격, 안정화와 상단 Paint Color를 iiPaintEngine 브러시에 전달한다. 입력 경로는 `EditorCanvas → iiSharedCanvas::CanvasItem → BitmapEditor / ChunkedBitmapEditor → iiPaintEngine`이다. iiPaintEngine의 `appendRasterDabs()`, `projectBrushDabs()`, `paintRasterSamples()`가 실제 픽셀을 생성하며, 제품은 별도의 브러시 래스터라이저를 구현하지 않는다. 비트맵 레이어가 선택되지 않았으면 새 Paint 레이어를 만든다. 포인터 궤적과 Dab은 실행 중에만 사용하고, 커밋된 픽셀만 `.iisc` 문서에 저장한다.\n- Eraser의 Pixel 모드는 같은 iiPaintEngine의 `DestinationOut` 합성으로 선택된 비트맵 레이어를 지운다. 다른 지우개 모드에는 엔진 동작을 연결하지 않았다. Undo/Redo는 SDK가 제공하는 선택 비트맵의 픽셀 편집 이력에 적용된다. 구조·벡터·레이어 속성 편집을 취소하는 전체 문서 이력은 아직 없다.\n- Elements는 [10개 Figma 상태별 패널](EditorElements.md)을 사용한다. Rectangle·Ellipse·Polygon·Line / Arrow 생성과 선택 요소의 크기·기하·색상·불투명도·합성을 편집한다. Arc·내부 반경·Star·선 끝 장식·획 정렬·Gradient/Image 채우기도 현재 렌더러에 연결되어 있다. 도형 목록과 선택 개수는 현재 대지의 실제 요소에서 읽으며 전체·반전·해제 선택은 문서 내용을 바꾸지 않는다. 세션에서 생성한 도형의 설정은 문서 Undo/Redo와 함께 복원된다. 재개방한 외부 벡터의 생성 파라미터 복원과 복수 도형 일괄 편집은 지원하지 않는다. 상세 범위는 [ElementsSelection.md](ElementsSelection.md)에 기록한다.\n- Select의 Object 모드는 최상단부터 현재 프레임의 렌더링 픽셀을 검사해 실제 레이어를 선택한다. Layers 버튼은 문서의 실제 레이어를 위에서 아래 순서로 표시한다. 선택, 표시 여부, 이름, 투명도, X/Y 이동, Paint 레이어 추가와 레이어 삭제를 제공한다. Layers 패널의 Opacity와 Blend 입력, Canvas 패널의 Dimensions도 네이티브 편집에 연결된다.\n",
+      "items": [
+        {
+          "marker": "-",
+          "text": "SDK의 혼합 레이어 렌더러가 현재 프레임의 실제 문서를 표시한다. Fit 버튼, SDK 확대·축소, 중간 버튼 이동을 사용한다. 저장된 무한 캔버스와 자산·타임라인 정보도 네이티브 문서에 보존한다. 현재 화면에는 프레임 탐색 컨트롤을 추가하지 않았다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "Brush는 크기, 경도, 투명도, 흐름, 간격, 안정화와 상단 Paint Color를 iiPaintEngine 브러시에 전달한다. 입력 경로는 `EditorCanvas → iiSharedCanvas::CanvasItem → BitmapEditor / ChunkedBitmapEditor → iiPaintEngine`이다. iiPaintEngine의 `appendRasterDabs()`, `projectBrushDabs()`, `paintRasterSamples()`가 실제 픽셀을 생성하며, 제품은 별도의 브러시 래스터라이저를 구현하지 않는다. 비트맵 레이어가 선택되지 않았으면 새 Paint 레이어를 만든다. 포인터 궤적과 Dab은 실행 중에만 사용하고, 커밋된 픽셀만 `.iisc` 문서에 저장한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "Eraser의 Pixel 모드는 같은 iiPaintEngine의 `DestinationOut` 합성으로 선택된 비트맵 레이어를 지운다. 다른 지우개 모드에는 엔진 동작을 연결하지 않았다. Undo/Redo는 SDK가 제공하는 선택 비트맵의 픽셀 편집 이력에 적용된다. 구조·벡터·레이어 속성 편집을 취소하는 전체 문서 이력은 아직 없다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "Elements는 [10개 Figma 상태별 패널](EditorElements.md)을 사용한다. Rectangle·Ellipse·Polygon·Line / Arrow 생성과 선택 요소의 크기·기하·색상·불투명도·합성을 편집한다. Arc·내부 반경·Star·선 끝 장식·획 정렬·Gradient/Image 채우기도 현재 렌더러에 연결되어 있다. 도형 목록과 선택 개수는 현재 대지의 실제 요소에서 읽으며 전체·반전·해제 선택은 문서 내용을 바꾸지 않는다. 세션에서 생성한 도형의 설정은 문서 Undo/Redo와 함께 복원된다. 재개방한 외부 벡터의 생성 파라미터 복원과 복수 도형 일괄 편집은 지원하지 않는다. 상세 범위는 [ElementsSelection.md](ElementsSelection.md)에 기록한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "Select의 Object 모드는 최상단부터 현재 프레임의 렌더링 픽셀을 검사해 실제 레이어를 선택한다. Layers 버튼은 문서의 실제 레이어를 위에서 아래 순서로 표시한다. 선택, 표시 여부, 이름, 투명도, X/Y 이동, Paint 레이어 추가와 레이어 삭제를 제공한다. Layers 패널의 Opacity와 Blend 입력, Canvas 패널의 Dimensions도 네이티브 편집에 연결된다.",
+          "checked": null
+        }
+      ]
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 36,
+      "end_line": 36,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "paragraph",
+      "start_line": 37,
+      "end_line": 37,
+      "raw": "유한 비트맵 레이어는 SDK의 64×1024×1024 픽셀 할당 한계를 적용한다. 큰 인쇄용 캔버스의 벡터 배경과 희소 렌더링은 유지하며, 무한 캔버스의 새 Paint 레이어는 청크 기반 자산을 사용한다.\n"
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 38,
+      "end_line": 38,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "paragraph",
+      "start_line": 39,
+      "end_line": 39,
+      "raw": "19개 Figma 도구의 외형과 초안 설정은 유지한다. Reset은 현재 도구의 초안과 브러시 설정을 초기화하며, 이미 편집한 문서를 복원하지 않는다. 카메라·생성·필터·마스크·외부 연결 등의 다른 동작은 미구현 안내를 표시한다. 초안은 Editor 수명 동안 메모리에 유지하며, 네이티브 문서에 설정값 전체를 저장한 것으로 취급하지 않는다.\n"
+    },
+    {
+      "id": "b000036",
+      "kind": "blank",
+      "start_line": 40,
+      "end_line": 40,
+      "raw": "\n"
+    },
+    {
+      "id": "b000037",
+      "kind": "heading",
+      "start_line": 41,
+      "end_line": 41,
+      "raw": "## Native image presentation and artboard focus (iiSharedCanvas 0.29.0)\n",
+      "level": 2,
+      "title": "Native image presentation and artboard focus (iiSharedCanvas 0.29.0)"
+    },
+    {
+      "id": "b000038",
+      "kind": "blank",
+      "start_line": 42,
+      "end_line": 42,
+      "raw": "\n"
+    },
+    {
+      "id": "b000039",
+      "kind": "paragraph",
+      "start_line": 43,
+      "end_line": 63,
+      "raw": "The editor consumes the SDK's full-resolution raster assets from binary `.iisc`\nsnapshots and SQLite working documents for the active editing page, without\nresizing source pixels. Neighbor cards and the bottom navigation strip use\nseparate bounded artboard previews; they do not replace the active native canvas.\n`EditorProject::attachCanvas` selects the SDK's smooth\npresentation policy, mounts the native document item in its destination window,\nand supplies the actual viewport size before fitting. Remounting an unchanged\nviewport preserves the user's zoom and permitted pan; fitting axes are locked to\nthe center as described in [EditorViewport.md](EditorViewport.md). Presentation changes do not mark the\ndocument as edited. In page presentation mode, fitting and pan constraints use\nthe active artboard's extent and origin instead of the complete native workspace.\nThe SDK's `renderArtboardId` isolates the active artboard's composition in a\ndetached render snapshot, including when saved artboard regions overlap. The\nworkspace coordinate system remains intact, and the native renderer retains\nphysical-resolution tiles, layer blends, clipping and timeline sampling. Binding\nanother document updates or clears the selected presentation ID. The editor\nretains one editing owner shared by all pages.\nHiding the editor releases preview delegates while retaining layout reservations,\nso the native viewport size and camera do not change. On restoration, the preview\nlist reinstalls its binding to the selected project page and brings that preview\ninto view.\n"
+    },
+    {
+      "id": "b000040",
+      "kind": "blank",
+      "start_line": 64,
+      "end_line": 64,
+      "raw": "\n"
+    },
+    {
+      "id": "b000041",
+      "kind": "paragraph",
+      "start_line": 65,
+      "end_line": 68,
+      "raw": "SDK tile LOD includes the window's physical pixel ratio. A 45% view on a 2× display\nretains native-resolution texture tiles. Minification uses alpha-correct filtering,\nand GPU textures use linear presentation. Nearest sampling remains available in\nthe SDK for pixel inspection; no second product-specific resampler is introduced.\n"
+    },
+    {
+      "id": "b000042",
+      "kind": "blank",
+      "start_line": 69,
+      "end_line": 69,
+      "raw": "\n"
+    },
+    {
+      "id": "b000043",
+      "kind": "paragraph",
+      "start_line": 70,
+      "end_line": 79,
+      "raw": "`Dreamscapes.EditorRenderQuality` opens both persisted document forms through the\nreal LVRS editor, compares source pixels after reopening, and compares the visible\ncanvas with a smooth reference image. The test writes screenshots under\n`build/verification/iisc-render-quality/`. `DREAMSCAPES_RENDER_IMAGE` may select a\nlocal source image for native Metal verification. `DREAMSCAPES_RENDER_DOCUMENT`\nadditionally checks an existing working document against that source without\nediting the file. `mountUsesFullDocumentAndPhysicalViewport`\nchecks viewport sizing, window pixel ratio, smooth rendering and preserved camera\nstate. These checks do not imply that previously submitted generation jobs were\nrerun or that an active user document was replaced.\n"
+    },
+    {
+      "id": "b000044",
+      "kind": "blank",
+      "start_line": 80,
+      "end_line": 80,
+      "raw": "\n"
+    },
+    {
+      "id": "b000045",
+      "kind": "heading",
+      "start_line": 81,
+      "end_line": 81,
+      "raw": "## 검증\n",
+      "level": 2,
+      "title": "검증"
+    },
+    {
+      "id": "b000046",
+      "kind": "blank",
+      "start_line": 82,
+      "end_line": 82,
+      "raw": "\n"
+    },
+    {
+      "id": "b000047",
+      "kind": "paragraph",
+      "start_line": 83,
+      "end_line": 87,
+      "raw": "2026-10-05 raster-presentation verification uses iiSharedCanvas 0.25.0 on macOS\narm64 with Qt 6.8.3. All 53 SDK functional tests and 18 staged-package consumer\ntests passed. The separate documentation contract still fails on a pre-existing\nEnglish literal missing from the translated dependency document. Native Metal\nchecks passed at 2× and 4× device pixel ratios.\n"
+    },
+    {
+      "id": "b000048",
+      "kind": "blank",
+      "start_line": 88,
+      "end_line": 88,
+      "raw": "\n"
+    },
+    {
+      "id": "b000049",
+      "kind": "paragraph",
+      "start_line": 89,
+      "end_line": 99,
+      "raw": "The editor opened binary snapshots, new working documents, and the working\ndocument saved by the earlier app. All original 1024×1368 raster pixels matched\nafter reopening. At 45% zoom on a 2× display, all three visible Metal canvases\nused LOD 1 and had mean RGB error 1.8304 against the smooth source reference.\nSource PNG and existing working-file SHA-256 hashes remained unchanged.\nScreenshots are in `build/verification/iisc-render-quality/native/`; logs and\nsource-preservation records are in `build/verification/iisc-render-quality/`\nand `build/render-quality-native.log`. The full editor-canvas test executable\nalso passed all 16 QtTest cases. The canonical bundle remains\n`build/bin/Dreamscapes.app`, with one app and no nested app, and its deployment\nperforms strict recursive code-signature verification.\n"
+    },
+    {
+      "id": "b000050",
+      "kind": "blank",
+      "start_line": 100,
+      "end_line": 100,
+      "raw": "\n"
+    },
+    {
+      "id": "b000051",
+      "kind": "paragraph",
+      "start_line": 101,
+      "end_line": 110,
+      "raw": "The final scoped CTest run passed 7/7: EditorCanvas, EditorProject,\nEditorRenderQuality, EditorCanvasGui, HomeEditorRoutes, MultiCanvasGui and\nHomeCanvas. The broader run passed 27/29; the all-in-one GUI run crashed in\nthe main-window shortcut context, and MCP exceeded its 90-second limit.\nA preceding-generation-view test chain reproduces shortcut failure without\nthe new render-quality test. Extended MCP startup reaches the root but a\nseparate generation-queue fixture reports a failed job. These broader failures\nremain recorded, rather than reported as passing renderer checks.\nThe user's already-running app was left intact after a new active generation\nwas observed; the verified canonical bundle is ready for a later launch.\n"
+    },
+    {
+      "id": "b000052",
+      "kind": "blank",
+      "start_line": 111,
+      "end_line": 111,
+      "raw": "\n"
+    },
+    {
+      "id": "b000053",
+      "kind": "paragraph",
+      "start_line": 112,
+      "end_line": 112,
+      "raw": "`Dreamscapes.EditorCanvas`는 네이티브 빈 문서, 브러시와 Undo/Redo의 작업 파일 반영, 바이너리 스냅샷·이미지 가져오기, 기존 원본 보존, 잘못된 열기·편집 거부를 검사한다. `Dreamscapes.EditorCanvasGui`는 실제 Editor의 포인터 브러시·지우개 입력, Paint Color, Open/Save 대화상자 연결, Undo/Redo 버튼, 레이어 시트, 벡터 드래그 생성, Object 선택, 저장 문서의 독립 재개방을 검사한다. 기존 Home·결과 화면의 초안·선택 유지 검사도 함께 실행한다.\n"
+    },
+    {
+      "id": "b000054",
+      "kind": "blank",
+      "start_line": 113,
+      "end_line": 113,
+      "raw": "\n"
+    },
+    {
+      "id": "b000055",
+      "kind": "paragraph",
+      "start_line": 114,
+      "end_line": 114,
+      "raw": "`brushPixelsMatchIiPaintEngine`은 iiPaintEngine 공개 API를 직접 호출한 기준 픽셀과 Editor의 `.iisc` 작업 파일을 독립적으로 재개방한 픽셀을 전체 비교한다. 유한·무한 캔버스별로 불투명 브러시, 부드러운 반투명 브러시, 간격·압력 입력, Flow 0의 8개 조합을 사용한다. 무한 캔버스에서는 음수 좌표와 청크 경계를 가로지른다. Pixel Eraser, Undo/Redo, 진행 중 스트로크 취소도 같은 기준 픽셀과 비교한다. 실제 Figma 패널의 세부 Shape·Blend·압력 영향 비율·Tilt 설정 전체를 연결했다는 의미는 아니다.\n"
+    },
+    {
+      "id": "b000056",
+      "kind": "blank",
+      "start_line": 115,
+      "end_line": 115,
+      "raw": "\n"
+    },
+    {
+      "id": "b000057",
+      "kind": "paragraph",
+      "start_line": 116,
+      "end_line": 116,
+      "raw": "2026-10-03 iiPaintEngine 경로의 추가 검증에서 위 8개 조합은 모두 통과했다. `Dreamscapes.EditorCanvas`와 `Dreamscapes.EditorCanvasGui` CTest 2개가 통과했으며, QtTest 세부 결과는 초기화·종료를 포함해 20개 통과·실패 0개이다. 제품 전체 빌드도 통과했다. 빌드된 앱과 iiSharedCanvas 0.24.0 라이브러리의 실제 의존성이 번들 내부 `libiiPaintEngine.dylib`를 참조함을 확인했다. 기록은 `build/native-editor/paint-engine-*.log`와 `paint-engine-verification.json`에 보관한다.\n"
+    },
+    {
+      "id": "b000058",
+      "kind": "blank",
+      "start_line": 117,
+      "end_line": 117,
+      "raw": "\n"
+    },
+    {
+      "id": "b000059",
+      "kind": "fenced_code",
+      "start_line": 118,
+      "end_line": 122,
+      "raw": "```sh\ncmake -S . -B build\ncmake --build build --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(EditorCanvas|EditorCanvasGui|EditorToolPanels|NewCanvas|NewCanvasGui)$' --output-on-failure\n```\n",
+      "language": "sh",
+      "code": "cmake -S . -B build\ncmake --build build --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(EditorCanvas|EditorCanvasGui|EditorToolPanels|NewCanvas|NewCanvasGui)$' --output-on-failure\n",
+      "closed": true
+    },
+    {
+      "id": "b000060",
+      "kind": "blank",
+      "start_line": 123,
+      "end_line": 123,
+      "raw": "\n"
+    },
+    {
+      "id": "b000061",
+      "kind": "paragraph",
+      "start_line": 124,
+      "end_line": 124,
+      "raw": "GUI 증거와 `.iisc` 예시는 로컬 `build/native-editor/`에 보관한다. Qt 자동 입력 및 macOS 빌드 번들 검증이며, 물리적 태블릿의 압력 입력과 다른 운영체제의 실제 기기 실행은 별도 검증 대상이다.\n"
+    },
+    {
+      "id": "b000062",
+      "kind": "blank",
+      "start_line": 125,
+      "end_line": 125,
+      "raw": "\n"
+    },
+    {
+      "id": "b000063",
+      "kind": "paragraph",
+      "start_line": 126,
+      "end_line": 126,
+      "raw": "2026-10-03 macOS arm64·Qt 6.8.3 Release 검증에서 관련 CTest 6개가 모두 통과했다. 기존 19개 도구 패널, 네이티브 문서, 실제 Editor 입력·저장·재개방, 새 캔버스 및 Home 캔버스 검사를 포함한다. GUI 실행의 QML 경고는 0개이며 빌드된 앱의 진입점 기동 검사는 3개 통과·실패 0개이다. `codesign --verify --deep --strict`와 단일 앱 감사도 통과했다. canonical 산출물은 `build/bin/Dreamscapes.app` 하나이며 중첩 앱은 없다.\n"
+    },
+    {
+      "id": "b000064",
+      "kind": "blank",
+      "start_line": 127,
+      "end_line": 127,
+      "raw": "\n"
+    },
+    {
+      "id": "b000065",
+      "kind": "paragraph",
+      "start_line": 128,
+      "end_line": 128,
+      "raw": "`build/native-editor/example.iisc`는 GUI에서 그린 비트맵과 네이티브 벡터 레이어를 함께 보존한 64×64 검증 문서이다. SQLite 무결성 검사 결과는 `ok`이다. `editor-native.png`는 이 문서를 확대해 표시한 실제 Editor 캡처이며 문서 자체의 대체물이 아니다. 실행 로그와 산출물 SHA-256은 `verification.json`에 기록했다. 실행 중인 사용자 앱을 재시작하거나 설치된 앱 번들을 교체하지 않았다.\n"
+    },
+    {
+      "id": "b000066",
+      "kind": "blank",
+      "start_line": 129,
+      "end_line": 129,
+      "raw": "\n"
+    },
+    {
+      "id": "b000067",
+      "kind": "paragraph",
+      "start_line": 130,
+      "end_line": 130,
+      "raw": "2026-10-03 검증에서는 iiSharedCanvas 소스의 빌드와 전체 SDK 검사도 실행했다. 기능 검사 52개는 통과했으며, 기존 한국어 문서 번역 이후 영어 문구를 찾는 `iiSharedCanvas.ProjectContract` 1개가 실패했다. 해당 기존 변경은 보존했다. 스테이징 패키지의 독립 설치 소비자 17개와 별도 소비자 실행 프로그램은 모두 통과했으며, 검증한 SDK 0.24.0 설치본에 제품을 연결했다. 그 당시에는 SDK 코드 변경이 없었다.\n"
+    },
+    {
+      "id": "b000068",
+      "kind": "blank",
+      "start_line": 131,
+      "end_line": 131,
+      "raw": "\n"
+    },
+    {
+      "id": "b000069",
+      "kind": "heading",
+      "start_line": 132,
+      "end_line": 132,
+      "raw": "### 2026-10-09 page presentation and SDK 0.29.0\n",
+      "level": 3,
+      "title": "2026-10-09 page presentation and SDK 0.29.0"
+    },
+    {
+      "id": "b000070",
+      "kind": "blank",
+      "start_line": 133,
+      "end_line": 133,
+      "raw": "\n"
+    },
+    {
+      "id": "b000071",
+      "kind": "paragraph",
+      "start_line": 134,
+      "end_line": 142,
+      "raw": "The final page-presentation product build succeeded. Ten scoped CTest groups\npassed in 125.60 seconds, including EditorCanvas, EditorProject, MultiCanvasGui,\nEditorCanvasGui and EditorRenderQuality. The separate Cocoa/Metal page test passed\nboth desktop and mobile layouts on Apple M1 Max (four QtTest results including\nsetup/cleanup, zero failures/skips and zero binding-loop warnings). It checks\nnative selected-artboard pixels even with overlapping persisted regions, real\nbounded neighboring/strip previews, measured blur and Darken, editing and native\nsave/reopen, and camera/document preservation across two hide/show cycles.\nThe two saved SQLite working documents passed `quick_check`.\n"
+    },
+    {
+      "id": "b000072",
+      "kind": "blank",
+      "start_line": 143,
+      "end_line": 143,
+      "raw": "\n"
+    },
+    {
+      "id": "b000073",
+      "kind": "paragraph",
+      "start_line": 144,
+      "end_line": 150,
+      "raw": "The prerequisite SDK 0.29.0 build passed all 59 source tests and both independent\n23-test staged and host-installed consumer suites. The host consumer loaded the\nverified 0.29.0 library; the previous 0.28 library was preserved. SDK focus changes\nretain document ownership, world coordinates and revisions and remain outside\nthe serialized editing document. See\n[ARTBOARD_PRESENTATION.md](../../../SDK/iiSharedCanvas/docs/ARTBOARD_PRESENTATION.md)\nfor the SDK focus contract.\n"
+    },
+    {
+      "id": "b000074",
+      "kind": "blank",
+      "start_line": 151,
+      "end_line": 151,
+      "raw": "\n"
+    },
+    {
+      "id": "b000075",
+      "kind": "paragraph",
+      "start_line": 152,
+      "end_line": 161,
+      "raw": "The canonical `build/bin/Dreamscapes.app` passed strict recursive signature\nverification and a fresh one-app/no-nested-app audit. A native Cocoa entry-point\nprobe with isolated storage settings, container/helper endpoints and disabled\nsession restoration loaded the QML root and one window in 1.700260 seconds. Actual\nloader output confirmed its embedded iiSharedCanvas 0.29 library, and the\nexecutable hash did not change during the probe. A packaged-start QtTest attempted\nin parallel exceeded its root-load deadline; that diagnostic remains recorded\nalongside the independent successful native probe rather than being reported as\na passing QtTest. Existing unrelated linker/lint warnings are not treated as\npage-view failures.\n"
+    },
+    {
+      "id": "b000076",
+      "kind": "blank",
+      "start_line": 162,
+      "end_line": 162,
+      "raw": "\n"
+    },
+    {
+      "id": "b000077",
+      "kind": "paragraph",
+      "start_line": 163,
+      "end_line": 169,
+      "raw": "The verified source checkpoint, exact scoped results, screenshots, hashes and\ndiagnostics are in `build/page-document-20261009/final-verification.json`.\nLater concurrent changes to unrelated shared GUI test helpers are distinguished\nfrom the compiled checkpoint. This task did not replace `/Applications` or restart\nthe active user app. The mobile layout was tested on macOS; it is not a physical\niOS/Android or Windows runtime result. GPU blur is unavailable on the software\nrenderer, where darkening and navigation remain supported.\n"
+    },
+    {
+      "id": "b000078",
+      "kind": "blank",
+      "start_line": 170,
+      "end_line": 170,
+      "raw": "\n"
+    },
+    {
+      "id": "b000079",
+      "kind": "heading",
+      "start_line": 171,
+      "end_line": 171,
+      "raw": "## Native layer timeline\n",
+      "level": 2,
+      "title": "Native layer timeline"
+    },
+    {
+      "id": "b000080",
+      "kind": "blank",
+      "start_line": 172,
+      "end_line": 172,
+      "raw": "\n"
+    },
+    {
+      "id": "b000081",
+      "kind": "paragraph",
+      "start_line": 173,
+      "end_line": 179,
+      "raw": "The bottom editor timeline reads this same `EditorCanvas` document through\n`EditorTimelineModel`. Static and dynamic visual layers retain independent,\npotentially overlapping frame ranges; dynamic source keys select their actual\nframe contents. Timing, source, visibility, duplication and audio edits use\n`EditorCanvas::commit`, so synchronization, undo/redo and working-file storage\nremain shared with other editor operations. No second serialized timeline recipe\nis maintained. See [EditorLayerTimeline.md](EditorLayerTimeline.md).\n"
+    },
+    {
+      "id": "b000082",
+      "kind": "blank",
+      "start_line": 180,
+      "end_line": 180,
+      "raw": "\n"
+    },
+    {
+      "id": "b000083",
+      "kind": "paragraph",
+      "start_line": 181,
+      "end_line": 188,
+      "raw": "Static layers created without an explicit range use at least one second of the\ncurrent rational document FPS, rounded up to a whole frame. A single bitmap or\nvector source remains visible for that entire range. The editor applies this\ndefault to new backgrounds, imported stills and newly inserted static layers,\nand upgrades implicit all-static one-frame documents when opening them. Explicit\ntrim ranges and existing dynamic/audio timing are preserved. The policy uses\niiSharedCanvas's native frame count and inclusive layer ranges; it does not add\nSDK schema fields or duplicate static frame contents.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Editor와 네이티브 iiSharedCanvas 문서 연결",
+      "anchor": "editor와-네이티브-iisharedcanvas-문서-연결",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000005",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "열기와 저장",
+      "anchor": "열기와-저장",
+      "start_line": 5
+    },
+    {
+      "block_id": "b000019",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "보기와 편집",
+      "anchor": "보기와-편집",
+      "start_line": 19
+    },
+    {
+      "block_id": "b000037",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Native image presentation and artboard focus (iiSharedCanvas 0.29.0)",
+      "anchor": "native-image-presentation-and-artboard-focus-iisharedcanvas-0290",
+      "start_line": 41
+    },
+    {
+      "block_id": "b000045",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "검증",
+      "anchor": "검증",
+      "start_line": 81
+    },
+    {
+      "block_id": "b000069",
+      "parent_id": "b000045",
+      "level": 3,
+      "title": "2026-10-09 page presentation and SDK 0.29.0",
+      "anchor": "2026-10-09-page-presentation-and-sdk-0290",
+      "start_line": 132
+    },
+    {
+      "block_id": "b000079",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Native layer timeline",
+      "anchor": "native-layer-timeline",
+      "start_line": 171
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000009",
+        "line": 9,
+        "text": "Open, platform shortcuts, local drops and Home file selection use `openDocumentSource()`. Helper reads SQLite or serialized `.iisc` documents and returns detached data and a file Alias. The editor binds its in-memory document; Helper owns file transactions. Explicit external `.iisc` open/save operations also work when no Society container is selected. Society destinations must still belong to the selected container's Files section. Invalid formats and corrupt documents preserve the current editor document. Artboard presentation uses iiSharedCanvas 0.30.0 with iiSocietyHelper 0.8.1 and retains the asset/layer contracts through `.iisc` 1.20, including older document reads.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000011",
+        "line": 11,
+        "text": "Save와 플랫폼 Save 단축키는 아직 Alias에 연결되지 않은 문서에 저장 대화상자를 연다. 에디터는 메모리 문서와 Alias를 보유하며, `.iisc` 생성·갱신은 iiSocietyHelper에 요청한다. Helper가 SDK의 SQLite 작업 파일이나 직렬화 문서의 트랜잭션을 소유한다. 브러시 완료, Undo/Redo와 레이어 편집도 예상 버전과 문서 스냅샷을 전달하여 동기 커밋한다. 외부에서 바뀐 문서는 덮어쓰지 않고 오류를 표시한다. Save As는 기존 다른 파일을 덮어쓰지 않는다. 앱이 수정 가능한 DocumentFile에 직접 바인딩하지 않는다. [Society Alias 구조](SocietyAliases.md)에 소유권과 상태 동기화를 정리한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 13,
+        "text": "PNG·JPEG 등은 Society의 Files에 같은 크기의 `.iisc` fill 문서로 먼저 영속화하고 `RasterAsset`과 `StaticBitmapLayer`로 가져온다. 기존 `.iisc` 생성 결과는 네이티브 문서를 직접 연다. File 패널의 Place Image는 현재 문서에 별도 비트맵 레이어를 추가하며 Fit, Fill, 1:1 배치를 지원한다. 원본 이미지는 보존하며 선택적인 외부 코덱 실행은 활성화하지 않는다. 래핑 위치, 재사용 및 파생 PNG 계약은 [이미지 캔버스 저장](ImageCanvasStorage.md)에 정의한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000017",
+        "line": 17,
+        "text": "File 패널의 Open as copy를 켜면 작업 파일도 분리된 메모리 문서로 가져와 원본에 바인딩하지 않는다. 새 `.iisc` 경로에 저장하기 전까지 그 편집은 원본 파일에 반영되지 않는다. 상단 Open과 Home 파일 열기는 해당 작업 파일을 직접 편집하는 경로이다. Place Image의 Embed 모드를 연결했으며 Link와 Smart 모드는 안내 후 거부한다. 네이티브 저장은 레이어를 항상 보존한다. File 패널의 형식 필터·외부 변경 감시·평탄화 같은 나머지 초안 설정은 아직 적용하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000027",
+        "line": 27,
+        "text": "하단의 76px 프리뷰 스트립은 88×68px 선택 영역과 72×48px 이미지 영역을 사용하며 수평으로 스크롤하고 누른 페이지를 선택한다. 덱은 최대 512×512px, 하단 프리뷰는 최대 144×96px로 실제 대지를 렌더한다. 프리뷰 API는 축별 1024px와 128개 캐시 항목으로 제한한다. 같은 편집에서 발생한 revision·문서 변경 알림은 합치며, 브러시 스트로크 중에는 UI 프리뷰 갱신을 유예하여 완료·취소 시 한 번 갱신한다. 편집 중인 네이티브 캔버스는 계속 표시한다. 숨겨진 프리뷰 스트립은 렌더하지 않는다. 페이지를 선택하거나 화면 구성을 바꾸어도 네이티브 대지 좌표와 저장 문서는 바뀌지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000031",
+        "line": 32,
+        "text": "- Brush는 크기, 경도, 투명도, 흐름, 간격, 안정화와 상단 Paint Color를 iiPaintEngine 브러시에 전달한다. 입력 경로는 `EditorCanvas → iiSharedCanvas::CanvasItem → BitmapEditor / ChunkedBitmapEditor → iiPaintEngine`이다. iiPaintEngine의 `appendRasterDabs()`, `projectBrushDabs()`, `paintRasterSamples()`가 실제 픽셀을 생성하며, 제품은 별도의 브러시 래스터라이저를 구현하지 않는다. 비트맵 레이어가 선택되지 않았으면 새 Paint 레이어를 만든다. 포인터 궤적과 Dab은 실행 중에만 사용하고, 커밋된 픽셀만 `.iisc` 문서에 저장한다.",
+        "basis": "lexical_match",
+        "context": "list"
+      },
+      {
+        "block_id": "b000031",
+        "line": 34,
+        "text": "- Elements는 [10개 Figma 상태별 패널](EditorElements.md)을 사용한다. Rectangle·Ellipse·Polygon·Line / Arrow 생성과 선택 요소의 크기·기하·색상·불투명도·합성을 편집한다. Arc·내부 반경·Star·선 끝 장식·획 정렬·Gradient/Image 채우기도 현재 렌더러에 연결되어 있다. 도형 목록과 선택 개수는 현재 대지의 실제 요소에서 읽으며 전체·반전·해제 선택은 문서 내용을 바꾸지 않는다. 세션에서 생성한 도형의 설정은 문서 Undo/Redo와 함께 복원된다. 재개방한 외부 벡터의 생성 파라미터 복원과 복수 도형 일괄 편집은 지원하지 않는다. 상세 범위는 [ElementsSelection.md](ElementsSelection.md)에 기록한다.",
+        "basis": "lexical_match",
+        "context": "list"
+      },
+      {
+        "block_id": "b000035",
+        "line": 39,
+        "text": "19개 Figma 도구의 외형과 초안 설정은 유지한다. Reset은 현재 도구의 초안과 브러시 설정을 초기화하며, 이미 편집한 문서를 복원하지 않는다. 카메라·생성·필터·마스크·외부 연결 등의 다른 동작은 미구현 안내를 표시한다. 초안은 Editor 수명 동안 메모리에 유지하며, 네이티브 문서에 설정값 전체를 저장한 것으로 취급하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000039",
+        "line": 46,
+        "text": "separate bounded artboard previews; they do not replace the active native canvas.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000039",
+        "line": 51,
+        "text": "the center as described in [EditorViewport.md](EditorViewport.md). Presentation changes do not mark the",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000039",
+        "line": 61,
+        "text": "so the native viewport size and camera do not change. On restoration, the preview",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000043",
+        "line": 78,
+        "text": "state. These checks do not imply that previously submitted generation jobs were",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [
+      {
+        "block_id": "b000059",
+        "language": "sh",
+        "code": "cmake -S . -B build\ncmake --build build --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(EditorCanvas|EditorCanvasGui|EditorToolPanels|NewCanvas|NewCanvasGui)$' --output-on-failure\n"
+      }
+    ],
+    "links": [
+      {
+        "block_id": "b000007",
+        "label": "캔버스 도구 피드백",
+        "target": "CanvasToolFeedback.md",
+        "kind": "relative",
+        "line": 7
+      },
+      {
+        "block_id": "b000011",
+        "label": "Society Alias 구조",
+        "target": "SocietyAliases.md",
+        "kind": "relative",
+        "line": 11
+      },
+      {
+        "block_id": "b000013",
+        "label": "이미지 캔버스 저장",
+        "target": "ImageCanvasStorage.md",
+        "kind": "relative",
+        "line": 13
+      },
+      {
+        "block_id": "b000015",
+        "label": "여러 캔버스 프로젝트",
+        "target": "MultiCanvasProject.md",
+        "kind": "relative",
+        "line": 15
+      },
+      {
+        "block_id": "b000015",
+        "label": "Home 연결",
+        "target": "HomeEditorRoutes.md",
+        "kind": "relative",
+        "line": 15
+      },
+      {
+        "block_id": "b000021",
+        "label": "EditorViewport.md",
+        "target": "EditorViewport.md",
+        "kind": "relative",
+        "line": 21
+      },
+      {
+        "block_id": "b000023",
+        "label": "SDK의 대지 표시 계약",
+        "target": "../../../SDK/iiSharedCanvas/docs/ARTBOARD_PRESENTATION.md",
+        "kind": "relative",
+        "line": 23
+      },
+      {
+        "block_id": "b000031",
+        "label": "10개 Figma 상태별 패널",
+        "target": "EditorElements.md",
+        "kind": "relative",
+        "line": 34
+      },
+      {
+        "block_id": "b000031",
+        "label": "ElementsSelection.md",
+        "target": "ElementsSelection.md",
+        "kind": "relative",
+        "line": 34
+      },
+      {
+        "block_id": "b000039",
+        "label": "EditorViewport.md",
+        "target": "EditorViewport.md",
+        "kind": "relative",
+        "line": 51
+      },
+      {
+        "block_id": "b000073",
+        "label": "ARTBOARD_PRESENTATION.md",
+        "target": "../../../SDK/iiSharedCanvas/docs/ARTBOARD_PRESENTATION.md",
+        "kind": "relative",
+        "line": 149
+      },
+      {
+        "block_id": "b000081",
+        "label": "EditorLayerTimeline.md",
+        "target": "EditorLayerTimeline.md",
+        "kind": "relative",
+        "line": 179
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

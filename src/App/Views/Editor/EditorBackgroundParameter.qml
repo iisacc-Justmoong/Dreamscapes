@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Dreamscapes.Storage 1.0
 import LVRS 1.0 as LV
 
 Column {
@@ -22,7 +23,7 @@ Column {
     component Entry: LV.InputField {
         id: entry
         property bool dirty: false
-        property string display: String(root.value === undefined ? "" : root.value) + (["slider","number"].indexOf(root.type)>=0 ? (root.unit === "px" ? " px" : root.unit) : "")
+        property string display: String(root.value === undefined ? "" : root.value) + (NativeData.presentation.indexOf(["slider","number"], root.type)>=0 ? (root.unit === "px" ? " px" : root.unit) : "")
         height: 22; fieldMinHeight: 22; clearButtonVisible: false
         Binding { target:entry.inputItem; property:"font.weight"; value:Font.Normal }
         Binding { target:entry.inputItem; property:"font.styleName"; value:"Regular" }
@@ -33,8 +34,8 @@ Column {
             if (dirty) {
                 dirty = false
                 if (root.type === "slider" || root.type === "number") {
-                    const next = Number(text.replace(/\s*(px|%|°)\s*$/, ""))
-                    if (text.trim().length && isFinite(next) && next >= root.minimum && next <= root.maximum) root.edited(next)
+                    const next = NativeData.tools.numberInput(text,root.minimum,root.maximum,root.unit)
+                    if (next !== null) root.edited(next)
                 } else root.edited(text)
             }
             text = display
@@ -65,8 +66,8 @@ Column {
                 onClicked: menu.openFor(this, Math.min(0, root.width - x - menu.implicitWidth), height)
             }
             Entry {
-                objectName: ["text","number","slider"].indexOf(root.type)>=0 ? "background-" + root.field : ""
-                visible: ["text", "number", "slider"].indexOf(root.type) >= 0
+                objectName: NativeData.presentation.indexOf(["text","number","slider"], root.type)>=0 ? "background-" + root.field : ""
+                visible: NativeData.presentation.indexOf(["text", "number", "slider"], root.type) >= 0
                 anchors.fill: parent; Accessible.name: root.title || root.field
             }
             LV.ToggleSwitch {
@@ -109,7 +110,7 @@ Column {
     LV.ContextMenu {
         id: menu
         showIconSlot: false
-        items: root.options.map(function(option) { return {label: String(option.label === undefined ? option : option.label)} })
+        items: NativeData.presentation.labels(root.options)
         onItemTriggered: function(index) {
             const option = root.options[index]
             if (option !== undefined) root.edited(option.value === undefined ? option : option.value)

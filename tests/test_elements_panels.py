@@ -109,14 +109,15 @@ class ElementsPanelContracts(unittest.TestCase):
         self.assertIn("elementCandidates", source)
 
     def test_view_catalog_matches_the_independent_visible_field_lists(self):
-        source = (EDITOR / "EditorElementsDefinitions.js").read_text()
-        records = re.findall(r'\{id: "([^"]+)", nodeId: "([^"]+)"[^\n]+fields: (\[[^\]]*\])\}', source)
+        records = json.loads((ROOT / "resources/viewmodels/elements.json").read_text())["views"]
         self.assertEqual(len(records), 10)
-        for identifier, node, field_list in records:
+        for record in records:
+            identifier = record["id"]
             self.assertIn(identifier, self.views)
             baseline = self.views[identifier]
-            self.assertEqual(node, baseline["nodeId"], identifier)
-            self.assertEqual(json.loads(field_list), [control["fieldId"] for control in baseline["controls"]], identifier)
+            self.assertEqual(record["nodeId"], baseline["nodeId"], identifier)
+            self.assertEqual(record["fields"], [control["fieldId"] for control in baseline["controls"]], identifier)
+
 
 
 if __name__ == "__main__":

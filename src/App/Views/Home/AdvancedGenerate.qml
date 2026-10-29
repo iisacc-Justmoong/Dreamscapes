@@ -60,14 +60,7 @@ Item {
     function selectRefiner(source) { return draft.selectRefiner(source) }
     function selectIPAdapter(id, model, vision) { return draft.selectIPAdapter(id, model, vision) }
     function selectPose(id, detector, model) { return draft.selectPose(id, detector, model) }
-    function choosePose(id) {
-        const entry = draft.controlNet(id)
-        if (!entry) return
-        poseDetectorDialog.controlId = id
-        poseDetectorDialog.selectedFile = entry.poseDetector || ""
-        poseModelDialog.selectedFile = entry.poseModel || ""
-        poseDetectorDialog.open()
-    }
+    function choosePose(id) { return false }
     function chooseIPAdapter(id) {
         const entry = draft.controlNet(id)
         if (!entry) return
@@ -99,7 +92,7 @@ Item {
         property var options: []
         property string parameterKey: ""
         property var optionValues: options
-        property int currentValueIndex: parameterKey ? Math.max(0, optionValues.indexOf(root.values[parameterKey])) : 0
+        property int currentValueIndex: parameterKey ? Math.max(0, NativeData.presentation.indexOf(optionValues, root.values[parameterKey])) : 0
         type: LV.ListItem.Select
         Layout.fillWidth: true
         showLeadingIcon: false
@@ -261,29 +254,6 @@ Item {
         }
     }
     Dialogs.FileDialog {
-        id: poseDetectorDialog
-        objectName: "controlPoseDetectorDialog"
-        property string controlId: ""
-        title: qsTr("Choose YOLOX-L Pose detector")
-        fileMode: Dialogs.FileDialog.OpenFile
-        nameFilters: [qsTr("Inline ONNX model (*.onnx)")]
-        onAccepted: {
-            poseModelDialog.controlId = controlId
-            poseModelDialog.detectorSource = selectedFile.toString()
-            poseModelDialog.open()
-        }
-    }
-    Dialogs.FileDialog {
-        id: poseModelDialog
-        objectName: "controlPoseModelDialog"
-        property string controlId: ""
-        property string detectorSource: ""
-        title: qsTr("Choose DWPose joint model")
-        fileMode: Dialogs.FileDialog.OpenFile
-        nameFilters: [qsTr("Inline ONNX model (*.onnx)")]
-        onAccepted: root.selectPose(controlId, detectorSource, selectedFile.toString())
-    }
-    Dialogs.FileDialog {
         id: ipVisionDialog
         objectName: "controlIPVisionDialog"
         property string controlId: ""
@@ -385,8 +355,8 @@ Item {
             LV.VStack {
                 Layout.fillWidth: true
                 spacing: 0
-                SelectRow { objectName: "advancedModel"; label: qsTr("Model"); parameterKey: "model"; options: [qsTr("Selected model")].concat(root.models.map(m => m.name || m.id)); optionValues: [""].concat(root.models.map(m => m.id)) }
-                SelectRow { objectName: "advancedPreset"; label: qsTr("Select preset"); options: [qsTr("Select preset")].concat(draft.presets); onEdited: function(field, value) { if (field === "selectorIndex" && value > 0) root.loadPreset(options[value]) }; visible: root.expanded }
+                SelectRow { objectName: "advancedModel"; label: qsTr("Model"); parameterKey: "model"; options: NativeData.presentation.prepend(qsTr("Selected model"), NativeData.presentation.labels(root.models, "name", "id")); optionValues: NativeData.presentation.prepend("", NativeData.presentation.values(root.models, "id")) }
+                SelectRow { objectName: "advancedPreset"; label: qsTr("Select preset"); options: NativeData.presentation.prepend(qsTr("Select preset"), draft.presets); onEdited: function(field, value) { if (field === "selectorIndex" && value > 0) root.loadPreset(options[value]) }; visible: root.expanded }
                 SectionHeader { label: qsTr("Essentials"); description: qsTr("Core generation settings"); showTrailingIcon: false }
                 InputRow { objectName: "advancedWidth"; label: qsTr("Width"); parameterKey: "width" }
                 InputRow { objectName: "advancedHeight"; label: qsTr("Height"); parameterKey: "height" }
@@ -487,26 +457,14 @@ Item {
                                 id: processRow
                                 objectName: "controlProcess" + (controlLayer.index + 1)
                                 label: qsTr("Process")
-                                options: ["None", "Pose", "Canny", "Depth", "Line Art", "Scribble", "MLSD", "Normal Map", "Semantic Segment", "Shuffle", "Tile", "Reference", "IP-Adapter"]
-                                currentValueIndex: Math.max(0, options.indexOf(controlLayer.modelData.process))
+                                options: ["None", "Canny", "Depth", "Line Art", "Scribble", "MLSD", "Normal Map", "Semantic Segment", "Shuffle", "Tile", "Reference", "IP-Adapter"]
+                                currentValueIndex: Math.max(0, NativeData.presentation.indexOf(options, controlLayer.modelData.process))
                                 visible: controlLayer.expanded
                                 Binding { target: processRow; property: "selectorIndex"; value: processRow.currentValueIndex }
                                 onEdited: function(field, value) {
                                     if (field !== "selectorIndex") return
-                                    if (options[value] === "Pose") {
-                                        selectorIndex = currentValueIndex
-                                        root.choosePose(controlLayer.controlId)
-                                    } else draft.updateControlNet(controlLayer.controlId, {process: options[value]})
+                                    draft.updateControlNet(controlLayer.controlId, {process: options[value]})
                                 }
-                            }
-                            Views.PanelRow {
-                                type: LV.ListItem.Action
-                                Layout.fillWidth: true
-                                visible: controlLayer.expanded && controlLayer.modelData.process === "Pose"
-                                label: qsTr("Pose models")
-                                description: String(controlLayer.modelData.poseModel).split("/").pop() || qsTr("Select detector and pose model")
-                                showLeadingIcon: false
-                                primaryAction: ({text: qsTr("Select"), method: function() { root.choosePose(controlLayer.controlId) }})
                             }
                             Views.PanelRow {
                                 type: LV.ListItem.Action
@@ -545,8 +503,7 @@ Item {
                                 visible: controlLayer.expanded
                                 onEdited: function(field, value) {
                                     if (field === "inputText1") {
-                                        const key = "control." + controlLayer.controlId
-                                        root.recordValidity(key, draft.updateControlNet(controlLayer.controlId, {weight: String(value).trim() === "" ? Number.NaN : Number(value)}))
+                                        draft.editControlWeight(controlLayer.controlId, String(value))
                                     }
                                 }
                             }
@@ -629,8 +586,7 @@ Item {
                                 inputText1: String(loraLayer.modelData.weight)
                                 onEdited: function(field, value) {
                                     if (field === "inputText1") {
-                                        const key = "lora." + loraLayer.modelData.id
-                                        root.recordValidity(key, draft.updateLora(loraLayer.modelData.id, {weight: String(value).trim() === "" ? Number.NaN : Number(value)}))
+                                        draft.editLoraWeight(loraLayer.modelData.id, String(value))
                                     }
                                 }
                                 showPrimaryAction: true
@@ -659,7 +615,7 @@ Item {
                             }
                         }
                     }
-                    SelectRow { label: qsTr("VAE"); parameterKey: "vae"; options: [qsTr("Auto")].concat(root.vaes.map(m => m.name || m.id)); optionValues: [""].concat(root.vaes.map(m => m.id)) }
+                    SelectRow { label: qsTr("VAE"); parameterKey: "vae"; options: NativeData.presentation.prepend(qsTr("Auto"), NativeData.presentation.labels(root.vaes, "name", "id")); optionValues: NativeData.presentation.prepend("", NativeData.presentation.values(root.vaes, "id")) }
                     ToggleRow { label: qsTr("Prompt weighting"); parameterKey: "promptWeighting" }
                     ToggleRow { label: qsTr("FreeU"); parameterKey: "freeU" }
                 }
@@ -692,7 +648,7 @@ Item {
                         id: upscalerSelector
                         objectName: "upscalerSelector"
                         readonly property var modes: ["nearest", "bilinear", "bicubic", "lanczos", "4x-ultra"]
-                        readonly property int selectedIndex: Math.max(0, modes.indexOf(root.values.upscaler))
+                        readonly property int selectedIndex: Math.max(0, NativeData.presentation.indexOf(modes, root.values.upscaler))
                         type: LV.ListItem.Select
                         Layout.fillWidth: true
                         label: qsTr("Upscaler")

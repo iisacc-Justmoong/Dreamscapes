@@ -98,7 +98,7 @@ Frames.PanelSheet {
             })
         }
     }
-    contentComponent: visible ? (toolId === "file" ? filePanelComponent : toolId === "background" ? backgroundPanelComponent : toolId === "camera-photo" ? photoPanelComponent : toolId === "elements" ? elementsPanelComponent : ["color", "auto-enhance", "masking", "effects"].indexOf(toolId) >= 0 ? graphicPanelComponent : toolId === "text" ? textPanelComponent : toolId === "layers" && engine ? layerPanelComponent : NativeData.compact.tool(toolId) ? compactPanelComponent : panelComponent) : null
+    contentComponent: visible ? (toolId === "file" ? filePanelComponent : toolId === "background" ? backgroundPanelComponent : toolId === "camera-photo" ? photoPanelComponent : toolId === "elements" ? elementsPanelComponent : NativeData.presentation.indexOf(["color", "auto-enhance", "masking", "effects"], toolId) >= 0 ? graphicPanelComponent : toolId === "text" ? textPanelComponent : toolId === "layers" && engine ? layerPanelComponent : NativeData.compact.tool(toolId) ? compactPanelComponent : panelComponent) : null
     Component {
         id: compactPanelComponent
         EditorCompactPanel { toolState: root }

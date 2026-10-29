@@ -364,3 +364,11 @@ bool PublishDraft::load(const QUrl &source) {
         m_dirty=false; m_error.clear(); emit changed(); return true;
     } catch (const std::exception &error) { return fail(QString::fromUtf8(error.what())); }
 }
+
+int PublishDraft::coverPage() const {
+    const auto id = m_values.value("coverId").toString();
+    for (const auto &row : m_canvases.rows) if (row.id == id) return row.page; return 0;
+}
+QStringList PublishDraft::tags() const {
+    QStringList result; for (const auto &value : m_values.value("tags").toString().split(',')) if (!value.trimmed().isEmpty()) result.push_back(value.trimmed()); return result;
+}

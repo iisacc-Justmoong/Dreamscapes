@@ -1,0 +1,566 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:fe7025ea7e07249f9c6fe413e1b9df96796581d93eb53755cf51a2fb07e3807b",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/SocialPublishing.md",
+    "sha256": "ffa6276314b60a37ed93e940f1b8f4645cf2ff0b6ca50c312c9846d1e468f394",
+    "bytes": 10543,
+    "line_count": 168,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "Social publishing backend",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Social publishing backend\n",
+      "level": 1,
+      "title": "Social publishing backend"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 8,
+      "raw": "Dreamscapes owns a `SocialPublishingController` backend at\n`mainWindow.socialPublishing` / object name `socialPublishingController`. It is\ncreated on every application route, including Home and Editor, without starting\nnetwork traffic or a worker at startup. The editor now opens the separate\n[publishing workspace](PublishingWorkspace.md); entering that view does not\nsubmit a backend job or automatically post on generation completion.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 10,
+      "end_line": 14,
+      "raw": "Provider protocols live in the Qt-free C++23 SDK\n[`iiSocialPublish`](../../../SDK/iiSocialPublish/README.md). The product's QObject\nadapter only translates drafts/status, owns native account grants and delivers\nworker completion to the GUI thread. It never uses Society app-to-app IPC or\nstores a second copy of generated media.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 15,
+      "end_line": 15,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "heading",
+      "start_line": 16,
+      "end_line": 16,
+      "raw": "## Native account setup and invocation\n",
+      "level": 2,
+      "title": "Native account setup and invocation"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 18,
+      "end_line": 23,
+      "raw": "An authenticated account/session service configures each destination through\nthe **C++-only** `configureAccount(accountId, platform, Account)` method. Supply\nthe OAuth user token, granted scopes, expiry, explicit board/Page/author or\ninstance, and a supported API version where required. Tokens are not exposed\nthrough QML properties, arguments, jobs or signals. Calling `disconnectAccount`\ncancels that account's queued/active work and removes its in-memory grant.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 24,
+      "end_line": 24,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 25,
+      "end_line": 32,
+      "raw": "The existing iisacc.com account-linking ledger is not a publishing token API.\nLinking an account/profile does not establish publishing scopes, app approval\nor a valid grant. This implementation does not extract encrypted server tokens,\nembed OAuth client secrets in the app, or pretend the current app is already\nauthorized to publish. Account OAuth registration/consent and encrypted grant\ncustody belong to the account service; its trusted native integration can inject\ngrants through the method above. No real provider account is configured by\ndefault.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 33,
+      "end_line": 33,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 34,
+      "end_line": 34,
+      "raw": "After a native grant is configured, the callable backend surface is:\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 35,
+      "end_line": 35,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "fenced_code",
+      "start_line": 36,
+      "end_line": 47,
+      "raw": "```qml\nconst jobId = window.socialPublishing.submit(\"my-mastodon-account\", {\n    text: \"Created with Dreamscapes\",\n    idempotencyKey: \"an-intent-id-retained-by-the-caller\",\n    media: [{\n        kind: \"image\",\n        localFile: \"/absolute/export.png\",\n        mimeType: \"image/png\",\n        altText: \"Description of the artwork\"\n    }]\n})\n```\n",
+      "language": "qml",
+      "code": "const jobId = window.socialPublishing.submit(\"my-mastodon-account\", {\n    text: \"Created with Dreamscapes\",\n    idempotencyKey: \"an-intent-id-retained-by-the-caller\",\n    media: [{\n        kind: \"image\",\n        localFile: \"/absolute/export.png\",\n        mimeType: \"image/png\",\n        altText: \"Description of the artwork\"\n    }]\n})\n",
+      "closed": true
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 48,
+      "end_line": 48,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 49,
+      "end_line": 57,
+      "raw": "Supported draft keys are `text`, `title`, `link`, `tags`, `media`,\n`coverImageUrl`, `visibility`, `contentWarning`, `sensitive`, `madeWithAi` and\n`idempotencyKey`. Media entries accept `kind` (`image`/`video`), `localFile`\n(absolute path or `file:` URL), `publicUrl`, `mimeType`, and `altText`. Unknown\nkeys and incorrect field types are rejected. Instagram and Threads require\npublic HTTPS media; a local path is never advertised as a public URL. Export\nIISC to image/video first. The SDK's\n[provider table](../../../SDK/iiSocialPublish/docs/Providers.md) lists exact\nsupported shapes and permission requirements.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 58,
+      "end_line": 58,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 59,
+      "end_line": 63,
+      "raw": "`providers` exposes eleven capability records, including explicit unsupported\nPixiv/ArtStation records. `jobs` contains only job/account/provider IDs, state\nand credential-free result details (`postId`, `url`, error, HTTP status,\nnumeric retry delay and `requiresReconciliation`). No token, draft or local\nmedia path is included. `jobFinished(jobId, result)` runs on the GUI thread.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 64,
+      "end_line": 64,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "heading",
+      "start_line": 65,
+      "end_line": 65,
+      "raw": "## Queue and failure policy\n",
+      "level": 2,
+      "title": "Queue and failure policy"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 66,
+      "end_line": 66,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 67,
+      "end_line": 71,
+      "raw": "대상별 검토는 [PublishDestinationReview](PublishDestinationReview.md)에 기술한다.\n`submitPlan`은 공통 원고에서 준비한 게시물 목록과 응답 의존성을 작업자에 전달한다.\n토큰 없는 `accounts` 목록으로 대상과 계정 ID를 선택한다. 완료 결과에는 확인된\n게시물별 `completed`와 다음 인덱스 `next`가 포함된다. 부분 성공 뒤 실패/취소는\n`needs-reconciliation`으로 보존하며 원격 게시물을 자동 재생성하지 않는다.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 72,
+      "end_line": 72,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 73,
+      "end_line": 79,
+      "raw": "지연 생성하는 C++23 작업자가 최대 여덟 개의 대기 작업을 직렬 실행하며,\n기록은 256개로 제한한다. 업로드·폴링은 UI 스레드에서 실행하지 않는다.\n`cancel(jobId)`는 진행 중인 HTTP·폴링에 취소를 요청하거나 아직 시작하지\n않은 작업을 큐에서 제거한다. 컨트롤러 파괴는 큐를 닫고 취소를 요청한 뒤\n즉시 반환한다. 이미 실행 중인 제공자 호출의 반환을 GUI에서 기다리지 않는다.\n제공자가 이미 요청을 수락했을 수 있는 결과는 기존과 같이 확인이 필요한\n상태로 유지하며 자동으로 재게시하지 않는다.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 80,
+      "end_line": 80,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 81,
+      "end_line": 86,
+      "raw": "A repeated account + idempotency key + unchanged draft returns the existing job\nID. Reusing the key with different content is rejected. The key remains reserved\nfor that in-memory job, including ambiguous publication. `clearFinished()` removes\nfinished ordinary rows and their deduplication entries, but retains\n`needs-reconciliation` rows. X is disabled until a trusted native grant explicitly\nallows billable requests; this code does not purchase access or enroll in a plan.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 87,
+      "end_line": 87,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 88,
+      "end_line": 92,
+      "raw": "The queue is in-memory. Closing the app cancels unfinished jobs; jobs and\ndeduplication are not persisted across restarts. It is not an unattended server\nscheduler. A future account/backend persistence feature must preserve intent\nand outcome separately from credentials before offering crash-safe scheduled\npublishing.\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 93,
+      "end_line": 93,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "heading",
+      "start_line": 94,
+      "end_line": 94,
+      "raw": "## Build and verification\n",
+      "level": 2,
+      "title": "Build and verification"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 95,
+      "end_line": 95,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "paragraph",
+      "start_line": 96,
+      "end_line": 103,
+      "raw": "Build/install iiSocialPublish into `SDK/iiSocialPublish/build/install` (or an\ninstalled SDK prefix). Dreamscapes resolves that package through\n`IISOCIALPUBLISH_PREFIX`, the installed `~/.local/SDK/iiSocialPublish`, or the\nworkspace package fallback. Only the CMake package is linked; SDK sources are\nnot added directly to the product.\nThe installed SDK's dependency manifest and nlohmann/json MIT notice are embedded\nas `:/licenses/iiSocialPublish/...` resources in the product and verified at GUI\nstartup.\n"
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 104,
+      "end_line": 104,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "fenced_code",
+      "start_line": 105,
+      "end_line": 109,
+      "raw": "```sh\ncmake -S . -B build\ncmake --build build --target DreamscapesSocialPublishingTests Dreamscapes DreamscapesGuiTests --parallel 4\nctest --test-dir build -R SocialPublishing --output-on-failure\n```\n",
+      "language": "sh",
+      "code": "cmake -S . -B build\ncmake --build build --target DreamscapesSocialPublishingTests Dreamscapes DreamscapesGuiTests --parallel 4\nctest --test-dir build -R SocialPublishing --output-on-failure\n",
+      "closed": true
+    },
+    {
+      "id": "b000036",
+      "kind": "blank",
+      "start_line": 110,
+      "end_line": 110,
+      "raw": "\n"
+    },
+    {
+      "id": "b000037",
+      "kind": "paragraph",
+      "start_line": 111,
+      "end_line": 116,
+      "raw": "The backend test injects a transport and verifies lazy startup, all ten\ncapabilities, worker-thread execution, GUI-thread signals, token-free snapshots,\nidempotency conflicts, cancellation, disconnect, ambiguous outcomes, history\nretention and safe shutdown. The SDK separately verifies provider payloads and\nreal loopback TLS/multipart streaming. These are local tests; no live social post,\nOAuth consent, app-review approval or new paid access is claimed.\n"
+    },
+    {
+      "id": "b000038",
+      "kind": "blank",
+      "start_line": 117,
+      "end_line": 117,
+      "raw": "\n"
+    },
+    {
+      "id": "b000039",
+      "kind": "paragraph",
+      "start_line": 118,
+      "end_line": 127,
+      "raw": "On 2026-10-18 the macOS Release app, GUI tests, backend test and QML lint target\nbuilt successfully. The four selected CTest groups (`SocialPublishing`,\n`DependencyBoundary`, `EditorSidebar`, `EditorApplicationToolbar`) passed. Three\nadditional GUI scenarios (`mainStartupPerformance`, `homeDefersEditorUntilNeeded`,\n`desktopHomeSearchesSocietyAndUpdates`) passed, including backend creation and\nthe embedded license check; the Qt harness reports five passes including setup\nand cleanup. The canonical `build/bin/Dreamscapes.app` passed deep/strict code\nsignature verification. Existing unrelated QML warnings remain; this is not a\nclaim that the entire product regression suite is clean. This verification did\nnot replace or restart the user's running `/Applications` app.\n"
+    },
+    {
+      "id": "b000040",
+      "kind": "blank",
+      "start_line": 128,
+      "end_line": 128,
+      "raw": "\n"
+    },
+    {
+      "id": "b000041",
+      "kind": "paragraph",
+      "start_line": 129,
+      "end_line": 136,
+      "raw": "Queued cancellation does not wait for an unrelated active upload. The native\ncontroller removes an unstarted job under its queue mutex, then reports its\ncancelled outcome and updates pending counts on the GUI thread outside that\nmutex. Disconnecting an account retires all of its queued work the same way.\nActive requests retain cooperative cancellation and provider/uncertain-response\nreconciliation semantics. Completion observers may call the queue API reentrantly;\nthe transport test holds another account's request to verify this ordering without\nmaking a real platform request.\n"
+    },
+    {
+      "id": "b000042",
+      "kind": "blank",
+      "start_line": 137,
+      "end_line": 137,
+      "raw": "\n"
+    },
+    {
+      "id": "b000043",
+      "kind": "heading",
+      "start_line": 138,
+      "end_line": 138,
+      "raw": "## 작업 수명과 완료 알림 순서\n",
+      "level": 2,
+      "title": "작업 수명과 완료 알림 순서"
+    },
+    {
+      "id": "b000044",
+      "kind": "blank",
+      "start_line": 139,
+      "end_line": 139,
+      "raw": "\n"
+    },
+    {
+      "id": "b000045",
+      "kind": "paragraph",
+      "start_line": 140,
+      "end_line": 146,
+      "raw": "작업자는 QObject를 소유하거나 참조해 실행하지 않는다. 전송기·큐·실행 중인\n작업·계정 스냅샷의 공유 상태를 값으로 보유하며, 컨트롤러 파괴 후에도 실행 중인\n전송이 반환할 때까지 이 수명을 유지한다. 닫힌 큐의 다음 작업은 실행하지 않는다.\n피드백은 앱의 GUI 큐로 전달하고, 컨트롤러의 약한 참조가 유효할 때만 반영한다.\n대기 상태의 작업자도 큐 종료 알림을 받아 빠져나온다. 네트워크 내부의 취소는\n제공자·전송기의 협력적 취소 경계를 따른다. 이 계약은 화면 종료의 대기 제거이며,\n프로세스 전체 종료나 원격 게시의 철회를 보장하는 계약이 아니다.\n"
+    },
+    {
+      "id": "b000046",
+      "kind": "blank",
+      "start_line": 147,
+      "end_line": 147,
+      "raw": "\n"
+    },
+    {
+      "id": "b000047",
+      "kind": "paragraph",
+      "start_line": 148,
+      "end_line": 152,
+      "raw": "완료 시 행에 최종 결과를 먼저 반영한 다음 `jobFinished`를 발행하고, 소유자가\n살아 있을 때 `changed`를 발행한다. 완료 관찰자가 새 요청을 시작하거나,\n기록을 지우거나, 컨트롤러를 삭제할 수 있다. 이미 끝난 행에 늦은 완료를 다시\n발행하지 않는다. 중복 요청의 기존 ID는 알림 전에 복사하여, 알림 중 기록이\n교체되더라도 수락했던 ID를 반환한다.\n"
+    },
+    {
+      "id": "b000048",
+      "kind": "blank",
+      "start_line": 153,
+      "end_line": 153,
+      "raw": "\n"
+    },
+    {
+      "id": "b000049",
+      "kind": "paragraph",
+      "start_line": 154,
+      "end_line": 159,
+      "raw": "계정 교체·연결 해제는 해당 계정의 아직 시작하지 않은 작업을 먼저 제거하고,\n진행 중 작업에 취소를 요청한 다음 결과를 전달한다. 취소 콜백은 큐 뮤텍스 밖에서\n실행하므로 콜백이 큐 API를 다시 조회할 수 있다. 결과 알림 후 소유자의 수명을\n확인하고, 계정별 변경 번호를 대조하여 새 설정이나 연결 해제를 오래된 호출이\n덮어쓰지 않게 한다. 변경 번호는 진행 중인 호출을 구별할 때만 유지하며,\n관련 없는 다른 계정의 변경은 현재 계정 설정을 취소하지 않는다.\n"
+    },
+    {
+      "id": "b000050",
+      "kind": "blank",
+      "start_line": 160,
+      "end_line": 160,
+      "raw": "\n"
+    },
+    {
+      "id": "b000051",
+      "kind": "paragraph",
+      "start_line": 161,
+      "end_line": 168,
+      "raw": "`Dreamscapes.SocialPublishing`은 기존 계약과 별도로 전송 정체 중 종료,\n완료 알림 순서, 기록 교체 중 중복 ID, 완료·연결 해제·계정 교체 중 소유자 삭제,\n최신 계정 설정·연결 해제·독립 계정 변경, 취소·해제·종료 콜백의 큐 재조회 사례를\n검사한다. `--case <이름>`으로 각 사례를 독립 실행할 수 있다. 전송을 보류하는\n검사는 GUI 종료가 끝난 뒤 전송을 풀며, 750ms의 탈출 장치를 사용해 기존의\n종료 대기를 실패로 검출한다. 모든 제공자는 가짜 전송기이며 외부 게시를 수행하지\n않는다. 힙 접근 계측 검사는 제품의 게시 어댑터와 해당 검사 실행 파일에 한정하며,\n전체 앱의 메모리·스레드·프로세스 종료 검증과 구분한다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Social publishing backend",
+      "anchor": "social-publishing-backend",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000007",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Native account setup and invocation",
+      "anchor": "native-account-setup-and-invocation",
+      "start_line": 16
+    },
+    {
+      "block_id": "b000021",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Queue and failure policy",
+      "anchor": "queue-and-failure-policy",
+      "start_line": 65
+    },
+    {
+      "block_id": "b000031",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Build and verification",
+      "anchor": "build-and-verification",
+      "start_line": 94
+    },
+    {
+      "block_id": "b000043",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "작업 수명과 완료 알림 순서",
+      "anchor": "작업-수명과-완료-알림-순서",
+      "start_line": 138
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000005",
+        "line": 13,
+        "text": "worker completion to the GUI thread. It never uses Society app-to-app IPC or",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000009",
+        "line": 21,
+        "text": "instance, and a supported API version where required. Tokens are not exposed",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000017",
+        "line": 54,
+        "text": "public HTTPS media; a local path is never advertised as a public URL. Export",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000023",
+        "line": 71,
+        "text": "`needs-reconciliation`으로 보존하며 원격 게시물을 자동 재생성하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000025",
+        "line": 74,
+        "text": "기록은 256개로 제한한다. 업로드·폴링은 UI 스레드에서 실행하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000025",
+        "line": 79,
+        "text": "상태로 유지하며 자동으로 재게시하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000029",
+        "line": 90,
+        "text": "scheduler. A future account/backend persistence feature must preserve intent",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000045",
+        "line": 140,
+        "text": "작업자는 QObject를 소유하거나 참조해 실행하지 않는다. 전송기·큐·실행 중인",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000045",
+        "line": 142,
+        "text": "전송이 반환할 때까지 이 수명을 유지한다. 닫힌 큐의 다음 작업은 실행하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000047",
+        "line": 151,
+        "text": "발행하지 않는다. 중복 요청의 기존 ID는 알림 전에 복사하여, 알림 중 기록이",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000049",
+        "line": 159,
+        "text": "관련 없는 다른 계정의 변경은 현재 계정 설정을 취소하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [
+      {
+        "block_id": "b000035",
+        "language": "sh",
+        "code": "cmake -S . -B build\ncmake --build build --target DreamscapesSocialPublishingTests Dreamscapes DreamscapesGuiTests --parallel 4\nctest --test-dir build -R SocialPublishing --output-on-failure\n"
+      }
+    ],
+    "links": [
+      {
+        "block_id": "b000003",
+        "label": "publishing workspace",
+        "target": "PublishingWorkspace.md",
+        "kind": "relative",
+        "line": 7
+      },
+      {
+        "block_id": "b000005",
+        "label": "`iiSocialPublish`",
+        "target": "../../../SDK/iiSocialPublish/README.md",
+        "kind": "relative",
+        "line": 11
+      },
+      {
+        "block_id": "b000017",
+        "label": "provider table",
+        "target": "../../../SDK/iiSocialPublish/docs/Providers.md",
+        "kind": "relative",
+        "line": 56
+      },
+      {
+        "block_id": "b000023",
+        "label": "PublishDestinationReview",
+        "target": "PublishDestinationReview.md",
+        "kind": "relative",
+        "line": 67
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

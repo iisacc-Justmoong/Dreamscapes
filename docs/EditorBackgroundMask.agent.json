@@ -1,0 +1,587 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:1a721d64c09ebc1ff186dc83a52adb8938e455cd7bb7b7cb113889f90151849c",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/EditorBackgroundMask.md",
+    "sha256": "4ca0bdeb08e97c1b6d6f38a0da8aff414b9a8d6c12baa9e969155ef153e4b1c6",
+    "bytes": 8832,
+    "line_count": 127,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Background mask panel",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Background mask panel\n",
+      "level": 1,
+      "title": "Background mask panel"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 11,
+      "raw": "Dreamscapes implements the editable Figma `777:82857` panel in\n`EditorBackgroundPanel.qml`. The same presenter is used by the desktop dock and\nmobile tool sheet, using installed LVRS controls, themes and the shared\n`iiColorManager` picker. Color/Remove/Mask/Replace navigation retains the other\nbackground operations. The list always reads the current document; it never\ninserts the two sample masks from the design.\nMask rows keep their controls when document properties or canvas previews change,\nso keyboard focus and menu anchors remain intact. Visibility toggles handle both\nclick and double-click activation, including quick hide/show comparisons.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 12,
+      "end_line": 12,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "heading",
+      "start_line": 13,
+      "end_line": 13,
+      "raw": "## Compact icon layout\n",
+      "level": 2,
+      "title": "Compact icon layout"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 14,
+      "end_line": 14,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 15,
+      "end_line": 18,
+      "raw": "The editable Figma frame was revised first, then mapped to the native presenter.\nAt 432 px including the border and padding, the two-mask reference is 823 px\nhigh (previously 1,260 px). It uses existing LVRS library instances and normal\neditable frames; Dreamscapes adds no local Figma component definitions.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 20,
+      "end_line": 24,
+      "raw": "Eight 18 px tool icons share one row. Selection modes occupy the left side of\nthe next row, with semantic selection helpers on the right. Below 258 px of\ncontent width, the helpers move to a second row. Numeric parameters keep their\nshort names, slider and editable value together in a 30 px row. All original\nparameter ranges, defaults, document actions and persistence remain the same.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 25,
+      "end_line": 25,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 26,
+      "end_line": 31,
+      "raw": "Mask names stay visible. Visibility and More use 30 px icon buttons, followed\nby an icon collection toolbar. Pressure, a new mask per selection and overlay\nvisibility use an 18 px symbol beside the existing switch. Overlay color and\nopacity share that switch's row. The footer uses Apply, Invert and Reset icons.\nThe repeated active tool/mode, selected mask name and instructional paragraphs\nare removed; empty, polygon progress, applied and error states remain concise.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 32,
+      "end_line": 32,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 33,
+      "end_line": 41,
+      "raw": "Every icon button retains an accessible name, a keyboard focus target and an\nLVRS tooltip. Visibility exposes its checked state. Disabled Subject/Sky\nhelpers retain their actual unavailability reason in accessible descriptions\nand tooltips on their enabled wrapper. Mask action menus keep descriptive\nlabels because those commands are shown only when requested.\nTooltips observe hover and keyboard focus without adding a tap handler over\nthe controls. They anchor above the control and close from hover/focus changes,\nwithout an outside-press dismissal grab, so an already open tooltip cannot\nconsume the next tool click or switch gesture.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 42,
+      "end_line": 42,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 43,
+      "end_line": 47,
+      "raw": "Tool, selection, list and overlay icons resolve through the installed LVRS\nicon library. `Assets/Background/mask-apply.svg` is the exact Figma export of\nthe Apply checkmark with the theme foreground override for its accent button.\nIt is packaged by the existing Background SVG resource glob. No temporary\nFigma asset URL is used at runtime.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 48,
+      "end_line": 48,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "heading",
+      "start_line": 49,
+      "end_line": 49,
+      "raw": "## Editing contract\n",
+      "level": 2,
+      "title": "Editing contract"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 50,
+      "end_line": 50,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "table",
+      "start_line": 51,
+      "end_line": 67,
+      "raw": "| Control | Native behavior |\n| --- | --- |\n| Target | Select an artwork layer from the active artboard; selection follows the actual editor layer |\n| Brush / Eraser | Stream mouse, touch and tablet input through iiPaintEngine `MaskPaintSession`; erasing subtracts coverage from the selected mask |\n| Size / Hardness / Flow / Brush opacity / Pen pressure | Pixel diameter, edge softness, per-dab flow, per-stroke coverage ceiling, pressure on size and opacity |\n| Lasso / Polygon | Closed painted coverage; polygon points remain visible until Close path; Escape, Clear or tool change cancels unfinished input |\n| Rectangle / Ellipse / Gradient | Drag native canvas coordinates; gradient is black-to-white along the drag vector |\n| Color range | Click a visible original layer color; iiGraphicAdjust range selection with editable Fuzziness |\n| Add / Subtract / Intersect / Replace | Union maximum, product with complement, product, or replacement; the same soft-edge arithmetic is used within an operand and across the stack |\n| Select subject / Select sky | Use matching semantic taxonomy/region data in the active artboard; disabled with an explanation when that data is absent |\n| Select all / Invert selection / Clear | Full coverage, inverse of the active selection, or clearing transient selection/path input |\n| New mask for each completed selection | Append independent operands; switch off to combine successive gestures into the current operand; a first stroke fills an empty operand |\n| Masks | Stable identities and dynamic count; select, rename, duplicate, delete, toggle visibility and bypass the whole stack through More |\n| Density / Feather / Invert | Nondestructive properties, independently stored per operand; Density zero restores hidden source pixels |\n| Overlay color / opacity / visibility | Selected-area preview only; uses the shared color picker and cannot modify exported pixels |\n| Apply mask | Enable the native mask stack; this does not flatten or destroy the artwork |\n| Reset | Reset current operand properties; header Reset also restores brush/overlay settings; mask pixels and other operands survive |\n",
+      "columns": [
+        "Control",
+        "Native behavior"
+      ],
+      "rows": [
+        [
+          "Target",
+          "Select an artwork layer from the active artboard; selection follows the actual editor layer"
+        ],
+        [
+          "Brush / Eraser",
+          "Stream mouse, touch and tablet input through iiPaintEngine `MaskPaintSession`; erasing subtracts coverage from the selected mask"
+        ],
+        [
+          "Size / Hardness / Flow / Brush opacity / Pen pressure",
+          "Pixel diameter, edge softness, per-dab flow, per-stroke coverage ceiling, pressure on size and opacity"
+        ],
+        [
+          "Lasso / Polygon",
+          "Closed painted coverage; polygon points remain visible until Close path; Escape, Clear or tool change cancels unfinished input"
+        ],
+        [
+          "Rectangle / Ellipse / Gradient",
+          "Drag native canvas coordinates; gradient is black-to-white along the drag vector"
+        ],
+        [
+          "Color range",
+          "Click a visible original layer color; iiGraphicAdjust range selection with editable Fuzziness"
+        ],
+        [
+          "Add / Subtract / Intersect / Replace",
+          "Union maximum, product with complement, product, or replacement; the same soft-edge arithmetic is used within an operand and across the stack"
+        ],
+        [
+          "Select subject / Select sky",
+          "Use matching semantic taxonomy/region data in the active artboard; disabled with an explanation when that data is absent"
+        ],
+        [
+          "Select all / Invert selection / Clear",
+          "Full coverage, inverse of the active selection, or clearing transient selection/path input"
+        ],
+        [
+          "New mask for each completed selection",
+          "Append independent operands; switch off to combine successive gestures into the current operand; a first stroke fills an empty operand"
+        ],
+        [
+          "Masks",
+          "Stable identities and dynamic count; select, rename, duplicate, delete, toggle visibility and bypass the whole stack through More"
+        ],
+        [
+          "Density / Feather / Invert",
+          "Nondestructive properties, independently stored per operand; Density zero restores hidden source pixels"
+        ],
+        [
+          "Overlay color / opacity / visibility",
+          "Selected-area preview only; uses the shared color picker and cannot modify exported pixels"
+        ],
+        [
+          "Apply mask",
+          "Enable the native mask stack; this does not flatten or destroy the artwork"
+        ],
+        [
+          "Reset",
+          "Reset current operand properties; header Reset also restores brush/overlay settings; mask pixels and other operands survive"
+        ]
+      ]
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 68,
+      "end_line": 68,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 69,
+      "end_line": 75,
+      "raw": "Size accepts 1–4096 px. Its quick slider covers 1–100 px; the numeric field retains\nthe full engine range. Feather accepts 0–128 px, with a 0–10 px quick slider.\nOpacity, flow, hardness, density, fuzziness and overlay opacity accept 0–100%.\nCompleted masks use layer-local bitmap coverage and stay linked to layer motion\nand transforms. Existing legacy raster/vector masks remain in the composition.\nNative vector stack operands can also be read and edited; painting converts the\nselected operand to bitmap coverage without rasterizing its artwork.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 76,
+      "end_line": 76,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 77,
+      "end_line": 80,
+      "raw": "A new empty operand is a hide-all mask. The stack starts bypassed until Apply;\nwhite coverage reveals and black coverage hides. After application, subsequent\nproperty and mask edits render immediately. The overlay displays selected areas,\none of Photoshop Quick Mask's supplied display modes, and is not document data.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 81,
+      "end_line": 81,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "heading",
+      "start_line": 82,
+      "end_line": 82,
+      "raw": "## Storage and dependencies\n",
+      "level": 2,
+      "title": "Storage and dependencies"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 83,
+      "end_line": 83,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "list",
+      "start_line": 84,
+      "end_line": 97,
+      "raw": "- iiSharedCanvas **0.31.0** exposes product-independent ordered mask operands in\n  `LayerAppearance::maskStack`, with IISC **1.21** persistence and rendering.\n- iiSocietyHelper uses the identical by-value document ABI and owns Files\n  publication, durable updates, aliases and version-conflict checks.\n- Source pixels, layer opacity and native geometry remain untouched. Only\n  committed mask coverage and reusable appearance fields are persisted.\n- Document transactions and editor history cover creation, edits, duplicate,\n  delete and apply. Invalid properties/references preserve the previous document\n  and storage revision. Bypassed masks remain editable after reopening.\n- The list has no fixed sample slots; native SDK operand/string/pixel processing\n  budgets apply. Failed writes retain the last committed document.\n- IISC 1.0–1.20 remains readable. Native 1.21 files require a compatible reader.\n  Flattened image export includes the final masks. Layered PSD export rejects\n  appearance it cannot preserve explicitly.\n",
+      "items": [
+        {
+          "marker": "-",
+          "text": "iiSharedCanvas **0.31.0** exposes product-independent ordered mask operands in",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "iiSocietyHelper uses the identical by-value document ABI and owns Files",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "Source pixels, layer opacity and native geometry remain untouched. Only",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "Document transactions and editor history cover creation, edits, duplicate,",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "The list has no fixed sample slots; native SDK operand/string/pixel processing",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "IISC 1.0–1.20 remains readable. Native 1.21 files require a compatible reader.",
+          "checked": null
+        }
+      ]
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 98,
+      "end_line": 98,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "heading",
+      "start_line": 99,
+      "end_line": 99,
+      "raw": "## Photoshop reference and evidence boundary\n",
+      "level": 2,
+      "title": "Photoshop reference and evidence boundary"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 100,
+      "end_line": 100,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "paragraph",
+      "start_line": 101,
+      "end_line": 102,
+      "raw": "Recovered interface data was inspected directly beneath\n`Engineering/Projects/Adobe/Photoshop`:\n"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 103,
+      "end_line": 103,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "list",
+      "start_line": 104,
+      "end_line": 108,
+      "raw": "- `recovered/interface/Required/layouts/Masks/Properties/masks-2662.exv`\n- `recovered/interface/Required/drover_layouts/mask_modify_flyout.eve`\n- `recovered/interface/Required/drover_layouts/masks/bars/adj_brush_mask_bar.eve`\n- `recovered/interface/Required/layouts/Channels/Dialogs/quickMaskOptions-2320.exv`\n- `recovered/javascript/shipped/Required/Plug-ins/Generator/assets.generate/lib/dom/mask.js`\n",
+      "items": [
+        {
+          "marker": "-",
+          "text": "`recovered/interface/Required/layouts/Masks/Properties/masks-2662.exv`",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`recovered/interface/Required/drover_layouts/mask_modify_flyout.eve`",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`recovered/interface/Required/drover_layouts/masks/bars/adj_brush_mask_bar.eve`",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`recovered/interface/Required/layouts/Channels/Dialogs/quickMaskOptions-2320.exv`",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "`recovered/javascript/shipped/Required/Plug-ins/Generator/assets.generate/lib/dom/mask.js`",
+          "checked": null
+        }
+      ]
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 109,
+      "end_line": 109,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "paragraph",
+      "start_line": 110,
+      "end_line": 114,
+      "raw": "These supply the exposed controls and density/feather/overlay behavior, not the\ncomplete proprietary Adobe engine. Subject/Sky does not synthesize detection\nresults or automatically download a model; it consumes actual supplied semantic\nregions. Mouse and tablet routing are exercised by native input events; physical\npen hardware remains a separate device check.\n"
+    },
+    {
+      "id": "b000036",
+      "kind": "blank",
+      "start_line": 115,
+      "end_line": 115,
+      "raw": "\n"
+    },
+    {
+      "id": "b000037",
+      "kind": "paragraph",
+      "start_line": 116,
+      "end_line": 127,
+      "raw": "`DreamscapesMaskPanelTests` checks source preservation, mask arithmetic, shape\ncoverage, pressure/opacity, cancellation, invalid input, transformed coordinates,\nactual semantic/color-range results, working-file reopening, history and native\nLVRS panel actions at 280/402/432 px. Cocoa screenshots and logs are written to\n`build/mask-panel-verification`; full compact panel captures at 280/402/432 px\nare written to `build/mask-icons-verification`. The panel regression also checks\nicon rendering, concise controls, slider/input alignment, pressure toggling,\nkeyboard activation on release and visibility icon changes. Build/SDK checks and packaged app startup are\nreported separately from any globally installed application.\nThe verification manifest records the exact SDK versions of its signed bundle.\nAn independent consumer keeps its observer event loop active during cold app\nstartup and verifies the bundled libraries, one root window and mutual discovery.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Background mask panel",
+      "anchor": "background-mask-panel",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000005",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Compact icon layout",
+      "anchor": "compact-icon-layout",
+      "start_line": 13
+    },
+    {
+      "block_id": "b000017",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Editing contract",
+      "anchor": "editing-contract",
+      "start_line": 49
+    },
+    {
+      "block_id": "b000025",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Storage and dependencies",
+      "anchor": "storage-and-dependencies",
+      "start_line": 82
+    },
+    {
+      "block_id": "b000029",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Photoshop reference and evidence boundary",
+      "anchor": "photoshop-reference-and-evidence-boundary",
+      "start_line": 99
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 7,
+        "text": "background operations. The list always reads the current document; it never",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000033",
+        "line": 104,
+        "text": "- `recovered/interface/Required/layouts/Masks/Properties/masks-2662.exv`",
+        "basis": "lexical_match",
+        "context": "list"
+      },
+      {
+        "block_id": "b000033",
+        "line": 105,
+        "text": "- `recovered/interface/Required/drover_layouts/mask_modify_flyout.eve`",
+        "basis": "lexical_match",
+        "context": "list"
+      },
+      {
+        "block_id": "b000033",
+        "line": 106,
+        "text": "- `recovered/interface/Required/drover_layouts/masks/bars/adj_brush_mask_bar.eve`",
+        "basis": "lexical_match",
+        "context": "list"
+      },
+      {
+        "block_id": "b000033",
+        "line": 107,
+        "text": "- `recovered/interface/Required/layouts/Channels/Dialogs/quickMaskOptions-2320.exv`",
+        "basis": "lexical_match",
+        "context": "list"
+      },
+      {
+        "block_id": "b000033",
+        "line": 108,
+        "text": "- `recovered/javascript/shipped/Required/Plug-ins/Generator/assets.generate/lib/dom/mask.js`",
+        "basis": "lexical_match",
+        "context": "list"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": [
+      {
+        "block_id": "b000019",
+        "columns": [
+          "Control",
+          "Native behavior"
+        ],
+        "rows": [
+          [
+            "Target",
+            "Select an artwork layer from the active artboard; selection follows the actual editor layer"
+          ],
+          [
+            "Brush / Eraser",
+            "Stream mouse, touch and tablet input through iiPaintEngine `MaskPaintSession`; erasing subtracts coverage from the selected mask"
+          ],
+          [
+            "Size / Hardness / Flow / Brush opacity / Pen pressure",
+            "Pixel diameter, edge softness, per-dab flow, per-stroke coverage ceiling, pressure on size and opacity"
+          ],
+          [
+            "Lasso / Polygon",
+            "Closed painted coverage; polygon points remain visible until Close path; Escape, Clear or tool change cancels unfinished input"
+          ],
+          [
+            "Rectangle / Ellipse / Gradient",
+            "Drag native canvas coordinates; gradient is black-to-white along the drag vector"
+          ],
+          [
+            "Color range",
+            "Click a visible original layer color; iiGraphicAdjust range selection with editable Fuzziness"
+          ],
+          [
+            "Add / Subtract / Intersect / Replace",
+            "Union maximum, product with complement, product, or replacement; the same soft-edge arithmetic is used within an operand and across the stack"
+          ],
+          [
+            "Select subject / Select sky",
+            "Use matching semantic taxonomy/region data in the active artboard; disabled with an explanation when that data is absent"
+          ],
+          [
+            "Select all / Invert selection / Clear",
+            "Full coverage, inverse of the active selection, or clearing transient selection/path input"
+          ],
+          [
+            "New mask for each completed selection",
+            "Append independent operands; switch off to combine successive gestures into the current operand; a first stroke fills an empty operand"
+          ],
+          [
+            "Masks",
+            "Stable identities and dynamic count; select, rename, duplicate, delete, toggle visibility and bypass the whole stack through More"
+          ],
+          [
+            "Density / Feather / Invert",
+            "Nondestructive properties, independently stored per operand; Density zero restores hidden source pixels"
+          ],
+          [
+            "Overlay color / opacity / visibility",
+            "Selected-area preview only; uses the shared color picker and cannot modify exported pixels"
+          ],
+          [
+            "Apply mask",
+            "Enable the native mask stack; this does not flatten or destroy the artwork"
+          ],
+          [
+            "Reset",
+            "Reset current operand properties; header Reset also restores brush/overlay settings; mask pixels and other operands survive"
+          ]
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

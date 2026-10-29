@@ -12,8 +12,8 @@ LV.VStack { alignment: Qt.AlignLeft;
     property bool loading: false
     property string selectedKey: ""
     property string typeFilter: "All types"
-    readonly property var visibleFiles: (files || []).filter(f => typeFilter === "All types" || NativeData.facts.kind(f) === typeFilter)
-    readonly property var selectedFile: (files || []).find(f => NativeData.facts.key(f) === selectedKey) || ({})
+    readonly property var visibleFiles: NativeData.facts.filesOfKind(files, typeFilter)
+    readonly property var selectedFile: NativeData.facts.fileForKey(files, selectedKey)
     readonly property int count: list.count
     signal fileRequested(var file)
     signal viewAllRequested()
@@ -23,8 +23,7 @@ LV.VStack { alignment: Qt.AlignLeft;
     CanvasPreview { id: previews }
     function selectFile(file) { selectedKey = NativeData.facts.key(file) }
     function reconcileSelection() {
-        if (selectedKey && (files || []).some(f => NativeData.facts.key(f) === selectedKey)) return
-        selectedKey = files.length ? NativeData.facts.key(files[0]) : ""
+        selectedKey = NativeData.facts.reconciledFileKey(files, selectedKey)
     }
     onFilesChanged: reconcileSelection()
     Component.onCompleted: reconcileSelection()

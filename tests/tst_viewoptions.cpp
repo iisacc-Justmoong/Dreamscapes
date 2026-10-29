@@ -1,4 +1,5 @@
 #include "App/Views/Editor/EditorAlignmentOverlay.h"
+#include "App/ViewModels/ViewData.h"
 #include "App/Views/Editor/EditorClippingOverlay.h"
 #include "App/Views/Editor/EditorCanvas.h"
 #include <QApplication>
@@ -744,6 +745,7 @@ class ViewOptionsTests : public QObject {
 int main(int argc, char **argv) {
     QQuickStyle::setStyle("Basic");
     QApplication app(argc, argv);
+    dreamscapes::registerNativeViewModelTypes();
     FontPolicy::loadBundledFonts();
     FontPolicy::installPretendardFallbacks();
     FontPolicy::enforcePretendardFallback();

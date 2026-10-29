@@ -63,7 +63,9 @@ private:
         QVERIFY(border(frame));
         QCOMPARE(frame->property("strokeWidth").toReal(), 1.);
         QCOMPARE(border(frame)->property("width").toReal(), frame->property("completeBorder").toBool() ? 1. : 0.);
-        QCOMPARE(border(frame)->property("color").value<QColor>(), QColor("#5a5d63"));
+        QCOMPARE(frame->property("panelBorderColor").value<QColor>(), QColor("#0c0c0c"));
+        QCOMPARE(border(frame)->property("color").value<QColor>(),
+                 frame->property("panelBorderColor").value<QColor>());
         QVERIFY(!frame->isEnabled());
         auto* target = frame->property("target").value<QQuickItem*>();
         QVERIFY(target);
@@ -104,8 +106,8 @@ private slots:
         QVERIFY(!image.isNull());
         const qreal dpr = image.devicePixelRatio();
         const auto pixel = [&](int x, int y) { return image.pixelColor(qRound(x*dpr),qRound(y*dpr)); };
-        QCOMPARE(pixel(20,20), QColor("#5a5d63")); // Square corner is actually painted.
-        QCOMPARE(pixel(60,20), QColor("#5a5d63"));
+        QCOMPARE(pixel(20,20), QColor("#0c0c0c")); // Square corner is actually painted.
+        QCOMPARE(pixel(60,20), QColor("#0c0c0c"));
         QCOMPARE(pixel(60,21), QColor("#222222")); // One logical pixel, transparent interior.
         QCOMPARE(pixel(19,20), QColor(Qt::black));
         QVERIFY(panel->parentItem()->setProperty("width",220));
@@ -127,7 +129,7 @@ private slots:
         QVERIFY(QTest::qWaitForWindowExposed(&window));QTest::qWait(40);
         const auto image=window.grabWindow();QVERIFY(!image.isNull());
         const auto sample=[&](int x){return image.pixelColor(qRound(x*image.devicePixelRatio()),qRound(70*image.devicePixelRatio()));};
-        QCOMPARE(sample(138),QColor("#222222"));QCOMPARE(sample(139),QColor("#5a5d63"));
+        QCOMPARE(sample(138),QColor("#222222"));QCOMPARE(sample(139),QColor("#0c0c0c"));
         QCOMPARE(sample(140),QColor("#333333"));QCOMPARE(sample(141),QColor("#333333"));
     }
     void compactEditorKeepsCommandsAndDocumentState() {
@@ -152,7 +154,7 @@ private slots:
         const auto colorAt=[&](QPointF point){return rendered.pixelColor(qRound(point.x()*rendered.devicePixelRatio()),qRound(point.y()*rendered.devicePixelRatio()));};
         const auto seam=[&](QPointF center,bool vertical){
             int gray=0;for(int offset=-2;offset<=2;++offset)
-                if(colorAt(center+(vertical?QPointF(offset,0):QPointF(0,offset)))==QColor("#5a5d63"))++gray;
+                if(colorAt(center+(vertical?QPointF(offset,0):QPointF(0,offset)))==QColor("#0c0c0c"))++gray;
             return gray;
         };
         const auto toolbarOrigin=toolbar->mapToScene(QPointF());
@@ -260,6 +262,13 @@ private slots:
             }
         } else if (route == "publish") {
             auto* publish=visual(window->contentItem(),"publishWorkspace"); QVERIFY(publish);
+            auto* document=visual(publish,"publishDocument"); QVERIFY(document);
+            QVERIFY(QMetaObject::invokeMethod(document,"positionViewAtEnd"));
+            QTRY_VERIFY(visual(publish,"publishCreditsPanel"));
+            auto* credits=visual(publish,"publishCreditsPanel"); QVERIFY(border(credits));
+            auto* documentFrame=visual(publish,"panelFrame_publish-document"); QVERIFY(documentFrame);
+            QCOMPARE(border(credits)->property("color").value<QColor>(),
+                     documentFrame->property("panelBorderColor").value<QColor>());
             QVERIFY(QMetaObject::invokeMethod(publish,"reviewDestination",Q_ARG(QVariant,"x")));
             for (const auto* id : {"destination-review","destination-settings","destination-preview"}) {
                 auto* frame=visual(window->contentItem(),QString("panelFrame_")+id);

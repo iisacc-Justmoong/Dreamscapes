@@ -381,6 +381,30 @@ QUrl EditorTimelineModel::requestThumbnail(const QString &id,int frame) {
     if(!discarded.isEmpty())m_requestedThumbnails.remove(discarded);
     return {};
 }
+QVariant EditorTimelineModel::frameNumber(const QString &text) const {
+    const auto value = m_numberInputs.queries().send({dreamscapes::vm::NumberInputKind::frame,text.toStdString()});
+    return value && value->accepted ? QVariant(value->value) : QVariant(std::numeric_limits<double>::quiet_NaN());
+}
+bool EditorTimelineModel::setRangeValues(const QString &id, double first, double last) {
+    if (!std::isfinite(first) || !std::isfinite(last) || std::floor(first) != first || std::floor(last) != last ||
+        first < 0 || last > std::numeric_limits<int>::max() || last <= first) return false;
+    return setRange(id,int(first),int(last));
+}
+bool EditorTimelineModel::editFrameText(FrameField field, const QString &id, const QString &text) {
+    const auto input = m_numberInputs.queries().send({dreamscapes::vm::NumberInputKind::frame,text.toStdString()});
+    if (!input || !input->accepted) return reject(tr("Enter a valid frame number."));
+    const int value = int(input->value);
+    if (field == Seek) { setPlaying(false); seek(value); return true; }
+    if (field == Source) return setSourceFrame(id,value);
+    if (field == Key) return moveKey(id,value);
+    const auto clip = findRow(m_clips,id);
+    if (clip.isEmpty()) return false;
+    const double first = clip.value("in").toDouble(), last = clip.value("out").toDouble();
+    if (field == In) return setRangeValues(id,value,last);
+    if (field == Out) return setRangeValues(id,first,value);
+    if (field == Duration) return setRangeValues(id,first,first + value);
+    return false;
+}
 bool EditorTimelineModel::setRange(const QString &id,int in,int out) {
     const auto clip=findRow(m_clips,id);if(clip.isEmpty()||in<0||out<=in||locked(clip["trackId"].toString()))return reject(tr("Choose an unlocked layer and a positive duration."));
     return mutate([&](Document &d){DocumentEditor e(d);if(out>int(d.timeline.frameCount)&&!e.setFrameCount(FrameIndex(out)).ok())return false;

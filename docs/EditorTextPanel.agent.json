@@ -1,0 +1,328 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:689695d1569b8bb8c6c0202da794ff67e1f78dc23afbfcf7c091cce993d11e70",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/EditorTextPanel.md",
+    "sha256": "8b62db81a29c3b397b5847a47d20aa75bfa40d166f74c79243078b52b9d0d08a",
+    "bytes": 5222,
+    "line_count": 88,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Editor text panel",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Editor text panel\n",
+      "level": 1,
+      "title": "Editor text panel"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "The editor's Text tool uses the four current Dreamscapes Figma views:\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "table",
+      "start_line": 5,
+      "end_line": 10,
+      "raw": "| View | Figma node | Reference frame |\n| --- | --- | --- |\n| Content | `627:95323` | 432 × 653 |\n| Typography | `631:15674` | 432 × 718 |\n| Layout | `631:15675` | 432 × 949 |\n| Appearance | `631:15676` | 432 × 1636 |\n",
+      "columns": [
+        "View",
+        "Figma node",
+        "Reference frame"
+      ],
+      "rows": [
+        [
+          "Content",
+          "`627:95323`",
+          "432 × 653"
+        ],
+        [
+          "Typography",
+          "`631:15674`",
+          "432 × 718"
+        ],
+        [
+          "Layout",
+          "`631:15675`",
+          "432 × 949"
+        ],
+        [
+          "Appearance",
+          "`631:15676`",
+          "432 × 1636"
+        ]
+      ]
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 11,
+      "end_line": 11,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 12,
+      "end_line": 16,
+      "raw": "`EditorTextPanel.qml` provides the same LVRS-based component on the desktop dock\nand the mobile sheet. The surrounding dock owns the 16 px padding, 1 px border,\n16 px corner radius and vertical scroll. At the reference width, the content is\n398 px wide. Controls reflow within a resized panel. Original Figma SVGs are\nlocal resources in `Assets/Text`; the panel never depends on temporary asset URLs.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 18,
+      "end_line": 21,
+      "raw": "When switching between Text and Elements, an outgoing Text panel keeps its\ninputs bound to its own saved text draft until its loader is destroyed. Edits\nare accepted only while Text is the active tool, so focus-loss commits during\npanel replacement cannot read Elements values or forward edits to another tool.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 22,
+      "end_line": 22,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 23,
+      "end_line": 26,
+      "raw": "Content provides the five usage roles, multiline input, all eight `LV.Label`\ntypography roles and four Theme aliases. The default is Body, 13 px, Medium.\nSelecting a typography token updates font size, weight and token line height\ntogether. Usage and typography role are separate values.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 27,
+      "end_line": 27,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 28,
+      "end_line": 32,
+      "raw": "Typography provides typeface selection, validated pixel size and stepping,\nweight selection/presets, explicit line height/presets, six horizontal alignment\nmodes, vertical alignment, bidirectional text and tracking. Glyph runs use Qt's\nnative shaping before their outlines are passed to iiSharedCanvas. The text\nremains a native vector layer while its appearance can be expressed by paths.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 33,
+      "end_line": 33,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 34,
+      "end_line": 39,
+      "raw": "Numeric inputs become modified only after a real `textEdited` event. Unedited\nfocus loss does not emit an edit or accept a rounded display string; `accepted`\nand explicit `commit()` continue to validate and accept input. For example,\n13 px text using the 120% line preset stores a 15.6 px line height even when its\ninput displays 16 px. Switching to Color without typing retains the exact line\nheight, preset, native geometry and document history.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 40,
+      "end_line": 40,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 41,
+      "end_line": 47,
+      "raw": "Layout provides nine anchors, Canvas/Artboard/Selection reference, auto-fit,\nAuto/Fixed/Fill width, Hug/Fixed/Fill height, offsets, positional/stretch\nconstraints, padding and bottom inset. Fixed dimensions are exposed when fixed\nsizing is selected. Choosing placement/reference/offset/constraints enables\nplacement; the initial Free Text usage still places text at the canvas click.\nSelection-relative placement requires an actual selection. Constraints apply to\nthe current text layout; there is no persistent resize solver for reopened text.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 48,
+      "end_line": 48,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 49,
+      "end_line": 55,
+      "raw": "Appearance provides text fill/custom color, opacity, backdrop, supported blend\nmodes, color/range adjustments, corners, strokes, blur, shadow, feather,\ndeterministic uniform/Gaussian noise, bubbles and eight pointer directions plus\nNone. Raster-only effects generate a bitmap from the authored text and native\npaths using iiSharedCanvas rendering/effects. Clearing these effects restores\nthe vector representation. The selected text remains editable in the session,\nincluding after switching between vector and bitmap representations.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 56,
+      "end_line": 56,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 57,
+      "end_line": 61,
+      "raw": "The existing SDK renderer supports Normal, Multiply, Screen and Overlay. Soft\nlight and Difference are visible but disabled. Blue noise and proportional\nScale constraints are also disabled, with accessibility descriptions. They are\nnot silently mapped to another operation. Reset actions restore the current\nview's settings; the Content reset restores all text settings.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 62,
+      "end_line": 62,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 63,
+      "end_line": 67,
+      "raw": "Document saving and export preserve the resulting geometry, pixels, layer\nproperties and caption timing. As with the existing editor text tool, original\nstrings/font authoring settings are session data: reopening a saved document\ndoes not restore those authoring controls. Raster effects preserve their final\npixels; this feature does not change the IISC format or introduce sidecar files.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 68,
+      "end_line": 68,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 69,
+      "end_line": 74,
+      "raw": "Validation: `Dreamscapes.EditorText` covers four desktop states, local SVG\nloading/18 px slots, editing through QML, resets and panel resizing.\n`editorTextPanelMobile` covers the same tabs and scrolling at host-simulated mobile\nwidths. `Dreamscapes.EditorTools` covers native text editing, shaping, layout,\nappearance, deterministic effects, vector restoration and exported pixels.\nThese are host checks; physical iOS/Android execution is separate.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 75,
+      "end_line": 75,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 76,
+      "end_line": 84,
+      "raw": "`editorColorToolSelectionDoesNotEditDocument` includes\n`color-fractional-text-desktop` and `color-fractional-text-mobile`. Each creates\nactual two-line native text, applies the 120% preset at the default 13 px font,\nthen focuses its rounded line-height input without typing before selecting Color.\nThe cases compare complete IISC bytes, rendered pixels, exact 15.6 px line height,\nthe retained 120% preset, revision, selection and Undo/Redo state across panel\nreopening, view navigation and a Brush round trip. The existing Redo is executed\nto verify the original edit remains available. Run the focused target below;\npass status is determined from its execution log.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 85,
+      "end_line": 85,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "fenced_code",
+      "start_line": 86,
+      "end_line": 88,
+      "raw": "```sh\nctest --test-dir build -R '^Dreamscapes.EditorColorPassiveSelection$' --output-on-failure\n```\n",
+      "language": "sh",
+      "code": "ctest --test-dir build -R '^Dreamscapes.EditorColorPassiveSelection$' --output-on-failure\n",
+      "closed": true
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Editor text panel",
+      "anchor": "editor-text-panel",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000007",
+        "line": 16,
+        "text": "local resources in `Assets/Text`; the panel never depends on temporary asset URLs.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [
+      {
+        "block_id": "b000029",
+        "language": "sh",
+        "code": "ctest --test-dir build -R '^Dreamscapes.EditorColorPassiveSelection$' --output-on-failure\n"
+      }
+    ],
+    "links": [],
+    "tables": [
+      {
+        "block_id": "b000005",
+        "columns": [
+          "View",
+          "Figma node",
+          "Reference frame"
+        ],
+        "rows": [
+          [
+            "Content",
+            "`627:95323`",
+            "432 × 653"
+          ],
+          [
+            "Typography",
+            "`631:15674`",
+            "432 × 718"
+          ],
+          [
+            "Layout",
+            "`631:15675`",
+            "432 × 949"
+          ],
+          [
+            "Appearance",
+            "`631:15676`",
+            "432 × 1636"
+          ]
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

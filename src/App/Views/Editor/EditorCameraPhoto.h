@@ -1,5 +1,6 @@
 #pragma once
 #include "EditorCaptureNative.h"
+#include "../../ViewModels/Native/PhotoPresentation.h"
 #include "EditorPhotoImport.h"
 #include "EditorPhotoGalleryModel.h"
 #include <QObject>
@@ -77,6 +78,10 @@ public:
     QString importError() const { return m_importError; }
     bool galleryAuthorizationRequired() const;
     int selectionCount() const;
+    Q_INVOKABLE QVariantMap presentation(const QVariantMap &settings) const;
+    Q_INVOKABLE QVariantMap captureSettings(const QVariantMap &settings, const QVariantList &region = {}) const;
+    Q_INVOKABLE void refreshGalleryFor(QObject *presenter, const QVariantMap &settings);
+    Q_INVOKABLE bool importFor(const QString &view);
     Q_INVOKABLE void refreshDevices();
     Q_INVOKABLE void attachPreview(QObject *output);
     Q_INVOKABLE bool detachPreview(QObject *expectedOutput);
@@ -115,6 +120,7 @@ signals:
     void originalsReady(qulonglong token, const dreamscapes::PhotoOriginals &originals);
     void importCancelled(qulonglong token);
 private:
+    dreamscapes::vm::PhotoPresentation m_presentation;
     template<class Function> auto enqueuePhotoWork(Function function, std::shared_ptr<const std::atomic_bool> obsolete = {}) {
         using Result = std::invoke_result_t<Function>;
         auto next = m_photoTail.then(QtFuture::Launch::Async, [closed = m_photoClosed, obsolete = std::move(obsolete), function = std::move(function)]() mutable -> Result {

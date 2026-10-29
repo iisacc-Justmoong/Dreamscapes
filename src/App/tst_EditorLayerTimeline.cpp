@@ -1,6 +1,7 @@
 #include "Views/Editor/EditorTimelineModel.h"
 #include "Views/Editor/EditorTimelineViewport.h"
 #include "Views/Editor/EditorCanvas.h"
+#include "ViewModels/ViewData.h"
 #include <iiSharedCanvas.h>
 #include <QApplication>
 #include <QBuffer>
@@ -456,7 +457,14 @@ void EditorLayerTimelineTests::dragPreviewFollowsPointer() {
     auto *model=qvariant_cast<EditorTimelineModel *>(timeline->property("stateModel"));QVERIFY(model);model->setSnap(false);
     auto *card=visualItem(timeline.data(),"editorTimelineClip-still-layer");QVERIFY(card);
     auto *lanes=visualItem(timeline.data(),"editorTimelineLanes");QVERIFY(lanes);
+    auto *pointer=visualItem(timeline.data(),"editorTimelinePointerInput");QVERIFY(pointer);
+    auto *view=qvariant_cast<EditorTimelineViewport *>(timeline->property("viewState"));QVERIFY(view);
     const QPoint start=card->mapToScene(QPointF(card->width()/2,card->height()/2)).toPoint();
+    QVERIFY(window.contentItem()->contains(start));
+    const auto local=pointer->mapFromScene(start);
+    const auto hit=view->hitTest(local.x(),local.y());
+    QCOMPARE(hit.value("kind").toString(),QString("clip"));
+    QCOMPARE(hit.value("id").toString(),QString("still-layer"));
     const int pixels=qRound(lanes->property("contentWidth").toDouble()/timeline->property("viewFrameCount").toInt()*2);
     QPointer<QQuickItem> retained(card);
     QSignalSpy edits(&canvas,&CanvasItem::revisionChanged),projections(model,&EditorTimelineModel::projectionChanged);
@@ -1246,6 +1254,7 @@ int main(int argc,char **argv) {
     qputenv("SOCIETY_DISABLE_SESSION_RESTORE","1");
     qunsetenv("SOCIETY_CONTAINER_PATH");
     QApplication app(argc,argv);
+    dreamscapes::registerNativeViewModelTypes();
     qmlRegisterType<EditorCanvas>("Dreamscapes.Storage",1,0,"EditorCanvas");
     qmlRegisterType<EditorTimelineModel>("Dreamscapes.Storage",1,0,"EditorTimelineModel");
     qmlRegisterType<EditorTimelineViewport>("Dreamscapes.Storage", 1, 0, "EditorTimelineViewport");

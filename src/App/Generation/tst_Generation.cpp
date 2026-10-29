@@ -6,6 +6,7 @@
 #include "AdvancedImageParameters.h"
 #include "AdvancedImageOutput.h"
 #include "SocietyGenerationStorage.h"
+#include <ApplicationStorage.h>
 #include <Generation/NativePose.hpp>
 #include <StorageMap.h>
 #include <iiSocietyContainer/DashboardFiles.h>
@@ -56,6 +57,14 @@ QJsonObject recordedJob(const GenerationController &controller, const QString &i
     }
     return {};
 }
+QJsonObject controlById(const QJsonArray &controls, const QString &id)
+{
+    for (const auto &value : controls) {
+        const auto control = value.toObject();
+        if (control.value("id").toString() == id) return control;
+    }
+    return {};
+}
 QString state(const GenerationController &controller, const QString &id)
 {
     for (const auto &value : controller.jobs()) {
@@ -98,6 +107,29 @@ class GenerationTests : public QObject
 {
     Q_OBJECT
 private slots:
+    void sharedLogicalDiskPublishesBeforeSocietyAndSurvivesAdoption() {
+        QTemporaryDir group(DREAMSCAPES_TEST_DIRECTORY "/logical-app-storage-XXXXXX"); QVERIFY(group.isValid()); QString error;
+        const auto storage = ApplicationStorage::openInGroup(group.path(), "com.iisacc.dreamscapes", &error);
+        QVERIFY2(storage, qPrintable(error)); const auto root = storage->drive().rootPath(), identifier = storage->drive().identifier();
+        QVERIFY(write(storage->filePath(StoreSection::Models, "first model.safetensor"), "downloaded checkpoint"));
+        const auto selected = qgetenv("SOCIETY_CONTAINER_PATH");
+        const auto restore = qScopeGuard([&] { selected.isNull() ? qunsetenv("SOCIETY_CONTAINER_PATH") : qputenv("SOCIETY_CONTAINER_PATH", selected); });
+        qputenv("SOCIETY_CONTAINER_PATH", root.toUtf8());
+        GenerationController controller(publicationRuntime()); controller.setForeground(true);
+        QVERIFY2(controller.connectStorage(), qPrintable(controller.errorString())); QCOMPARE(controller.models().size(), 1);
+        QCOMPARE(controller.containerPath(), root); const auto id = controller.enqueue("shared logical disk", "1:1", 1, 42);
+        QVERIFY(!id.isEmpty()); QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 30000);
+        const auto output = recordedJob(controller, id).value("images").toArray(); QCOMPARE(output.size(), 1);
+        const auto images = contentEntries(QDir(storage->drive().sectionPath(StoreSection::GenerationHistory)), QDir::Files);
+        QCOMPARE(images.size(), 1); const auto path = storage->filePath(StoreSection::GenerationHistory, images.first());
+        QVERIFY(!QImage(path).isNull());
+        QVERIFY2(ApplicationStorage::adoptInGroup(group.path(), &error), qPrintable(error));
+        controller.refreshModels(); QCOMPARE(controller.containerPath(), root); QCOMPARE(controller.models().size(), 1);
+        const auto reopened = ApplicationStorage::openInGroup(group.path(), "com.iisacc.dreamscapes", &error); QVERIFY2(reopened, qPrintable(error));
+        QCOMPARE(reopened->drive().identifier(), identifier); QVERIFY(!QImage(path).isNull());
+        QCOMPARE(ApplicationStorage::registration(group.path()).value("managingApplication"), "com.iisacc.society");
+        QVERIFY(!QFileInfo::exists(group.filePath("Society.societycontainer")));
+    }
     void fileFailureAnalysisDoesNotMutateGenerationOrStartWork() {
         QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/operation-failure-report-XXXXXX"); QVERIFY(root.isValid());
         auto runtime = fakeRuntime(); runtime.failureAgentExecutable = root.filePath("missing-agent");
@@ -141,6 +173,29 @@ private slots:
         QCOMPARE(recordedJob(controller, id)["state"], "failed");
         QCOMPARE(recordedJob(controller, id)["error"].toString(), originalError);
         QVERIFY(!recordedJob(controller, id).contains("lastProgress"));
+    }
+    void videoFailureKeepsLastWorkStageWhenWorkerBecomesIdle() {
+        const auto resources = QDir(QFileInfo(QStringLiteral(DREAMSCAPES_FAKE_GENERATOR)).absolutePath())
+            .filePath("../../../../resources");
+        QTemporaryDir root(QDir(resources).filePath("video-failure-XXXXXX.societycontainer"));
+        QVERIFY(prepare(root));
+        QVERIFY(QDir().mkpath(root.filePath("Models/ltx")));
+        QVERIFY(write(root.filePath("Models/ltx/model_index.json"), R"({"_class_name":"LTXPipeline"})"));
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        runtime.modelPreferencesFile = root.filePath("settings/models.conf");
+        runtime.failureAgentExecutable = root.filePath("missing-agent");
+        runtime.failureReportsDirectory = root.filePath("Files/FailureReports");
+        GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
+        const auto id = controller.enqueueVideo("video-diagnostic-failure", "1:1", 1, {}, 1, 24, 42);
+        QVERIFY2(!id.isEmpty(), qPrintable(controller.errorString()));
+        controller.setForeground(true);
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("failed"), 15000);
+        const auto evidence = controller.failureAnalysis(id).value("evidence").toMap();
+        const auto status = evidence.value("inference").toMap();
+        QCOMPARE(status.value("state").toString(), QString("denoising"));
+        QCOMPARE(status.value("step").toInt(), 0);
+        QCOMPARE(status.value("total").toInt(), recordedJob(controller, id).value("steps").toInt());
+        QVERIFY(evidence.value("rawError").toString().contains("weight preparation failed"));
     }
     void nativeOwnerCloseRetainsWorkerValues_data() {
         QTest::addColumn<bool>("advanced");QTest::newRow("native")<<false;QTest::newRow("advanced")<<true;
@@ -473,6 +528,37 @@ private slots:
         QVERIFY(controller.storedImage(forged).isEmpty());
         QVERIFY(QFile::remove(source.toLocalFile())); QVERIFY(files->refresh());
         QVERIFY(controller.storedImage(alias).isEmpty());
+    }
+    void nativeHistoryAndSearchKeepOriginalPayloads() {
+        auto runtime = fakeRuntime(); runtime.executable.clear();
+        GenerationController controller(runtime);
+        const auto source = QUrl::fromLocalFile(QStringLiteral(DREAMSCAPES_TEST_DIRECTORY "/history payload.png"));
+        const auto date = QDateTime::fromString("2026-10-25T12:34:56.789Z", Qt::ISODateWithMs);
+        const QVariantMap opaque{{"reference", source}, {"captured", date}};
+        const QVariantMap first{{"id", "same-result"}, {"name", "history payload.png"},
+            {"path", source.toLocalFile()}, {"source", source}, {"imageSource", source},
+            {"modified", date}, {"parameters", opaque}};
+        auto second = first; second["parameters"] = QVariantMap{{"reference", source}, {"variant", 2}};
+        const auto history = controller.historyEntries({first, second});
+        QCOMPARE(history.size(), 2);
+        for (const auto &row : history) {
+            QCOMPARE(row.toMap().value("imageSource").metaType(), QMetaType::fromType<QUrl>());
+            QCOMPARE(row.toMap().value("modified").metaType(), QMetaType::fromType<QDateTime>());
+        }
+        QCOMPARE(history.first().toMap(), first);
+        QCOMPARE(history.last().toMap(), second);
+        const auto search = controller.searchEntries({first}, {second}, history);
+        QCOMPARE(search.size(), 4);
+        const QVariantList expected{first, second, first, second};
+        for (qsizetype i = 0; i < search.size(); ++i) {
+            const auto file = search[i].toMap().value("file").toMap();
+            QCOMPARE(file.value("source").metaType(), QMetaType::fromType<QUrl>());
+            QCOMPARE(file.value("modified").metaType(), QMetaType::fromType<QDateTime>());
+            QCOMPARE(file, expected[i].toMap());
+        }
+        QCOMPARE(search[0].toMap().value("label").toString(), "Files · history payload.png");
+        QCOMPARE(search[1].toMap().value("label").toString(), "Published · history payload.png");
+        QCOMPARE(search[2].toMap().value("label").toString(), "History · history payload.png");
     }
     void unavailableNativeHistoryRetainsItsOpenIdentity() {
         QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/remote-native-view-XXXXXX.societycontainer");QVERIFY(prepare(root));
@@ -1237,47 +1323,13 @@ private slots:
         QCOMPARE(controller.jobs().size(), 2);
     }
 
-    void advancedPoseResourcesReachNativeQueue()
+    void retiredPoseResourcesAreRejected()
     {
-        if (!iiLocalDiffusion::nativePoseAvailable()) QSKIP("Pose backend disabled");
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/advanced-pose-XXXXXX.societycontainer");
-        QVERIFY(prepare(root));
-        QVERIFY(write(root.filePath("Models/control.safetensors"), "control fixture"));
-        QVERIFY(write(root.filePath("Models/detector.onnx"), "detector fixture"));
-        QVERIFY(write(root.filePath("Models/pose.onnx"), "pose fixture"));
-        QImage reference(3, 2, QImage::Format_RGB888); reference.fill(QColor(11, 12, 13));
-        QVERIFY(reference.save(root.filePath("Files/reference.png")));
-        auto runtime = fakeRuntime(); runtime.nativeInference = true;
-        iiLocalDiffusion::NativeAdvancedControls received;
-        runtime.nativeGenerateAdvanced = [&](const auto &r, const auto &, const auto &, const auto &s,
-            const auto &, const auto &, const auto &) {
-            received = s;
-            iiLocalDiffusion::NativeGenerationResult result;
-            result.width = r.width; result.height = r.height; result.rgb.resize(r.width * r.height * 3, 100);
-            return result;
-        };
-        GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
-        AdvancedImageParameters draft(root.filePath("presets.json"));
-        QVERIFY(draft.updateParameters({{"prompt", "pose queue"}, {"model", "first model.safetensor"},
-            {"width", 64}, {"height", 64}, {"outputCount", 1}}));
-        const auto controlId = draft.addControlNet("Pose");
-        QVERIFY(draft.updateControlNet(controlId, {{"imageSource", "reference.png"},
-            {"model", "control.safetensors"}, {"poseDetector", "detector.onnx"}, {"poseModel", "pose.onnx"}}));
-        QVERIFY(draft.applyControlNet(controlId));
-        const auto id = controller.enqueueAdvanced(draft.parameters());
-        QVERIFY2(!id.isEmpty(), qPrintable(controller.errorString()));
-        QVERIFY(draft.updateControlNet(controlId, {{"poseModel", "missing.onnx"}}));
-        controller.setForeground(true);
-        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 15000);
-        QCOMPARE(received.controls.size(), size_t(1));
-        QCOMPARE(received.controls.front().process, std::string("Pose"));
-        QCOMPARE(QString::fromStdString(received.controls.front().poseDetector.string()),
-            QFileInfo(root.filePath("Models/detector.onnx")).canonicalFilePath());
-        QCOMPARE(QString::fromStdString(received.controls.front().poseModel.string()),
-            QFileInfo(root.filePath("Models/pose.onnx")).canonicalFilePath());
-        QVERIFY(draft.applyControlNet(controlId));
-        QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty());
-        QCOMPARE(controller.jobs().size(), 1);
+        QVERIFY(!iiLocalDiffusion::nativePoseAvailable());
+        AdvancedImageParameters draft;
+        QVERIFY(draft.addControlNet("Pose").isEmpty());
+        QVERIFY(!draft.selectPose("unused", QUrl("file:///retired-detector"), QUrl("file:///retired-model")));
+        QVERIFY(draft.parameters().value("controlNets").toList().isEmpty());
     }
 
     void advancedNativeReceivesSamplingComponentsAndAdapters()
@@ -1299,6 +1351,8 @@ private slots:
         QVERIFY(reference.save(root.filePath("Files/reference.png")));
         reference.fill(QColor(21, 22, 23)); QVERIFY(reference.save(root.filePath("Files/second.png")));
         auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        runtime.failureAgentExecutable = root.filePath("unavailable-test-failure-agent");
+        runtime.failureAgentTimeoutMilliseconds = 100;
         iiLocalDiffusion::NativeGenerationRequest received;
         iiLocalDiffusion::NativeGenerationOptions options;
         iiLocalDiffusion::NativeModelComponents components;
@@ -1332,7 +1386,7 @@ private slots:
             {"regionalMask", true}, {"maskSource", "second.png"}, {"ipAdapter", true},
             {"ipAdapterModel", "ip.safetensors"}, {"ipAdapterVision", "vision.safetensors"}}));
         QVERIFY(draft.applyControlNet(controlId));
-        QVERIFY(!draft.addControlNet("Pose").isEmpty()); // Unapplied drafts never execute.
+        QVERIFY(draft.addControlNet("Pose").isEmpty()); // Retired model inference cannot be added.
         const auto secondControlId = draft.addControlNet("Tile");
         QVERIFY(!secondControlId.isEmpty());
         QVERIFY(draft.updateControlNet(secondControlId, {{"imageSource", "reference.png"},
@@ -1347,7 +1401,9 @@ private slots:
         const auto id = controller.enqueueAdvanced(draft.parameters());
         QVERIFY2(!id.isEmpty(), qPrintable(controller.errorString()));
         controller.setForeground(true);
-        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 15000);
+        QTRY_VERIFY_WITH_TIMEOUT(state(controller, id) == "completed" || state(controller, id) == "failed", 15000);
+        QVERIFY2(state(controller, id) == "completed",
+                 qPrintable(controller.errorString() + " " + recordedJob(controller, id).value("error").toString()));
         QCOMPARE(received.steps, 19); QCOMPARE(received.seed, 42); QCOMPARE(received.height, 128);
         QCOMPARE(options.negativePrompt, std::string("noise")); QCOMPARE(options.loras.size(), size_t(1));
         QCOMPARE(components.guidanceScale, 6.5f); QVERIFY(!components.vae.empty());
@@ -1403,18 +1459,19 @@ private slots:
         QCOMPARE(QString::fromStdString(sampling.controls.back().model.string()),
             QFileInfo(root.filePath("Models/second-control.safetensors")).canonicalFilePath());
         const auto snapshot = recordedJob(controller, id).value("advancedParameters").toObject();
-        const auto ipSnapshot = snapshot.value("controlNets").toArray()[3].toObject();
+        const auto ipSnapshot = controlById(snapshot.value("controlNets").toArray(), ipOnly);
         QCOMPARE(ipSnapshot.value("ipAdapterModel").toString(), QFileInfo(root.filePath("Models/ip.safetensors")).canonicalFilePath());
         QCOMPARE(ipSnapshot.value("ipAdapterVision").toString(), QFileInfo(root.filePath("Models/vision.safetensors")).canonicalFilePath());
         for (const auto &field : {"ipAdapterModel", "ipAdapterVision"}) {
-            const auto original = draft.parameters().value("controlNets").toList()[3].toMap().value(field);
+            const auto original = controlById(QJsonArray::fromVariantList(
+                draft.parameters().value("controlNets").toList()), ipOnly).value(field).toVariant();
             for (const auto &bad : {"https://example.invalid/ip.safetensors", "missing-ip.safetensors"}) {
                 QVERIFY(draft.updateControlNet(ipOnly, {{field, bad}})); QVERIFY(draft.applyControlNet(ipOnly));
                 QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty()); QCOMPARE(controller.jobs().size(), 1);
             }
             QVERIFY(draft.updateControlNet(ipOnly, {{field, original}})); QVERIFY(draft.applyControlNet(ipOnly));
         }
-        const auto secondControlSnapshot = snapshot.value("controlNets").toArray()[2].toObject();
+        const auto secondControlSnapshot = controlById(snapshot.value("controlNets").toArray(), secondControlId);
         QCOMPARE(secondControlSnapshot.value("model").toString(),
             QFileInfo(root.filePath("Models/second-control.safetensors")).canonicalFilePath());
         QCOMPARE(secondControlSnapshot.value("imageSource").toString(),
@@ -1422,7 +1479,8 @@ private slots:
         QCOMPARE(secondControlSnapshot.value("maskSource").toString(),
             QFileInfo(root.filePath("Files/reference.png")).canonicalFilePath());
         for (const auto &field : {"model", "imageSource", "maskSource"}) {
-            const auto original = draft.parameters().value("controlNets").toList()[2].toMap().value(field);
+            const auto original = controlById(QJsonArray::fromVariantList(
+                draft.parameters().value("controlNets").toList()), secondControlId).value(field).toVariant();
             QVERIFY(draft.updateControlNet(secondControlId, {{field, "missing-control-resource"}}));
             QVERIFY(draft.applyControlNet(secondControlId));
             QVERIFY(controller.enqueueAdvanced(draft.parameters()).isEmpty());
@@ -1456,7 +1514,7 @@ private slots:
         QCOMPARE(snapshot.value("referenceImages").toArray()[0].toString(),
             QFileInfo(root.filePath("Files/reference.png")).canonicalFilePath());
         QCOMPARE(snapshot.value("textualEmbeddings").toString(), QFileInfo(root.filePath("Models/detail.safetensors")).canonicalFilePath());
-        const auto controlSnapshot = snapshot.value("controlNets").toArray()[0].toObject();
+        const auto controlSnapshot = controlById(snapshot.value("controlNets").toArray(), controlId);
         QCOMPARE(controlSnapshot.value("maskSource").toString(), QFileInfo(root.filePath("Files/second.png")).canonicalFilePath());
         for (const auto &maskSource : {"https://example.invalid/mask.png", "missing-mask.png"}) {
             QVERIFY(draft.updateControlNet(controlId, {{"maskSource", maskSource}}));
@@ -2009,6 +2067,36 @@ private slots:
         QCOMPARE(state(controller, first), QString("cancelled"));
         QVERIFY(QDir(root.filePath("Generation History")).isEmpty());
         QVERIFY(!QFileInfo::exists(root.filePath(".dreamscapes")));
+    }
+
+    void batchCancellationDoesNotTouchUnownedJobsOrHistory()
+    {
+        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/batch-cancel-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        auto runtime = fakeRuntime();
+        runtime.executable.clear();
+        GenerationController controller(runtime);
+        QVERIFY(controller.connectStorage(root.path()));
+        QSignalSpy submitted(&controller, &GenerationController::submissionQueued);
+        QVERIFY(!controller.enqueue("owned selection", "1:1", 2).isEmpty());
+        const auto owned = submitted.last().first().toStringList();
+        QCOMPARE(owned.size(), 2);
+        const auto other = controller.enqueue("another workspace");
+        QVERIFY(!other.isEmpty());
+        const auto originalModel = controller.selectedModel();
+        controller.cancelBatch({owned.first(), "unknown-job", owned.last(), owned.first()});
+        for (const auto &id : owned)
+            QCOMPARE(state(controller, id), QString("cancelled"));
+        QCOMPARE(state(controller, other), QString("queued"));
+        QCOMPARE(controller.jobs().size(), 3);
+        QCOMPARE(controller.selectedModel(), originalModel);
+        QVERIFY(!controller.busy());
+        QVERIFY(QDir(root.filePath("Generation History")).isEmpty());
+        QSignalSpy unchanged(&controller, &GenerationController::jobsChanged);
+        controller.cancelBatch({});
+        controller.cancelBatch(owned);
+        QCOMPARE(unchanged.size(), 0);
+        QCOMPARE(state(controller, other), QString("queued"));
     }
 
     void batchGenerationPublishesTheSelectedNumberOfImagesSerially()

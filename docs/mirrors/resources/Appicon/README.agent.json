@@ -1,0 +1,342 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:c4e7a38e0975e6b337c6f59b84743f20ef62b4105fa25e5aabf7b063fb6d1351",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "resources/Appicon/README.md",
+    "sha256": "4e43f1c69af367353db80ef089e5e349603ad96b3c0782091cb566346731cfc1",
+    "bytes": 3715,
+    "line_count": 37,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "Dreamscapes app icon",
+    "role": "overview",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "html",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "<a id=\"dreamscapes-앱-아이콘\"></a>\n"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "heading",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "# Dreamscapes app icon\n",
+      "level": 1,
+      "title": "Dreamscapes app icon"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 5,
+      "end_line": 5,
+      "raw": "The original consists of `Appicon.ai`, 1024×1024, and `Artboard 1.png`. PNG uses all opaque pixels and retains the purple and blue layers along with the background. Only the dark background color `#141027`, observed at the bottom-left of the original, is used for platform-specific margins. The original file is not modified.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "table",
+      "start_line": 7,
+      "end_line": 14,
+      "raw": "|Platform|Generated assets|App connection|\n| --- | --- | --- |\n| macOS |16 – 1024px ICNS, 1×/2× iconset, with transparent margins and rounded corners|Bundle CFBundleIconFile and Qt runtime icons|\n| iPhone/iPad |Alpha-free AppIcon .appiconset, App Store 1024px|Xcode AppIcon asset catalog|\n| Android |6 density legacy/round, adaptive,  API   33  monochrome, Play  512px|android:icon and android: roundIcon|\n| Windows |16 – 256px with  10 size  ICO|executable  RC  resources and  Qt  runtime icons|\n| Linux | 16–1024px hicolor |desktop items,  desktopFileName , install rules|\n| WebAssembly |favicon, Apple touch  180px, normal·maskable  192/512px|Qt's  Dreamscapes .html and webmanifest|\n",
+      "columns": [
+        "Platform",
+        "Generated assets",
+        "App connection"
+      ],
+      "rows": [
+        [
+          "macOS",
+          "16 – 1024px ICNS, 1×/2× iconset, with transparent margins and rounded corners",
+          "Bundle CFBundleIconFile and Qt runtime icons"
+        ],
+        [
+          "iPhone/iPad",
+          "Alpha-free AppIcon .appiconset, App Store 1024px",
+          "Xcode AppIcon asset catalog"
+        ],
+        [
+          "Android",
+          "6 density legacy/round, adaptive,  API   33  monochrome, Play  512px",
+          "android:icon and android: roundIcon"
+        ],
+        [
+          "Windows",
+          "16 – 256px with  10 size  ICO",
+          "executable  RC  resources and  Qt  runtime icons"
+        ],
+        [
+          "Linux",
+          "16–1024px hicolor",
+          "desktop items,  desktopFileName , install rules"
+        ],
+        [
+          "WebAssembly",
+          "favicon, Apple touch  180px, normal·maskable  192/512px",
+          "Qt's  Dreamscapes .html and webmanifest"
+        ]
+      ]
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 15,
+      "end_line": 15,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 16,
+      "end_line": 16,
+      "raw": "iOS provides rectangular source and the operating system handles corners.  macOS  ICNS includes its own padding, corners, and soft shadows. Android places the source in the  108dp layer center's  66dp area, and monochrome converts brightness to alpha.  Windows / Linux /normal web icons preserve the full source composition.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "Regeneration uses the existing workspace's  Pillow   12.3 . The installation package checks  MIT-CMU  licenses and does not add dependencies to the app runtime. Normal builds use stored assets.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "fenced_code",
+      "start_line": 20,
+      "end_line": 25,
+      "raw": "```sh\npython3 tools/generate_app_icons.py\npython3 -B tests/test_app_icons.py\ncmake --build build\nctest --test-dir build --output-on-failure\n```\n",
+      "language": "sh",
+      "code": "python3 tools/generate_app_icons.py\npython3 -B tests/test_app_icons.py\ncmake --build build\nctest --test-dir build --output-on-failure\n",
+      "closed": true
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 26,
+      "end_line": 26,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 27,
+      "end_line": 27,
+      "raw": "After modifying Illustrator files, also export and regenerate the same-named  1024×1024  full artboards.  `generated/manifest.json`  records the source and generated file's  SHA-256 ·size·color mode. If regeneration is missed after source changes, tests fail.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 28,
+      "end_line": 28,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 29,
+      "end_line": 29,
+      "raw": "Android packages existing  Java ·manifest and icons into  `build/.../app-icons/android` . The source directory remains unchanged and preserves existing Activities, photo storage  FileProvider , and permissions. If the source or icon manifest changes, it automatically re-copies in the next build. Web preserves  Qt  bootstrap and does not duplicate links during iterative packaging.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "Asset inspection and actual operating system execution verification are separate. This build's execution, signing, and package verification results are recorded in  `build/icon-audit/verification.json` . Development  APK  signing is separate from store distribution signing.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 32,
+      "end_line": 32,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 33,
+      "end_line": 33,
+      "raw": "2026-09-12  validation passed for 82 assets, 7 auto-checked icons, and macOS CTest 6 . macOS  build, iPhone · iPad  emulator, and Android   16  arm64  emulator were replaced and execution verified. Android  APK's adaptive foreground pixels match the generation source, and the public iOS  bundle contains 19  opaque icon renditions matching independent actool compilation. Windows verified actual COFF  resource compilation, Linux verified hicolor·desktop installation, and web verified Qt   HTML  packaging. Windows / Linux / WebAssembly  full app execution must be verified in a separate environment.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 34,
+      "end_line": 34,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 35,
+      "end_line": 35,
+      "raw": "Specification references: [Apple asset catalogs](https://developer.apple.com/documentation/xcode/configuring-your-app-icon), [Android adaptive icons](https://developer.android.com/develop/ui/compose/system/icon_design_adaptive), [Qt application icons](https://doc.qt.io/qt-6.8/appicon.html).\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 36,
+      "end_line": 36,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 37,
+      "end_line": 37,
+      "raw": "The original `.ai`  is specified as binary in `.gitattributes`  and excluded from Git line-ending normalization and text merge targets.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000003",
+      "parent_id": null,
+      "level": 1,
+      "title": "Dreamscapes app icon",
+      "anchor": "dreamscapes-app-icon",
+      "start_line": 3
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000021",
+        "line": 33,
+        "text": "2026-09-12  validation passed for 82 assets, 7 auto-checked icons, and macOS CTest 6 . macOS  build, iPhone · iPad  emulator, and Android   16  arm64  emulator were replaced and execution verified. Android  APK's adaptive foreground pixels match the generation source, and the public iOS  bundle contains 19  opaque icon renditions matching independent actool compilation. Windows verified actual COFF  resource compilation, Linux verified hicolor·desktop installation, and web verified Qt   HTML  packaging. Windows / Linux / WebAssembly  full app execution must be verified in a separate environment.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [
+      {
+        "block_id": "b000013",
+        "language": "sh",
+        "code": "python3 tools/generate_app_icons.py\npython3 -B tests/test_app_icons.py\ncmake --build build\nctest --test-dir build --output-on-failure\n"
+      }
+    ],
+    "links": [
+      {
+        "block_id": "b000023",
+        "label": "Apple asset catalogs",
+        "target": "https://developer.apple.com/documentation/xcode/configuring-your-app-icon",
+        "kind": "external",
+        "line": 35
+      },
+      {
+        "block_id": "b000023",
+        "label": "Android adaptive icons",
+        "target": "https://developer.android.com/develop/ui/compose/system/icon_design_adaptive",
+        "kind": "external",
+        "line": 35
+      },
+      {
+        "block_id": "b000023",
+        "label": "Qt application icons",
+        "target": "https://doc.qt.io/qt-6.8/appicon.html",
+        "kind": "external",
+        "line": 35
+      }
+    ],
+    "tables": [
+      {
+        "block_id": "b000007",
+        "columns": [
+          "Platform",
+          "Generated assets",
+          "App connection"
+        ],
+        "rows": [
+          [
+            "macOS",
+            "16 – 1024px ICNS, 1×/2× iconset, with transparent margins and rounded corners",
+            "Bundle CFBundleIconFile and Qt runtime icons"
+          ],
+          [
+            "iPhone/iPad",
+            "Alpha-free AppIcon .appiconset, App Store 1024px",
+            "Xcode AppIcon asset catalog"
+          ],
+          [
+            "Android",
+            "6 density legacy/round, adaptive,  API   33  monochrome, Play  512px",
+            "android:icon and android: roundIcon"
+          ],
+          [
+            "Windows",
+            "16 – 256px with  10 size  ICO",
+            "executable  RC  resources and  Qt  runtime icons"
+          ],
+          [
+            "Linux",
+            "16–1024px hicolor",
+            "desktop items,  desktopFileName , install rules"
+          ],
+          [
+            "WebAssembly",
+            "favicon, Apple touch  180px, normal·maskable  192/512px",
+            "Qt's  Dreamscapes .html and webmanifest"
+          ]
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

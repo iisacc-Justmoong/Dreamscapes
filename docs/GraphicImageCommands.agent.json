@@ -1,0 +1,477 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:0993fc9e0e93a4f7e57fd609de9b151e66979bc05afa83d2a66edb37c81b88fb",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/GraphicImageCommands.md",
+    "sha256": "f6eab57bfbe843634e0ca79d3812f450c5f22f79cc3bafa28e1d9bc166bf8732",
+    "bytes": 10210,
+    "line_count": 45,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "그래픽 이미지 명령의 실행 경로",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# 그래픽 이미지 명령의 실행 경로\n",
+      "level": 1,
+      "title": "그래픽 이미지 명령의 실행 경로"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "그래픽 패널의 미리보기·Apply·마스크 명령은 `EditorGraphicCommand`가 소유한다. QML은 상태와 결과를 표시하며, 다음 이벤트에서 동기 이미지 함수를 호출하던 경로를 사용하지 않는다. 별도의 `EditorGraphicHelper`는 설정값만 계산하는 기존 역할을 유지한다.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 5,
+      "end_line": 5,
+      "raw": "요청은 문서의 불변 스냅샷, 프레임, 선택 레이어·애셋·아트보드, 도구, 선택 영역 세대와 패널 문맥을 캡처한다. 작업 입력에 GUI 객체나 콜백을 넣지 않는다. QML 스크립트 값은 소유 스레드에서 분리된 값으로 변환하며 QObject 포인터는 거부한다. 기존 보정 원본은 공유 소유하여 작업 요청마다 픽셀 배열을 다시 복사하지 않는다.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "`graphicImage::calculate`는 작업 스레드에서 원본 선택·청크 펼치기, 레이어 좌표의 선택 영역 변환, SDK 이미지·마스크 계산, 혼합과 PNG 인코딩을 수행한다. 마스크 적용에 필요한 캔버스 좌표 변환, 선택 픽셀 통계, 오버레이와 외곽선 비트맵도 여기서 준비한다. 선택 영역이 없으면 전체 흰색 마스크를 만들고 혼합하는 작업을 생략한다. 하위 `iiGraphicAdjust`의 수학 구현은 Qt 없는 C++ SDK로 유지한다.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "내부 선택 영역과 저장된 결합 피연산자는 8비트 커버리지를 SDK의 `float` 배열로 한 번 변환한다. `EditorGraphicAdjust::MaskInputs`는 동기 어댑터 호출 동안만 그 배열을 빌린다. 소유 배열은 호출이 끝날 때까지 작업자가 유지하며, 어댑터는 뷰를 보관하거나 수정하지 않는다. 픽셀마다 `QVariant`를 만들고 다시 숫자로 파싱하는 중간 표현은 사용하지 않는다. 기존 공개 `width`·`height`·`coverage` 맵 입력은 유지한다. 네이티브 입력에도 크기·개수·유한수·범위를 검사하고, 알 수 없는 옵션을 계속 거부한다. 8비트 커버리지의 변환은 기존 `double`을 거친 `float` 반올림과 일치한다.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 11,
+      "end_line": 11,
+      "raw": "`applyLocalAdjustments`는 두 입력 계약을 갖는다. 보정값만 전달하면 현재 선택 영역을 SDK 마스크로 사용한다. 명시적인 `adjustments` 배열을 전달하면 각 항목의 독립적인 마스크와 옵션을 SDK에 그대로 전달하며 별도의 선택 영역을 요구하지 않는다. 선택 영역이 함께 있으면 SDK 결과를 그 영역으로 제한하여 혼합한다. 배열 안의 마스크를 단일 공통 마스크로 덮어쓰지 않는다. 새 마스크의 미리보기는 기존 선택 영역을 사용하지 않으므로 캡처·좌표 변환을 생략한다. 실제 마스크 적용에서는 결합용 이전 마스크를 보존하기 위해 선택 영역을 유지한다.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 12,
+      "end_line": 12,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 13,
+      "end_line": 13,
+      "raw": "한 객체는 실행 중인 작업 하나와 최신 대기 작업 하나만 보유한다. 취소·프레임·선택·문서·도구·잠금·마스크·패널 설정 변경은 이전 결과를 폐기한다. 줌·팬은 대상 픽셀을 바꾸지 않으므로 작업을 유지한다. 객체를 닫을 때는 취소를 요청하고 작업 스레드의 종료를 기다리지 않는다. SDK 내부 계산 도중의 즉시 중단을 보장하지 않으며, 단계 사이에서 취소를 확인한다.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 14,
+      "end_line": 14,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 15,
+      "end_line": 15,
+      "raw": "작업자는 문서·파일·Alias를 변경하지 않는다. 완료된 미리보기는 이미지 URL과 반환 설정만 게시한다. Apply는 소유 스레드에서 대상을 다시 확인하고 기존 픽셀 편집·동기 저장·Undo 경로로 한 번 적용한다. 마스크 명령은 선택 영역과 표시 정보를 갱신하며 문서 픽셀과 파일을 변경하지 않는다. 적용 중 직접 관찰자가 문서를 교체하거나 추가 편집을 실행하면 이전 보정 원본을 새 문맥에 게시하지 않는다.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 16,
+      "end_line": 16,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "`graphicOperationState`의 `enabled`·`reason`은 설정 계산에 필요한 조건을 포함한다. `imageEnabled`·`imageReason`은 픽셀 명령의 조건이다. 픽셀 없는 설정 계산은 큰 청크 영역에서도 허용하지만 실제 이미지 명령은 청크 호환 범위 16Mi 픽셀을 지킨다. 마스크의 캔버스 출력은 SDK `MediaLimits`의 프레임 제한을 따른다. 허용되지 않는 명령은 픽셀 접근 전에 거부하며 null 픽셀을 역참조하지 않는다.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "기존 `previewGraphicOperation`·`applyGraphicOperation`은 명시적인 동기 호출 계약을 유지한다. 두 API와 패널의 비동기 명령은 같은 분리 입력·처리 함수를 사용한다. 이 동기 API를 QML 인터랙션 경로에 다시 연결하지 않는다.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 20,
+      "end_line": 20,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 21,
+      "end_line": 21,
+      "raw": "`Dreamscapes.GraphicCommand`는 실제 SDK 결과, 작업 스레드·인코딩, 파일 무변경, 적용·재열기·공유 원본, 마스크 좌표와 로컬 보정, 대상 변경 폐기, 최신 요청, 수명·실패·스크립트 입력과 큰 청크 조건을 검사한다. `Dreamscapes.GraphicHelperGui`는 실제 패널 명령이 점유된 네이티브 작업자를 기다리는 동안 UI 이벤트를 처리하는지 검사한다.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 22,
+      "end_line": 22,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 23,
+      "end_line": 23,
+      "raw": "`Dreamscapes.TypedMaskInput`은 여러 독립 마스크를 직접 SDK로 실행한 결과와 앱의 결과를 비교한다. 선택 유무와 옵션 래핑, 미리보기의 문서·파일·리비전 무변경, 실제 적용과 재열기, 모든 8비트 커버리지의 진단·보정 결과, 반전·정제·세 가지 결합, 잘못된 네이티브 입력, 엄격한 옵션 검사, 변환된 레이어 좌표와 이전 결합 마스크 보존을 검증한다. 새 마스크 미리보기가 불필요한 선택 배열을 캡처하지 않는지도 실제 명령 입력으로 확인한다.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 24,
+      "end_line": 24,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 25,
+      "end_line": 25,
+      "raw": "최초 불변 문서 스냅샷과 선택 영역 값 복사, 소유 스레드의 실제 문서 쓰기·지속 저장, 준비된 비트맵을 네이티브 외곽선으로 바꾸는 UI 작업은 남아 있다. 이 계약은 전체 앱의 지연이나 FPS, 설치 앱과 실제 전경 입력 성능이 모두 해결되었다는 의미가 아니다.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 26,
+      "end_line": 26,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "heading",
+      "start_line": 27,
+      "end_line": 27,
+      "raw": "## 마스크의 입력 수요와 현재 프레임의 변환\n",
+      "level": 2,
+      "title": "마스크의 입력 수요와 현재 프레임의 변환"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 28,
+      "end_line": 28,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 29,
+      "end_line": 29,
+      "raw": "`linearMask`, `radialMask`, `invertMask`, `combineMasks`의 적용은 레이어 크기와 현재 프레임에서 샘플한 변환, 필요한 선택·피연산 마스크만 캡처한다. `graphicImage::Input::sourceGeometry`는 네이티브 값만 보유하며, 해당 요청에서는 전체 문서 스냅샷·원본 픽셀·색 공간 변환·청크 평탄화를 준비하지 않는다. 문서 세대·리비전·레이어·해석된 에셋·프레임·아트보드·도구·선택 세대에 대한 기존 적용 검증은 유지한다. 기존 이미지 처리 가능 범위도 유지한다.\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "paragraph",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "미리보기는 원본 비교 이미지를 표시하므로 문서와 원본을 계속 사용한다. 다만 기하 마스크 계산 자체에는 SDK의 크기·마스크 기반 함수를 호출하여 RGB 부동소수 이미지 변환을 생략한다. `EditorGraphicAdjust::makeMask(QSize, ...)`는 원본 픽셀이 필요한 작업을 거부한다. `brushMask`, `luminanceRangeMask`, `colorRangeMask`, `refineMask`는 실제 원본을 캡처하고 기존 색 공간·픽셀 검증 경로를 유지한다. 이전 QImage 및 직렬화·차용 마스크 인터페이스도 유지한다.\n"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 32,
+      "end_line": 32,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "paragraph",
+      "start_line": 33,
+      "end_line": 33,
+      "raw": "캔버스 좌표와 레이어 좌표 사이의 마스크 매핑에는 `sampleLayerAt(document, layer, frame).transform`을 사용한다. 기본 변환에 더해 현재 프레임의 이동·회전·크기·앵커를 SDK의 동일한 규칙으로 반영한다. 기하 입력 요청과 원본 이미지 요청 모두 이 규칙을 사용한다. 마스크 생성·적용은 선택 상태를 바꾸며 레이어 원본이나 문서 파일을 변경하지 않는다.\n"
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 34,
+      "end_line": 34,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "paragraph",
+      "start_line": 35,
+      "end_line": 35,
+      "raw": "회귀 검사는 기하 4종의 원본 비교 미리보기 보존·적용 시 문서 스냅샷 부재·파일 무변경, 픽셀 의존 마스크의 원본 유지, 직접 계산과 실제 수락 명령에서의 프레임별 이동을 확인한다. 큰 문서의 최종 이미지 저장, 모든 SDK 커널 내부의 취소, 실제 전경 입력 지연은 별도 검증 범위이다.\n"
+    },
+    {
+      "id": "b000036",
+      "kind": "blank",
+      "start_line": 36,
+      "end_line": 36,
+      "raw": "\n"
+    },
+    {
+      "id": "b000037",
+      "kind": "heading",
+      "start_line": 37,
+      "end_line": 37,
+      "raw": "## 청크 원본의 원점과 마스크 결과의 수락\n",
+      "level": 2,
+      "title": "청크 원본의 원점과 마스크 결과의 수락"
+    },
+    {
+      "id": "b000038",
+      "kind": "blank",
+      "start_line": 38,
+      "end_line": 38,
+      "raw": "\n"
+    },
+    {
+      "id": "b000039",
+      "kind": "paragraph",
+      "start_line": 39,
+      "end_line": 39,
+      "raw": "`editorRaster::describe`는 원본의 크기와 원본 픽셀에서 월드로 가는 변환을 반환한다. 일반 래스터의 픽셀 원점은 0이며, 청크를 펼친 이미지의 픽셀 원점은 `canvasOrigin(document)`이다. 후자의 원점은 레이어의 현재 프레임 변환 **이전**에 합성한다. 마스크 적용의 값형 캡처와 원본을 읽는 작업자는 이 하위 경로를 공유하므로 양수·음수 원점, 이동·회전·모션 및 픽셀 의존 마스크가 같은 좌표를 사용한다. 이 경로에는 Qt 객체나 상위 에디터 참조를 전달하지 않는다.\n"
+    },
+    {
+      "id": "b000040",
+      "kind": "blank",
+      "start_line": 40,
+      "end_line": 40,
+      "raw": "\n"
+    },
+    {
+      "id": "b000041",
+      "kind": "paragraph",
+      "start_line": 41,
+      "end_line": 41,
+      "raw": "`EditorGraphicCommand`는 작업자에서 마스크 결과를 검증한 뒤 소유자에게 전달한다. 캔버스 크기와 알파 배열, 선택 픽셀 수, 단색 윤곽의 크기·형식·팔레트, 임계값과 윤곽 비트의 일치, PNG 오버레이의 크기와 알파, 다음 합성에 보유할 피연산자의 크기를 확인한다. 소유자는 선택을 변경하기 전에 메타데이터를 다시 검사한다. 이미지 디코딩과 픽셀 순회는 소유 스레드에서 수행하지 않는다. 잘못된 결과는 오류 상태로 끝나며 이전 선택·피연산자·문서·파일을 변경하지 않는다. 선택 픽셀이 0인 정상 마스크는 허용한다.\n"
+    },
+    {
+      "id": "b000042",
+      "kind": "blank",
+      "start_line": 42,
+      "end_line": 42,
+      "raw": "\n"
+    },
+    {
+      "id": "b000043",
+      "kind": "paragraph",
+      "start_line": 43,
+      "end_line": 43,
+      "raw": "이미지 할당·페인터 초기화·PNG 저장 실패를 성공 결과로 발행하지 않는다. 공용 `dataImage`도 빈 이미지나 저장 실패에 빈 URL을 반환한다. 오류 반환 시 부분 결과의 큰 배열을 추가 복사하지 않으며, 저장 공간 예외는 이미지 처리 오류로 전달한다. 실제 메모리 고갈을 강제로 재현한 검사는 아니며, 결과 계약은 의도적으로 손상시킨 작업자 출력과 실패 인코딩 입력으로 검증한다.\n"
+    },
+    {
+      "id": "b000044",
+      "kind": "blank",
+      "start_line": 44,
+      "end_line": 44,
+      "raw": "\n"
+    },
+    {
+      "id": "b000045",
+      "kind": "paragraph",
+      "start_line": 45,
+      "end_line": 45,
+      "raw": "`mask-helper`는 마스크 연산만 수락하며, 작업자가 반환한 결과의 종류도 요청한 연산과 일치해야 한다. 잘못된 종류의 결과로 픽셀 편집이나 선택 변경을 우회하여 실행할 수 없다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "그래픽 이미지 명령의 실행 경로",
+      "anchor": "그래픽-이미지-명령의-실행-경로",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000027",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "마스크의 입력 수요와 현재 프레임의 변환",
+      "anchor": "마스크의-입력-수요와-현재-프레임의-변환",
+      "start_line": 27
+    },
+    {
+      "block_id": "b000037",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "청크 원본의 원점과 마스크 결과의 수락",
+      "anchor": "청크-원본의-원점과-마스크-결과의-수락",
+      "start_line": 37
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 3,
+        "text": "그래픽 패널의 미리보기·Apply·마스크 명령은 `EditorGraphicCommand`가 소유한다. QML은 상태와 결과를 표시하며, 다음 이벤트에서 동기 이미지 함수를 호출하던 경로를 사용하지 않는다. 별도의 `EditorGraphicHelper`는 설정값만 계산하는 기존 역할을 유지한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000005",
+        "line": 5,
+        "text": "요청은 문서의 불변 스냅샷, 프레임, 선택 레이어·애셋·아트보드, 도구, 선택 영역 세대와 패널 문맥을 캡처한다. 작업 입력에 GUI 객체나 콜백을 넣지 않는다. QML 스크립트 값은 소유 스레드에서 분리된 값으로 변환하며 QObject 포인터는 거부한다. 기존 보정 원본은 공유 소유하여 작업 요청마다 픽셀 배열을 다시 복사하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000009",
+        "line": 9,
+        "text": "내부 선택 영역과 저장된 결합 피연산자는 8비트 커버리지를 SDK의 `float` 배열로 한 번 변환한다. `EditorGraphicAdjust::MaskInputs`는 동기 어댑터 호출 동안만 그 배열을 빌린다. 소유 배열은 호출이 끝날 때까지 작업자가 유지하며, 어댑터는 뷰를 보관하거나 수정하지 않는다. 픽셀마다 `QVariant`를 만들고 다시 숫자로 파싱하는 중간 표현은 사용하지 않는다. 기존 공개 `width`·`height`·`coverage` 맵 입력은 유지한다. 네이티브 입력에도 크기·개수·유한수·범위를 검사하고, 알 수 없는 옵션을 계속 거부한다. 8비트 커버리지의 변환은 기존 `double`을 거친 `float` 반올림과 일치한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000011",
+        "line": 11,
+        "text": "`applyLocalAdjustments`는 두 입력 계약을 갖는다. 보정값만 전달하면 현재 선택 영역을 SDK 마스크로 사용한다. 명시적인 `adjustments` 배열을 전달하면 각 항목의 독립적인 마스크와 옵션을 SDK에 그대로 전달하며 별도의 선택 영역을 요구하지 않는다. 선택 영역이 함께 있으면 SDK 결과를 그 영역으로 제한하여 혼합한다. 배열 안의 마스크를 단일 공통 마스크로 덮어쓰지 않는다. 새 마스크의 미리보기는 기존 선택 영역을 사용하지 않으므로 캡처·좌표 변환을 생략한다. 실제 마스크 적용에서는 결합용 이전 마스크를 보존하기 위해 선택 영역을 유지한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 15,
+        "text": "작업자는 문서·파일·Alias를 변경하지 않는다. 완료된 미리보기는 이미지 URL과 반환 설정만 게시한다. Apply는 소유 스레드에서 대상을 다시 확인하고 기존 픽셀 편집·동기 저장·Undo 경로로 한 번 적용한다. 마스크 명령은 선택 영역과 표시 정보를 갱신하며 문서 픽셀과 파일을 변경하지 않는다. 적용 중 직접 관찰자가 문서를 교체하거나 추가 편집을 실행하면 이전 보정 원본을 새 문맥에 게시하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000017",
+        "line": 17,
+        "text": "`graphicOperationState`의 `enabled`·`reason`은 설정 계산에 필요한 조건을 포함한다. `imageEnabled`·`imageReason`은 픽셀 명령의 조건이다. 픽셀 없는 설정 계산은 큰 청크 영역에서도 허용하지만 실제 이미지 명령은 청크 호환 범위 16Mi 픽셀을 지킨다. 마스크의 캔버스 출력은 SDK `MediaLimits`의 프레임 제한을 따른다. 허용되지 않는 명령은 픽셀 접근 전에 거부하며 null 픽셀을 역참조하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000019",
+        "line": 19,
+        "text": "기존 `previewGraphicOperation`·`applyGraphicOperation`은 명시적인 동기 호출 계약을 유지한다. 두 API와 패널의 비동기 명령은 같은 분리 입력·처리 함수를 사용한다. 이 동기 API를 QML 인터랙션 경로에 다시 연결하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000029",
+        "line": 29,
+        "text": "`linearMask`, `radialMask`, `invertMask`, `combineMasks`의 적용은 레이어 크기와 현재 프레임에서 샘플한 변환, 필요한 선택·피연산 마스크만 캡처한다. `graphicImage::Input::sourceGeometry`는 네이티브 값만 보유하며, 해당 요청에서는 전체 문서 스냅샷·원본 픽셀·색 공간 변환·청크 평탄화를 준비하지 않는다. 문서 세대·리비전·레이어·해석된 에셋·프레임·아트보드·도구·선택 세대에 대한 기존 적용 검증은 유지한다. 기존 이미지 처리 가능 범위도 유지한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000033",
+        "line": 33,
+        "text": "캔버스 좌표와 레이어 좌표 사이의 마스크 매핑에는 `sampleLayerAt(document, layer, frame).transform`을 사용한다. 기본 변환에 더해 현재 프레임의 이동·회전·크기·앵커를 SDK의 동일한 규칙으로 반영한다. 기하 입력 요청과 원본 이미지 요청 모두 이 규칙을 사용한다. 마스크 생성·적용은 선택 상태를 바꾸며 레이어 원본이나 문서 파일을 변경하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000039",
+        "line": 39,
+        "text": "`editorRaster::describe`는 원본의 크기와 원본 픽셀에서 월드로 가는 변환을 반환한다. 일반 래스터의 픽셀 원점은 0이며, 청크를 펼친 이미지의 픽셀 원점은 `canvasOrigin(document)`이다. 후자의 원점은 레이어의 현재 프레임 변환 **이전**에 합성한다. 마스크 적용의 값형 캡처와 원본을 읽는 작업자는 이 하위 경로를 공유하므로 양수·음수 원점, 이동·회전·모션 및 픽셀 의존 마스크가 같은 좌표를 사용한다. 이 경로에는 Qt 객체나 상위 에디터 참조를 전달하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000041",
+        "line": 41,
+        "text": "`EditorGraphicCommand`는 작업자에서 마스크 결과를 검증한 뒤 소유자에게 전달한다. 캔버스 크기와 알파 배열, 선택 픽셀 수, 단색 윤곽의 크기·형식·팔레트, 임계값과 윤곽 비트의 일치, PNG 오버레이의 크기와 알파, 다음 합성에 보유할 피연산자의 크기를 확인한다. 소유자는 선택을 변경하기 전에 메타데이터를 다시 검사한다. 이미지 디코딩과 픽셀 순회는 소유 스레드에서 수행하지 않는다. 잘못된 결과는 오류 상태로 끝나며 이전 선택·피연산자·문서·파일을 변경하지 않는다. 선택 픽셀이 0인 정상 마스크는 허용한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000043",
+        "line": 43,
+        "text": "이미지 할당·페인터 초기화·PNG 저장 실패를 성공 결과로 발행하지 않는다. 공용 `dataImage`도 빈 이미지나 저장 실패에 빈 URL을 반환한다. 오류 반환 시 부분 결과의 큰 배열을 추가 복사하지 않으며, 저장 공간 예외는 이미지 처리 오류로 전달한다. 실제 메모리 고갈을 강제로 재현한 검사는 아니며, 결과 계약은 의도적으로 손상시킨 작업자 출력과 실패 인코딩 입력으로 검증한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000045",
+        "line": 45,
+        "text": "`mask-helper`는 마스크 연산만 수락하며, 작업자가 반환한 결과의 종류도 요청한 연산과 일치해야 한다. 잘못된 종류의 결과로 픽셀 편집이나 선택 변경을 우회하여 실행할 수 없다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "path": "Product/Dreamscapes/docs/NativeReviewSession.agent.json",
+    "existed": true,
+    "before_sha256": "2281dcbb4f0a35b29db6849a2bdebca2536ee79ad3e4bbc279d4eb1e60a63382",
+    "backup": "/Volumes/Storage/Workspace/Product/Dreamscapes/Product/Dreamscapes/build/review-navigation-doc-state/originals/Product/Dreamscapes/docs/NativeReviewSession.agent.json"
+  },
+  {
+    "path": "Product/Dreamscapes/docs/agent-index.json",
+    "existed": true,
+    "before_sha256": "2d75df9a1bfe5ef33643a973f6ce04cd7d8a32bb1f7f6c652a31206fb9de6e86",
+    "backup": "/Volumes/Storage/Workspace/Product/Dreamscapes/Product/Dreamscapes/build/review-navigation-doc-state/originals/Product/Dreamscapes/docs/agent-index.json"
+  }
+]

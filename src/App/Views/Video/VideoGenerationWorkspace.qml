@@ -13,11 +13,19 @@ Item {
     objectName:"videoGenerationWorkspace"
     CanvasPreview { id: displayPreviews }
     required property var generation
-    property var jobIds:[]
-    property bool submitting:false
-    property string requestError:""
+    NativeGenerationSubmission {
+        id: nativeSubmission
+        objectName: "videoNativeSubmission"
+        generation: root.generation
+        mediaType: "Video"
+        videoParameters: parameters.nativeModel
+        onSelectionResetRequested: { player.stop(); root.saveFeedback = "" }
+    }
+    property alias jobIds: nativeSubmission.jobIds
+    property alias submitting: nativeSubmission.submitting
+    property alias requestError: nativeSubmission.requestError
     property string saveFeedback:""
-    property string selectedResultId:""
+    property alias selectedResultId: nativeSubmission.selectedResultId
     readonly property alias parameterPanel:parameters
     readonly property alias timelineState:timelineState
     readonly property alias timelinePanel:timeline
@@ -34,19 +42,11 @@ Item {
     readonly property alias selectedResult: generationProjection.selectedResult
     readonly property alias pending: generationProjection.generationPending
     readonly property string failure: requestError || generationProjection.failure
-    readonly property string referenceSource:(timelineState.keys.slice().sort((a,b)=>b.frame-a.frame).find(key=>key.frame<=timelineState.playhead) || {}).source || ""
+    readonly property string referenceSource: timelineState.referenceSource
     readonly property bool canGenerate:!pending && !parameters.hasInvalidInputs && parameters.values.prompt.trim().length>0 && timelineState.outputFrames>0 && generation.videoModels.length>0
     readonly property string statusText:failure || (pending ? qsTr("%1 · %2 / %3").arg(generation.inferenceStatus.state || qsTr("Queued")).arg(generation.previewStep).arg(generation.previewTotalSteps) : results.length ? qsTr("%1 videos ready").arg(results.length) : referenceSource ? qsTr("Reference preview · F%1 · %2 s").arg(String(timelineState.playhead).padStart(3,"0")).arg((timelineState.playhead/parameters.values.fps).toFixed(3)) : qsTr("Ready to generate"))
-    function submit() {
-        requestError=""
-        saveFeedback=""
-        if(parameters.hasInvalidInputs) { requestError=qsTr("Correct invalid video parameter values."); return }
-        submitting=true; const id=generation.enqueueVideoRecipe(parameters.parameters()); submitting=false
-        if(!id) requestError=generation.errorString
-        else { selectedResultId=""; player.stop() }
-    }
-    function cancelBatch() { jobs.forEach(job=>{ if(["queued","running","connecting-host","downloading"].indexOf(job.state)>=0) generation.cancel(job.id) }) }
-    Connections { target:root.generation; function onSubmissionQueued(ids) { if(root.submitting) root.jobIds=ids.slice() } }
+    function submit() { nativeSubmission.submit() }
+    function cancelBatch() { nativeSubmission.cancelBatch() }
     VideoTimelineState { id:timelineState }
     function saveVideoToFile() {
         if (!root.selectedResult.mediaSource || exporter.busy || saveDialog.visible) return
@@ -128,10 +128,10 @@ Item {
                         RowLayout {
                             id:statusStrip; objectName:"videoStatusStrip"
                             anchors.bottom:parent.bottom; width:parent.width; height:28; spacing:8
-                            LV.Label { objectName:"videoStatusModel"; Layout.leftMargin:12; Layout.maximumWidth:statusStrip.width*.38; text:qsTr("Model · %1").arg((root.generation.videoModels.find(model=>model.id===root.generation.selectedVideoModel) || {}).name || qsTr("None")); style:caption; elide:Text.ElideRight }
+                            LV.Label { objectName:"videoStatusModel"; Layout.leftMargin:12; Layout.maximumWidth:statusStrip.width*.38; text:qsTr("Model · %1").arg(NativeData.presentation.find(root.generation.videoModels, root.generation.selectedVideoModel, "id").name || qsTr("None")); style:caption; elide:Text.ElideRight }
                             LV.Label { objectName:"videoStatusDevice"; text:qsTr("Device · %1").arg(parameters.values.device==="auto" ? qsTr("Auto") : parameters.values.device); style:caption }
                             Item { Layout.fillWidth:true; Layout.minimumWidth:0 }
-                            LV.Label { objectName:"videoStatusProcessing"; text:root.pending ? root.statusText : root.generation.connected ? qsTr("Ready · %1 queued").arg(root.jobs.filter(job=>job.state==="queued").length) : qsTr("Storage disconnected"); style:caption; elide:Text.ElideRight; Layout.maximumWidth:statusStrip.width*.3 }
+                            LV.Label { objectName:"videoStatusProcessing"; text:root.pending ? root.statusText : root.generation.connected ? qsTr("Ready · %1 queued").arg(NativeData.facts.stateCount(root.jobs,["queued"])) : qsTr("Storage disconnected"); style:caption; elide:Text.ElideRight; Layout.maximumWidth:statusStrip.width*.3 }
                             LV.Label { objectName:"videoStatusOutput"; Layout.rightMargin:12; text:root.saveFeedback || (root.results.length ? qsTr("Output · %1 ready").arg(root.results.length) : qsTr("Save · No output yet")); style:caption; Layout.maximumWidth:statusStrip.width*.25; elide:Text.ElideRight }
                         }
                     }
@@ -152,7 +152,7 @@ Item {
     }
     LV.ContextMenu {
         id:resultsMenu
-        items:root.results.map((result,index)=>qsTr("Video %1 · %2 frames").arg(index+1).arg(result.generation?.video?.frame_count || 0))
+        items:NativeData.presentation.videoResultLabels(root.results)
         showIconSlot:false
         onItemTriggered:function(index){ root.selectedResultId=root.results[index].id }
     }

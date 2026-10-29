@@ -408,6 +408,14 @@ QVariantMap EditorCanvas::toolPreview(const QString &tool, const QString &field,
     }
     result["items"] = items; return result;
 }
+QVariantList EditorCanvas::supportedToolFields(const QString &tool, const QVariantList &fields,
+                                              const QVariantMap &values) const {
+    QVariantList result;
+    for (const auto &field : fields)
+        if (toolControlState(tool, field.toMap().value("id").toString(), values).value("supported").toBool())
+            result.append(field);
+    return result;
+}
 QVariantMap EditorCanvas::toolControlState(const QString &tool, const QString &field, const QVariantMap &v) const {
     QString reason;
     const int n = field.startsWith("field-") ? field.mid(6).toInt() : -1;

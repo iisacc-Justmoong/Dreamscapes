@@ -332,11 +332,10 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
                 const auto process = item.value("process").toString();
                 if (process != "None" && process != "IP-Adapter") fields.append("model");
                 if (item.value("ipAdapter").toBool()) fields.append({"ipAdapterModel", "ipAdapterVision"});
-                if (process == "Pose") fields.append({"poseDetector", "poseModel"});
+                if (process == "Pose") { fail(tr("Automatic pose preprocessing has been retired.")); return {}; }
                 if (item.value("regionalMask").toBool()) fields.append("maskSource");
                 for (const auto &field : fields) {
-                    const bool poseFile = field == "poseDetector" || field == "poseModel";
-                    const bool weightFile = poseFile || field == "model" || field == "ipAdapterModel" || field == "ipAdapterVision";
+                    const bool weightFile = field == "model" || field == "ipAdapterModel" || field == "ipAdapterVision";
                     const auto source = item.value(field).toString();
                     const QUrl url(source);
                     QString path;
@@ -346,11 +345,7 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
                     else path = m_fileSystem.path(weightFile ? StoreSection::Models : StoreSection::Files, source, &error);
                     const QFileInfo info(path);
                     if (!info.isFile() || info.size() < 1) { fail(tr("Choose an available local ControlNet source: %1").arg(source)); return {}; }
-                    if (poseFile) {
-                        if (info.suffix() != "onnx" || info.size() >= 2LL * 1024 * 1024 * 1024) {
-                            fail(tr("Choose an inline ONNX Pose model below 2 GiB.")); return {};
-                        }
-                    } else if (weightFile) {
+                    if (weightFile) {
                         if (!QStringList{"safetensors", "safetensor", "gguf"}.contains(info.suffix().toLower())) {
                             fail(tr("Choose safetensors or GGUF ControlNet/IP-Adapter/vision weights.")); return {};
                         }

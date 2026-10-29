@@ -1,0 +1,484 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:0818e047a374e8d749acf5e2f63fecaa1e6bf9c0ebdf3e16a85b0266c2338ba5",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/GraphicParameterHelpers.md",
+    "sha256": "ee7aa53604371afd748234ae8513ad5daabd7370e91b480d97ab101013501305",
+    "bytes": 5696,
+    "line_count": 42,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "그래픽 패널의 설정 계산",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# 그래픽 패널의 설정 계산\n",
+      "level": 1,
+      "title": "그래픽 패널의 설정 계산"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 3,
+      "raw": "`EditorGraphicHelper`는 패널이 소유하는 C++ 비동기 설정 계산 객체이다. 도구 설정을 구하는 동작은 이미지 미리보기·픽셀 적용·문서 저장과 분리한다. `state.pending`, `valid`, `status`, `operation`, `parameters`, `error`, `sequence`는 계산 상태와 결과만 표현하며 조회 시 파일이나 픽셀을 읽지 않는다.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 4,
+      "end_line": 4,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "heading",
+      "start_line": 5,
+      "end_line": 5,
+      "raw": "## 지원 계산과 입력\n",
+      "level": 2,
+      "title": "지원 계산과 입력"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "table",
+      "start_line": 7,
+      "end_line": 16,
+      "raw": "| 계산 | 입력 | 반환 설정 |\n| --- | --- | --- |\n| `samplePointColor` | 정규화 RGBA 표본 | 포인트 컬러 11개 값 |\n| `sampledWhiteBalance` | RGBA 표본과 기준 화이트 밸런스 | 온도·틴트·기준 온도·기준 틴트 |\n| `whiteBalancePreset` | 프리셋 열거값 | 화이트 밸런스 4개 값 |\n| `autoDevelopLight` | 선택 레이어 원본 픽셀 | 노출·대비·하이라이트·그림자·화이트·블랙 |\n| `autoWhiteBalance` | 원본 픽셀과 기준 화이트 밸런스 | 화이트 밸런스 4개 값 |\n| `autoBlackAndWhiteMix` | 원본 픽셀 | 흑백 사용 여부와 8개 밴드 |\n| `autoLensScale` | 원본 이미지와 렌즈 보정 옵션 | 스케일 |\n| `estimateChromaticAberration` | 원본 픽셀 | 적색·청색 정렬값과 자동 보정 사용 여부 |\n",
+      "columns": [
+        "계산",
+        "입력",
+        "반환 설정"
+      ],
+      "rows": [
+        [
+          "`samplePointColor`",
+          "정규화 RGBA 표본",
+          "포인트 컬러 11개 값"
+        ],
+        [
+          "`sampledWhiteBalance`",
+          "RGBA 표본과 기준 화이트 밸런스",
+          "온도·틴트·기준 온도·기준 틴트"
+        ],
+        [
+          "`whiteBalancePreset`",
+          "프리셋 열거값",
+          "화이트 밸런스 4개 값"
+        ],
+        [
+          "`autoDevelopLight`",
+          "선택 레이어 원본 픽셀",
+          "노출·대비·하이라이트·그림자·화이트·블랙"
+        ],
+        [
+          "`autoWhiteBalance`",
+          "원본 픽셀과 기준 화이트 밸런스",
+          "화이트 밸런스 4개 값"
+        ],
+        [
+          "`autoBlackAndWhiteMix`",
+          "원본 픽셀",
+          "흑백 사용 여부와 8개 밴드"
+        ],
+        [
+          "`autoLensScale`",
+          "원본 이미지와 렌즈 보정 옵션",
+          "스케일"
+        ],
+        [
+          "`estimateChromaticAberration`",
+          "원본 픽셀",
+          "적색·청색 정렬값과 자동 보정 사용 여부"
+        ]
+      ]
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "첫 세 계산은 이미지·문서 스냅샷을 캡처하지 않는다. 나머지 분석의 입력 준비와 SDK 계산은 작업 스레드에서 수행한다. 반환값을 구한 뒤 전체 보정 이미지를 다시 만들거나 결과·원본 PNG를 인코딩하지 않는다. 실제 이미지 미리보기와 픽셀 적용 API는 기존 이미지 결과 계약을 유지한다.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 20,
+      "end_line": 20,
+      "raw": "현재 앱은 설치된 `iiGraphicAdjust 0.4.0`을 사용한다. SDK 소스 디렉터리의 다른 버전을 앱의 실제 연결 패키지로 간주하지 않는다. 이 변경은 선택한 패키지의 기존 공개 분석 API를 사용하며 SDK 소스나 전역 설치를 바꾸지 않는다. 이 패키지의 `autoLensScale`은 유효한 ImageView를 요구하므로 해당 입력 변환도 작업 스레드에 둔다. 크기만 받는 SDK 인터페이스의 도입은 별도의 모듈 작업이다.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 21,
+      "end_line": 21,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "heading",
+      "start_line": 22,
+      "end_line": 22,
+      "raw": "## 입력과 수명\n",
+      "level": 2,
+      "title": "입력과 수명"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 23,
+      "end_line": 23,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 24,
+      "end_line": 24,
+      "raw": "작업 스레드에는 표준 C++ 값으로 파싱한 요청, 불변 프레임 스냅샷과 선택 레이어 ID 또는 기존 보정 세션의 원본 픽셀, 중지 토큰만 전달한다. 살아 있는 캔버스·QML 객체·파일 바인딩을 전달하지 않는다. 동적 레이어는 캡처한 프레임의 원본 애셋을 사용하며 합성 결과의 변환·불투명도·마스크를 분석 입력에 추가하지 않는다.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 25,
+      "end_line": 25,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 26,
+      "end_line": 26,
+      "raw": "청크 이미지는 작업 스레드에서 기존 선택 픽셀 호환 영역과 같은 원점·범위로 펼친다. 이미지 분석은 기존 16Mi 픽셀 호환 범위를 지키며 픽셀이 필요 없는 계산은 큰 청크 영역에서도 가능하다. 버튼 가능 여부 조회는 애셋 종류·가시성·잠금·호환 범위만 확인하고 청크 이미지를 펼치지 않는다.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 27,
+      "end_line": 27,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 28,
+      "end_line": 28,
+      "raw": "처리 중 하나와 최신 대기 요청 하나만 보유한다. 취소·문서 교체·리비전·프레임·선택·아트보드·도구·잠금·스트로크·패널 설정이나 뷰 변경은 이전 결과의 적용을 금지한다. 같은 바인딩·같은 컨텍스트·확대·이동·속성 조회는 재계산하지 않는다. 패널 종료는 작업 스레드를 기다리지 않는다. 상태를 먼저 정리한 뒤 관찰자에게 알리며 관찰자의 삭제·재시도가 새 요청을 덮지 않는다.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 29,
+      "end_line": 29,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "패널은 결과를 받을 때에도 현재 엔진과 컨텍스트를 확인한 뒤 반환값을 해당 설정에 반영한다. 계산 요청·성공·실패·취소는 문서 리비전, 저장 바이트, Alias 버전이나 파일 정보 알림을 변경하지 않는다. 큐에 넣은 실제 이미지 명령도 실행 전에 엔진·도구·뷰·설정 세대·리비전·프레임·선택·아트보드를 다시 확인한다.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "heading",
+      "start_line": 32,
+      "end_line": 32,
+      "raw": "## 검증과 남은 비용\n",
+      "level": 2,
+      "title": "검증과 남은 비용"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 33,
+      "end_line": 33,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 34,
+      "end_line": 34,
+      "raw": "`Dreamscapes.GraphicHelperValues`는 8종의 반환값을 기존 어댑터와 설치 SDK에 대조하고 입력 검증·독립 표본·취소를 검사한다. `Dreamscapes.GraphicHelper`는 작업 스레드·입력·파일 무변경·최신 요청·컨텍스트 폐기·수명·예외·청크 입력과 기존 보정 세션을 검사한다. `Dreamscapes.GraphicHelperGui`는 실제 패널의 8종 설정 반영과 대기 중 뷰·설정·대상 변경 및 큐에 있던 이미지 명령의 폐기를 검사한다.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 35,
+      "end_line": 35,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 36,
+      "end_line": 36,
+      "raw": "기존 2048×2048 표본 설정 호출은 입력 준비를 제외하고 약 1.35초 동안 반환하지 않았고 PNG 문자열 두 개를 생성했다. 새 경로의 수락 시간과 작업 중 이벤트 처리는 별도로 측정한다. 수락 시간을 전체 앱 FPS나 모든 분석의 완료 시간으로 해석하지 않는다.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 37,
+      "end_line": 37,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 38,
+      "end_line": 38,
+      "raw": "최초 불변 문서 스냅샷, SDK 분석 내부의 중단 지점, 실제 문서 쓰기·지속 저장과 초기화 및 전체 메서드 의미 감사는 별도 작업으로 남는다. 기존 보정 세션 원본은 공유 소유로 전달한다. 실제 패널의 이미지·마스크·인코딩 경로는 [그래픽 이미지 명령](GraphicImageCommands.md)의 C++ 작업자를 사용한다. 네이티브 전경 입력과 설치 앱 검증은 다른 UI 자동화가 종료되기 전에는 수행하지 않는다.\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 39,
+      "end_line": 39,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "heading",
+      "start_line": 40,
+      "end_line": 40,
+      "raw": "## 현재 프레임의 원본 일치\n",
+      "level": 2,
+      "title": "현재 프레임의 원본 일치"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 41,
+      "end_line": 41,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "paragraph",
+      "start_line": 42,
+      "end_line": 42,
+      "raw": "보조 계산이 기존 보정 원본을 재사용할 때는 도구·작업·레이어·리비전뿐 아니라 문서 세대와 현재 해석된 애셋도 확인한다. 실제 앱의 동적 레이어 선택과 미리보기·적용·Reset은 [동적 래스터 편집 계약](DynamicRasterEditing.md)을 따른다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "그래픽 패널의 설정 계산",
+      "anchor": "그래픽-패널의-설정-계산",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000005",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "지원 계산과 입력",
+      "anchor": "지원-계산과-입력",
+      "start_line": 5
+    },
+    {
+      "block_id": "b000013",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "입력과 수명",
+      "anchor": "입력과-수명",
+      "start_line": 22
+    },
+    {
+      "block_id": "b000023",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "검증과 남은 비용",
+      "anchor": "검증과-남은-비용",
+      "start_line": 32
+    },
+    {
+      "block_id": "b000031",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "현재 프레임의 원본 일치",
+      "anchor": "현재-프레임의-원본-일치",
+      "start_line": 40
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000009",
+        "line": 18,
+        "text": "첫 세 계산은 이미지·문서 스냅샷을 캡처하지 않는다. 나머지 분석의 입력 준비와 SDK 계산은 작업 스레드에서 수행한다. 반환값을 구한 뒤 전체 보정 이미지를 다시 만들거나 결과·원본 PNG를 인코딩하지 않는다. 실제 이미지 미리보기와 픽셀 적용 API는 기존 이미지 결과 계약을 유지한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000011",
+        "line": 20,
+        "text": "현재 앱은 설치된 `iiGraphicAdjust 0.4.0`을 사용한다. SDK 소스 디렉터리의 다른 버전을 앱의 실제 연결 패키지로 간주하지 않는다. 이 변경은 선택한 패키지의 기존 공개 분석 API를 사용하며 SDK 소스나 전역 설치를 바꾸지 않는다. 이 패키지의 `autoLensScale`은 유효한 ImageView를 요구하므로 해당 입력 변환도 작업 스레드에 둔다. 크기만 받는 SDK 인터페이스의 도입은 별도의 모듈 작업이다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 24,
+        "text": "작업 스레드에는 표준 C++ 값으로 파싱한 요청, 불변 프레임 스냅샷과 선택 레이어 ID 또는 기존 보정 세션의 원본 픽셀, 중지 토큰만 전달한다. 살아 있는 캔버스·QML 객체·파일 바인딩을 전달하지 않는다. 동적 레이어는 캡처한 프레임의 원본 애셋을 사용하며 합성 결과의 변환·불투명도·마스크를 분석 입력에 추가하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000019",
+        "line": 28,
+        "text": "처리 중 하나와 최신 대기 요청 하나만 보유한다. 취소·문서 교체·리비전·프레임·선택·아트보드·도구·잠금·스트로크·패널 설정이나 뷰 변경은 이전 결과의 적용을 금지한다. 같은 바인딩·같은 컨텍스트·확대·이동·속성 조회는 재계산하지 않는다. 패널 종료는 작업 스레드를 기다리지 않는다. 상태를 먼저 정리한 뒤 관찰자에게 알리며 관찰자의 삭제·재시도가 새 요청을 덮지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000021",
+        "line": 30,
+        "text": "패널은 결과를 받을 때에도 현재 엔진과 컨텍스트를 확인한 뒤 반환값을 해당 설정에 반영한다. 계산 요청·성공·실패·취소는 문서 리비전, 저장 바이트, Alias 버전이나 파일 정보 알림을 변경하지 않는다. 큐에 넣은 실제 이미지 명령도 실행 전에 엔진·도구·뷰·설정 세대·리비전·프레임·선택·아트보드를 다시 확인한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000027",
+        "line": 36,
+        "text": "기존 2048×2048 표본 설정 호출은 입력 준비를 제외하고 약 1.35초 동안 반환하지 않았고 PNG 문자열 두 개를 생성했다. 새 경로의 수락 시간과 작업 중 이벤트 처리는 별도로 측정한다. 수락 시간을 전체 앱 FPS나 모든 분석의 완료 시간으로 해석하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000029",
+        "line": 38,
+        "text": "최초 불변 문서 스냅샷, SDK 분석 내부의 중단 지점, 실제 문서 쓰기·지속 저장과 초기화 및 전체 메서드 의미 감사는 별도 작업으로 남는다. 기존 보정 세션 원본은 공유 소유로 전달한다. 실제 패널의 이미지·마스크·인코딩 경로는 [그래픽 이미지 명령](GraphicImageCommands.md)의 C++ 작업자를 사용한다. 네이티브 전경 입력과 설치 앱 검증은 다른 UI 자동화가 종료되기 전에는 수행하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000029",
+        "label": "그래픽 이미지 명령",
+        "target": "GraphicImageCommands.md",
+        "kind": "relative",
+        "line": 38
+      },
+      {
+        "block_id": "b000033",
+        "label": "동적 래스터 편집 계약",
+        "target": "DynamicRasterEditing.md",
+        "kind": "relative",
+        "line": 42
+      }
+    ],
+    "tables": [
+      {
+        "block_id": "b000007",
+        "columns": [
+          "계산",
+          "입력",
+          "반환 설정"
+        ],
+        "rows": [
+          [
+            "`samplePointColor`",
+            "정규화 RGBA 표본",
+            "포인트 컬러 11개 값"
+          ],
+          [
+            "`sampledWhiteBalance`",
+            "RGBA 표본과 기준 화이트 밸런스",
+            "온도·틴트·기준 온도·기준 틴트"
+          ],
+          [
+            "`whiteBalancePreset`",
+            "프리셋 열거값",
+            "화이트 밸런스 4개 값"
+          ],
+          [
+            "`autoDevelopLight`",
+            "선택 레이어 원본 픽셀",
+            "노출·대비·하이라이트·그림자·화이트·블랙"
+          ],
+          [
+            "`autoWhiteBalance`",
+            "원본 픽셀과 기준 화이트 밸런스",
+            "화이트 밸런스 4개 값"
+          ],
+          [
+            "`autoBlackAndWhiteMix`",
+            "원본 픽셀",
+            "흑백 사용 여부와 8개 밴드"
+          ],
+          [
+            "`autoLensScale`",
+            "원본 이미지와 렌즈 보정 옵션",
+            "스케일"
+          ],
+          [
+            "`estimateChromaticAberration`",
+            "원본 픽셀",
+            "적색·청색 정렬값과 자동 보정 사용 여부"
+          ]
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

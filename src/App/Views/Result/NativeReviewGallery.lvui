@@ -1,0 +1,35 @@
+import nav NativeReviewNavigationScope
+import vm NativeReviewGalleryBackend
+ApplicationWindow(title: "Dreamscapes · Results", width: 1440, height: 900) {
+    VStack(spacing: 8, padding: 12, alignment: .stretch, flex: 1) {
+        HStack(spacing: 4) {
+            Label(text: "RESULTS", style: .caption)
+            LabelButton(id: "all", text: "All", tone: .default, onClick: vm.showAll)
+            LabelButton(id: "shortlisted", text: "Shortlisted", tone: .default, onClick: vm.showShortlisted)
+            LabelButton(id: "unreviewed", text: "Unreviewed", tone: .default, onClick: vm.showUnreviewed)
+            LabelButton(id: "rejected", text: "Rejected", tone: .default, onClick: vm.showRejected)
+            LabelButton(id: "images", text: "Images", tone: .default, onClick: vm.showImages)
+            LabelButton(id: "videos", text: "Videos", tone: .default, onClick: vm.showVideos)
+            Label(text: vm.resultSummary, style: .caption)
+        }
+        for (item in vm.items, key: item.token, id: "results", itemHeight: 172,
+             itemWidth: 160, spacing: 8, overscan: 1, navigation: nav,
+             selectionMode: .multiple, selectOnMove: false, selectOnClick: false,
+             onActivate: vm.activate) {
+            VStack(id: "result", spacing: 4, alignment: .stretch) {
+                Image(id: "thumbnail", source: item.thumbnail, width: 152, height: 132, fit: .Cover)
+                Label(id: "title", text: item.title, style: .caption)
+                Label(id: "review", text: item.reviewLabel, style: .caption)
+            }
+        }
+        HStack(spacing: 4) {
+            Label(text: vm.selectionSummary, style: .caption)
+            LabelButton(id: "shortlist", text: "Shortlist", tone: .default, enabled: vm.canReview, onClick: vm.shortlist)
+            LabelButton(id: "reject", text: "Reject", tone: .default, enabled: vm.canReview, onClick: vm.reject)
+            LabelButton(id: "clear", text: "Clear selection", tone: .default, enabled: vm.hasSelection, onClick: vm.clearSelection)
+            LabelButton(id: "compare", text: "Compare", tone: .default, enabled: vm.canCompare, onClick: vm.compare)
+            LabelButton(id: "edit", text: "Edit selected", tone: .default, enabled: vm.canEdit, onClick: vm.edit)
+            LabelButton(id: "export", text: "Export", tone: .default, enabled: vm.canExport, onClick: vm.exportResults)
+        }
+    }
+}

@@ -9,6 +9,7 @@ Rectangle {
     id: root
     objectName: "desktopGenerationComposer"
     required property var composer
+    readonly property alias nativeModel: nativeComposer
     property var generation: null
     property var parameterStore: homeDraft
     property alias shortSide: nativeComposer.shortSide
@@ -278,14 +279,14 @@ Rectangle {
                 }
         LV.Label { Layout.fillWidth: true; visible: root.errorText.length > 0; text: root.errorText; style: caption; color: LV.Theme.accentRed; wrapMode: Text.Wrap }
     }
-    LV.ContextMenu { id: homeMediaMenu; objectName: "homeMediaMenu"; showIconSlot: false; items: ["Image", "Video", "Audio", "Board"]; selectedIndex: items.indexOf(root.composer.mediaType); onItemTriggered: function(index, entry) { root.chooseMedia(String(entry)) } }
+    LV.ContextMenu { id: homeMediaMenu; objectName: "homeMediaMenu"; showIconSlot: false; items: ["Image", "Video", "Audio", "Board"]; selectedIndex: NativeData.presentation.indexOf(items, root.composer.mediaType); onItemTriggered: function(index, entry) { root.chooseMedia(String(entry)) } }
 
     LV.ContextMenu {
         id: modelMenu
         objectName: "homeModelMenu"
         showIconSlot: false
-        items: root.modelChoices.map(m => m.name || m.id)
-        selectedIndex: root.modelChoices.findIndex(m => m.id === root.selectedModel)
+        items: NativeData.presentation.labels(root.modelChoices, "name", "id")
+        selectedIndex: NativeData.presentation.indexOf(root.modelChoices, root.selectedModel, "id")
         onItemTriggered: function(index) {
             if (!root.generation || index < 0 || index >= root.modelChoices.length) return
             if (root.video) root.generation.selectedVideoModel = root.modelChoices[index].id
@@ -297,8 +298,8 @@ Rectangle {
         objectName: "homeResolutionMenu"
         readonly property var extents: [512,576,768,1024,1536]
         showIconSlot: false
-        items: extents.map(n => { const s = root.sizeFor(n); return s.width + " × " + s.height })
-        selectedIndex: extents.indexOf(root.shortSide)
+        items: NativeData.presentation.sizeChoices(extents, nativeComposer.aspectRatio)
+        selectedIndex: NativeData.presentation.indexOf(extents, root.shortSide)
         onItemTriggered: function(index) { root.shortSide = extents[index] }
     }
     LV.ContextMenu {
@@ -338,10 +339,7 @@ Rectangle {
                     text: qsTr("Apply")
                     tone: LV.AbstractButton.Default
                     onClicked: {
-                        const value = Number(seedField.text)
-                        if (seedField.text.trim() && Number.isInteger(value) && value >= 0 && value <= 4294967295 - root.composer.generationCount + 1) {
-                            root.seed = value; root.errorText = ""; seedPopover.close()
-                        } else root.errorText = qsTr("Enter an integer seed with room for the batch, or choose Random.")
+                        if (nativeComposer.applySeedText(seedField.text)) seedPopover.close()
                     }
                 }
             }

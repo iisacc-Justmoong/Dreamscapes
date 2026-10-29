@@ -1,0 +1,418 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:bbe3062404b7755df0e467b7402420bf49c07aea88e58eb32218cd4165f6f32c",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/PublishingWorkspace.md",
+    "sha256": "830a0d3ce357b6c9d17c34c2b774efa400e0f2a270b5199adb2b45c98d48ae60",
+    "bytes": 9086,
+    "line_count": 110,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "게시물 편집 화면",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# 게시물 편집 화면\n",
+      "level": 1,
+      "title": "게시물 편집 화면"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 4,
+      "raw": "기준 디자인은 [Figma 1264:19399](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1264-19399&m=dev)이다.\n에디터 상단 Publish는 앱 내부의 이 화면을 연다. Society 앱 실행이나 앱 간 통신을 사용하지 않는다.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 5,
+      "end_line": 5,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "heading",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "## 화면 전환과 원본 보존\n",
+      "level": 2,
+      "title": "화면 전환과 원본 보존"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 8,
+      "end_line": 15,
+      "raw": "`Main.openPublish()`는 기존 `CanvasEditor`를 유지하면서 게시 화면을 지연 생성한다.\n`editorVisible`은 유지하며, 에디터 Loader만 숨긴다. 게시 화면에서는 에디터의\n입력·단축키를 차단한다. Back은 같은 에디터 인스턴스로 돌아가며, 캔버스 선택,\n프레임, 확대·이동, 수정 상태와 실행 취소 내역을 다시 만들지 않는다.\n게시 화면이 열려 있는 동안에는 숨겨진 에디터의 크기도 유지하여 창 크기 조절이\n원본 캔버스의 맞춤 확대를 불필요하게 실행하지 않도록 한다.\n같은 문서에서 게시 화면을 다시 열면 입력 중인 초안을 유지한다. 다른 네이티브\n캔버스로 바뀌면 새 초안을 구성한다.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 16,
+      "end_line": 16,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 17,
+      "end_line": 24,
+      "raw": "왼쪽 탐색 메뉴와 문서 목차는 제거한다. 본문은 제목과 캔버스별\n미리보기·캡션·대체 텍스트, 게시 순서, 출처·기여자 입력이다. 오른쪽은 커버 선택,\n설명, 콘텐츠 종류, 주제, 소프트웨어, 태그, 라이선스, 네 가지 콘텐츠 표시,\n게시 시각, 댓글 허용 대상, 반응·댓글 수 표시, 멘션이다.\n예약 시각은 Schedule을 선택하면 표시된다.\n`1336:8893`의 Linked source post 입력란과 `1336:8897`의 저자·원본·순서 보존\n안내문은 Figma와 앱에서 제거한다. 공통 게시 설정은 멘션 추가 버튼에서 끝나며,\n그 아래에는 소셜 대상별 Review 진입 목록을 둔다. 삭제한 두 영역의 높이나 간격은 남기지 않는다.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 25,
+      "end_line": 25,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 26,
+      "end_line": 30,
+      "raw": "변경된 Figma에 따라 본문 964, 오른쪽 설정 340, 열 간격 24인 두 열을 중앙에\n배치한다. 전체 작업 영역의 최대 폭은 1328이며, 창 폭 1600에서는 좌우 여백이\n각각 136이다. 좁은 창에서는 최소 외곽 여백 24를 유지하며 본문을 줄이고,\n1056 미만에서는 섹션 선택기로 문서와 설정을 전환한다. 각 내용은 스크롤할 수\n있다. 헤더는 외곽 여백 24를 유지한다. LVRS 전역 스케일과 Theme는 변경하지 않는다.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "heading",
+      "start_line": 32,
+      "end_line": 32,
+      "raw": "## 실제 데이터와 초안\n",
+      "level": 2,
+      "title": "실제 데이터와 초안"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 33,
+      "end_line": 33,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 34,
+      "end_line": 37,
+      "raw": "Figma의 Tidal Archive 예시 작품·제목·저자·태그는 앱에 포함하지 않는다.\n현재 `EditorProject`의 아트보드 ID, 이름, 크기와 실제 비동기 `pagePreviewSource`\n결과를 사용한다. 캔버스가 하나인 문서도 하나의 게시 블록으로 표시한다.\n미리보기는 보이는 블록과 작은 캐시 범위에서만 요청한다.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 38,
+      "end_line": 38,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 39,
+      "end_line": 43,
+      "raw": "`PublishCanvasModel`은 C++ 목록 모델이다. 캡션과 대체 텍스트 입력은 해당 행의\n`dataChanged`만 발생시키며 전체 모델을 초기화하지 않는다. Move는 게시용 목록만\n이동하고 실제 아트보드 인덱스는 유지한다. 커버는 안정적인 캔버스 ID로 참조한다.\n앱과 소스 기반 GUI 검사는 공통 `registerStorageViewTypes()`에서 초안 타입과\n익명 캔버스 모델을 등록한다.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 44,
+      "end_line": 44,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 45,
+      "end_line": 49,
+      "raw": "게시물 본문과 Save draft / Drafts의 Open / Save as는 네이티브 `.iisc`를 사용한다.\n공통 저장 모델은 iiSharedCanvas 0.32.0의 `Document::publicationMetadata`이며,\n파일 포맷은 1.22이다. SDK 모델과 직렬화는 표준 C++23으로 구현된다.\n에셋, 레이어, 아트보드, 타임라인, 저자와 게시 메타데이터가 하나의 네이티브 문서에\n함께 들어간다. 저장·열기 대화상자도 `.iisc`를 사용한다.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 50,
+      "end_line": 50,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 51,
+      "end_line": 56,
+      "raw": "제목·설명·커버는 공통 `PublicationMetadata`의 전용 필드에 저장한다. 캔버스별\n캡션·대체 텍스트와 게시 순서는 `canvases`에, 나머지 문자열·불리언 게시 설정은\n`settings`에 보존한다. 문서 루트 캔버스는 빈 ID, 아트보드는 실제 ID로 참조한다.\n숨겨진 `linkedSource`와 화면이 모르는 다른 앱의 공통 설정도 저장 시 유지한다.\n아트보드 UI에 표시되지 않는 루트 캔버스의 기존 캡션·대체 텍스트와 게시 위치도 보존한다.\n이전 포맷에는 게시 메타데이터가 없을 수 있으며, 그런 문서에는 기본 입력을 제공한다.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 57,
+      "end_line": 57,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 58,
+      "end_line": 63,
+      "raw": "새 저장은 메타데이터 동반 파일을 만들지 않는다. `.iisc` 하나만 다른 경로·이름으로\n복사한 뒤 새 에디터에서 열어도 게시 정보를 복원한다. 이전 구현의\n`<canvas>.iisc.iisacc.json`은 네이티브 메타데이터가 없는 파일을 명시적으로 열 때만\n읽어 가져온다. 이전 스냅샷 해시와 캔버스 참조를 검증하며, 이후 저장 결과에는\n정보가 `.iisc` 내부에 포함된다. 이전 동반 파일을 수정하거나 삭제하지 않으며,\n이미 네이티브 메타데이터가 있으면 오래된 동반 파일은 무시한다.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 64,
+      "end_line": 64,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 65,
+      "end_line": 68,
+      "raw": "문자열당 UTF-8 16 MiB, 전체 메타데이터 문자열 합계 64 MiB 등 SDK의 공통 용량\n제한을 사용한다. 이전 FileCatalog 필드의 64 KiB 제한은 새 저장에 적용하지 않는다.\n입력 문자열의 단일 한도를 먼저 검사하고, 저장 전에 완전한 네이티브 문서를 인코딩하여\n전체 한도·타입·캔버스 참조를 검증한다. 실패 시 파일과 기존 입력은 보존한다.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 69,
+      "end_line": 69,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 70,
+      "end_line": 76,
+      "raw": "화면 진입, 초안 입력, 캡션 편집과 게시 순서 조작은 메모리에만 반영하며 문서 리비전을\n증가시키지 않는다. 원본 경로로 Save draft를 실행하면 게시 메타데이터는 실제 문서\n편집이므로 SDK `DocumentEditor::setPublicationMetadata`와 기존 저장 경로를 거친다.\n같은 값을 다시 저장하면 문서 편집과 리비전 변경을 생략한다. 다른 경로로 저장하는\n게시 사본은 현재 캔버스와 메타데이터를 함께 포함하며 원본 에디터 상태를 변경하지 않는다.\n에디터의 SDK 편집은 저자 리비전을 한 번만 기록하고, 일반 문서 편집도 저장 전에\n리비전을 기록하여 메모리 문서와 저장된 문서가 일치하도록 한다.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 77,
+      "end_line": 77,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 78,
+      "end_line": 84,
+      "raw": "`DocumentFile::readSnapshot`으로 바이너리 스냅샷과 기존 작업용 `.iisc`를 읽는다.\n로드 시 게시 메타데이터를 제외한 네이티브 본문을 확인한 뒤 검증된 정보만 한 번에\n초안에 반영한다. 다른 캔버스는 먼저 에디터에서 열도록 안내한다. 저장한 사본이\n외부에서 바뀌면 메타데이터만 바뀐 경우에도 기존 파일을 보존한다. 바이너리 사본의\n갱신은 기존 바이트와 비교하는 원자적 교체를 사용한다. 다른 세션의 작업용 파일을\n바이너리 스냅샷으로 덮어쓰지 않는다. 원본 파일 편집은 관리형 저장 경로의 버전 검사를\n유지한다. 게시 화면 진입 자체로 파일을 열거나 저장하지 않는다.\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 85,
+      "end_line": 85,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "paragraph",
+      "start_line": 86,
+      "end_line": 91,
+      "raw": "Preview는 현재 초안을 읽기 전용으로 확인하는 화면 상태이다. 화면 안의 Publish는\n대상별 Review를 연다. Review는 공통 원고를 상속하고 대상별 덮어쓰기와 분할 계획을\n같은 `.iisc`에 보존한다. 검토를 통과하고 네이티브 OAuth 계정이 구성된 경우에만\n해당 대상의 업로드 작업을 제출한다. 예약 실행과 Society 게시 엔드포인트는 아직\n연결되어 있지 않다. [대상별 Review](PublishDestinationReview.md)와\n[SocialPublishing](SocialPublishing.md)에 실행 경로와 제한을 기술한다.\n"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 92,
+      "end_line": 92,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "heading",
+      "start_line": 93,
+      "end_line": 93,
+      "raw": "## 정적 자산과 검증\n",
+      "level": 2,
+      "title": "정적 자산과 검증"
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 94,
+      "end_line": 94,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "paragraph",
+      "start_line": 95,
+      "end_line": 97,
+      "raw": "`Views/Publishing/Assets`의 chevron-down, stepper, add는 Figma 원본 18×18 SVG,\ncheckbox는 17×17 SVG이다. 다운로드한 원본을 변경하지 않고 번들 리소스에 포함한다.\n캔버스 작품은 사용자 문서 데이터이므로 정적 예시 PNG로 대체하지 않는다.\n"
+    },
+    {
+      "id": "b000036",
+      "kind": "blank",
+      "start_line": 98,
+      "end_line": 98,
+      "raw": "\n"
+    },
+    {
+      "id": "b000037",
+      "kind": "paragraph",
+      "start_line": 99,
+      "end_line": 110,
+      "raw": "`Dreamscapes.PublishDraft`는 실제 다중 캔버스 구성, 부분 행 알림, 게시 순서와\n원본 보존, 모든 필드의 네이티브 저장·복원, `.iisc` 하나만 이동한 뒤 새 에디터에서의\n복원, 다른 앱의 알 수 없는 설정 보존, 메타데이터 없는 원본의 기본값, 손상 파일의\n원자적 거부를 검사한다. 원본 작업용 문서에 저장한 메타데이터, 후속 이름·도형 편집 후\n메모리와 파일의 일치, 80 KiB 설명문, SDK 문자열 한도, 메타데이터만 외부에서 변경된\n사본의 보호, 기존 동반 파일에서 네이티브 문서로의 이관도 검사한다.\n`Dreamscapes.PublishWorkspace`는 실제 Publish 클릭, 지연 생성, 미리보기,\n연속 키 입력, 게시 순서·미리보기·설정 조작, 왼쪽 패널 제거와 두 열의 중앙 정렬,\n원본 게시물 링크·하단 안내문 제거와 마지막 컨트롤까지의 높이, 기존 링크 값의\n저장·복원, `.iisc` 저장·열기 필터, 320~1920 폭, Back 및 재진입,\n원본 상태 보존을 검사한다. `DREAMSCAPES_CAPTURE_DIR`을 지정하면 데스크톱과\n좁은 창의 실제 QML 화면을 캡처한다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "게시물 편집 화면",
+      "anchor": "게시물-편집-화면",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000005",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "화면 전환과 원본 보존",
+      "anchor": "화면-전환과-원본-보존",
+      "start_line": 6
+    },
+    {
+      "block_id": "b000013",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "실제 데이터와 초안",
+      "anchor": "실제-데이터와-초안",
+      "start_line": 32
+    },
+    {
+      "block_id": "b000033",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "정적 자산과 검증",
+      "anchor": "정적-자산과-검증",
+      "start_line": 93
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 4,
+        "text": "에디터 상단 Publish는 앱 내부의 이 화면을 연다. Society 앱 실행이나 앱 간 통신을 사용하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000011",
+        "line": 30,
+        "text": "있다. 헤더는 외곽 여백 24를 유지한다. LVRS 전역 스케일과 Theme는 변경하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 34,
+        "text": "Figma의 Tidal Archive 예시 작품·제목·저자·태그는 앱에 포함하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000017",
+        "line": 40,
+        "text": "`dataChanged`만 발생시키며 전체 모델을 초기화하지 않는다. Move는 게시용 목록만",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000025",
+        "line": 66,
+        "text": "제한을 사용한다. 이전 FileCatalog 필드의 64 KiB 제한은 새 저장에 적용하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000027",
+        "line": 74,
+        "text": "게시 사본은 현재 캔버스와 메타데이터를 함께 포함하며 원본 에디터 상태를 변경하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000029",
+        "line": 84,
+        "text": "유지한다. 게시 화면 진입 자체로 파일을 열거나 저장하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000035",
+        "line": 97,
+        "text": "캔버스 작품은 사용자 문서 데이터이므로 정적 예시 PNG로 대체하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000003",
+        "label": "Figma 1264:19399",
+        "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1264-19399&m=dev",
+        "kind": "external",
+        "line": 3
+      },
+      {
+        "block_id": "b000031",
+        "label": "대상별 Review",
+        "target": "PublishDestinationReview.md",
+        "kind": "relative",
+        "line": 90
+      },
+      {
+        "block_id": "b000031",
+        "label": "SocialPublishing",
+        "target": "SocialPublishing.md",
+        "kind": "relative",
+        "line": 91
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

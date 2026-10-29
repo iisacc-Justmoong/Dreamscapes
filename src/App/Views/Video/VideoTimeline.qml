@@ -14,37 +14,30 @@ FocusScope {
     CanvasPreview { id: displayPreviews }
     required property VideoTimelineState stateModel
     property var generation:null
-    property bool playing:false
+    property alias playing:nativePlayback.playing
     property real timelineScale:1
     readonly property int gutter:width < 600 ? 88 : 192
     readonly property bool wideControls:width >= 700
-    property bool loopPlayback:false
+    property alias loopPlayback:nativePlayback.loop
     property int snapStep:1
     readonly property real framePitch:114.6666666667/10
     readonly property real pixelsPerFrame:framePitch*Math.max(.0001,timelineScale)
     readonly property real rulerY:68+(tools.visible ? tools.height+4 : 0)+(trackControls.visible ? trackControls.height+4 : 0)+(trackError.visible ? trackError.height+4 : 0)
-    readonly property var trackLayout: {
-        let top=32
-        return stateModel.tracks.map(track=>{
-            const height=track.type==="Shots" ? 56 : track.type==="Contents" ? 40+(stateModel.mode==="Curves" ? 80 : 0) : track.type==="Audio" ? 48 : 32
-            const row=Object.assign({},track,{top:top,height:height}); top+=height; return row
-        })
-    }
-    readonly property real lanesHeight:trackLayout.length ? 32+trackLayout.reduce((height,track)=>height+track.height,0) : 196
+    readonly property var laneLayout: NativeData.presentation.timelineLayout(stateModel.tracks, stateModel.mode)
+    readonly property var trackLayout: laneLayout.tracks
+    readonly property real lanesHeight: laneLayout.height
     signal chooseKeyframe(int frame, string trackId)
-    readonly property int curveHeight:stateModel.mode==="Curves" ? stateModel.tracksOfType("Contents").length*80 : 0
+    readonly property int curveHeight:laneLayout.curveHeight
     readonly property bool hasContent:stateModel.shots.length>0 || stateModel.keys.length>0
     property bool playbackAvailable:hasContent
     implicitHeight:264
     readonly property real contentExtent:hasContent || stateModel.tracks.length ? footer.y+Math.max(17,footer.height)+6 : 264
     clip:true
-    function timecode(frame) { const seconds=Math.floor(frame/stateModel.fps); return [Math.floor(seconds/3600),Math.floor(seconds/60)%60,seconds%60,frame%stateModel.fps].map(value=>String(value).padStart(2,"0")).join(":") }
+    function timecode(frame) { return NativeData.presentation.timecode(frame, stateModel.fps) }
     function frameLabel(frame) { return "F"+String(frame).padStart(3,"0") }
-    function seekFrame(frame, snapPointer) { playing=false; stateModel.seek(snapPointer && stateModel.snap ? Math.round(frame/snapStep)*snapStep : frame) }
+    function seekFrame(frame, snapPointer) { nativePlayback.seekFrame(frame, snapPointer ? snapStep : 1) }
     function setRange(field, text) {
-        const value=Number(String(text).replace(/^F/i,""))
-        if(!Number.isInteger(value) || value<0 || value>=stateModel.totalFrames || (field==="markIn" ? value>stateModel.markOut : value<stateModel.markIn)) return false
-        stateModel[field]=value; return true
+        return stateModel.setRangeText(field,text)
     }
     function fitTimeline() { timelineScale=Math.max(1,lanes.width)/(root.stateModel.totalFrames*framePitch); lanes.contentX=0; viewport.contentY=0 }
     onVisibleChanged: if(!visible) playing=false
@@ -60,16 +53,11 @@ FocusScope {
         else if(event.key===Qt.Key_Delete || event.key===Qt.Key_Backspace) { if(stateModel.mode==="Shots") stateModel.rippleDelete(); else stateModel.deleteKey(); event.accepted=true }
         else if(event.key===Qt.Key_Z && (event.modifiers & Qt.ControlModifier)) { if(event.modifiers & Qt.ShiftModifier) stateModel.redo(); else stateModel.undo(); event.accepted=true }
     }
-    Timer {
-        interval:Math.max(1,1000/root.stateModel.fps); repeat:true; running:root.playing && root.visible && root.enabled
-        property int firstFrame:0
-        property double startedAt:0
-        onRunningChanged: if(running) { firstFrame=root.stateModel.playhead; startedAt=Date.now() }
-        onTriggered:{
-            const next=firstFrame+Math.floor((Date.now()-startedAt)/1000*root.stateModel.fps)
-            if(next>=root.stateModel.totalFrames) { if(root.loopPlayback) root.stateModel.seek(next%root.stateModel.totalFrames); else { root.playing=false; root.stateModel.seek(0) } }
-            else root.stateModel.seek(next)
-        }
+    NativeTimelinePlayback {
+        id: nativePlayback
+        objectName: "videoTimelinePlayback"
+        timeline: root.stateModel
+        active: root.visible && root.enabled && root.playbackAvailable
     }
     component Button: LV.LabelButton {
         id: control
@@ -163,16 +151,17 @@ FocusScope {
             LV.ContextMenu { id:snapMenu; items:["1 frame","2 frames","5 frames","10 frames","12 frames","24 frames","30 frames"]; showIconSlot:false; onItemTriggered:function(index){root.snapStep=[1,2,5,10,12,24,30][index]} }
             LV.ContextMenu { id:zoomMenu; items:["25%","50%","75%","100%","150%","200%","400%"]; showIconSlot:false; onItemTriggered:function(index){root.timelineScale=[.25,.5,.75,1,1.5,2,4][index]} }
             LV.ContextMenu { id:timelineSettings; items:[qsTr("Add track"),qsTr("Undo"),qsTr("Redo"),qsTr("Fit timeline")]; showIconSlot:false; onItemTriggered:function(index){if(index===0)addTrackMenu.openFor(header,8,40);else if(index===1)root.stateModel.undo();else if(index===2)root.stateModel.redo();else root.fitTimeline()} }
-            LV.ContextMenu { id:addTrackMenu; objectName:"videoAddTrackMenu"; items:root.stateModel.trackTypes.map(type=>type==="Shots" ? qsTr("Layers") : type==="Contents" ? qsTr("Images") : type); showIconSlot:false; onItemTriggered:function(index) { root.stateModel.addTrack(root.stateModel.trackTypes[index]) } }
-            LV.ContextMenu { id:trackPositionMenu; items:root.stateModel.tracksOfType(root.stateModel.selectedTrack.type).map((track,index)=>String(index+1)+" · "+track.name); showIconSlot:false; onItemTriggered:function(index) { root.stateModel.moveTrack(root.stateModel.selectedTrackId,index) } }
+            LV.ContextMenu { id:addTrackMenu; objectName:"videoAddTrackMenu"; items:[qsTr("Layers"), qsTr("Images"), qsTr("Audio"), qsTr("Caption")]; showIconSlot:false; onItemTriggered:function(index) { root.stateModel.addTrack(root.stateModel.trackTypes[index]) } }
+            LV.ContextMenu { id:trackPositionMenu; items:{ root.stateModel.tracks; return NativeData.presentation.trackLabels(root.stateModel.tracksOfType(root.stateModel.selectedTrack.type)) }
+                showIconSlot:false; onItemTriggered:function(index) { root.stateModel.moveTrack(root.stateModel.selectedTrackId,index) } }
             LV.ContextMenu {
                 id:clipTrackMenu
                 readonly property string trackType:root.stateModel.selectedShot.id ? "Shots" : "Contents"
-                readonly property var destinations:root.stateModel.tracksOfType(trackType)
-                items:destinations.map((track,index)=>String(index+1)+" · "+track.name); showIconSlot:false
+                readonly property var destinations:{ root.stateModel.tracks; return root.stateModel.tracksOfType(trackType) }
+                items:NativeData.presentation.trackLabels(destinations); showIconSlot:false
                 onItemTriggered:function(index) { const id=destinations[index]?.id; if(!id)return; if(root.stateModel.selectedShot.id)root.stateModel.assignShotTrack(root.stateModel.selectedShot.id,id); else root.stateModel.editKey("trackId",id) }
             }
-            LV.ContextMenu { id:moreMenu; items:[qsTr("Duplicate shot"),qsTr("Select all"),qsTr("Deselect all")]; showIconSlot:false; onItemTriggered:function(index) { if(index===0) root.stateModel.duplicateShot(); else root.stateModel.selectedIds=index===1 ? root.stateModel.shots.map(shot=>shot.id) : [] } }
+            LV.ContextMenu { id:moreMenu; items:[qsTr("Duplicate shot"),qsTr("Select all"),qsTr("Deselect all")]; showIconSlot:false; onItemTriggered:function(index) { if(index===0) root.stateModel.duplicateShot(); else root.stateModel.selectAllShots(index===1) } }
             Row {
                 id: tools
                 objectName:"videoTimelineTools"
@@ -224,7 +213,7 @@ FocusScope {
                     Item {
                         id: frameRuler
                         objectName:"videoFrameRuler"
-                        readonly property int majorStep: { const needed=Math.max(10,64/root.pixelsPerFrame), magnitude=Math.pow(10,Math.floor(Math.log10(needed))); return [1,2,5,10].map(value=>value*magnitude).find(value=>value>=needed) }
+                        readonly property int majorStep: NativeData.presentation.rulerStep(root.pixelsPerFrame)
                         readonly property int minorStep:Math.max(1,majorStep/10)
                         readonly property int firstFrame:Math.max(0,Math.floor(lanes.contentX/root.pixelsPerFrame/minorStep)*minorStep)
                         readonly property int tickCount:Math.max(0,Math.ceil(lanes.width/(root.pixelsPerFrame*minorStep))+2)
@@ -263,16 +252,17 @@ FocusScope {
                                 id: shotLane
                                 objectName:"videoShotLane-"+trackRow.modelData.id
                                 width:parent.width; height:56; visible:trackRow.modelData.type==="Shots"
-                                LV.Label { objectName:"videoShotEmptyState-"+trackRow.modelData.id; x:12; anchors.verticalCenter:parent.verticalCenter; visible:!root.stateModel.shots.some(shot=>shot.trackId===trackRow.modelData.id); text:qsTr("No shots"); style:caption; color:LV.Theme.textSecondary }
+                                LV.Label { objectName:"videoShotEmptyState-"+trackRow.modelData.id; x:12; anchors.verticalCenter:parent.verticalCenter; visible:{ root.stateModel.shots; return root.stateModel.trackShots(trackRow.modelData.id).length===0 }
+                                text:qsTr("No shots"); style:caption; color:LV.Theme.textSecondary }
                                 Repeater {
-                                    model:root.stateModel.shots.filter(shot=>shot.trackId===trackRow.modelData.id)
+                                    model:{ root.stateModel.shots; return root.stateModel.trackShots(trackRow.modelData.id) }
                                     delegate:Rectangle {
                                         id: shot
                                         required property var modelData
                                         required property int index
-                                        readonly property bool selected:root.stateModel.selectedIds.indexOf(modelData.id)>=0
+                                        readonly property bool selected:NativeData.presentation.indexOf(root.stateModel.selectedIds, modelData.id)>=0
                                         readonly property int start:root.stateModel.startOf(modelData.id)
-                                        readonly property string referenceSource:(root.stateModel.keys.find(key=>key.frame>=start && key.frame<start+modelData.frames) || {}).source || ""
+                                        readonly property string referenceSource:{ root.stateModel.keys; root.stateModel.shots; return root.stateModel.shotReference(modelData.id) }
                                         x:start*root.pixelsPerFrame+2
                                         width:Math.max(1,modelData.frames*root.pixelsPerFrame-4); height:50; y:3
                                         radius:12; clip:true
@@ -280,13 +270,14 @@ FocusScope {
                                         color:LV.Theme.panelBackground01; border.width:selected ? 2 : 1; border.color:selected ? LV.Theme.accent : LV.Theme.panelBackground12
                                         opacity:modelData.excluded ? .35 : 1
                                         Image { objectName:"videoShotReference-"+shot.modelData.id; anchors.fill:parent; source:displayPreviews.sourceForUrl(shot.referenceSource || ""); asynchronous:true; sourceSize:Qt.size(Math.ceil(width*Screen.devicePixelRatio),Math.ceil(height*Screen.devicePixelRatio)); fillMode:Image.PreserveAspectCrop; opacity:.18 }
-                                        LV.Label { x:12; y:4; width:Math.max(0,parent.width-24); text:String(root.stateModel.shots.findIndex(entry=>entry.id===shot.modelData.id)+1).padStart(2,"0")+" / "+shot.modelData.name; style:body; elide:Text.ElideRight }
+                                        LV.Label { x:12; y:4; width:Math.max(0,parent.width-24); text:{ root.stateModel.shots; return String(root.stateModel.shotIndex(shot.modelData.id)+1).padStart(2,"0")+" / "+shot.modelData.name }
+                                            style:body; elide:Text.ElideRight }
                                         LV.Label { x:12; y:27; width:Math.max(0,parent.width-24); text:"F"+String(shot.start).padStart(3,"0")+"–"+String(shot.start+shot.modelData.frames-1).padStart(3,"0")+" · "+shot.modelData.frames+"f"+(shot.modelData.excluded ? " · Excluded" : ""); style:caption; elide:Text.ElideRight }
                                         MouseArea {
                                             anchors.fill:parent
                                             property real pressX:0
                                             onPressed:function(mouse) { root.forceActiveFocus(); pressX=mouse.x; root.stateModel.selectShot(shot.modelData.id,!!(mouse.modifiers & Qt.ShiftModifier)); if(root.stateModel.tool==="Blade") { root.stateModel.seek(shot.start+mouse.x/shot.width*shot.modelData.frames); root.stateModel.split() } }
-                                            onReleased:function(mouse) { const delta=Math.round((mouse.x-pressX)/root.pixelsPerFrame); if(root.stateModel.tool==="Slide") root.stateModel.nudgeShot(delta); else if(root.stateModel.tool==="Slip") root.stateModel.slipKeys(shot.modelData.id,delta); else if(root.stateModel.tool==="Range") { root.stateModel.markIn=shot.start; root.stateModel.markOut=shot.start+shot.modelData.frames-1; root.stateModel.selectedIds=root.stateModel.shots.filter(entry=>root.stateModel.startOf(entry.id)<=root.stateModel.markOut && root.stateModel.startOf(entry.id)+entry.frames>root.stateModel.markIn).map(entry=>entry.id) } }
+                                            onReleased:function(mouse) { const delta=Math.round((mouse.x-pressX)/root.pixelsPerFrame); if(root.stateModel.tool==="Slide") root.stateModel.nudgeShot(delta); else if(root.stateModel.tool==="Slip") root.stateModel.slipKeys(shot.modelData.id,delta); else if(root.stateModel.tool==="Range") { root.stateModel.selectShotRange(shot.modelData.id) } }
                                             onDoubleClicked:{ root.stateModel.seek(shot.start); root.stateModel.mode="Shots" }
                                         }
                                         Repeater {
@@ -301,10 +292,11 @@ FocusScope {
                                     }
                                 }
                             }
-                            Button { x:8; anchors.verticalCenter:parent.verticalCenter; visible:trackRow.modelData.type==="Contents" && !root.stateModel.keys.some(key=>key.trackId===trackRow.modelData.id); text:qsTr("+ Image keyframe"); tone:LV.AbstractButton.Borderless; onClicked:root.chooseKeyframe(root.stateModel.playhead,trackRow.modelData.id) }
+                            Button { x:8; anchors.verticalCenter:parent.verticalCenter; visible:{ root.stateModel.keys; return trackRow.modelData.type==="Contents" && root.stateModel.trackKeys(trackRow.modelData.id).length===0 }
+                                text:qsTr("+ Image keyframe"); tone:LV.AbstractButton.Borderless; onClicked:root.chooseKeyframe(root.stateModel.playhead,trackRow.modelData.id) }
                             LV.Label { x:12; anchors.verticalCenter:parent.verticalCenter; text:trackRow.modelData.type==="Caption" ? qsTr("No captions") : qsTr("No audio"); style:caption; color:LV.Theme.textSecondary; visible:trackRow.modelData.type==="Audio" || trackRow.modelData.type==="Caption" }
                             Repeater {
-                                model:root.stateModel.keys.filter(key=>key.trackId===trackRow.modelData.id)
+                                model:{ root.stateModel.keys; return root.stateModel.trackKeys(trackRow.modelData.id) }
                                 delegate:Rectangle {
                                     id:key
                                     required property var modelData
@@ -329,7 +321,7 @@ FocusScope {
                                     onFrameScaleChanged:requestPaint()
                                     Connections { target:root.stateModel; function onKeysChanged(){ curve.requestPaint() } function onTotalFramesChanged(){ curve.requestPaint() } }
                                     onWidthChanged:requestPaint()
-                                    onPaint: { const c=getContext("2d"); c.clearRect(0,0,width,height); c.strokeStyle=LV.Theme.accent; c.lineWidth=2; c.beginPath(); const ordered=root.stateModel.keys.filter(key=>key.trackId===trackRow.modelData.id).sort((a,b)=>a.frame-b.frame); ordered.forEach((key,index)=>{ const x=key.frame*curve.frameScale,y=(1-key.value)*height; if(index===0)c.moveTo(x,y); else c.lineTo(x,y) }); c.stroke() }
+                                    onPaint: { const c=getContext("2d"); c.clearRect(0,0,width,height); c.strokeStyle=LV.Theme.accent; c.lineWidth=2; c.beginPath(); const ordered=root.stateModel.trackKeys(trackRow.modelData.id,true); ordered.forEach((key,index)=>{ const x=key.frame*curve.frameScale,y=(1-key.value)*height; if(index===0)c.moveTo(x,y); else c.lineTo(x,y) }); c.stroke() }
                                 }
                                 LV.Label { x:8; y:4; width:parent.width-16; text:qsTr("Image condition weight"); style:caption; elide:Text.ElideRight }
                             }
@@ -379,8 +371,8 @@ FocusScope {
                 id: footer
                 objectName:"videoTimelineFooter"
                 x:4; y:selection.y+selection.height+3; width:parent.width-12; spacing:12; visible:root.hasContent || root.stateModel.tracks.length>0
-                LV.Label { width:Math.min(432,footer.width); text:qsTr("%1 tracks · %2 shots · %3 kept · %4 keys · %5 output frames").arg(root.stateModel.tracks.length).arg(root.stateModel.shots.length).arg(root.stateModel.shots.filter(shot=>!shot.excluded).length).arg(root.stateModel.keys.length).arg(root.stateModel.outputFrames); style:body; wrapMode:Text.Wrap }
-                Item { width:Math.min(480,footer.width); height:17; visible:root.stateModel.shots.length>0; Row { width:parent.width; y:5; spacing:3; Repeater { model:root.stateModel.shots; delegate:Rectangle { required property var modelData; width:Math.max(0,modelData.frames/root.stateModel.totalFrames*parent.width-3); height:8; radius:2; color:root.stateModel.selectedIds.indexOf(modelData.id)>=0 ? LV.Theme.accent : LV.Theme.accentGray; opacity:modelData.excluded ? .3 : 1 } } } }
+                LV.Label { width:Math.min(432,footer.width); text:qsTr("%1 tracks · %2 shots · %3 kept · %4 keys · %5 output frames").arg(root.stateModel.tracks.length).arg(root.stateModel.shots.length).arg(root.stateModel.keptShotCount).arg(root.stateModel.keys.length).arg(root.stateModel.outputFrames); style:body; wrapMode:Text.Wrap }
+                Item { width:Math.min(480,footer.width); height:17; visible:root.stateModel.shots.length>0; Row { width:parent.width; y:5; spacing:3; Repeater { model:root.stateModel.shots; delegate:Rectangle { required property var modelData; width:Math.max(0,modelData.frames/root.stateModel.totalFrames*parent.width-3); height:8; radius:2; color:NativeData.presentation.indexOf(root.stateModel.selectedIds, modelData.id)>=0 ? LV.Theme.accent : LV.Theme.accentGray; opacity:modelData.excluded ? .3 : 1 } } } }
                 LV.Label { width:Math.min(300,footer.width); text:qsTr("View F000–%1 · In %2 · Out %3").arg(root.stateModel.totalFrames-1).arg(root.stateModel.markIn).arg(root.stateModel.markOut); style:body; wrapMode:Text.Wrap }
                 LV.Label { visible:root.width>=600; text:"V select · B blade · I/O · Space"; style:caption }
             }

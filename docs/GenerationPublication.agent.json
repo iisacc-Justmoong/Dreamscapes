@@ -1,0 +1,347 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:3bdfa3f04419f98387dc9250f446707285ed357f9c202818fb7d0d35b21d42d5",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/GenerationPublication.md",
+    "sha256": "91190511191906c1fa50040f5e5e89047cceb5b4281e4c34af087736f9b0aa9c",
+    "bytes": 5199,
+    "line_count": 67,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "생성 결과의 저장과 UI 수명",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# 생성 결과의 저장과 UI 수명\n",
+      "level": 1,
+      "title": "생성 결과의 저장과 UI 수명"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 7,
+      "raw": "이미지·영상 생성이 끝난 뒤의 코덱 처리와 파일 반영을 GUI 소유자에서 분리한다.\n`GenerationController`는 수락한 작업의 상태와 완료 순서를 관리하고,\n`GenerationPublication`은 값으로 전달받은 결과와 원본 임시 디렉터리의 수명을\n보유하여 작업자에서 저장한다. QML 보기나 GUI 소유 `FileSystem`을 작업자로\n전달하지 않는다. Qt는 이미지 코덱과 기존 SDK의 GUI 어댑터 경계에서 사용한다.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "heading",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "## 실제 작업의 연결\n",
+      "level": 2,
+      "title": "실제 작업의 연결"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "list",
+      "start_line": 11,
+      "end_line": 19,
+      "raw": "- 네이티브 생성은 RGB 결과를 이동하여 PNG 인코딩부터 작업자에서 수행한다.\n- 프로세스 생성은 결과 기록·이미지 목록·크기·실제 디코딩 가능 여부를 검사한다.\n  영상은 기존 프레임 수·FPS·해시 검사와 포스터 검사를 그대로 수행한다.\n- Society 원격 생성은 수신한 바이트를 보유한다. 원격 생성에 필요하지 않은\n  로컬 모델의 다운로드 완료를 결과 저장의 전제 조건으로 추가하지 않는다.\n- 고급 색상·워터마크 처리와 비 PNG 원본의 변환은 공개 파일을 만들기 전에\n  전체 배치에 대해 준비한다. PNG 목적지는 실제 PNG로 인코딩한다.\n- 기존 이름과 파일은 덮어쓰지 않는다. 실패한 배치에서는 이 작업이 만든 파일만\n  경로·크기·수정 시각이 유지되는 경우 회수한다. 외부에서 교체한 파일은 보존한다.\n",
+      "items": [
+        {
+          "marker": "-",
+          "text": "네이티브 생성은 RGB 결과를 이동하여 PNG 인코딩부터 작업자에서 수행한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "프로세스 생성은 결과 기록·이미지 목록·크기·실제 디코딩 가능 여부를 검사한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "Society 원격 생성은 수신한 바이트를 보유한다. 원격 생성에 필요하지 않은",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "고급 색상·워터마크 처리와 비 PNG 원본의 변환은 공개 파일을 만들기 전에",
+          "checked": null
+        },
+        {
+          "marker": "-",
+          "text": "기존 이름과 파일은 덮어쓰지 않는다. 실패한 배치에서는 이 작업이 만든 파일만",
+          "checked": null
+        }
+      ]
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 20,
+      "end_line": 20,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 21,
+      "end_line": 26,
+      "raw": "저장 작업자는 캡처한 컨테이너 ID·원본 경로와 모델 상태를 확인한다. 이미지마다\nGUI 파일시스템을 다시 동기화하던 경로 대신 네이티브 저장 후 배치당 한 번의\n작업자 미러 스캔으로 `PreparedStorage`를 준비한다. GUI 소유자는 현재 작업과\n드라이브가 일치할 때 이 값을 채택하고, 결과가 실제 사용 가능한 별칭인지 확인한\n뒤 완료를 알린다. 작업 도중 갱신된 모델 다운로드 등의 상태를 보존하기 위해\n결과 파일 필드만 병합한다.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 27,
+      "end_line": 27,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "heading",
+      "start_line": 28,
+      "end_line": 28,
+      "raw": "## 순서·취소·종료\n",
+      "level": 2,
+      "title": "순서·취소·종료"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 29,
+      "end_line": 29,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 30,
+      "end_line": 34,
+      "raw": "저장 중에도 현재 작업을 유지한다. 결과 반영·작업 완료 알림·임시 파일 수명 정리가\n끝나기 전에 다음 생성 작업을 시작하지 않는다. 프로세스의 늦은 종료나 미리보기·\n진행 알림은 저장 중인 작업을 다시 끝내거나 생성 시간 제한을 다시 시작하지 않는다.\n화면 숨김은 이미 계산한 결과의 파일 저장을 취소하지 않는다. 조회는 파일을\n반영하거나 문서 리비전을 변경하지 않는다.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 35,
+      "end_line": 35,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 36,
+      "end_line": 40,
+      "raw": "미리보기의 삭제와 작업 임시 디렉터리의 회수를 작업자에서 순서대로 수행한 뒤\n최종 작업 상태를 알린다. 하나의 정리 작업이 미리보기 디렉터리와 그 부모를\n순서대로 회수하며 GUI에서 합류 대기를 하지 않는다. 정리를 보류하는 검사에서\nUI 타이머가 진행되고 현재 작업이 실행 상태를 유지하는지 확인한다. 기존 검사의\n완료 시점 파일 부재 조건은 그대로 유지한다.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 41,
+      "end_line": 41,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 42,
+      "end_line": 46,
+      "raw": "`PublicationControl`은 준비·취소·반영·종료 단계를 원자적으로 구분한다. 준비 중\n취소가 수락되면 공개 파일을 만들지 않는다. 반영을 시작한 뒤의 취소는 거절하고\n실제 저장 결과를 전달한다. 따라서 이미 저장된 파일을 취소 완료로 잘못 표시하지\n않는다. UI 소유자 종료는 준비 취소를 요청하고 해당 저장 작업자의 반환을 기다리지\n않는다. 값형 입력의 원본 수명은 작업 종료까지 유지된다.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 47,
+      "end_line": 47,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 48,
+      "end_line": 50,
+      "raw": "외부 알림으로 소유자가 삭제될 수 있으므로 드라이브 채택, 화면 활성 상태 콜백,\n작업 갱신, 최종 알림 사이에서 약한 소유 참조를 확인한다. 생성 엔진·캐시 이행의 소유자 수명과 미리보기 준비는\n[NativeGenerationLifetime.md](NativeGenerationLifetime.md)에서 별도로 다룬다.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 51,
+      "end_line": 51,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "heading",
+      "start_line": 52,
+      "end_line": 52,
+      "raw": "## 검증과 측정 범위\n",
+      "level": 2,
+      "title": "검증과 측정 범위"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 53,
+      "end_line": 53,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 54,
+      "end_line": 59,
+      "raw": "`tst_Generation.cpp`의 제어된 실제 저장 검사는 네이티브·프로세스 경로의 작업자\n실행, UI 타이머 처리, 다음 작업의 대기, 반복 조회의 무변경, PNG 인코딩, 화면\n전환, 반영 전후 취소, 모델 변경, 예외, 소유자 종료와 알림 중 삭제를 다룬다.\n기존 영상·고급 파라미터·파일 충돌·경로 리디렉션·배치·임시 파일 검사도 유지한다.\n`Dreamscapes.LocalSociety`는 로컬 모델이 아직 없는 원격 생성과 그 후의 다운로드\n연결을 별도로 검사한다.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 60,
+      "end_line": 60,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 61,
+      "end_line": 67,
+      "raw": "수정 전후 동일한 프로브는 2048×2048 RGB 결과를 실제 PNG로 인코딩·저장하면서\n엔진 반환 이후 GUI 이벤트 처리의 최대 공백과 처리 횟수를 기록한다. 소스 해시,\n원본 측정값과 최종 검증 기록은\n`build/verification/generation-publication-20261021-185010/`에 보관한다.\n이는 결과 저장 구간의 관측값이며 앱 전체 FPS, 물리 GPU 생성, 실제 LAN 지연,\n설치 앱의 전경 입력 성능을 대신하지 않는다. 주소 검사도 이 회차에서 빌드한\n컨트롤러·저장 작업자·PNG 어댑터·검사 코드에 한정한다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "생성 결과의 저장과 UI 수명",
+      "anchor": "생성-결과의-저장과-ui-수명",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000005",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "실제 작업의 연결",
+      "anchor": "실제-작업의-연결",
+      "start_line": 9
+    },
+    {
+      "block_id": "b000011",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "순서·취소·종료",
+      "anchor": "순서취소종료",
+      "start_line": 28
+    },
+    {
+      "block_id": "b000021",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "검증과 측정 범위",
+      "anchor": "검증과-측정-범위",
+      "start_line": 52
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 7,
+        "text": "전달하지 않는다. Qt는 이미지 코덱과 기존 SDK의 GUI 어댑터 경계에서 사용한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000007",
+        "line": 15,
+        "text": "로컬 모델의 다운로드 완료를 결과 저장의 전제 조건으로 추가하지 않는다.",
+        "basis": "lexical_match",
+        "context": "list"
+      },
+      {
+        "block_id": "b000013",
+        "line": 31,
+        "text": "끝나기 전에 다음 생성 작업을 시작하지 않는다. 프로세스의 늦은 종료나 미리보기·",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 32,
+        "text": "진행 알림은 저장 중인 작업을 다시 끝내거나 생성 시간 제한을 다시 시작하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 33,
+        "text": "화면 숨김은 이미 계산한 결과의 파일 저장을 취소하지 않는다. 조회는 파일을",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 34,
+        "text": "반영하거나 문서 리비전을 변경하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 38,
+        "text": "순서대로 회수하며 GUI에서 합류 대기를 하지 않는다. 정리를 보류하는 검사에서",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000025",
+        "line": 66,
+        "text": "설치 앱의 전경 입력 성능을 대신하지 않는다. 주소 검사도 이 회차에서 빌드한",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000019",
+        "label": "NativeGenerationLifetime.md",
+        "target": "NativeGenerationLifetime.md",
+        "kind": "relative",
+        "line": 50
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}
