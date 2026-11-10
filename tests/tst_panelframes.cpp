@@ -63,7 +63,7 @@ private:
         QVERIFY(border(frame));
         QCOMPARE(frame->property("strokeWidth").toReal(), 1.);
         QCOMPARE(border(frame)->property("width").toReal(), frame->property("completeBorder").toBool() ? 1. : 0.);
-        QCOMPARE(frame->property("panelBorderColor").value<QColor>(), QColor("#0c0c0c"));
+        QCOMPARE(frame->property("panelBorderColor").value<QColor>().name(), QStringLiteral("#101010"));
         QCOMPARE(border(frame)->property("color").value<QColor>(),
                  frame->property("panelBorderColor").value<QColor>());
         QVERIFY(!frame->isEnabled());
@@ -106,8 +106,8 @@ private slots:
         QVERIFY(!image.isNull());
         const qreal dpr = image.devicePixelRatio();
         const auto pixel = [&](int x, int y) { return image.pixelColor(qRound(x*dpr),qRound(y*dpr)); };
-        QCOMPARE(pixel(20,20), QColor("#0c0c0c")); // Square corner is actually painted.
-        QCOMPARE(pixel(60,20), QColor("#0c0c0c"));
+        QCOMPARE(pixel(20,20), QColor("#101010")); // Square corner is actually painted.
+        QCOMPARE(pixel(60,20), QColor("#101010"));
         QCOMPARE(pixel(60,21), QColor("#222222")); // One logical pixel, transparent interior.
         QCOMPARE(pixel(19,20), QColor(Qt::black));
         QVERIFY(panel->parentItem()->setProperty("width",220));
@@ -129,7 +129,7 @@ private slots:
         QVERIFY(QTest::qWaitForWindowExposed(&window));QTest::qWait(40);
         const auto image=window.grabWindow();QVERIFY(!image.isNull());
         const auto sample=[&](int x){return image.pixelColor(qRound(x*image.devicePixelRatio()),qRound(70*image.devicePixelRatio()));};
-        QCOMPARE(sample(138),QColor("#222222"));QCOMPARE(sample(139),QColor("#0c0c0c"));
+        QCOMPARE(sample(138),QColor("#222222"));QCOMPARE(sample(139),QColor("#101010"));
         QCOMPARE(sample(140),QColor("#333333"));QCOMPARE(sample(141),QColor("#333333"));
     }
     void compactEditorKeepsCommandsAndDocumentState() {
@@ -154,7 +154,7 @@ private slots:
         const auto colorAt=[&](QPointF point){return rendered.pixelColor(qRound(point.x()*rendered.devicePixelRatio()),qRound(point.y()*rendered.devicePixelRatio()));};
         const auto seam=[&](QPointF center,bool vertical){
             int gray=0;for(int offset=-2;offset<=2;++offset)
-                if(colorAt(center+(vertical?QPointF(offset,0):QPointF(0,offset)))==QColor("#0c0c0c"))++gray;
+                if(colorAt(center+(vertical?QPointF(offset,0):QPointF(0,offset)))==QColor("#101010"))++gray;
             return gray;
         };
         const auto toolbarOrigin=toolbar->mapToScene(QPointF());

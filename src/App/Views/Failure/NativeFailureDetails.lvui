@@ -1,0 +1,22 @@
+import vm NativeFailureDetailsBackend
+Window {
+    Modal(id: "failureDetails", open: vm.open, title: vm.title, showIcon: false,
+          minWidth: 0, maxWidth: 860, buttonCount: 2, primaryText: vm.closeLabel,
+          secondaryText: vm.copyLabel, secondaryEnabled: vm.canCopy,
+          motionEnabled: vm.motionEnabled, onPrimaryClicked: vm.dismiss,
+          onSecondaryClicked: vm.copyReport, onClosed: vm.dismiss) {
+        VStack(alignment: .stretch) {
+            if (vm.usesWrappedText) {
+                TextEditor(id: "failureExplanationText", text: vm.wrappedText, readOnly: true,
+                           wrapEnabled: true, width: vm.editorWidth, height: vm.editorHeight,
+                           accessibilityName: vm.accessibilityName)
+            } else {
+                CodeEditor(id: "failureExplanationLongText", model: vm.document, sourceRevision: vm.revision,
+                           readOnly: true, width: vm.editorWidth, height: vm.editorHeight,
+                           accessibilityName: vm.accessibilityName)
+            }
+            Label(id: "failureCopyError", text: vm.copyError, visible: vm.copyFailed, style: .caption)
+            Label(id: "failureReportError", text: vm.reportError, visible: vm.reportFailed, style: .caption)
+        }
+    }
+}

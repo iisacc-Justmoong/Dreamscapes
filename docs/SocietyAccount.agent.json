@@ -1,0 +1,156 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:a0b24bdce66a30ea973a8d5f96011b5e784ba0537ece18af63b4187fab1fa339",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/SocietyAccount.md",
+    "sha256": "445594ec62cc438f43c6d1dae29aacbca87318aada2c51334d74faa80da458bf",
+    "bytes": 3550,
+    "line_count": 50,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "Dreamscapes account and licensing",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Dreamscapes account and licensing\n",
+      "level": 1,
+      "title": "Dreamscapes account and licensing"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 12,
+      "raw": "A signed, device-bound grant is checked in the background after the workspace becomes visible and remains\nvalid for the lifetime of that application run. A later daemon disconnect or\ntoken expiry does not relock an already authorized workspace; each new launch\nmust obtain and verify a new decision. The local broker is hosted by the Society\nbackground service and does not require the Society window to be open.\nIf the default broker is unavailable, the native client starts the installed\nlicense-only daemon without a window and retries the local connection. On macOS\nit looks in the user's Applications folder and then `/Applications`; Linux uses\nthe standard binary locations. `SOCIETY_DAEMON_EXECUTABLE` selects an absolute\nalternative. Starting a daemon never substitutes for verifying its signed reply.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 13,
+      "end_line": 13,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 14,
+      "end_line": 21,
+      "raw": "Society owns the iisacc.com account, browser sign-in and online license lookup.\nDreamscapes requests its license decision from Society through iiAccountManager\nNative `SocietySession` over the same-user local channel. Dreamscapes does not\nreceive passwords, online cookies or bearer credentials. It verifies the signed\nresponse, device, product and expiry before granting access; signed denial,\ninvalid responses and an unavailable Society fail closed. The account page\nopens Society or requests a fresh local license check. Sign-out is performed in\nSociety and affects its account rather than a separate Dreamscapes session.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 22,
+      "end_line": 22,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 23,
+      "end_line": 28,
+      "raw": "시작 시 작업 화면을 먼저 표시하고 이벤트 루프에 Society 라이선스의 비동기 확인을 예약한다.\n확인 중이라는 사실은 유효한 라이선스의 증거가 아니며, 생성 요청과 비시각적\n호출의 기존 권한 검사는 계속 유효하다. 검증 결과가 명시적 거부 또는 확인\n불가이면 iiLicenseManager의 안내 화면에서 Society 열기와 재시도를 제공한다.\n재확인이나 라이선스 상태 변화는 이미 구성된 작업 화면과 초안 상태를 보존한다.\n승인 후에는 현재 실행 동안 해당 결정을 유지한다.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 29,
+      "end_line": 29,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 30,
+      "end_line": 38,
+      "raw": "The QML view is embedded from `DREAMSCAPES_LICENSEMANAGER_VIEWS_DIR` at build\ntime. It defaults to the workspace iiLicenseManager source or an installed SDK\nview. `Dreamscapes.LicenseEntry` covers the view's checking, denial, retry and\ngrant states. `Dreamscapes.LicenseEntrySociety`\nchecks the actual account-to-window binding when Society is unavailable and\nrejects a tampered response before a signed grant through a local fixture broker,\nthen verifies that the authorized workspace remains open for the current run.\nThe GUI entry fixtures use temporary containers rather than the user's shared\nstorage. A separate signed-token fixture also checks the account policy.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 39,
+      "end_line": 39,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 40,
+      "end_line": 44,
+      "raw": "The native channel currently supports macOS and Linux; Windows and mobile need\nplatform-specific local transport before this flow can work there. A previously\nsaved direct-browser Dreamscapes credential is no longer read by this account\nmodel, but is not automatically deleted by this change. Network revocation and\ndurable removal of Society's own session remain Society's responsibility.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 45,
+      "end_line": 45,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 46,
+      "end_line": 50,
+      "raw": "The `Dreamscapes.SocietyAccount` fixture checks a signed local grant, denial,\ntampered token, unavailable service and retention after token expiry. A registered URL-handler fixture\nchecks the Society-open command without launching the user's application. This\nis not evidence of a production account, installed app, successful paid\nactivation, shutdown responsiveness or cross-platform operation.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Dreamscapes account and licensing",
+      "anchor": "dreamscapes-account-and-licensing",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 6,
+        "text": "must obtain and verify a new decision. The local broker is hosted by the Society",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000003",
+        "line": 12,
+        "text": "alternative. Starting a daemon never substitutes for verifying its signed reply.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

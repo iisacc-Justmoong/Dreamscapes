@@ -61,6 +61,10 @@ void ColorManagerTests::pickerModes() {
     const auto* info=iiColorManager::modeInfo(iiColorManager::Mode(mode));QCOMPARE(state->channels().size(),qsizetype(info->channels.size()));
     QSignalSpy edits(state,&ColorManagerModel::colorEdited);const auto alpha=state->color().alphaF();
     if(mode<3){auto* field=root->findChild<ColorManagerSurface*>("colorPicker_field");QVERIFY(field&&field->isVisible());
+        QCOMPARE(field->property("markerDark").value<QColor>().name(), QStringLiteral("#101010"));
+        QCOMPARE(field->property("markerLight").value<QColor>().name(), QStringLiteral("#ffffff"));
+        QCOMPARE(field->property("checkerDark").value<QColor>().name(), QStringLiteral("#5a5d63"));
+        QCOMPARE(field->property("checkerLight").value<QColor>().name(), QStringLiteral("#b4b8bf"));
         const auto from=field->mapToScene(QPointF(field->width()*.7,field->height()*.3)).toPoint();QTest::mouseClick(&window,Qt::LeftButton,Qt::NoModifier,from);QVERIFY(edits.size()>0);QVERIFY(std::abs(state->color().alphaF()-alpha)<.001);
         field->forceActiveFocus();const auto revision=state->revision();QTest::keyClick(&window,Qt::Key_Left);QVERIFY(state->revision()>revision);
     }else{const int channel=int(info->channels.front());auto* input=visual(root,QString("colorPicker_channelInput_%1").arg(channel));QVERIFY(input&&input->isVisible());

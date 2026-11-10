@@ -8,6 +8,7 @@ import QtQuick.Dialogs
 import LVRS 1.0 as LV
 import ".." as Views
 import "../Home"
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -127,9 +128,9 @@ Item {
                 visible:root.tab==="Generation"; Layout.fillWidth:true; Layout.minimumWidth:0; spacing:8
                 LV.VStack {
                     Layout.fillWidth:true; Layout.minimumWidth:0; Layout.leftMargin:8; Layout.rightMargin:8; Layout.topMargin:4; spacing:4; alignment:Qt.AlignLeft
-                    LV.Label { text:qsTr("Prompt"); style:caption; Layout.preferredHeight:LV.Theme.textCaptionLineHeight; Layout.maximumHeight:LV.Theme.textCaptionLineHeight }
+                    LV.Label { text:qsTr("Prompt"); style:caption; Layout.preferredHeight:Style.Tokens.metric("Theme Typography/Caption/textCaptionLineHeight"); Layout.maximumHeight:Style.Tokens.metric("Theme Typography/Caption/textCaptionLineHeight") }
                     PromptField { id:prompt; objectName:"videoPrompt"; Layout.fillWidth:true; Layout.minimumWidth:0; text:root.values.prompt; placeholderText:qsTr("Describe the scene, action and atmosphere."); onTextChanged:if(text!==root.values.prompt) root.edit("prompt",text) }
-                    LV.Label { text:qsTr("Negative Prompt"); style:caption; Layout.topMargin:8; Layout.preferredHeight:LV.Theme.textCaptionLineHeight; Layout.maximumHeight:LV.Theme.textCaptionLineHeight }
+                    LV.Label { text:qsTr("Negative Prompt"); style:caption; Layout.topMargin:8; Layout.preferredHeight:Style.Tokens.metric("Theme Typography/Caption/textCaptionLineHeight"); Layout.maximumHeight:Style.Tokens.metric("Theme Typography/Caption/textCaptionLineHeight") }
                     PromptField { objectName:"videoNegativePrompt"; Layout.fillWidth:true; Layout.minimumWidth:0; text:root.values.negativePrompt; onTextChanged:if(text!==root.values.negativePrompt) root.edit("negativePrompt",text) }
                 }
                 LV.VStack {
@@ -256,7 +257,7 @@ Item {
         id:persistentActions; objectName:"videoPersistentActions"
         anchors.left:parent.left; anchors.right:parent.right; anchors.bottom:parent.bottom
         spacing:8
-        LV.Label { text:root.summary; style:caption; Layout.fillWidth:true; Layout.preferredHeight:LV.Theme.textCaptionLineHeight; Layout.maximumHeight:LV.Theme.textCaptionLineHeight; Layout.topMargin:12; Layout.leftMargin:12; Layout.rightMargin:12; elide:Text.ElideRight }
+        LV.Label { text:root.summary; style:caption; Layout.fillWidth:true; Layout.preferredHeight:Style.Tokens.metric("Theme Typography/Caption/textCaptionLineHeight"); Layout.maximumHeight:Style.Tokens.metric("Theme Typography/Caption/textCaptionLineHeight"); Layout.topMargin:12; Layout.leftMargin:12; Layout.rightMargin:12; elide:Text.ElideRight }
         RowLayout {
             Layout.fillWidth:true; Layout.leftMargin:12; Layout.rightMargin:12; Layout.bottomMargin:12; spacing:8
             LV.LabelButton { objectName:"videoResetDefaults"; Layout.preferredWidth:64; text:qsTr("Reset"); tone:LV.AbstractButton.Default; onClicked:root.resetDraft() }
@@ -265,9 +266,9 @@ Item {
         }
     }
     Controls.Popup {
-        id:presetPopup; objectName:"videoPresetPopup"; anchors.centerIn:parent; modal:true; focus:true; padding:LV.Theme.gap16
+        id:presetPopup; objectName:"videoPresetPopup"; anchors.centerIn:parent; modal:true; focus:true; padding:Style.Tokens.metric("Theme Metrics/Space/16")
         width:Math.min(320,root.width-16)
-        background:Rectangle { color:LV.Theme.panelBackground10; radius:LV.Theme.radiusLg }
+        background:Rectangle { color:Style.Tokens.color("Theme Colors/Panel/surfaceInput"); radius:Style.Tokens.metric("Theme Metrics/Radius/12") }
         contentItem:ColumnLayout {
             spacing:8
             LV.Label { text:qsTr("Preset name"); style:body }
@@ -282,9 +283,9 @@ Item {
     }
 
     Controls.Popup {
-        id:outputCountPopup; onClosed:outputCountRow.selectorIndex=Math.max(0,NativeData.presentation.indexOf(outputCountRow.counts, root.values.outputCount)); objectName:"videoOutputCountPopup"; anchors.centerIn:parent; modal:true; focus:true; padding:LV.Theme.gap16
+        id:outputCountPopup; onClosed:outputCountRow.selectorIndex=Math.max(0,NativeData.presentation.indexOf(outputCountRow.counts, root.values.outputCount)); objectName:"videoOutputCountPopup"; anchors.centerIn:parent; modal:true; focus:true; padding:Style.Tokens.metric("Theme Metrics/Space/16")
         width:Math.min(300,root.width-16)
-        background:Rectangle { color:LV.Theme.panelBackground10; radius:LV.Theme.radiusLg }
+        background:Rectangle { color:Style.Tokens.color("Theme Colors/Panel/surfaceInput"); radius:Style.Tokens.metric("Theme Metrics/Radius/12") }
         contentItem:ColumnLayout {
             spacing:8
             LV.Label { text:qsTr("Output count · 1–1000"); style:body }

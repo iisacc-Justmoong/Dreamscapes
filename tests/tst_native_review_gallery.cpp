@@ -73,7 +73,7 @@ void previewAndLifetime() {
     auto item = gallery->items.get().front();
     require(!gallery->setThumbnail(key, Value("old source"), {}), "A stale preview replaced a current source");
     require(gallery->setThumbnail(key, item->source, {}), "A current preview could not be cleared");
-    auto navigation = std::make_shared<lvui::native::CollectionNavigation>();
+    auto navigation = std::make_shared<dreamscapes::review::CollectionNavigation>();
     gallery->bindNavigation(navigation);
     require(gallery->navigation()->navigation().state.get().current_key == gallery->items.get().front()->token,
             "Gallery binding did not adopt the shared LVUI navigation");

@@ -5,6 +5,7 @@ import ".." as Frames
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -23,7 +24,7 @@ Item {
     RowLayout {
         id: heading
         x: 16; y: 8; width: Math.max(0,root.width-32); height: 48
-        spacing: LV.Theme.gap8
+        spacing: Style.Tokens.metric("Theme Metrics/Space/8")
         LV.LabelButton { objectName: "publishReviewBack"; text: qsTr("← Content"); tone: LV.AbstractButton.Default; onClicked: root.closed() }
         PublishChoice {
             objectName: "publishReviewPlatform"
@@ -43,13 +44,13 @@ Item {
             id: content
             width: viewport.width
             columns: width < 800 ? 1 : 2
-            columnSpacing: LV.Theme.gap20; rowSpacing: LV.Theme.gap16
+            columnSpacing: Style.Tokens.metric("Theme Metrics/Space/20"); rowSpacing: Style.Tokens.metric("Theme Metrics/Space/16")
             Column {
                 id: settings
                 Layout.fillWidth: true
                 Layout.preferredWidth: content.columns === 1 ? viewport.width : 360
                 Layout.alignment: Qt.AlignTop
-                spacing: LV.Theme.gap12
+                spacing: Style.Tokens.metric("Theme Metrics/Space/12")
                 LV.Label { width: parent.width; text: qsTr("%1 · Review").arg(root.review.view.name || ""); style: header; wrapMode: Text.Wrap; sizeToContentHeight: true }
                 LV.Label { width: parent.width; text: root.review.view.sharedSummary || ""; style: caption; wrapMode: Text.Wrap; sizeToContentHeight: true }
                 LV.Label { width: parent.width; text: qsTr("Shared fields follow Society. Destination edits are saved inside the same .iisc file."); style: description; wrapMode: Text.Wrap; sizeToContentHeight: true }
@@ -60,7 +61,7 @@ Item {
                         id: field
                         required property var modelData
                         width: settings.width
-                        spacing: LV.Theme.gap4
+                        spacing: Style.Tokens.metric("Theme Metrics/Space/4")
                         RowLayout {
                             width: parent.width
                             LV.Label { Layout.fillWidth: true; text: field.modelData.label; style: caption; wrapMode: Text.Wrap; sizeToContentHeight: true }
@@ -117,7 +118,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredWidth: content.columns === 1 ? viewport.width : viewport.width-380
                 Layout.alignment: Qt.AlignTop
-                spacing: LV.Theme.gap12
+                spacing: Style.Tokens.metric("Theme Metrics/Space/12")
                 LV.Label { objectName: "publishReviewSummary"; width: parent.width; text: root.review.view.summary || ""; style: header2; wrapMode: Text.Wrap; sizeToContentHeight: true }
                 Repeater {
                     model: root.review.view.issues || []
@@ -129,13 +130,13 @@ Item {
                     Column {
                         id: step
                         required property var modelData
-                        width: preview.width; spacing: LV.Theme.gap8
-                        Rectangle { width: parent.width; height: 1; color: LV.Theme.panelBackground10 }
+                        width: preview.width; spacing: Style.Tokens.metric("Theme Metrics/Space/8")
+                        Rectangle { width: parent.width; height: 1; color: Style.Tokens.color("Theme Colors/Panel/surfaceInput") }
                         LV.Label { width: parent.width; text: qsTr("Post %1 · %2 attachments").arg(step.modelData.index+1).arg(step.modelData.media.length)+(step.modelData.replyTo>=0 ? qsTr(" · Reply to %1").arg(step.modelData.replyTo+1) : ""); style: header2; wrapMode: Text.Wrap; sizeToContentHeight: true }
                         LV.Label { width: parent.width; text: step.modelData.text; style: body; wrapMode: Text.WrapAnywhere; sizeToContentHeight: true }
                         Flow {
                             id: thumbnails
-                            width: parent.width; spacing: LV.Theme.gap8
+                            width: parent.width; spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                             Repeater {
                                 model: step.modelData.media
                                 Column {
@@ -143,7 +144,7 @@ Item {
                                     required property int modelData
                                     readonly property var info: (root.review.view.media || [])[modelData] || ({})
                                     width: Math.min(180,preview.width)
-                                    spacing: LV.Theme.gap4
+                                    spacing: Style.Tokens.metric("Theme Metrics/Space/4")
                                     PublishCanvasPreview {
                                         objectName: "publishReviewPreview-"+asset.modelData
                                         width: parent.width; height: 100; project: root.project; sourceIndex: asset.info.page || 0
@@ -162,7 +163,7 @@ Item {
                     Column {
                         id: reference
                         required property var modelData
-                        width: preview.width; spacing: LV.Theme.gap6
+                        width: preview.width; spacing: Style.Tokens.metric("Theme Metrics/Space/6")
                         LV.Label { width: parent.width; text: reference.modelData.name; style: caption; wrapMode: Text.WrapAnywhere; sizeToContentHeight: true }
                         PublishChoice { width: parent.width; value: reference.modelData.kind; options: ["image","video"]; onChosen: next => root.review.edit("media."+reference.modelData.id+".kind",next) }
                         PublishField { width: parent.width; label: qsTr("Local export path"); value: reference.modelData.localFile; onEdited: next => root.review.edit("media."+reference.modelData.id+".localFile",next) }

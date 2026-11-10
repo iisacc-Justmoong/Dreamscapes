@@ -1,6 +1,8 @@
 #include "App/Views/Result/NativeReviewGalleryView.h"
+#include <LVUI/NativeImageResolver.h>
 #include "iiGUI/WidgetState.h"
 #include <iostream>
+#include <set>
 #include <stdexcept>
 
 namespace {
@@ -28,12 +30,24 @@ vm::Value entry(int index) {
     const auto id = std::to_string(index);
     return vm::Value(vm::Object{{"id", vm::Value(id)},
                                 {"documentSource", vm::Value("file:///review/" + id + ".iisc")},
+                                {"thumbnailSource", vm::Value("file:///review/" + id + ".png")},
                                 {"mediaType", vm::Value("Image")}});
 }
+class PreviewResolver final : public lvui::native::ImageResolver<ii::gui::RasterImage> {
+  public:
+    mutable std::set<std::string> requested;
+    mutable ii::core::Observable<std::shared_ptr<const ii::gui::RasterImage>> ready;
+    std::shared_ptr<const ii::gui::RasterImage> image(std::string_view address, std::uint32_t,
+                                                       std::uint32_t) const override {
+        requested.emplace(address);
+        return ready.get();
+    }
+};
 void exercise() {
     auto state = std::make_shared<ii::gui::detail::WidgetState>([](ii::runtime::Task task) { task(); });
     auto root = take(state->content_host({}, "root", {960, 600}));
     std::shared_ptr<review::ReviewGalleryModel> gallery;
+    auto resolver = std::make_shared<PreviewResolver>();
     std::vector<vm::Value> entries;
     std::vector<vm::Value> edited, compared, detailed;
     for (int index = 0; index < 1000; ++index)
@@ -41,6 +55,7 @@ void exercise() {
     good(root.set_content([&](ii::gui::WidgetBuilder &builder) {
         return review::buildReviewGallery(builder, {}, [&](const auto &model) {
             gallery = model;
+            model->setImageResolver(resolver);
             model->setEditHandler([&](auto values) { edited = std::move(values); });
             model->setCompareHandler([&](auto values) { compared = std::move(values); });
             model->setDetailHandler([&](auto values) { detailed = std::move(values); });
@@ -51,7 +66,33 @@ void exercise() {
     auto row = [&](std::size_t index) {
         return take(list.keyed_content_item(gallery->items.get().at(index)->token, "result"));
     };
+    auto imageCount = [&] {
+        const auto frame = take(state->drawing_snapshot({960, 600}));
+        auto count = frame.images.size();
+        for (const auto &layer : frame.overlays)
+            count += layer.images.size();
+        for (const auto &scene : frame.scenes)
+            for (const auto &layer : scene.layers)
+                count += layer.images.size();
+        return count;
+    };
+    const auto firstItem = gallery->items.get().front();
+    check(!firstItem->token.empty() && firstItem->thumbnailAddress.get() == "file:///review/0.png",
+          "The first review row lost its preview identity or address");
     check(take(state->snapshots()).size() < 200, "The gallery instantiated all offscreen widgets");
+    if (!resolver->requested.contains("file:///review/0.png") || resolver->requested.size() >= 100)
+        throw std::runtime_error("The gallery did not request only visible result previews: " +
+                                 std::to_string(resolver->requested.size()) + " sources");
+    check(imageCount() == 0, "An unavailable preview appeared ready");
+    auto pixels = take(ii::gui::rgba_image(1, 1, {255, 0, 0, 255}));
+    (void)resolver->ready.set(pixels);
+    check(imageCount() > 0, "A completed preview did not update its native image");
+    gallery->setImageResolver({});
+    check(imageCount() == 0, "Removing the preview resolver kept stale pixels");
+    const auto first = gallery->items.get().front();
+    check(gallery->setThumbnail(first->key, first->source, pixels), "The supplied thumbnail was rejected");
+    check(imageCount() > 0, "A supplied thumbnail was not displayed");
+    gallery->setImageResolver(resolver);
     auto click = [&](std::size_t index, bool shift = false, bool meta = false) {
         const auto bounds = take(row(index).snapshot()).bounds;
         good(state->input({.kind = ii::gui::WidgetInputKind::pointer_down,

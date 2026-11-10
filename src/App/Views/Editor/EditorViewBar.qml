@@ -3,6 +3,7 @@ import QtQuick
 import Dreamscapes.Storage 1.0
 import ".." as Frames
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -34,7 +35,7 @@ Item {
             onClicked: root.toggle(control.section, control.key)
             Image { x: 6; y: 4; width: 16; height: 16; sourceSize.width: 16; sourceSize.height: 16; source: "qrc:/editor/view-options/" + control.icon + ".svg" }
         }
-        Rectangle { visible: control.detailed; x: control.faceWidth; y: 4; width: 1; height: 16; color: LV.Theme.surfacePanel }
+        Rectangle { visible: control.detailed; x: control.faceWidth; y: 4; width: 1; height: 16; color: Style.Tokens.color("Theme Colors/Panel/surfacePanel") }
         LV.Stepper {
             objectName: "editorViewOptions-" + control.section
             visible: control.detailed; x: control.faceWidth + 1
@@ -56,12 +57,12 @@ Item {
             LV.ComboBox { id: composite; objectName: "editorViewComposite"; width: 118; height: 20; anchors.verticalCenter: parent.verticalCenter; tone: LV.ComboBox.Borderless; arrow: LV.Stepper.Down; text: root.canvas.viewOptions.display.composite; onClicked: compositeMenu.openFor(this,0,height) }
             LV.Label { anchors.verticalCenter: parent.verticalCenter; text: qsTr("Channel"); style: caption }
             LV.ComboBox { id: channel; objectName: "editorViewChannel"; width: 80; height: 20; anchors.verticalCenter: parent.verticalCenter; tone: LV.ComboBox.Borderless; arrow: LV.Stepper.Down; text: root.canvas.viewOptions.display.channel; onClicked: channelMenu.openFor(this,0,height) }
-            Rectangle { width: 1; height: 16; anchors.verticalCenter: parent.verticalCenter; color: LV.Theme.surfacePanel }
+            Rectangle { width: 1; height: 16; anchors.verticalCenter: parent.verticalCenter; color: Style.Tokens.color("Theme Colors/Panel/surfacePanel") }
             ViewToggle { label: qsTr("Rulers") + " · " + root.canvas.viewOptions.rulerUnit; icon: "rulers"; faceWidth: 104; section: "display"; key: "rulers" }
             ViewToggle { label: qsTr("Grid"); icon: "grid"; faceWidth: 64; section: "grid"; detailed: true }
             ViewToggle { label: qsTr("Guides"); icon: "guides"; faceWidth: 80; section: "guides"; detailed: true }
             ViewToggle { label: qsTr("Snap"); icon: "snap"; faceWidth: 70; section: "snap"; detailed: true }
-            Rectangle { width: 1; height: 16; anchors.verticalCenter: parent.verticalCenter; color: LV.Theme.surfacePanel }
+            Rectangle { width: 1; height: 16; anchors.verticalCenter: parent.verticalCenter; color: Style.Tokens.color("Theme Colors/Panel/surfacePanel") }
             ViewToggle { label: qsTr("Outlines"); icon: "outlines"; faceWidth: 90; section: "display"; key: "outlines" }
             ViewToggle { label: qsTr("Transparency"); icon: "transparency"; faceWidth: 124; section: "display"; key: "transparency" }
             ViewToggle { label: qsTr("Pixel preview"); icon: "pixel-preview"; faceWidth: 124; section: "display"; key: "pixel-preview" }

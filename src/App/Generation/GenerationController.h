@@ -3,11 +3,12 @@
 
 #include <SharedStorage.h>
 #include <iiSocietyHelper.h>
-#include <iiSocietyHelper/Client.h>
+#include <iiSocietyHelper/LocalClient.h>
 #include <iiSocietyHelper/FileDownload.h>
-#include <iiSocietyHelper/AccountSession.h>
+#include "SocietyAccount.h"
 #include <iiSocietyHelper/Generation/Remote.h>
 #include <Generation/NativeDiffusion.hpp>
+#include <Generation/ImageModelRouting.hpp>
 #include <QFutureWatcher>
 #include <QObject>
 #include <QJsonObject>
@@ -26,6 +27,7 @@
 #include "ModelPreferences.h"
 #include "GenerationPublication.h"
 #include "NativeGenerationWork.h"
+#include "BackgroundWorkGroup.h"
 class FailureAgent;
 
 struct GenerationRuntime {
@@ -55,6 +57,23 @@ struct GenerationRuntime {
     QString failureAgentExecutable;
     QString failureReportsDirectory;
     int failureAgentTimeoutMilliseconds = 90000;
+    // Tests can inject isolated local paths; production uses Society defaults.
+    bool enforceLicense = false;
+    QString licenseSocket;
+    QString localServiceSocket;
+    std::function<void()> launchSociety;
+    // Optional preparation boundary, useful for adapting or testing slow I/O.
+    std::function<void()> beforeInitialStoragePreparation;
+    std::function<void()> beforeBackgroundModelInventory;
+    // Optional metadata inspector injection; the default is the SDK inspector.
+    std::function<iiLocalDiffusion::ImageModelInspection(const std::filesystem::path &)> inspectImageModel;
+};
+
+struct ImageRouteInspection {
+    iiLocalDiffusion::ImageModelInspection model;
+    iiLocalDiffusion::EmbeddedImageComponents components;
+    QString transformer, textEncoder, vae;
+    QString error;
 };
 
 class GenerationController : public QObject
@@ -63,6 +82,7 @@ class GenerationController : public QObject
     QML_ELEMENT
     Q_PROPERTY(QObject *account READ account CONSTANT)
     Q_PROPERTY(bool connected READ connected NOTIFY storageChanged)
+    Q_PROPERTY(bool storageInitializing READ storageInitializing NOTIFY storageChanged)
     Q_PROPERTY(QString containerPath READ containerPath NOTIFY storageChanged)
     Q_PROPERTY(QUrl filesDirectory READ filesDirectory NOTIFY storageChanged)
     Q_PROPERTY(iiSocietyContainer::Container *container READ container CONSTANT)
@@ -99,8 +119,12 @@ public:
     explicit GenerationController(QObject *parent = nullptr);
     explicit GenerationController(GenerationRuntime runtime, QObject *parent = nullptr);
     ~GenerationController() override;
+    // Begin cancellation on the owner thread, then wait off-thread for accepted
+    // startup/inventory and Qt-pool work before final application shutdown.
+    void prepareForShutdown();
+    void finishShutdownAsync(QObject *receiver, std::function<void()> completion);
 
-    QObject *account() const { return m_accountSession.account(); }
+    QObject *account() const { return const_cast<SocietyAccount *>(&m_accountSession); }
     bool connected() const;
     QString containerPath() const;
     QUrl filesDirectory() const;
@@ -160,6 +184,8 @@ public:
     QVariantMap backgroundExecutionStatus() const;
 
     Q_INVOKABLE bool connectStorage(const QString &path = {});
+    Q_INVOKABLE void startInitialStorage(const QString &path = {});
+    bool storageInitializing() const { return m_storageInitializing; }
     Q_INVOKABLE bool selectStorageLocation(const QString &path);
     Q_INVOKABLE void refreshModels();
     Q_INVOKABLE QString enqueue(const QString &prompt, const QString &aspectRatio = QStringLiteral("1:1"), int count = 1, qint64 seed = -1);
@@ -205,7 +231,12 @@ private:
     QVariantList projectCompletedResults() const;
     bool fail(const QString &message);
     void pollStorage();
-    void startNative(const QString &model);
+    void acceptModelInventory(ModelInventory inventory, const std::shared_ptr<std::atomic_bool> &cancel);
+    void startNative(const QString &model, bool preparePackage = false);
+    void startImageRouting(const QString &model);
+    void completeImageRouting();
+    void prepareEmbeddedImageModel(const QString &model, const iiLocalDiffusion::EmbeddedImageComponents &components);
+    void startWorkerGeneration(const QString &model);
     void finishNative();
     void beginPublication(dreamscapes::PublicationOrigin origin,
         std::optional<iiLocalDiffusion::NativeGenerationResult> native = {}, QByteArray png = {});
@@ -243,27 +274,38 @@ private:
     void interruptNative();
     void setNativePaused(bool paused);
     void startLegacyCacheMigration();
+    bool requireLicense();
 
     GenerationRuntime m_runtime;
-    iiSocietyHelper::Helper m_storageHelper;
-    iiSocietyHelper::FileSystem &m_fileSystem;
-    // The UI borrows the same SDK account snapshot used by the Society client.
-    AccountSession m_accountSession;
-    iiSocietyHelper::Client m_societyClient;
-    // Explicit user-file hydration has its own in-process authenticated session.
-    // It never waits for a Society app's replica-session lease or cancels jobs.
-    iiSocietyHelper::Client m_fileClient;
+    mutable iiSocietyHelper::FileSystem m_fileSystem{iiSocietyHelper::FileSystem::Initialization::Deferred};
+    SocietyAccount m_accountSession;
+    iiSocietyHelper::LocalClient m_identityClient;
+    iiSocietyHelper::LocalClient m_societyClient;
+    // File hydration has a separate Society-owned local session.
+    iiSocietyHelper::LocalClient m_fileClient;
     iiSocietyHelper::FileDownload m_fileDownload;
     std::shared_ptr<iiSocietyHelper::Generation::Remote> m_remoteGeneration;
     QMap<QString, QString> m_modelDownloads;
     QStringList m_requiredModelFiles;
     bool m_remoteActive = false;
+    bool m_rebindingIdentity = false;
     bool m_societyBackgroundActivity = false;
     QString m_storageSelection;
+    std::shared_ptr<QObject> m_initialStorageDispatch;
+    std::shared_ptr<GenerationBackgroundWork> m_backgroundWork = std::make_shared<GenerationBackgroundWork>();
+    bool m_quitPrepared = false;
+    std::shared_ptr<std::atomic_bool> m_initialStorageCancelled;
+    bool m_initialStorageRequested = false, m_storageInitializing = false;
     QTimer m_storagePoll;
-    QFutureWatcher<ModelInventory> m_inventoryWatcher;
+    std::shared_ptr<QObject> m_inventoryDispatch;
+    std::shared_ptr<std::atomic_bool> m_inventoryCancelled;
+    bool m_inventoryRunning = false;
     quint64 m_inventoryEpoch = 0;
     QFutureWatcher<iiLocalDiffusion::NativeGenerationResult> m_nativeWatcher;
+    QFutureWatcher<ImageRouteInspection> m_imageRouteWatcher;
+    QString m_imageRouteJob, m_imageRoutePath;
+    QString m_mossTextEncoder, m_mossVae;
+    bool m_imageRoutePending = false, m_imageMaterializing = false, m_imageWorker = false;
     QFutureWatcher<dreamscapes::GenerationPublicationResult> m_publicationWatcher;
     QFutureWatcher<void> m_cleanupWatcher;
     QString m_finishState, m_finishError;
@@ -283,6 +325,7 @@ private:
     QTimer m_nativeDeadline;
     QTimer m_workerDeadline;
     QString m_workerProgressKey;
+    int m_dependencyModulesSeen = 0;
     bool m_nativeTimedOut = false;
     bool m_interrupted = false;
     bool m_screenActive = false;

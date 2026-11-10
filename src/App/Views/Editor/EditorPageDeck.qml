@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -77,9 +78,9 @@ Item {
                 anchors.fill: parent
                 anchors.topMargin: 5
                 anchors.bottomMargin: -5
-                color: "#60000000"
+                color: LV.Theme.overlayBackdrop
             }
-            Rectangle { anchors.fill: parent; color: LV.Theme.panelBackground06 }
+            Rectangle { anchors.fill: parent; color: Style.Tokens.color("Theme Colors/Panel/surfaceAlt") }
             Image {
                 id: pageImage
                 objectName: "editorPageCardImage" + card.pageIndex
@@ -109,7 +110,7 @@ Item {
                 anchors.fill: parent
                 color: "transparent"
                 border.width: 1
-                border.color: LV.Theme.panelBackground10
+                border.color: Style.Tokens.color("Theme Colors/Panel/surfaceInput")
             }
             LV.Label {
                 objectName: "editorPageCardLabel" + card.pageIndex

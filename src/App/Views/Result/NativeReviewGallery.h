@@ -1,6 +1,7 @@
 #pragma once
 
 #include "NativeReviewNavigation.h"
+#include <LVUI/NativeImageResolver.h>
 #include <iiGUI/Image.h>
 #include <iiSDKCore/Core/Property/Observable.h>
 #include <functional>
@@ -18,6 +19,7 @@ struct ReviewGalleryItem final {
     ii::core::Observable<std::string> title, reviewLabel;
     ii::core::Observable<bool> selected{false}, focused{false};
     ii::core::Observable<std::shared_ptr<const ii::gui::RasterImage>> thumbnail;
+    ii::core::Observable<std::string> thumbnailAddress;
 };
 
 // Presentation only: a caller supplies real result values, preview images and
@@ -37,10 +39,17 @@ class ReviewGalleryModel final : public std::enable_shared_from_this<ReviewGalle
     ii::core::Observable<bool> canEdit{false}, canCompare{false}, canExport{false};
 
     std::shared_ptr<Session> session() const;
+    // Inspect only from the model's owning thread, including during teardown.
+    bool active() const noexcept { return active_; }
     std::shared_ptr<ReviewNavigation> navigation() const;
-    void bindNavigation(std::shared_ptr<lvui::native::CollectionNavigation> navigation);
+    void bindNavigation(std::shared_ptr<dreamscapes::review::CollectionNavigation> navigation);
     bool setThumbnail(std::string_view key, const vm::Value &expectedSource,
                       std::shared_ptr<const ii::gui::RasterImage> image);
+    // The resolver is called only by mounted rows; it can use LVUI::ImageIO
+    // or an application provider and publish changes through Observable reads.
+    void setImageResolver(std::shared_ptr<const lvui::native::ImageResolver<ii::gui::RasterImage>> resolver);
+    [[nodiscard]] std::shared_ptr<const ii::gui::RasterImage>
+    imageForToken(std::string_view token, std::uint32_t width, std::uint32_t height) const;
     void setEditHandler(Action);
     void setCompareHandler(Action);
     void setExportHandler(Action);
@@ -66,6 +75,7 @@ class ReviewGalleryModel final : public std::enable_shared_from_this<ReviewGalle
     std::shared_ptr<ReviewNavigation> navigation_;
     std::shared_ptr<ChangePort> observer_;
     std::unordered_map<std::string, Item> itemsByKey_;
+    ii::core::Observable<std::shared_ptr<const lvui::native::ImageResolver<ii::gui::RasterImage>>> imageResolver_;
     Action edit_, compare_, export_, detail_;
     bool active_ = true;
 };
@@ -74,13 +84,13 @@ class ReviewGalleryModel final : public std::enable_shared_from_this<ReviewGalle
 // LVUI owns this scope before the gallery backend. Shared ownership allows the
 // product binding to retire independently without invalidating another owner.
 class NativeReviewNavigationScope final {
-    std::shared_ptr<lvui::native::CollectionNavigation> value_;
+    std::shared_ptr<dreamscapes::review::CollectionNavigation> value_;
     std::function<void()> detail_;
 
   public:
-    lvui::native::CollectionNavigation::StateSource &state;
+    dreamscapes::review::CollectionNavigation::StateSource &state;
     NativeReviewNavigationScope();
-    std::shared_ptr<lvui::native::CollectionNavigation> shared() const { return value_; }
+    std::shared_ptr<dreamscapes::review::CollectionNavigation> shared() const { return value_; }
     void configure(lvui::native::CollectionNavigationOptions options) {
         options.anchor_on_unselected_focus = true;
         value_->configure(options);
@@ -109,7 +119,8 @@ class NativeReviewGalleryBackend final {
     ii::core::Observable<std::string> &resultSummary, &selectionSummary;
     ii::core::Observable<bool> &canReview, &hasSelection, &canEdit, &canCompare, &canExport;
     NativeReviewGalleryBackend();
-    void bindNavigation(std::shared_ptr<lvui::native::CollectionNavigation> value) {
+    explicit NativeReviewGalleryBackend(std::shared_ptr<dreamscapes::review::Session> session);
+    void bindNavigation(std::shared_ptr<dreamscapes::review::CollectionNavigation> value) {
         model->bindNavigation(std::move(value));
     }
     void showAll() { session->setFilter("all"); }

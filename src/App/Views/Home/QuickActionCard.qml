@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 LV.AbstractButton {
     id: control
@@ -19,20 +20,20 @@ LV.AbstractButton {
 
     background: Rectangle {
         radius: control.resolvedCornerRadius
-        color: control.down ? LV.Theme.panelBackground06 : LV.Theme.panelBackground04
+        color: control.down ? Style.Tokens.color("Theme Colors/Panel/surfaceAlt") : Style.Tokens.color("Theme Colors/Panel/subSurface")
         border.width: control.selected ? LV.Theme.scaleRealMetric(1.5) : LV.Theme.scaleRealMetric(1)
-        border.color: control.selected ? LV.Theme.accent : LV.Theme.panelBackground10
+        border.color: control.selected ? LV.Theme.accent : Style.Tokens.color("Theme Colors/Panel/surfaceInput")
         antialiasing: true
     }
 
     contentItem: Item {
         Rectangle {
-            x: LV.Theme.gap16
-            y: LV.Theme.gap16
+            x: Style.Tokens.metric("Theme Metrics/Space/16")
+            y: Style.Tokens.metric("Theme Metrics/Space/16")
             width: LV.Theme.scaleMetric(44)
             height: width
             radius: LV.Theme.scaleMetric(14)
-            color: control.selected ? LV.Theme.accent : LV.Theme.panelBackground08
+            color: control.selected ? LV.Theme.accent : Style.Tokens.color("Theme Colors/Panel/surfacePanel")
 
             Image {
                 id: sourceIcon
@@ -49,7 +50,7 @@ LV.AbstractButton {
                     contrast: -1
                     brightness: 0.5
                     colorization: 1
-                    colorizationColor: LV.Theme.titleHeaderColor
+                    colorizationColor: Style.Tokens.color("Theme Colors/Text/titleHeaderColor")
                 }
             }
 
@@ -61,8 +62,8 @@ LV.AbstractButton {
                 onPaint: {
                     const context = getContext("2d")
                     context.reset()
-                    context.strokeStyle = LV.Theme.titleHeaderColor
-                    context.fillStyle = LV.Theme.titleHeaderColor
+                    context.strokeStyle = Style.Tokens.color("Theme Colors/Text/titleHeaderColor")
+                    context.fillStyle = Style.Tokens.color("Theme Colors/Text/titleHeaderColor")
                     context.lineWidth = 1.7
                     context.lineCap = "round"
                     context.lineJoin = "round"
@@ -113,17 +114,17 @@ LV.AbstractButton {
                         radius: LV.Theme.scaleMetric(2)
                         color: "transparent"
                         border.width: LV.Theme.scaleRealMetric(1.5)
-                        border.color: LV.Theme.titleHeaderColor
+                        border.color: Style.Tokens.color("Theme Colors/Text/titleHeaderColor")
                     }
                 }
             }
         }
 
         LV.Label {
-            x: LV.Theme.gap16
+            x: Style.Tokens.metric("Theme Metrics/Space/16")
             y: LV.Theme.scaleMetric(70)
-            width: parent.width - LV.Theme.gap16 * 2
-            height: LV.Theme.textHeader2LineHeight
+            width: parent.width - Style.Tokens.metric("Theme Metrics/Space/16") * 2
+            height: Style.Tokens.metric("Theme Typography/Subheader/textSubheaderLineHeight")
             text: control.label
             style: header2
             elide: Text.ElideRight

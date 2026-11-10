@@ -13,3 +13,5 @@ Society는 공유 등록 정보를 읽어 같은 디스크를 인수한다. 원�
 iOS는 기존 `iiSocietyContainer_configure_ios_client`와 `Dreamscapes.entitlements`의 App Group을 사용한다. macOS의 `SocietyAppGroup`과 `Dreamscapes-Mac.entitlements`는 `SOCIETY_MAC_APP_GROUP`으로 같은 값을 생성한다. 배포 시에는 Society와 같은 팀 및 등록된 그룹 권한으로 서명해야 한다. macOS의 ad-hoc 개발 서명은 공유 그룹 자동 생성을 허용하지 않으므로 기존의 명시적 개발 저장소를 선택한다.
 
 검증은 `DreamscapesGenerationTests sharedLogicalDiskPublishesBeforeSocietyAndSurvivesAdoption`으로 수행한다. 공유 그룹 fixture에서 모델을 읽고 실제 PNG를 게시한 뒤 Society 인수 이후에도 동일 경로와 식별자, 이미지, 모델 목록이 유지되는지 확인한다. Apple의 실제 entitlement와 App Group API 검증은 iiSocietyContainer의 iOS 플랫폼 검증으로 별도 수행한다.
+fixture는 `resources/`의 임시 디렉터리에 만들고 종료 시 정리한다. 외장 저장소가 느린 환경을 고려해 생성 완료를 최대 90초 기다린다.
+2026-10-30 Mac 단독 실행에서 이 fixture 검사는 통과했다. 이는 실제 계정의 Society 연결이나 라이선스 활성화 검증과는 별개이다.

@@ -42,6 +42,23 @@ private:
         return qRound(255 * (exposed <= 0.0031308 ? exposed * 12.92 : 1.055 * std::pow(exposed, 1 / 2.4) - 0.055));
     }
 private slots:
+    void toolPreviewUsesHostColorsWithoutChangingDocument() {
+        EditorCanvas canvas; create(canvas, 8, 8);
+        const auto before = encodeIisc(*canvas.document()).bytes;
+        const auto revision = canvas.revision();
+        const QColor foreground("#e83a68"), surface("#12324f"), guide("#759c80");
+        QSignalSpy changes(&canvas, &EditorCanvas::toolPreviewColorsChanged);
+        canvas.setToolPreviewColors({{"foreground", foreground}, {"surface", surface}, {"guide", guide}});
+        QCOMPARE(changes.count(), 1);
+        const auto preview = graphicPreviewImage(canvas.toolPreview("color", "field-0", {}));
+        QVERIFY(!preview.isNull());
+        QCOMPARE(preview.pixelColor(0, 0), surface);
+        QCOMPARE(preview.pixelColor(0, 159), foreground);
+        canvas.setToolPreviewColors(canvas.toolPreviewColors());
+        QCOMPARE(changes.count(), 1);
+        QCOMPARE(canvas.revision(), revision);
+        QCOMPARE(encodeIisc(*canvas.document()).bytes, before);
+    }
     void colorSampleDispatchDoesNotRenderTheWholeFrame() {
         Document document;document.extent={2048,2048};
         document.assets.emplace_back(RasterAsset{"pixels",makeRasterLayer(2048,2048,0xff336699U)});

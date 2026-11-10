@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 LV.VStack {
     id: root
@@ -12,14 +13,14 @@ LV.VStack {
     property bool adaptiveCards: false
     property string errorText: ""
     signal viewAllRequested()
-    spacing: LV.Theme.gap12
+    spacing: Style.Tokens.metric("Theme Metrics/Space/12")
 
     LV.HStack {
         Layout.fillWidth: true
-        Layout.preferredHeight: LV.Theme.controlHeightSm
+        Layout.preferredHeight: Style.Tokens.metric("Theme Metrics/Size/22")
         LV.Label {
             Layout.fillWidth: true
-            Layout.leftMargin: LV.Theme.gap4
+            Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/4")
             text: qsTr("Generation history")
             style: body
             elide: Text.ElideRight
@@ -39,7 +40,7 @@ LV.VStack {
         visible: count > 0
         model: root.files
         orientation: ListView.Horizontal
-        spacing: root.adaptiveCards ? LV.Theme.gap12 : LV.Theme.gap8
+        spacing: root.adaptiveCards ? Style.Tokens.metric("Theme Metrics/Space/12") : Style.Tokens.metric("Theme Metrics/Space/8")
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         activeFocusOnTab: true

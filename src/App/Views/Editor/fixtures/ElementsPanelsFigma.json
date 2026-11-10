@@ -678,190 +678,22 @@
       "contextSha256": "9695c2f2f092e19cba5c1e5b04b4f115352cf2c367247b53c2704b528ba71684"
     }
   ],
-  "assets": [
-    {
-      "name": "tick0.svg",
-      "sha256": "568b5840ee3b61c6045ffec5ddb4b5ec2e921b7df7b468f596e466b9a6104364",
-      "width": "2",
-      "height": "2",
-      "role": "slider-optional-ticks-hidden-by-default",
-      "nodeId": "585:94650"
-    },
-    {
-      "name": "focus-ring.svg",
-      "sha256": "b32e2208b96849f078019f1a39c2d46ee87ec419512cdf2d918b58c3d1956bfc",
-      "width": "18",
-      "height": "18",
-      "role": "slider-optional-focus-ring-hidden-by-default",
-      "nodeId": "585:94650"
-    },
-    {
-      "name": "thumb.svg",
-      "sha256": "75386dfa36907d2457b5dd5f0bdcb4291f0d47aa6ef52da7fe6be91ef0ddfb92",
-      "width": "18",
-      "height": "18",
-      "role": "slider-thumb-with-exported-shadow",
-      "nodeId": "585:94650"
-    },
-    {
-      "name": "line.svg",
-      "sha256": "d9acf5d74052c67ef32883d0a48d020bc885ce5c1b9df3d702f6c4ff54390ef2",
-      "width": "18",
-      "height": "18",
-      "role": "visible-static-icon",
-      "nodeId": "585:94650"
-    },
-    {
-      "name": "polygon.svg",
-      "sha256": "bd044928f05def996060e584dc67b7930ea00426801188afa48cadffe54ab0f4",
-      "width": "18",
-      "height": "18",
-      "role": "visible-static-icon",
-      "nodeId": "585:94650"
-    },
-    {
-      "name": "ellipse.svg",
-      "sha256": "bafcd6deaa88056f9592d90b98d479fabb8461ffa4c000a37c47896917a9ee2d",
-      "width": "18",
-      "height": "18",
-      "role": "visible-static-icon",
-      "nodeId": "585:94650"
-    },
-    {
-      "name": "stroke.svg",
-      "sha256": "67ba6420239eb04cca6471b266263f6e598a4d9e90015600d3c82df5e4a8a651",
-      "width": "18",
-      "height": "18",
-      "role": "visible-static-icon",
-      "nodeId": "585:94650"
-    },
-    {
-      "name": "fill.svg",
-      "sha256": "a8dd693126a7c1dbc739a62735600aeedbc0b40d6e0fe2aa3036c1318bc654f2",
-      "width": "18",
-      "height": "18",
-      "role": "visible-static-icon",
-      "nodeId": "585:94650"
-    },
-    {
-      "name": "rectangle.svg",
-      "sha256": "3746bc41a8a5649bb93dcca9bfcebd16fcdca53eb7c72aad5b1939be3ccc0ffd",
-      "width": "18",
-      "height": "18",
-      "role": "visible-static-icon",
-      "nodeId": "585:94650"
-    },
-    {
-      "name": "direct-select.svg",
-      "sha256": "5a379eb244873aaf0285689a1fb347597f5249bf874e67338ab0a850a13cf14a",
-      "width": "18",
-      "height": "18",
-      "role": "visible-static-icon",
-      "nodeId": "585:94650"
-    },
-    {
-      "name": "auto-refresh.svg",
-      "sha256": "2aa3afb7116a4f18695d21a3128b8c0c25d6289c18a9451647fa584ffe45cff4",
-      "width": "16",
-      "height": "16",
-      "role": "visible-static-icon",
-      "nodeId": "585:94650"
-    },
-    {
-      "name": "thumb-650-15793.svg",
-      "sha256": "e15d2a5a72a21d557b9293251150d8ec53f5bb702e32df192bbea4c1a9cc5089",
-      "width": "18",
-      "height": "18",
-      "role": "slider-thumb-with-exported-shadow",
-      "nodeId": "650:15793"
-    },
-    {
-      "name": "arrow-up-down-tone-primary.svg",
-      "sha256": "0fe2d0b08a989807e35df24cd4a83d3b346337b6349b8755b456836bf3d4cb82",
-      "width": "18",
-      "height": "18",
-      "role": "dropdown-state-variant",
-      "nodeId": "650:15795"
-    },
-    {
-      "name": "arrow-up-down-tone-borderless.svg",
-      "sha256": "8f633624cffffb7fd51da39b2e7d75871810f69eecd6d0ad05a57e44ef47ed1f",
-      "width": "18",
-      "height": "18",
-      "role": "dropdown-state-variant",
-      "nodeId": "650:15795"
-    },
-    {
-      "name": "arrow-down-tone-primary.svg",
-      "sha256": "2fb56c4c726e8ff59069b0ce4c00e17bcd7090b94f3562a6947b66c466308f54",
-      "width": "18",
-      "height": "18",
-      "role": "dropdown-state-variant",
-      "nodeId": "650:15795"
-    },
-    {
-      "name": "arrow-down-tone-borderless.svg",
-      "sha256": "f707baeb094881dd0bdb6480090ff46cb082e38897fd976837d347598627f88f",
-      "width": "18",
-      "height": "18",
-      "role": "dropdown-state-variant",
-      "nodeId": "650:15795"
-    },
-    {
-      "name": "arrow-up-tone-primary.svg",
-      "sha256": "2fb56c4c726e8ff59069b0ce4c00e17bcd7090b94f3562a6947b66c466308f54",
-      "width": "18",
-      "height": "18",
-      "role": "dropdown-state-variant",
-      "nodeId": "650:15795"
-    },
-    {
-      "name": "arrow-up-tone-borderless.svg",
-      "sha256": "f707baeb094881dd0bdb6480090ff46cb082e38897fd976837d347598627f88f",
-      "width": "18",
-      "height": "18",
-      "role": "dropdown-state-variant",
-      "nodeId": "650:15795"
-    },
-    {
-      "name": "thumb-650-15795.svg",
-      "sha256": "fe022c44d629406cede6c568a683e33dd339d8ca920784baf8a72a86d166f484",
-      "width": "18",
-      "height": "18",
-      "role": "slider-thumb-with-exported-shadow",
-      "nodeId": "650:15795"
-    },
-    {
-      "name": "thumb-650-15796.svg",
-      "sha256": "b10876febdce027b7def17fa21244b8b9f5b405809fbf14c3f67904e6fb1a97d",
-      "width": "18",
-      "height": "18",
-      "role": "slider-thumb-with-exported-shadow",
-      "nodeId": "650:15796"
-    },
-    {
-      "name": "unselect-all.svg",
-      "sha256": "dc8ef01c0acce0902ad93de3f6e425f280c47a1901ff6bf76471d4b51a83a1c0",
-      "width": "18",
-      "height": "18",
-      "role": "visible-static-icon",
-      "nodeId": "650:15797"
-    },
-    {
-      "name": "group.svg",
-      "sha256": "7dcebc9fe37a4e23e136d715163767f2d1263e9432e67e138507efb1cbb402e5",
-      "width": "18",
-      "height": "18",
-      "role": "visible-static-icon",
-      "nodeId": "650:15797"
-    },
-    {
-      "name": "checkbox.svg",
-      "sha256": "49cb911fe40a262bba99944d9d120cd56bc35d1560e257c128bf23bbdb6de9db",
-      "width": "17",
-      "height": "17",
-      "role": "visible-checked-selection-control",
-      "nodeId": "662:16151"
-    }
-  ]
+  "sharedIcons": {
+    "direct-select": "direct-select",
+    "rectangle": "rectangle",
+    "ellipse": "ellipse",
+    "polygon": "polygon",
+    "line": "line",
+    "fill": "fill",
+    "stroke": "stroke",
+    "group": "group",
+    "unselect-all": "unselectAll",
+    "auto-refresh": "autoRefresh",
+    "arrow-down-tone-primary": "generalchevronDownAccent",
+    "arrow-down-tone-borderless": "generalchevronDownBorderless",
+    "arrow-up-tone-primary": "generalchevronUp",
+    "arrow-up-tone-borderless": "generalchevronUp",
+    "arrow-up-down-tone-primary": "StepperUpDownChevron",
+    "arrow-up-down-tone-borderless": "StepperUpDownChevron"
+  }
 }

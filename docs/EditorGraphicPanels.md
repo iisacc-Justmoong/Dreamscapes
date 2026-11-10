@@ -1,6 +1,6 @@
 # Editor Graphic Panels
 
-Color, Adjust, Mask, Effects의 상세 뷰는 `GraphicPanels.json`의 편집 가능한 행 모델과 `EditorGraphicDefinitions.js`의 조회 API를 사용한다. 기존 19개 도구 계약에서 `auto-enhance`는 Adjust, `masking`은 Mask로 연결된다. manifest의 family 이름은 `adjust`와 `mask`이며 기존 toolbar key는 그대로 유지된다.
+Color, Adjust, Mask, Effects의 상세 뷰는 `GraphicPanels.json`의 편집 가능한 행 모델과 `EditorGraphicDefinitions.js`의 조회 API를 사용한다. 패널의 공통 컨트롤 아이콘은 LVRS 라이브러리에서 조회한다. 히스토그램·파형·복제 원본 미리보기의 시각화 색상은 호스트가 LVRS 전경·표면·가이드 역할을 주입하며, 이 표시 전용 설정은 문서나 편집 이력을 변경하지 않는다. 기존 19개 도구 계약에서 `auto-enhance`는 Adjust, `masking`은 Mask로 연결된다. manifest의 family 이름은 `adjust`와 `mask`이며 기존 toolbar key는 그대로 유지된다.
 
 요청된 Figma 노드는 384개이다. 이 중 3개는 Parameter, ToolTile, Curve plot의 재사용 컴포넌트이며 나머지 381개는 Color 31개, Adjust 43개, Mask 18개, Effects 289개의 상세 뷰이다. 원본 Color/Adjust/Effects Main 3개는 요청된 상세 뷰의 Overview 링크, Looks와 Presets 탐색을 연결하기 위해 별도 `overviews` 배열에 포함된다. 따라서 `panels`의 381개 개수에는 Main을 더하지 않는다.
 

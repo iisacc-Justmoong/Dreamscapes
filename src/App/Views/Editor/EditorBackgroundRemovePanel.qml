@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Dreamscapes.Storage 1.0
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Column {
     id: root
@@ -36,17 +37,17 @@ Column {
             LV.LabelButton { objectName:"background-remove"; text:qsTr("Remove background"); tone:LV.AbstractButton.Default; enabled:Boolean(root.engine)&&root.engine.documentReady; onClicked:root.run() }
             LV.LabelButton { text:qsTr("Cancel"); tone:LV.AbstractButton.Borderless; onClicked:{root.edit("backgroundRemovalPreview",({}));root.toolState.notice=""} }
         }
-        LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; width:parent.width; style:caption; color:LV.Theme.bodyColor; text:root.toolState.notice || (root.preview.ready?qsTr("Removal preview ready"):qsTr("Ready to analyze the selected layer")); wrapMode:Text.WordWrap; sizeToContentHeight:true }
+        LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; width:parent.width; style:caption; color:Style.Tokens.color("Theme Colors/Text/bodyColor"); text:root.toolState.notice || (root.preview.ready?qsTr("Removal preview ready"):qsTr("Ready to analyze the selected layer")); wrapMode:Text.WordWrap; sizeToContentHeight:true }
     }
     EditorBackgroundSection {
         title:qsTr("Preview")
         Rectangle {
-            objectName:"backgroundRemovalPreview"; width:parent.width; height:root.preview.ready?156:108; radius:4; color:LV.Theme.surfaceRaised
+            objectName:"backgroundRemovalPreview"; width:parent.width; height:root.preview.ready?156:108; radius:4; color:Style.Tokens.color("Theme Colors/Panel/surfaceRaised")
             Column {
                 visible:!root.preview.ready; x:12; y:12; width:parent.width-24; spacing:8
-                Image { width:24; height:24; source:Qt.resolvedUrl("Assets/Background/remove.svg"); sourceSize:Qt.size(48,48) }
-                LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; width:parent.width; height:18; style:body; color:LV.Theme.titleHeaderColor; text:qsTr("No removal preview yet") }
-                LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; width:parent.width; style:caption; color:LV.Theme.bodyColor; text:qsTr("Run background removal to review the cutout and its transparent background."); wrapMode:Text.WordWrap; sizeToContentHeight:true }
+                Image { width:24; height:24; source:LV.Theme.iconPath("panel-background-remove"); sourceSize:Qt.size(48,48) }
+                LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; width:parent.width; height:18; style:body; color:Style.Tokens.color("Theme Colors/Text/titleHeaderColor"); text:qsTr("No removal preview yet") }
+                LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; width:parent.width; style:caption; color:Style.Tokens.color("Theme Colors/Text/bodyColor"); text:qsTr("Run background removal to review the cutout and its transparent background."); wrapMode:Text.WordWrap; sizeToContentHeight:true }
             }
             Item {
                 visible:Boolean(root.preview.ready); anchors.fill:parent; clip:true
@@ -82,6 +83,6 @@ Column {
             LV.LabelButton { objectName:"background-applyRemoval"; text:qsTr("Apply removal"); tone:LV.AbstractButton.Default; enabled:Boolean(root.preview.ready); onClicked:root.apply(false) }
             LV.LabelButton { text:qsTr("Reset edges"); tone:LV.AbstractButton.Borderless; onClicked:root.resetEdges() }
         }
-        LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; visible:!root.preview.ready; width:parent.width; height:18; style:caption; color:LV.Theme.bodyColor; text:qsTr("Apply becomes available after a removal preview is ready.") }
+        LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; visible:!root.preview.ready; width:parent.width; height:18; style:caption; color:Style.Tokens.color("Theme Colors/Text/bodyColor"); text:qsTr("Apply becomes available after a removal preview is ready.") }
     }
 }

@@ -1,5 +1,8 @@
 # Editor view options
 
+Snap feedback and layer outlines use the LVRS blue accent and body-text color supplied
+to the native overlay. User-configurable grid and guide colors remain view settings.
+
 Rulers use document pixels (`px`), independent of the canvas PPI and grid/guide
 units. The view bar labels the control `Rulers · px`, and the ruler corner shows
 `px`. Numeric ticks keep their document-pixel values while zoom and pan change

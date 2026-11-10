@@ -25,7 +25,7 @@ Header tabs, shape and selection palettes, and parameter choices bind the actual
 
 The original reference frame is 432×559px, with a 398px content column and 17px inset including the border. The panel composes installed LVRS controls: a 30px icon header, 18px icons, the original 16px reset icon, 72px function palettes with 34px icon buttons, 22px inputs and mini sliders, 28px color pickers and 36px selection rows separated by 8px. Widths adapt to the editor's existing resizable dock and mobile sheet; overflow stays in the existing vertical viewport.
 
-All exported Elements SVGs are local files under `Assets/Elements`. Their bytes and SVG root dimensions are retained. Slider thumb, optional ticks/focus-ring and dropdown variants remain separate assets; the Figma screenshots are verification references and are never used as implementation textures. The independent `fixtures/ElementsPanelsFigma.json` records each supplied frame, its visible controls, defaults, measured bounds, source hashes and exported asset metadata.
+Elements controls use the shared LVRS icon library and the stock LVRS slider thumb and focus ring. Retired product-specific UI SVG copies have been removed. Figma screenshots are never used as implementation textures. The independent `fixtures/ElementsPanelsFigma.json` records each supplied frame, its visible controls, defaults, measured bounds, source hashes and shared icon roles.
 
 ## Real document state and editing
 
@@ -41,9 +41,9 @@ Numeric and hexadecimal inputs become modified only after a real `textEdited` ev
 
 ## Focused verification
 
-`tests/test_elements_panels.py` checks all ten requested node IDs, independently saved field lists and reference geometry, the high-fidelity Figma evidence when available, every exported SVG's bytes/root dimensions, and desktop/mobile routing to the dedicated view.
+`tests/test_elements_panels.py` checks all ten requested node IDs, independently saved field lists and reference geometry, the high-fidelity Figma evidence when available, shared icon and slider use, and desktop/mobile routing to the dedicated view.
 
-`desktopEditorElementsMatchesFigma` uses a real three-shape native document. It checks all ten visible field sets, reference geometry and exported icon render sizes, captures each 432×559px state, and exercises view navigation, actual selection actions, numeric and slider input, both-axis size-limit validation, Image fill source settings and cancellation, color acceptance/cancellation, Reset and retained state. The existing dock-resize and mobile-sheet tests have a dedicated Elements branch; the obsolete unified Elements row is excluded from the historical generic-panel fixture.
+`desktopEditorElementsMatchesFigma` uses a real three-shape native document. It checks all ten visible field sets, reference geometry and shared icon render sizes, captures each 432×559px state, and exercises view navigation, actual selection actions, numeric and slider input, both-axis size-limit validation, Image fill source settings and cancellation, color acceptance/cancellation, Reset and retained state. The existing dock-resize and mobile-sheet tests have a dedicated Elements branch; the obsolete unified Elements row is excluded from the historical generic-panel fixture.
 
 `editorColorToolSelectionDoesNotEditDocument` adds `color-fractional-elements-desktop` and `color-fractional-elements-mobile`. Each creates an actual 24.5×16.5 px native vector through the backend, focuses the first size input without typing, then selects Color and traverses its panel states. Complete IISC bytes, rendered pixels, exact size, revision, selection and the existing Undo/Redo branch must remain unchanged; the retained Redo is executed at the end. These cases are host regressions, and their pass status comes from the execution log.
 

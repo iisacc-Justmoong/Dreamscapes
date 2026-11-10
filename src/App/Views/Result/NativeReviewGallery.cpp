@@ -51,7 +51,7 @@ std::shared_ptr<ReviewNavigation> ReviewGalleryModel::navigation() const {
     return navigation_;
 }
 
-void ReviewGalleryModel::bindNavigation(std::shared_ptr<lvui::native::CollectionNavigation> navigation) {
+void ReviewGalleryModel::bindNavigation(std::shared_ptr<dreamscapes::review::CollectionNavigation> navigation) {
     requireOwner();
     if (navigation && navigation.get() == &navigation_->navigation())
         return;
@@ -118,8 +118,12 @@ void ReviewGalleryModel::updateItem(const Row &row) {
         item->token = navigation_->tokenForKey(row.key);
     }
     if (item->source != row.thumbnail) {
-        (void)item->thumbnail.set({});
         item->source = row.thumbnail;
+        // Clear the old address before clearing its pixels so an observation
+        // cannot start another request for the displaced preview.
+        (void)item->thumbnailAddress.set({});
+        (void)item->thumbnail.set({});
+        (void)item->thumbnailAddress.set(vm::text(row.thumbnail));
     }
     (void)item->title.set(row.title);
     (void)item->selected.set(row.selected);
@@ -138,6 +142,26 @@ bool ReviewGalleryModel::setThumbnail(std::string_view key, const vm::Value &exp
         return false;
     (void)it->second->thumbnail.set(std::move(image));
     return true;
+}
+
+void ReviewGalleryModel::setImageResolver(std::shared_ptr<const lvui::native::ImageResolver<ii::gui::RasterImage>> resolver) {
+    requireOwner();
+    (void)imageResolver_.set(std::move(resolver));
+}
+
+std::shared_ptr<const ii::gui::RasterImage>
+ReviewGalleryModel::imageForToken(std::string_view token, std::uint32_t width, std::uint32_t height) const {
+    requireOwner();
+    const auto key = navigation_->keyForToken(token);
+    const auto found = itemsByKey_.find(key);
+    if (found == itemsByKey_.end())
+        return {};
+    const auto &item = found->second;
+    if (auto pixels = item->thumbnail.get())
+        return pixels;
+    const auto address = item->thumbnailAddress.get();
+    const auto resolver = imageResolver_.get();
+    return address.empty() || !resolver ? nullptr : resolver->image(address, width, height);
 }
 
 void ReviewGalleryModel::updateActions() {
@@ -226,10 +250,12 @@ void ReviewGalleryModel::close() {
 } // namespace dreamscapes::review
 
 NativeReviewNavigationScope::NativeReviewNavigationScope()
-    : value_(std::make_shared<lvui::native::CollectionNavigation>()), state(value_->state) {}
+    : value_(std::make_shared<dreamscapes::review::CollectionNavigation>()), state(value_->state) {}
 
 NativeReviewGalleryBackend::NativeReviewGalleryBackend()
-    : session(std::make_shared<dreamscapes::review::Session>()), model(Model::create(session)), items(model->items),
+    : NativeReviewGalleryBackend(std::make_shared<dreamscapes::review::Session>()) {}
+NativeReviewGalleryBackend::NativeReviewGalleryBackend(std::shared_ptr<dreamscapes::review::Session> source)
+    : session(std::move(source)), model(Model::create(session)), items(model->items),
       resultSummary(model->resultSummary), selectionSummary(model->selectionSummary), canReview(model->canReview),
       hasSelection(model->hasSelection), canEdit(model->canEdit), canCompare(model->canCompare),
       canExport(model->canExport) {}

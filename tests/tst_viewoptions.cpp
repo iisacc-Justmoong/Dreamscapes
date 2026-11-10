@@ -574,6 +574,9 @@ class ViewOptionsTests : public QObject {
             QVERIFY(image.save(folder + "/" + family + "-" + state + ".png"));
             auto *preview = visual(root, "viewOptionsPreview-" + family);
             QVERIFY(preview);
+            QCOMPARE(preview->property("accentColor").value<QColor>().name(),
+                     QColor::fromRgbF(0.1557759940624237,0.5030806064605713,0.8999999761581421).name());
+            QVERIFY(preview->property("outlineColor").value<QColor>().isValid());
             const auto bounds = preview->mapRectToScene(preview->boundingRect());
             const double scale = double(image.width()) / window.width();
             int colored = 0;

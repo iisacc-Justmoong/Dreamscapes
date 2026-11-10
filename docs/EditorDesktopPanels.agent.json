@@ -10,8 +10,8 @@
   },
   "source": {
     "path": "docs/EditorDesktopPanels.md",
-    "sha256": "909c98f7282c4c6188a48fac366e8b2c282904296003589f67b54b5e9b83212a",
-    "bytes": 7891,
+    "sha256": "87a2bf72e15e543d62e3bf186ff60c31948b0478ed78932a05948d4497355eef",
+    "bytes": 7771,
     "line_count": 48,
     "encoding": "utf-8",
     "language": "ko"
@@ -259,7 +259,7 @@
       "kind": "paragraph",
       "start_line": 34,
       "end_line": 34,
-      "raw": "Navigation의 화살표는 설치된 LVRS 자산과 Figma 제공 파일이 일치하지 않아 제공 SVG를 `Assets/Panel/general-chevron-right.svg`로 저장했다. 18×18px 자연 크기와 오른쪽 슬롯 위치를 유지하며 CMake 리소스에 포함한다. 제목·컨트롤·동작·미리보기 행은 LVRS를 재사용한다. 전체 Figma 캡처는 비교 근거이며 제품의 구현 이미지로 사용하지 않는다.\n"
+      "raw": "Navigation의 화살표는 공통 LVRS `generalchevronRight` 아이콘을 사용한다. 18×18px 크기와 오른쪽 슬롯 위치를 유지한다. 제목·컨트롤·동작·미리보기 행은 LVRS를 재사용한다. 전체 Figma 캡처는 비교 근거이며 제품의 구현 이미지로 사용하지 않는다.\n"
     },
     {
       "id": "b000034",
@@ -289,7 +289,7 @@
       "kind": "paragraph",
       "start_line": 38,
       "end_line": 38,
-      "raw": "`fixtures/FigmaPanels.json`은 Figma에서 확인한 기존 19개 패널의 좌표·크기·옵션·입력 예시를 담는 독립적인 검증 기준이다. Asset 기록은 원본 비교를 위해 보존하며 실제 앱 패널 검사에서는 제외한다. 전용 뷰 카탈로그로 교체된 도구는 각각의 렌더링·상호작용 검사로 검증한다. `desktopEditorToolPanelsMatchFigma`는 나머지 패널의 모든 필드 위치와 초기값, 선택·동작 버튼 슬롯, 미리보기 화살표의 로컬 자산과 실제 렌더링 크기, 옵션 클릭, 도구별 초안 복원·Reset·스크롤·Escape를 검사한다. Elements·수치 계약·모바일 18개 시트 검사도 함께 실행한다.\n"
+      "raw": "`fixtures/FigmaPanels.json`은 Figma에서 확인한 기존 19개 패널의 좌표·크기·옵션·입력 예시를 담는 독립적인 검증 기준이다. Asset 기록은 원본 비교를 위해 보존하며 실제 앱 패널 검사에서는 제외한다. 전용 뷰 카탈로그로 교체된 도구는 각각의 렌더링·상호작용 검사로 검증한다. `desktopEditorToolPanelsMatchFigma`는 나머지 패널의 모든 필드 위치와 초기값, 선택·동작 버튼 슬롯, 미리보기 화살표의 LVRS 자산과 실제 렌더링 크기, 옵션 클릭, 도구별 초안 복원·Reset·스크롤·Escape를 검사한다. Elements·수치 계약·모바일 18개 시트 검사도 함께 실행한다.\n"
     },
     {
       "id": "b000038",
@@ -384,7 +384,7 @@
       {
         "block_id": "b000033",
         "line": 34,
-        "text": "Navigation의 화살표는 설치된 LVRS 자산과 Figma 제공 파일이 일치하지 않아 제공 SVG를 `Assets/Panel/general-chevron-right.svg`로 저장했다. 18×18px 자연 크기와 오른쪽 슬롯 위치를 유지하며 CMake 리소스에 포함한다. 제목·컨트롤·동작·미리보기 행은 LVRS를 재사용한다. 전체 Figma 캡처는 비교 근거이며 제품의 구현 이미지로 사용하지 않는다.",
+        "text": "Navigation의 화살표는 공통 LVRS `generalchevronRight` 아이콘을 사용한다. 18×18px 크기와 오른쪽 슬롯 위치를 유지한다. 제목·컨트롤·동작·미리보기 행은 LVRS를 재사용한다. 전체 Figma 캡처는 비교 근거이며 제품의 구현 이미지로 사용하지 않는다.",
         "basis": "lexical_match",
         "context": "paragraph"
       }

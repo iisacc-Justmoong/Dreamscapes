@@ -4,6 +4,7 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
+import Dreamscapes.Style 1.0 as Style
 
 LV.VStack { alignment: Qt.AlignLeft;
     id: root
@@ -68,7 +69,7 @@ LV.VStack { alignment: Qt.AlignLeft;
             required property var modelData
             required property int index
             objectName: "generationHistoryCard" + index
-            width: grid.cellWidth - LV.Theme.gap12
+            width: grid.cellWidth - Style.Tokens.metric("Theme Metrics/Space/12")
             height: grid.cellHeight
             Accessible.role: Accessible.Button
             Accessible.name: modelData.name || ""
@@ -78,18 +79,18 @@ LV.VStack { alignment: Qt.AlignLeft;
             color: selection.isSelected(modelData) ? LV.Theme.accentMuted : "transparent"
             LV.HStack {
                 anchors.fill: parent
-                spacing: LV.Theme.gap8
+                spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                 Image { id: thumbnail; source: result.previewSource; sourceSize: Qt.size(120,80); asynchronous: true; fillMode: Image.PreserveAspectCrop; clip: true; Layout.preferredWidth: 60; Layout.preferredHeight: 40 }
                 LV.VStack { alignment: Qt.AlignLeft;
-                    Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: LV.Theme.gap2
+                    Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: Style.Tokens.metric("Theme Metrics/Space/2")
                     LV.Label { text: result.modelData.name || ""; style: body; Layout.fillWidth: true; elide: Text.ElideRight }
-                    LV.Label { text: NativeData.facts.model(result.modelData) + " · " + NativeData.facts.kind(result.modelData); style: caption; color: LV.Theme.descriptionColor; Layout.fillWidth: true; elide: Text.ElideRight }
-                    LV.Label { text: NativeData.facts.resultSummary(result.modelData); style: caption; color: LV.Theme.descriptionColor; Layout.fillWidth: true; elide: Text.ElideRight }
+                    LV.Label { text: NativeData.facts.model(result.modelData) + " · " + NativeData.facts.kind(result.modelData); style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor"); Layout.fillWidth: true; elide: Text.ElideRight }
+                    LV.Label { text: NativeData.facts.resultSummary(result.modelData); style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor"); Layout.fillWidth: true; elide: Text.ElideRight }
                 }
             }
             MouseArea { anchors.fill: parent; onClicked: { grid.currentIndex = result.index; root.focusedKey = NativeData.facts.key(result.modelData); grid.forceActiveFocus(); grid.activate(result.modelData) } }
         }
     }
     LV.Label { objectName: "emptyGenerationHistory"; visible: !root.files.length; text: root.loading ? qsTr("Reading Society…") : qsTr("No generated images yet"); style: body }
-    LV.Label { text: qsTr("%1 recent results").arg(root.files.length); style: caption; color: LV.Theme.descriptionColor }
+    LV.Label { text: qsTr("%1 recent results").arg(root.files.length); style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor") }
 }

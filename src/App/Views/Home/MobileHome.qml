@@ -3,6 +3,7 @@ import QtQuick
 import ".." as Frames
 import QtQuick.Layouts
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -24,13 +25,12 @@ Item {
     function showHome() { viewport.contentY = 0 }
 
     readonly property var destinations: [
-        // Exact exports from Figma 103:1211, including its LVRS icon variants.
-        {iconSource: Qt.resolvedUrl("Assets/Navigation/home.svg"), preserveIconColors: true, accessibleName: qsTr("Home")},
-        {iconSource: Qt.resolvedUrl("Assets/Navigation/tools.svg"), preserveIconColors: true, accessibleName: qsTr("Tools")},
-        {iconSource: Qt.resolvedUrl("Assets/Navigation/storage.svg"), preserveIconColors: true,
-            iconArtworkSize: Qt.size(17.5, 20.5545), accessibleName: qsTr("Storage")},
-        {iconSource: Qt.resolvedUrl("Assets/Navigation/notification.svg"), preserveIconColors: true, accessibleName: qsTr("Notification")},
-        {iconSource: Qt.resolvedUrl("Assets/Navigation/account.svg"), preserveIconColors: true, accessibleName: qsTr("Account")}
+        // The same shared LVRS icon components and state colors as Figma.
+        {iconName: "home", accessibleName: qsTr("Home")},
+        {iconName: "collection-asset", accessibleName: qsTr("Tools")},
+        {iconName: "sqlFile", accessibleName: qsTr("Storage")},
+        {iconName: "toolwindownotifications", accessibleName: qsTr("Notification")},
+        {iconName: "role", accessibleName: qsTr("Account")}
     ]
 
     Flickable {
@@ -48,15 +48,15 @@ Item {
 
         LV.VStack {
             id: content
-            x: Math.max(LV.Theme.gap16, (viewport.width - width) / 2)
+            x: Math.max(Style.Tokens.metric("Theme Metrics/Space/16"), (viewport.width - width) / 2)
             y: LV.Theme.scaleMetric(33)
-            width: Math.max(0, Math.min(LV.Theme.scaleMetric(370), viewport.width - LV.Theme.gap16 * 2))
+            width: Math.max(0, Math.min(LV.Theme.scaleMetric(370), viewport.width - Style.Tokens.metric("Theme Metrics/Space/16") * 2))
             height: implicitHeight
-            spacing: LV.Theme.gap12
+            spacing: Style.Tokens.metric("Theme Metrics/Space/12")
 
             LV.VStack {
                 Layout.fillWidth: true
-                spacing: LV.Theme.gap12
+                spacing: Style.Tokens.metric("Theme Metrics/Space/12")
 
                 Item {
                     id: quickGenerateSlot
@@ -68,7 +68,7 @@ Item {
                     Layout.fillWidth: true
                     text: root.errorText
                     visible: text.length > 0
-                    color: LV.Theme.accentRed
+                    color: Style.Tokens.color("Theme Colors/Accent/Red/Default")
                     style: caption
                     wrapMode: Text.Wrap
                     sizeToContentHeight: true
@@ -88,8 +88,8 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: LV.Theme.scaleMetric(220)
                     columns: 2
-                    columnSpacing: LV.Theme.gap16
-                    rowSpacing: LV.Theme.gap12
+                    columnSpacing: Style.Tokens.metric("Theme Metrics/Space/16")
+                    rowSpacing: Style.Tokens.metric("Theme Metrics/Space/12")
 
                     QuickActionCard {
                         objectName: "newCanvasAction"
@@ -146,15 +146,15 @@ Item {
 
             LV.VStack {
                 Layout.fillWidth: true
-                spacing: LV.Theme.gap10
+                spacing: Style.Tokens.metric("Theme Metrics/Space/10")
 
                 LV.HStack {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: LV.Theme.controlHeightSm
+                    Layout.preferredHeight: Style.Tokens.metric("Theme Metrics/Size/22")
 
                     LV.Label {
                         Layout.fillWidth: true
-                        Layout.leftMargin: LV.Theme.gap4
+                        Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/4")
                         text: qsTr("Recent published")
                         style: body
                         elide: Text.ElideRight
@@ -206,8 +206,7 @@ Item {
         height: implicitHeight
         platformStyle: LV.MobileTab.IOS
         model: root.destinations
-        search: ({iconSource: Qt.resolvedUrl("Assets/Navigation/search.svg"),
-            preserveIconColors: true, accessibleName: qsTr("Search")})
+        search: ({iconName: "generalsearch", accessibleName: qsTr("Search")})
         currentIndex: 0
         autoSelect: false
         onActivated: function(index) { root.destinationRequested(index) }

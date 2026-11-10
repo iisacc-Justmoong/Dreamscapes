@@ -18,6 +18,6 @@ int main() {
     const auto previous = gallery->items.get().front();
     if (!gallery->setThumbnail(previous->key, previous->source, *raster))
         return 1;
-    gallery->bindNavigation(std::make_shared<lvui::native::CollectionNavigation>());
+    gallery->bindNavigation(std::make_shared<dreamscapes::review::CollectionNavigation>());
     return gallery->items.get().front()->thumbnail.get() == *raster ? 0 : 1;
 }

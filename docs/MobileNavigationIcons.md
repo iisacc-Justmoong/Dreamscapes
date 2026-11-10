@@ -2,24 +2,26 @@
 
 # 모바일 내비게이션 아이콘 계약
 
-도구 모음은 Dreamscapes Figma `bn8O4AHKr1X9DWnhR1TgEy`, 노드 `103:1211`(2026-09-28)에서 정확하고 수정되지 않은 SVG 내보내기를 사용합니다. 자산은 `src/App/Views/Home/Assets/Navigation/`에 있으며 애플리케이션 리소스 컬렉션으로 컴파일되므로 설치된 장치는 Figma URL을 가져오지 않습니다.
+모바일 내비게이션은 Dreamscapes Figma `103:1211`의 화면 구성과 LVRS의 공통 아이콘 및 상태 색상을 사용합니다. 아이콘은 제품 전용 SVG 사본이 아니라 LVRS 리소스 이름으로 조회합니다.
 
-|슬롯|Figma 소스|로컬 SVG|아트웍 크기|
-| --- | --- | --- | --- |
-|홈| `.MobileNavigation/Icon/home-1` | home.svg | 24 × 24 |
-|도구| `collection` | tools.svg | 24 × 24 |
-|Storage|`sqlFile` / 데이터베이스| storage.svg | 17.5 × 20.5545 |
-|알림| `.MobileNavigation/Icon/toolwindownotifications` | notification.svg | 24 × 24 |
-|계정|`role`(라이트 변형)| account.svg | 24 × 24 |
-|검색| `.MobileNavigation/Icon/inputFieldSearch` | search.svg | 24 × 24 |
+| 슬롯 | LVRS 아이콘 | 아트웍 크기 |
+| --- | --- | --- |
+| 홈 | `home` | 24 × 24 |
+| 도구 | `collection-asset` | 24 × 24 |
+| Storage | `sqlFile` | 24 × 24 |
+| 알림 | `toolwindownotifications` | 24 × 24 |
+| 계정 | `role` | 24 × 24 |
+| 검색 | `generalsearch` | 24 × 24 |
 
-네비게이션은 `LV.MobileNavigationBar` 로 유지되며, 각 항목은 `preserveIconColors` 에 옵인하고 기존 일반 단색 모드는 LVRS 기본값으로 유지됩니다. 스토어지는 동일한 24px 아이콘 슬롯에 중앙 정렬된 내보낸 작품 차원을 사용하며, 데이터베이스 글리프를 전체 슬롯에 늘리지 않습니다. SVG 기하 구조나 루트 차원은 다시 작성되지 않습니다. 홈의 선택된 파란색과 다른 아이콘의 원래 색상/불투명도는 Figma 내보내기 파일에 포함되며, 홈은 `autoSelect: false` 를 사용합니다.
+`LV.MobileNavigationBar`가 소유하는 기본·선택·비활성화 전경색을 사용하며, 선택된 악센트 아이콘은 LVRS의 한 단계 어두운 역할을 따른다. 각 아이콘은 같은 24px 슬롯에서 LVRS 도형 비율을 유지한다. `autoSelect: false`와 기존 목적지 신호 계약은 유지한다.
 
-회귀 : `DreamscapesGuiTests mobileHomeUsesFigmaSectionsLimitsAndLvrsNavigation` 는 모든 5 탭 소스, 비어 있지 않은 자산, 이미지 로딩, 페인팅된 차원, 소스 색상 보존 및 별도의 검색 소스를 확인합니다. `DREAMSCAPES_MOBILE_HOME_CAPTURE` 를 설정하여 호스트 렌더링된 모바일 화면을 포착합니다. `python3 -B tests/test_mobile_navigation_assets.py` 는 6 내보내기 해시, SVG 루트 차원, 소스 호출 사이트 및 리소스 등록을 잠급니다. LVRS `LVRSTests_mobile_navigation source_icon_colors_and_artwork_geometry` 는 재사용 가능한 속성, 변경되지 않은 기본값, 검색 전파, 및 비활성화된 알파를 테스트합니다. 호스트 스크린샷은 물리적 장치 설치 증거가 아닙니다; 서명된 iOS 번들, 장치 설치, 및 프로세스 시작을 별도로 확인하세요.
+`DreamscapesGuiTests mobileHomeUsesFigmaSectionsLimitsAndLvrsNavigation`은 다섯 탭과 검색의 LVRS 리소스, 로딩, 크기 및 공통 상태 색상을 확인한다. `tests/test_mobile_navigation_assets.py`는 제품별 SVG나 자체 색상 보존 옵션이 재도입되지 않는지 검사한다. 이 호스트 테스트는 물리적 iOS·Android 기기 실행을 대신하지 않는다.
 
 <a id="verification--2026-09-28"></a>
 
-## 확인 — 2026-09-28
+## 과거 확인 — 2026-09-28
+
+다음은 당시 제품별 SVG를 사용했던 과거 검증 기록이며, 위의 현재 리소스 계약이나 이번 변경의 기기 검증을 뜻하지 않는다.
 
 - LVRS 모바일 내비게이션 테스트: 7는 통과했으며, 0는 실패했습니다; 선택적 갤러리 캡처 테스트는 건너뛰었습니다. macOS와 iOS LVRS 라이브러리가 모두 재구축되어 설치되었습니다.
 - 정확한 SVG 자산 계약: 내보낸 6개 전체가 통과했다.

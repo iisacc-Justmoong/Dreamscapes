@@ -306,6 +306,13 @@ bool EditorCanvas::executeToolAction(const QString &tool, const QString &field, 
 QVariantMap EditorCanvas::toolPreview(const QString &tool, const QString &field, const QVariantMap &v) const {
     QVariantMap result{{"title", tool}, {"description", documentName()}}; QVariantList items;
     if (!documentReady()) return result;
+    const auto colorFor = [this](const char *role, const QColor &fallback) {
+        const auto color = m_toolPreviewColors.value(QString::fromLatin1(role)).value<QColor>();
+        return color.isValid() ? color : fallback;
+    };
+    const auto foreground = colorFor("foreground", QColor(Qt::white));
+    const auto surface = colorFor("surface", QColor(Qt::black));
+    const auto guide = colorFor("guide", QColor(Qt::gray));
     const auto selectionItem = [&] { if (!m_selection.alpha.empty()) items.append(QVariantMap{{"label", tr("Clear selection")}, {"action", "clearSelection"}}); };
     if (tool == "retouch" && field == "field-18") {
         result["title"] = tr("Preview fill");
@@ -344,7 +351,7 @@ QVariantMap EditorCanvas::toolPreview(const QString &tool, const QString &field,
         const auto rendered = renderEditingFrame(*document());
         if (rendered.ok() && m_cloneReady) {
             auto preview = image(rendered.pixels); QPainter painter(&preview);
-            painter.setPen(QPen(QColor("#8B7CFF"), std::max(1.0, editingWidth() / 512.0)));
+            painter.setPen(QPen(foreground, std::max(1.0, editingWidth() / 512.0)));
             const double radius = std::max(2.0, number(v, 0, 84) / 2);
             painter.drawEllipse(m_cloneSource, radius, radius);
             painter.drawLine(m_cloneSource - QPointF(radius, 0), m_cloneSource + QPointF(radius, 0));
@@ -374,7 +381,7 @@ QVariantMap EditorCanvas::toolPreview(const QString &tool, const QString &field,
     } else if (tool == "audio-track") {
         const auto *audio = m_audioSource.samples.empty() ? (document()->audioAssets.empty() ? nullptr : &document()->audioAssets.back()) : findAudioAsset(*document(), m_audioSource.id);
         if (audio && !audio->samples.empty()) {
-            QImage wave(512, 160, QImage::Format_ARGB32); wave.fill(QColor("#202027")); QPainter p(&wave); p.setPen(QColor("#8B7CFF")); const auto frames = audio->samples.size() / audio->channelCount;
+            QImage wave(512, 160, QImage::Format_ARGB32); wave.fill(surface); QPainter p(&wave); p.setPen(foreground); const auto frames = audio->samples.size() / audio->channelCount;
             for (int x = 0; x < 512; ++x) { int peak = 0; for (std::size_t i = x * frames / 512; i < std::min(frames, (x + 1) * frames / 512 + 1); ++i) peak = std::max(peak, std::abs(int(audio->samples[i * audio->channelCount]))); const int h = peak * 75 / 32768; p.drawLine(x, 80 - h, x, 80 + h); }
             p.end(); result["imageSource"] = dataImage(wave); result["description"] = tr("Edited PCM: %1 Hz · %2 channels · %3 seconds").arg(audio->sampleRate).arg(audio->channelCount).arg(double(frames) / audio->sampleRate, 0, 'f', 2);
             const bool active=m_media->playing()||m_media->preparing();
@@ -383,13 +390,13 @@ QVariantMap EditorCanvas::toolPreview(const QString &tool, const QString &field,
     } else if (tool == "color") {
         const auto rendered = renderEditingFrame(*document()); if (rendered.ok()) {
             std::array<int, 256> bins{}; for (auto pixel : rendered.pixels.pixels) if (qAlpha(pixel)) ++bins[qGray(pixel)]; const int maximum = std::max(1, *std::max_element(bins.begin(), bins.end()));
-            QImage chart(512, 160, QImage::Format_ARGB32); chart.fill(QColor("#202027")); QPainter p(&chart); p.setPen(QColor("#8B7CFF"));
+            QImage chart(512, 160, QImage::Format_ARGB32); chart.fill(surface); QPainter p(&chart); p.setPen(foreground);
             if (field == "field-0" || field == "field-7" || field == "field-19" || field == "field-23") {
                 for (int i = 0; i < 256; ++i) { if ((field == "field-19" && i < 128) || (field == "field-23" && i > 128)) continue; p.drawLine(i * 2, 159, i * 2, 159 - bins[i] * 150 / maximum); }
                 result["description"] = tr("Actual frame luminance histogram · %1 nontransparent bins").arg(std::count_if(bins.begin(), bins.end(), [](auto n) { return n; }));
             } else if (field == "field-44") {
-                if (toggle(v, 47)) { p.setPen(QColor("#56505F")); for (int i = 0; i < 256; ++i) p.drawLine(i * 2, 159, i * 2, 159 - bins[i] * 150 / maximum); }
-                p.setPen(QColor("#8B7CFF")); QPolygonF curve; const double amount = v.value("curveAmount").toDouble() / 100;
+                if (toggle(v, 47)) { p.setPen(guide); for (int i = 0; i < 256; ++i) p.drawLine(i * 2, 159, i * 2, 159 - bins[i] * 150 / maximum); }
+                p.setPen(foreground); QPolygonF curve; const double amount = v.value("curveAmount").toDouble() / 100;
                 for (int i = 0; i < 256; ++i) { const double x = i / 255.0; const double value = std::clamp(x + amount * (text(v, 46, "Smooth") == "Smooth" ? x * (1 - x) : 0.5 - std::abs(x - 0.5)), 0.0, 1.0); curve << QPointF(i * 2, 159 - value * 150); } p.drawPolyline(curve);
                 result["description"] = tr("Editable tone response · %1 channel. Move the curve slider to change pixels.").arg(text(v, 45, "RGB"));
             } else {

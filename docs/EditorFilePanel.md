@@ -10,7 +10,7 @@
 
 `EditorFileDefinitions.js`는 Figma의 228개 고유 키와 레이블만 포함한다. 예시 파일·계정·경로·파라미터 값은 포함하지 않는다. `EditorCanvas::fileInformation`은 iiSharedCanvas의 const Document, 생성 메타데이터, iiFileProvider의 영구 저작자 스냅샷과 FileSystem의 Alias에서 문자열 값만 산출한다. `EditorProject::fileInformation`은 실제 modified, canvasCount, currentIndex와 프로젝트 오류를 반영한다. 생성 기록의 PNG 형식과 기존 IISC 편집 저장 경로는 그대로 유지한다.
 
-`EditorFilePanel.qml`은 LVRS IconSegmentedControl·IconButton·Label과 기존 수동 PanelRow로 구성한다. 432px 패널 기준 내부 너비는 398px, 레이블 152px, 값 234px, 열 간격 12px이다. 상단 세그먼트와 현재 상태 아이콘은 고정하며 본문만 스크롤한다. 모바일에서는 LVRS Large Sheet 내부에 같은 패널을 채운다. 좁은 도크·시트에서는 레이블 폭을 줄이고 값 영역을 줄바꿈한다. 원본 SVG 세 개를 Assets/File에 보존하며 런타임 Figma URL을 사용하지 않는다.
+`EditorFilePanel.qml`은 LVRS IconSegmentedControl·IconButton·Label과 기존 수동 PanelRow로 구성한다. 432px 패널 기준 내부 너비는 398px, 레이블 152px, 값 234px, 열 간격 12px이다. 상단 세그먼트와 현재 상태 아이콘은 고정하며 본문만 스크롤한다. 모바일에서는 LVRS Large Sheet 내부에 같은 패널을 채운다. 좁은 도크·시트에서는 레이블 폭을 줄이고 값 영역을 줄바꿈한다. 컨트롤 아이콘은 LVRS 공통 아이콘 라이브러리에서 조회하며 런타임 Figma URL을 사용하지 않는다.
 
 상단 세그먼트만 상태를 전환한다. `fileViewId`는 도구 시트가 소유하여 패널 재생성과 다른 툴 왕복 후에도 유지한다. 전환은 tool values, document revision, authorship, undo 기록과 저장 파일을 변경하지 않는다. 문서·프레임·아트보드·페이지 표시·specification·파일 연결·오류 변경 신호는 표시 모델을 갱신한다. 문서를 새로 만들거나 열어 currentCanvas가 교체되어도 프로젝트 바인딩을 다시 평가한다.
 

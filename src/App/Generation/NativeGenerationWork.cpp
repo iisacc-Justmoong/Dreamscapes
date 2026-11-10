@@ -48,7 +48,10 @@ iiLocalDiffusion::NativeGenerationResult runNativeGeneration(NativeGenerationInp
         receive({name, frame.sequence, frame.step, frame.total});
     };
     try { result = input.generate(input.request, input.options, state->cancelled, progress, preview); }
-    catch (const std::exception &error) { result.error = error.what(); }
+    catch (const std::exception &error) {
+        if (state->cancelled) result.cancelled = true;
+        else result.error = error.what();
+    }
     catch (...) { result.error = "The native image engine stopped unexpectedly."; }
     return result;
 }

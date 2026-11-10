@@ -7,9 +7,14 @@ import LVRS 1.0 as LV
 import ".." as Views
 import Dreamscapes.Storage 1.0
 import "../Home"
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
+    component ThemedAlignmentOverlay: EditorAlignmentOverlay {
+        accentColor: Style.Tokens.color("Theme Colors/Accent/Blue/Default")
+        outlineColor: Style.Tokens.color("Theme Colors/Text/bodyColor")
+    }
     objectName: "canvasEditor"
     property var generationRuntime: null
     property alias editorJobIds: nativeWorkspace.editorJobIds
@@ -177,9 +182,9 @@ Item {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: LV.Theme.gap10
+        anchors.margins: Style.Tokens.metric("Theme Metrics/Space/10")
         height: implicitHeight
-        spacing: LV.Theme.gap12
+        spacing: Style.Tokens.metric("Theme Metrics/Space/12")
 
         LV.LabelButton {
             objectName: "editorBackButton"
@@ -217,7 +222,7 @@ Item {
         anchors.bottom: timelineDock.top
         anchors.left: root.mobileLayout ? parent.left : sidebar.right
         anchors.right: root.mobileLayout ? parent.right : toolToolbar.left
-        anchors.margins: root.mobileLayout ? LV.Theme.gap16 : 0
+        anchors.margins: root.mobileLayout ? Style.Tokens.metric("Theme Metrics/Space/16") : 0
         clip: true
 
         EditorDocumentControls {
@@ -257,7 +262,7 @@ Item {
                 objectName: "editorWorkAreaBackground"
                 anchors.fill: parent
                 visible: !root.mobileLayout
-                color: LV.Theme.panelBackground05
+                color: Style.Tokens.color("Theme Colors/Panel/surfaceSolid")
             }
             EditorPageDeck {
                 anchors.fill: parent
@@ -272,7 +277,7 @@ Item {
                 y: root.blankCanvas.panY + (root.blankCanvas.editingOrigin.y - root.blankCanvas.canvasOriginY) * root.blankCanvas.zoom
                 width: root.blankCanvas.editingWidth * root.blankCanvas.zoom
                 height: root.blankCanvas.editingHeight * root.blankCanvas.zoom
-                color: LV.Theme.surfaceInput
+                color: Style.Tokens.color("Theme Colors/Panel/surfaceInput")
                 Image { anchors.fill: parent; visible: root.blankCanvas.viewOptions.display.transparency; source: "qrc:/editor/view-options/checker.svg"; fillMode: Image.Tile }
             }
             Item {
@@ -287,7 +292,7 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     visible: root.blankCanvas.pagePresentation
-                    color: root.blankCanvas.viewOptions.display.transparency ? "transparent" : LV.Theme.panelBackground06
+                    color: root.blankCanvas.viewOptions.display.transparency ? "transparent" : Style.Tokens.color("Theme Colors/Panel/surfaceAlt")
                 }
                 // The host remains viewport-sized. Its offset cancels the clip
                 // position, preserving native input and overlay coordinates.
@@ -311,7 +316,7 @@ Item {
                         fragmentShader: "qrc:/editor/shaders/channel.frag.qsb"
                     }
                 }
-                EditorAlignmentOverlay {
+                ThemedAlignmentOverlay {
                     objectName: "editorSoftwareChannelOverlay"
                     x: -activePageClip.x; y: -activePageClip.y
                     width: canvasSurface.width; height: canvasSurface.height
@@ -321,16 +326,21 @@ Item {
             }
             Binding { target: root.blankCanvas; property: "smoothRendering"; value: !root.blankCanvas.viewOptions.display["pixel-preview"] }
             Binding { target: root.blankCanvas; property: "enabled"; value: !root.modalActive }
-            EditorAlignmentOverlay { objectName: "editorGridOverlay"; anchors.fill: parent; z: 208; canvas: root.blankCanvas; family: "grid" }
-            EditorAlignmentOverlay {
+            Binding {
+                target: root.blankCanvas
+                property: "toolPreviewColors"
+                value: ({foreground: Style.Tokens.color("Theme Colors/Accent/Blue/Default"), surface: Style.Tokens.color("Theme Colors/Panel/surfaceSolid"), guide: Style.Tokens.color("Theme Colors/Text/descriptionColor")})
+            }
+            ThemedAlignmentOverlay { objectName: "editorGridOverlay"; anchors.fill: parent; z: 208; canvas: root.blankCanvas; family: "grid" }
+            ThemedAlignmentOverlay {
                 id: guidesOverlay
                 objectName: "editorGuidesOverlay"; anchors.fill: parent
                 z: root.blankCanvas.viewOptions.guides.above ? 216 : 199.5
                 canvas: root.blankCanvas; family: "guides"
             }
-            EditorAlignmentOverlay { objectName: "editorOutlinesOverlay"; anchors.fill: parent; z: 209; canvas: root.blankCanvas; family: "outlines" }
-            EditorAlignmentOverlay { objectName: "editorSnapOverlay"; anchors.fill: parent; z: 217; canvas: root.blankCanvas; family: "snap" }
-            EditorAlignmentOverlay { objectName: "editorGuideInput"; anchors.fill: parent; z: 219; enabled: !root.modalActive; canvas: root.blankCanvas; family: "guide-input" }
+            ThemedAlignmentOverlay { objectName: "editorOutlinesOverlay"; anchors.fill: parent; z: 209; canvas: root.blankCanvas; family: "outlines" }
+            ThemedAlignmentOverlay { objectName: "editorSnapOverlay"; anchors.fill: parent; z: 217; canvas: root.blankCanvas; family: "snap" }
+            ThemedAlignmentOverlay { objectName: "editorGuideInput"; anchors.fill: parent; z: 219; enabled: !root.modalActive; canvas: root.blankCanvas; family: "guide-input" }
             Repeater {
                 model: NativeData.presentation.concatenate(root.blankCanvas.alignmentFeedback, guidesOverlay.labels)
                 LV.Label {
@@ -350,6 +360,9 @@ Item {
             }
             EditorCanvasFeedback {
                 objectName: "editorCanvasFeedback"
+                lightColor: Style.Tokens.color("Theme Colors/Text/textTokenBase")
+                darkColor: Style.Tokens.color("Theme Colors/Panel/canvas")
+                gestureColor: Style.Tokens.color("Theme Colors/Accent/Blue/Overlay")
                 anchors.fill: parent
                 z: 215
                 canvas: root.blankCanvas
@@ -396,7 +409,7 @@ Item {
                 visible: root.selectedTool === "canvas"
                 color: "transparent"
                 border.width: 1
-                border.color: guide.mode === "Bleed" ? "#FF5F57" : guide.mode === "Safe" ? "#28C840" : "#8B7CFF"
+                border.color: guide.mode === "Bleed" ? Style.Tokens.color("Theme Colors/Accent/Red/Default") : guide.mode === "Safe" ? Style.Tokens.color("Theme Colors/Accent/Green/Default") : Style.Tokens.color("Theme Colors/Accent/Purple/Default")
             }
             Item {
                 x: activePageClip.x; y: activePageClip.y
@@ -472,7 +485,7 @@ Item {
         anchors.left: workspace.left
         anchors.right: workspace.right
         anchors.bottom: root.mobileLayout ? toolToolbar.top : parent.bottom
-        anchors.bottomMargin: root.mobileLayout ? LV.Theme.gap16 : 0
+        anchors.bottomMargin: root.mobileLayout ? Style.Tokens.metric("Theme Metrics/Space/16") : 0
         height: Math.min(editorTimeline.implicitHeight,
             Math.max(160, (root.height - (root.mobileLayout ? toolToolbar.height + toolbar.height + 48 : 0)) * 0.48))
         EditorTimeline {
@@ -535,9 +548,9 @@ Item {
         anchors.right: !root.mobileLayout && root.desktopPanelExpanded ? desktopDock.left : parent.right
         anchors.top: root.mobileLayout ? undefined : viewBar.bottom
         anchors.bottom: root.mobileLayout ? parent.bottom : undefined
-        anchors.rightMargin: root.mobileLayout ? LV.Theme.gap8 : 0
-        anchors.bottomMargin: root.mobileLayout ? LV.Theme.gap8 : 0
-        width: root.mobileLayout ? Math.max(0, root.width - LV.Theme.gap8 * 2) : implicitWidth
+        anchors.rightMargin: root.mobileLayout ? Style.Tokens.metric("Theme Metrics/Space/8") : 0
+        anchors.bottomMargin: root.mobileLayout ? Style.Tokens.metric("Theme Metrics/Space/8") : 0
+        width: root.mobileLayout ? Math.max(0, root.width - Style.Tokens.metric("Theme Metrics/Space/8") * 2) : implicitWidth
         height: root.mobileLayout ? implicitHeight : Math.max(0, root.height - viewBar.height)
         mobileLayout: root.mobileLayout
         sharedBorders: !root.mobileLayout

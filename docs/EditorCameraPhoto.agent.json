@@ -10,8 +10,8 @@
   },
   "source": {
     "path": "docs/EditorCameraPhoto.md",
-    "sha256": "c6d61d3b6d14ec7b4e077c3970758a68b6ebc1b67acdb5d4b4a03234d7fa5f94",
-    "bytes": 14389,
+    "sha256": "3bd495aa4e1e0673c83cc2e6a3b47a0d90578ee557014163d5346bd509780578",
+    "bytes": 14331,
     "line_count": 60,
     "encoding": "utf-8",
     "language": "ko"
@@ -43,7 +43,7 @@
       "kind": "paragraph",
       "start_line": 3,
       "end_line": 3,
-      "raw": "The desktop dock and mobile tool sheet present the same LVRS panel. The source is the current Figma Camera, Capture and Gallery frames in `bn8O4AHKr1X9DWnhR1TgEy`, under `775:80914`: `823:87253` (432 × 844), `823:86627` (432 × 772), and `823:85995` (432 × 583). Content is 398 px wide at the 432 px dock size, with a 16 px inset plus the border, 12 px groups, 8 px control spacing, a 78 × 30 gray navigation control and 18 px icons. Narrow/mobile panels scale input widths and scroll vertically. Preview images, captured thumbnails and gallery originals are runtime data. The checkerboard preview background and black preview camera icon are original Figma assets; the other vectors are original 18 × 18 Figma component exports matching the installed LVRS library.\n"
+      "raw": "The desktop dock and mobile tool sheet present the same LVRS panel. The source is the current Figma Camera, Capture and Gallery frames in `bn8O4AHKr1X9DWnhR1TgEy`, under `775:80914`: `823:87253` (432 × 844), `823:86627` (432 × 772), and `823:85995` (432 × 583). Content is 398 px wide at the 432 px dock size, with a 16 px inset plus the border, 12 px groups, 8 px control spacing, a 78 × 30 gray navigation control and 18 px icons. Narrow/mobile panels scale input widths and scroll vertically. Preview images, captured thumbnails and gallery originals are runtime data. The checkerboard preview background is a content-preview asset; camera and photo control icons resolve through the shared LVRS library.\n"
     },
     {
       "id": "b000004",

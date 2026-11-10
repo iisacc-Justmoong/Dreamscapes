@@ -4,6 +4,7 @@ import Dreamscapes.Storage 1.0
 import ".." as Frames
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -20,7 +21,7 @@ Item {
     signal closeRequested()
     implicitWidth: 384
     implicitHeight: content.height + 83
-    Rectangle { anchors.fill: parent; color: LV.Theme.surfaceSolid; radius: 0 }
+    Rectangle { anchors.fill: parent; color: Style.Tokens.color("Theme Colors/Panel/surfaceSolid"); radius: 0 }
     Row {
         id: header
         x: 8; y: 8; width: parent.width - 16; height: 24; spacing: 8
@@ -44,7 +45,7 @@ Item {
                     required property var modelData
                     required property int index
                     width: content.width; spacing: 0
-                    Rectangle { visible: group.index > 0; width: parent.width; height: visible ? 1 : 0; color: LV.Theme.surfacePanel }
+                    Rectangle { visible: group.index > 0; width: parent.width; height: visible ? 1 : 0; color: Style.Tokens.color("Theme Colors/Panel/surfacePanel") }
                     Column {
                         x: 8; width: parent.width - 16; topPadding: 8; bottomPadding: 8; spacing: 4
                         LV.Label { visible: Boolean(group.modelData.label); height: visible ? 13 : 0; style: body; text: group.modelData.label; width: parent.width }
@@ -54,7 +55,7 @@ Item {
             }
         }
     }
-    Rectangle { x: 0; y: parent.height - 40; width: parent.width; height: 1; color: LV.Theme.surfacePanel }
+    Rectangle { x: 0; y: parent.height - 40; width: parent.width; height: 1; color: Style.Tokens.color("Theme Colors/Panel/surfacePanel") }
     Item {
         x: 8; y: parent.height - 32; width: parent.width - 16; height: 24
         LV.LabelButton { objectName: "viewOptionsReset"; width: 64; height: 24; text: qsTr("Reset"); tone: LV.AbstractButton.Default; onClicked: root.canvas.viewOptions.reset(root.family) }

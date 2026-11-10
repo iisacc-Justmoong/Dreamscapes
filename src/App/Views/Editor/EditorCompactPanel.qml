@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Dreamscapes.Storage 1.0
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Column {
     id: root
@@ -93,7 +94,7 @@ Column {
         }
         LV.Label {
             width: parent.width - 26; height: 20
-            style: body; font.pixelSize: 15; font.weight: Font.Medium
+            style: body; font.pixelSize: Style.Tokens.metric("Theme Typography/Subheader/textSubheader"); font.weight: Style.Tokens.metric("Theme Typography/Weight/Medium")
             text: root.selectedView ? root.selectedView.title : ""
             elide: Text.ElideRight
         }
@@ -140,7 +141,7 @@ Column {
                         }
                         LV.Label {
                             width: Math.max(0, row.width - 30); height: 22
-                            style: caption; color: LV.Theme.bodyColor
+                            style: caption; color: Style.Tokens.color("Theme Colors/Text/bodyColor")
                             text: row.modelData.label
                             verticalAlignment: Text.AlignVCenter
                             elide: Text.ElideRight

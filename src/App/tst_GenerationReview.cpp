@@ -65,6 +65,20 @@ QVariantList fixtures(const QString& directory,int count) {
     return entries;
 }
 }
+// These workspace-routing tests exercise the UI after entitlement has already
+// been granted. License verification has separate signed-token tests.
+class ReviewLicensedAccount final : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(bool licensed READ licensed CONSTANT)
+    Q_PROPERTY(bool checking READ checking CONSTANT)
+    Q_PROPERTY(QString code READ code CONSTANT)
+public:
+    bool licensed() const { return true; }
+    bool checking() const { return false; }
+    QString code() const { return QStringLiteral("licensed"); }
+    Q_INVOKABLE void refresh() {}
+    Q_INVOKABLE bool openSociety() { return false; }
+};
 class GenerationReviewTests : public QObject {
     Q_OBJECT
 private slots:
@@ -260,12 +274,17 @@ private slots:
             iiLocalDiffusion::NativeGenerationResult result;result.width=request.width;result.height=request.height;
             result.rgb.resize(request.width*request.height*3,100);return result;
         };
-        QQmlApplicationEngine engine;engine.setInitialProperties({{"initialContainerPath",drive.path()}});engine.load(source("Main.qml"));
+        ReviewLicensedAccount account;
+        QQmlApplicationEngine engine;engine.setInitialProperties({{"initialContainerPath",drive.path()},
+            {"licenseAccount",QVariant::fromValue(static_cast<QObject*>(&account))}});engine.load(source("Main.qml"));
         QCOMPARE(engine.rootObjects().size(),1);auto* window=qobject_cast<QQuickWindow*>(engine.rootObjects().first());QVERIFY(window);
         window->resize(1440,900);QVERIFY(QTest::qWaitForWindowExposed(window));
         auto* backend=window->findChild<GenerationController*>("generationController");QVERIFY(backend);backend->setForeground(true);
+        QTRY_VERIFY_WITH_TIMEOUT(backend->connected(), 30000);
+        QTRY_VERIFY_WITH_TIMEOUT(!backend->models().isEmpty(), 30000);
         auto* quick=window->findChild<QObject*>("quickGenerate");QVERIFY(quick);quick->setProperty("prompt","Unsubmitted review draft");
-        QVERIFY(!backend->enqueue("Review editor fixture","1:1",1).isEmpty());
+        const auto submitted=backend->enqueue("Review editor fixture","1:1",1);
+        QVERIFY2(!submitted.isEmpty(), qPrintable(backend->errorString()));
         QTRY_COMPARE_WITH_TIMEOUT(backend->completedResults().size(),1,30000);
         auto* review=window->findChild<GenerationReviewModel*>("generationReviewModel");QVERIFY(review);QTRY_COMPARE(review->totalCount(),1);
         const auto original=review->focusedEntry();const auto key=review->focusedKey();review->selectAt(0);
@@ -292,10 +311,15 @@ private slots:
         QFile manifest(drive.filePath("Models/Checkpoint/ltx/model_index.json"));QVERIFY(manifest.open(QIODevice::WriteOnly));manifest.write(R"({"_class_name":"LTXPipeline"})");manifest.close();
         runtime=GenerationRuntime{QString(DREAMSCAPES_FAKE_GENERATOR),"cpu",1,64,{}};runtime.nativeInference=true;
         runtime.modelPreferencesFile=drive.filePath("settings/models.conf");
-        QQmlApplicationEngine engine;engine.setInitialProperties({{"initialContainerPath",drive.path()}});engine.load(source("Main.qml"));
+        ReviewLicensedAccount account;
+        QQmlApplicationEngine engine;engine.setInitialProperties({{"initialContainerPath",drive.path()},
+            {"licenseAccount",QVariant::fromValue(static_cast<QObject*>(&account))}});engine.load(source("Main.qml"));
         QCOMPARE(engine.rootObjects().size(),1);auto* window=qobject_cast<QQuickWindow*>(engine.rootObjects().first());QVERIFY(window);
         window->resize(1440,900);QVERIFY(QTest::qWaitForWindowExposed(window));
         auto* backend=window->findChild<GenerationController*>("generationController");QVERIFY(backend);backend->setForeground(false);
+        QTRY_VERIFY_WITH_TIMEOUT(backend->connected(), 30000);
+        QTRY_VERIFY_WITH_TIMEOUT(!backend->models().isEmpty(), 30000);
+        if (kind == 1 || kind == 3) QTRY_VERIFY_WITH_TIMEOUT(!backend->videoModels().isEmpty(), 30000);
         QSignalSpy accepted(backend,&GenerationController::submissionQueued);
         if(kind<2) {
             auto* quick=window->findChild<QObject*>("quickGenerate");QVERIFY(quick);quick->setProperty("mediaType",kind?"Video":"Image");quick->setProperty("prompt","Review route fixture");
@@ -307,9 +331,9 @@ private slots:
             auto* panel=workspace->property("parameterPanel").value<QQuickItem*>();QVERIFY(panel);
             QVERIFY(QMetaObject::invokeMethod(panel,"edit",Q_ARG(QVariant,"prompt"),Q_ARG(QVariant,"Review route fixture")));
             QVERIFY(QMetaObject::invokeMethod(workspace,"submit"));
-            QVERIFY(!values(workspace,"jobIds").isEmpty());
+            QVERIFY2(!values(workspace,"jobIds").isEmpty(), qPrintable(backend->errorString()));
         }
-        QCOMPARE(accepted.count(),1);QVERIFY(window->property("resultVisible").toBool());
+        QVERIFY2(accepted.count()==1, qPrintable(backend->errorString()));QVERIFY(window->property("resultVisible").toBool());
         const auto jobs=backend->jobs();QVERIFY(!jobs.isEmpty());
         for(const auto& value:jobs)backend->cancel(value.toMap().value("id").toString());
         auto* result=window->findChild<QQuickItem*>("generationResult");QVERIFY(result&&result->isVisible());

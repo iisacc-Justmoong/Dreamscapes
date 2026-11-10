@@ -12,8 +12,10 @@ The editor's Text tool uses the four current Dreamscapes Figma views:
 `EditorTextPanel.qml` provides the same LVRS-based component on the desktop dock
 and the mobile sheet. The surrounding dock owns the 16 px padding, 1 px border,
 16 px corner radius and vertical scroll. At the reference width, the content is
-398 px wide. Controls reflow within a resized panel. Original Figma SVGs are
-local resources in `Assets/Text`; the panel never depends on temporary asset URLs.
+398 px wide. Controls reflow within a resized panel. Shared control icons resolve
+through `LvrsEditorIcons.js` to the LVRS library. The unique cloud-bubble shape
+is drawn as a vector with the shared LVRS body foreground token. The panel never
+depends on temporary asset URLs.
 
 When switching between Text and Elements, an outgoing Text panel keeps its
 inputs bound to its own saved text draft until its loader is destroyed. Edits
@@ -66,8 +68,8 @@ strings/font authoring settings are session data: reopening a saved document
 does not restore those authoring controls. Raster effects preserve their final
 pixels; this feature does not change the IISC format or introduce sidecar files.
 
-Validation: `Dreamscapes.EditorText` covers four desktop states, local SVG
-loading/18 px slots, editing through QML, resets and panel resizing.
+Validation: `Dreamscapes.EditorText` covers four desktop states, shared LVRS icon
+loading and artwork slots, editing through QML, resets and panel resizing.
 `editorTextPanelMobile` covers the same tabs and scrolling at host-simulated mobile
 widths. `Dreamscapes.EditorTools` covers native text editing, shaping, layout,
 appearance, deterministic effects, vector restoration and exported pixels.

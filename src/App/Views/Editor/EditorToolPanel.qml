@@ -4,6 +4,7 @@ import Dreamscapes.Storage 1.0
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 import ".." as Views
+import Dreamscapes.Style 1.0 as Style
 
 Column {
     id: root
@@ -84,7 +85,7 @@ Column {
         LV.Label {
             text: root.definition ? String(root.definition.number).padStart(2, "0") + "  " + root.definition.title : ""
             style: header
-            font.pixelSize: 16
+            font.pixelSize: Style.Tokens.metric("Theme Typography/Header/textHeader")
             wrapMode: Text.Wrap
             sizeToContentHeight: true
         }

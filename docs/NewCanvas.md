@@ -29,6 +29,10 @@ TikTok 3개, KakaoTalk 4개, LINE 4개를 제거하였다. 한국 기업에서 �
 
 ## 레이아웃과 상호작용
 
+선택기의 창·표면·선택·모달 배경은 LVRS의 `window`, `surfaceSolid`, `Accent/Blue/Selected`, `overlayBackdrop`을 직접 사용한다. 프리셋 크기 표시의 선택·기본 색상과 비율 레이블도 LVRS 역할을 따르며, 사용자가 선택하는 실제 문서 색상은 콘텐츠 데이터로 유지한다.
+Figma 프리셋 정보 행의 독립 폴더 벡터는 LVRS `nodesfolder` 컴포넌트로
+교체하여 앱의 공통 `PanelRow` 아이콘 역할과 같은 리소스를 참조한다.
+
 모달의 모든 가장자리에는 12px 패딩이 있으며, 이는 콘텐츠 프레임과 일치합니다.
 [LVRS ApplicationWindow](https://www.figma.com/design/0GkItQYSNIR0lZ3iJhfJzc/Layerd-Visual-Render-System?node-id=997-3)입니다. `Main.qml` 는 사용 가능한 배치 영역으로 `appContent` 를 제공합니다. 중앙 정렬, 최대 크기 및 크기 조정 동작은 해당 영역에 이미 적용된 제목 막대 예약, 모바일 안전 영역, 및 키보드 인셋을 존중하며, 콤팩트 팝업은 이제 창 상단 컨트롤을 덮지 않습니다.
 

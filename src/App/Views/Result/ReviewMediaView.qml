@@ -4,6 +4,7 @@ import QtQuick.Window
 import QtQuick.Layouts
 import QtMultimedia
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -38,7 +39,7 @@ Item {
     Item {
         id: viewport
         anchors.fill: parent
-        anchors.bottomMargin: controls.visible ? controls.implicitHeight + LV.Theme.gap4 : 0
+        anchors.bottomMargin: controls.visible ? controls.implicitHeight + Style.Tokens.metric("Theme Metrics/Space/4") : 0
         clip: true
         Item {
             id: surface
@@ -74,7 +75,7 @@ Item {
         }
         LV.Label {
             anchors.centerIn: parent
-            width: Math.max(0, parent.width - LV.Theme.gap16)
+            width: Math.max(0, parent.width - Style.Tokens.metric("Theme Metrics/Space/16"))
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             style: caption
@@ -122,7 +123,7 @@ Item {
         id: controls
         anchors.bottom: parent.bottom
         width: parent.width
-        spacing: LV.Theme.gap4
+        spacing: Style.Tokens.metric("Theme Metrics/Space/4")
         visible: root.video && root.mediaSource.toString().length > 0
         LV.LabelButton {
             objectName: "videoPlayButton"

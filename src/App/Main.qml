@@ -13,15 +13,26 @@ import "Views/Editor"
 import "Views/Publishing"
 import "Views/Preferences"
 import "Views"
+import Dreamscapes.Style 1.0 as Style
 
 LV.ApplicationWindow {
     id: window
     objectName: "mainWindow"
+    // Showing the workspace during verification does not grant a license.
+    property var licenseAccount: generation.account
+    readonly property bool licenseGranted: !!licenseAccount && licenseAccount.licensed === true
+    readonly property bool licenseWorkspaceVisible: licenseGranted || (!!licenseAccount &&
+        (licenseAccount.checking || !licenseAccount.code))
     property var preferencesWindow: null
     property string dismissedFailureId: ""
-    function showFailureExplanation(id) {
+    function showLegacyFailureExplanation(id) {
         failureDetails.report = generationBackend.failureAnalysis(id)
         failureDetails.open = true
+    }
+    function showFailureExplanation(id) {
+        if (typeof nativeFailurePresenter !== "undefined" && nativeFailurePresenter &&
+                nativeFailurePresenter.open(generationBackend, window, id)) return
+        showLegacyFailureExplanation(id)
     }
     FailureDetails {
         id: failureDetails
@@ -33,19 +44,25 @@ LV.ApplicationWindow {
             if (failureDetails.report.jobId === jobId) failureDetails.report = report
         }
     }
+    Connections {
+        target: typeof nativeFailurePresenter !== "undefined" ? nativeFailurePresenter : null
+        ignoreUnknownSignals: true
+        function onDismissed(jobId) { window.dismissedFailureId = jobId }
+        function onFallbackRequired(jobId) { window.showLegacyFailureExplanation(jobId) }
+    }
     LV.LabelButton {
         objectName: "failureExplanationButton"
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         anchors.topMargin: 8
         z: 900
-        visible: !!window.generationBackend.latestFailure.jobId && window.dismissedFailureId !== window.generationBackend.latestFailure.jobId
+        visible: window.licenseWorkspaceVisible && !!window.generationBackend.latestFailure.jobId && window.dismissedFailureId !== window.generationBackend.latestFailure.jobId
         text: window.generationBackend.latestFailure.state === "pending" ? qsTr("Failure details · Analyzing…") : qsTr("Failure details")
         tone: LV.AbstractButton.Default
         onClicked: window.showFailureExplanation(window.generationBackend.latestFailure.jobId)
     }
     function openPreferences() {
-        if (isMobilePlatform)
+        if (!licenseWorkspaceVisible || isMobilePlatform)
             return;
         if (!preferencesWindow)
             preferencesWindow = preferencesComponent.createObject(window);
@@ -67,7 +84,7 @@ LV.ApplicationWindow {
         objectName: "preferencesShortcut"
         sequence: "Ctrl+,"
         context: Qt.ApplicationShortcut
-        enabled: !window.isMobilePlatform
+        enabled: window.licenseWorkspaceVisible && !window.isMobilePlatform
         onActivated: window.openPreferences()
     }
     Platform.MenuBar {
@@ -87,6 +104,7 @@ LV.ApplicationWindow {
             Platform.MenuItem {
                 objectName: "globalPreferencesAction"
                 text: qsTr("Preferences…")
+                enabled: window.licenseWorkspaceVisible
                 role: Platform.MenuItem.NoRole
                 shortcut: "Ctrl+,"
                 onTriggered: window.openPreferences()
@@ -97,7 +115,7 @@ LV.ApplicationWindow {
             title: qsTr("Help")
             Platform.MenuItem {
                 text: qsTr("Latest failure explanation…")
-                enabled: !!window.generationBackend.latestFailure.jobId
+                enabled: window.licenseWorkspaceVisible && !!window.generationBackend.latestFailure.jobId
                 onTriggered: window.showFailureExplanation(window.generationBackend.latestFailure.jobId)
             }
         }
@@ -113,6 +131,51 @@ LV.ApplicationWindow {
         else agentQuestions.source = ""
     }
     Loader { id: agentQuestions }
+    Loader {
+        id: licenseGate
+        objectName: "licenseGateLoader"
+        anchors.fill: parent
+        z: 10000
+        visible: !window.licenseWorkspaceVisible
+        enabled: visible
+        source: "qrc:/iiLicenseManager/SocietyLicenseGate.qml"
+        onLoaded: {
+            item.productName = "Dreamscapes"
+            item.checking = Qt.binding(() => !!window.licenseAccount && window.licenseAccount.checking)
+            item.statusCode = Qt.binding(() => window.licenseAccount ? window.licenseAccount.code : "")
+        }
+    }
+    Connections {
+        target: licenseGate.item
+        function onOpenSocietyRequested() {
+            const opened = window.licenseAccount && window.licenseAccount.openSociety()
+            licenseGate.item.actionError = opened ? "" : qsTr("Could not open Society. Open it on this device and try again.")
+        }
+        function onRetryRequested() {
+            window.refreshLicense()
+        }
+    }
+    function refreshLicense() {
+        if (licenseGate.item) licenseGate.item.actionError = ""
+        if (licenseAccount) licenseAccount.refresh()
+    }
+    Connections {
+        target: Qt.application
+        function onStateChanged() {
+            if (Qt.application.state === Qt.ApplicationActive && !window.licenseGranted
+                    && window.licenseAccount && !window.licenseAccount.checking)
+                window.refreshLicense()
+        }
+    }
+    onLicenseWorkspaceVisibleChanged: {
+        if (licenseGate.item) licenseGate.item.actionError = ""
+        if (!licenseWorkspaceVisible) {
+            if (preferencesWindow) preferencesWindow.close()
+            if (failureDetails) failureDetails.open = false
+            if (homeOpenDialog) homeOpenDialog.close()
+            if (newCanvasDialog) newCanvasDialog.close()
+        }
+    }
     NativeWorkspaceSession {
         id: nativeSession
         objectName: "nativeWorkspaceSession"
@@ -215,18 +278,18 @@ LV.ApplicationWindow {
     readonly property real desktopTitleBarHeight: LV.Theme.scaleMetric(32)
     readonly property real desktopTitleBarContentGap: 0
     readonly property real desktopTitleBarLeadingClearance: nativeTitleBarControlsRect.width > 0
-        ? nativeTitleBarControlsRect.x + nativeTitleBarControlsRect.width + LV.Theme.gap12
-        : LV.Theme.gap12
+        ? nativeTitleBarControlsRect.x + nativeTitleBarControlsRect.width + Style.Tokens.metric("Theme Metrics/Space/12")
+        : Style.Tokens.metric("Theme Metrics/Space/12")
     readonly property real contentTopInset: Math.max(mobileSystemSafeTopInset,
         windowChromeInteractionsEnabled && windowDragHandleEnabled && visibility !== Window.FullScreen
             ? Math.max(0, windowDragHandleTopMargin + windowDragHandleHeight) : 0,
         !useMobileHomeLayout
             ? (visibility === Window.FullScreen
-                ? LV.Theme.controlHeightSm + LV.Theme.gap12
+                ? Style.Tokens.metric("Theme Metrics/Size/22") + Style.Tokens.metric("Theme Metrics/Space/12")
                 : desktopTitleBarHeight + desktopTitleBarContentGap)
             : 0)
     title: "Dreamscapes"
-    primaryColor: LV.Theme.defaultPrimary
+    primaryColor: Style.Tokens.color("Theme Colors/Accent/Blue/Default")
     width: useMobileHomeLayout ? 390 : 1920
     height: useMobileHomeLayout ? 844 : 1200
     desktopMinWidth: 320
@@ -238,7 +301,7 @@ LV.ApplicationWindow {
     navigationEnabled: false
     useInternalPageStack: false
     nativeTitleBarHeight: useMobileHomeLayout ? 0 : desktopTitleBarHeight
-    nativeTitleBarLeftMargin: LV.Theme.gap16
+    nativeTitleBarLeftMargin: Style.Tokens.metric("Theme Metrics/Space/16")
     // LVRS owns window movement only in this top strip; content drags paint/select.
     windowDragHandleHeight: 32
     windowDragExclusionItems: [appContent, desktopToolbar]
@@ -272,7 +335,7 @@ LV.ApplicationWindow {
     function openGenerationReview() { nativeSession.openGenerationReview() }
     function stateLabel(state) { return generationProjection.stateLabel(state) }
     Component.onCompleted: {
-        generation.connectStorage(initialContainerPath)
+        generation.startInitialStorage(initialContainerPath)
     }
     CanvasPreview {
         // Generation result URLs share the existing asynchronous IISC provider.
@@ -291,7 +354,7 @@ LV.ApplicationWindow {
         readonly property var recentFiles: snapshot.recentFiles
         readonly property var recentPublished: snapshot.recentPublished
         readonly property var generationHistory: snapshot.generationHistory
-        readonly property bool loading: snapshot.loading
+        readonly property bool loading: generation.storageInitializing || snapshot.loading
         readonly property string errorString: snapshot.errorString
         property string query: window.useMobileHomeLayout ? "" : desktopToolbar.query
         onQueryChanged: snapshot.query = query
@@ -322,11 +385,11 @@ LV.ApplicationWindow {
         anchors.top: parent.top
         anchors.right: parent.right
         anchors.topMargin: Math.max(0, ((window.visibility === Window.FullScreen
-            ? LV.Theme.controlHeightSm + LV.Theme.gap12 : window.desktopTitleBarHeight) - height) / 2)
-        anchors.rightMargin: LV.Theme.gap12
+            ? Style.Tokens.metric("Theme Metrics/Size/22") + Style.Tokens.metric("Theme Metrics/Space/12") : window.desktopTitleBarHeight) - height) / 2)
+        anchors.rightMargin: Style.Tokens.metric("Theme Metrics/Space/12")
         width: Math.min(LV.Theme.scaleMetric(265), Math.max(0,
             window.width - anchors.rightMargin - window.desktopTitleBarLeadingClearance))
-        visible: !window.useMobileHomeLayout && !window.storageBrowserVisible
+        visible: window.licenseWorkspaceVisible && !window.useMobileHomeLayout && !window.storageBrowserVisible
         jobs: generation.jobs
         inlineSearch: window.editorVisible && !window.publishVisible
         searchResults: generation.searchEntries(historyModel.recentFiles,historyModel.recentPublished,window.generationHistoryEntries)
@@ -338,15 +401,15 @@ LV.ApplicationWindow {
     }
     Shortcut {
         sequence: StandardKey.Find
-        enabled: (desktopToolbar.visible || window.storageBrowserVisible) && !newCanvasDialog.visible
+        enabled: window.licenseWorkspaceVisible && (desktopToolbar.visible || window.storageBrowserVisible) && !newCanvasDialog.visible
             && !window.publishVisible
             && !(window.editorVisible && window.editorView && window.editorView.modalActive)
         onActivated: window.storageBrowserVisible ? storageBrowserLoader.item.focusSearch() : desktopToolbar.focusSearch()
     }
-    Shortcut { sequence: StandardKey.New; enabled: !newCanvasDialog.visible; onActivated: window.openNewCanvas() }
+    Shortcut { objectName: "newCanvasShortcut"; sequence: StandardKey.New; enabled: window.licenseWorkspaceVisible && !newCanvasDialog.visible; onActivated: window.openNewCanvas() }
     Shortcut {
         sequence: StandardKey.Open
-        enabled: !window.editorVisible && !newCanvasDialog.visible && !homeOpenDialog.visible
+        enabled: window.licenseWorkspaceVisible && !window.editorVisible && !newCanvasDialog.visible && !homeOpenDialog.visible
         onActivated: window.openHomeFileDialog()
     }
     FileDialog {
@@ -384,6 +447,8 @@ LV.ApplicationWindow {
     Item {
         id: appContent
         objectName: "appContent"
+        visible: window.licenseWorkspaceVisible
+        enabled: window.licenseWorkspaceVisible
         anchors.fill: parent
         anchors.topMargin: window.contentTopInset
         anchors.leftMargin: window.mobileSystemSafeLeftInset
@@ -608,8 +673,8 @@ LV.ApplicationWindow {
             objectName: "imageImportStatus"
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: LV.Theme.gap16
-            spacing: LV.Theme.gap8
+            anchors.bottomMargin: Style.Tokens.metric("Theme Metrics/Space/16")
+            spacing: Style.Tokens.metric("Theme Metrics/Space/8")
             z: 20
             visible: !!window.editorView && (window.editorView.documentOpening
                 || (!window.editorVisible && !window.storageBrowserVisible && window.editorView.imageImportRequest.active))
@@ -624,7 +689,7 @@ LV.ApplicationWindow {
         Flickable {
             id: resultComposerViewport
             objectName: "resultComposerViewport"
-            property real retainedComposerHeight: LV.Theme.controlHeightSm * 2 + LV.Theme.gap8 + LV.Theme.gap10 * 2
+            property real retainedComposerHeight: Style.Tokens.metric("Theme Metrics/Size/22") * 2 + Style.Tokens.metric("Theme Metrics/Space/8") + Style.Tokens.metric("Theme Metrics/Space/10") * 2
             function retainComposerHeight() {
                 if (visible) retainedComposerHeight = quickGenerate.implicitHeight
             }
@@ -641,7 +706,7 @@ LV.ApplicationWindow {
             // The shared composer moves to Home while Result is hidden. Keep
             // Result's geometry so its gallery does not clamp its scroll offset.
             height: Math.min(retainedComposerHeight,
-                Math.max(0, parent.height - LV.Theme.controlHeightSm * 2))
+                Math.max(0, parent.height - Style.Tokens.metric("Theme Metrics/Size/22") * 2))
             contentWidth: width
             contentHeight: retainedComposerHeight
             clip: true
@@ -659,7 +724,7 @@ LV.ApplicationWindow {
             x: 0
             width: parent ? parent.width : 0
             height: implicitHeight
-            contentInset: window.resultVisible ? LV.Theme.gap10 : 0
+            contentInset: window.resultVisible ? Style.Tokens.metric("Theme Metrics/Space/10") : 0
             canvasEnabled: !window.useMobileHomeLayout && !window.resultVisible
             desktopLayout: !window.useMobileHomeLayout && !window.resultVisible
             generation: window.generationBackend
@@ -700,15 +765,17 @@ LV.ApplicationWindow {
                 id: storageContent
                 width: parent.width
                 height: implicitHeight
-                spacing: LV.Theme.gap8
+                spacing: Style.Tokens.metric("Theme Metrics/Space/8")
 
                 LV.HStack {
                     Layout.fillWidth: true
                     LV.Label { text: qsTr("Society"); Layout.fillWidth: true }
                     LV.LabelButton {
                         objectName: "refreshSociety"
-                        text: generation.connected ? qsTr("Refresh models") : qsTr("Check Society storage")
+                        text: generation.storageInitializing ? qsTr("Connecting…")
+                            : generation.connected ? qsTr("Refresh models") : qsTr("Check Society storage")
                         tone: LV.AbstractButton.Default
+                        enabled: !generation.storageInitializing
                         onClicked: generation.refreshModels()
                     }
                 }
@@ -716,7 +783,7 @@ LV.ApplicationWindow {
                     Layout.fillWidth: true
                     wrapMode: Text.Wrap
                     style: caption
-                    text: generation.connected
+                    text: generation.storageInitializing ? qsTr("Connecting to Society storage…") : generation.connected
                         ? qsTr("Models and generated media are stored in Society on this device.")
                         : qsTr("Open Society on this device and let it finish syncing your models.")
                 }
@@ -729,7 +796,7 @@ LV.ApplicationWindow {
                         : generation.selectedModel || qsTr("Add a Diffusion model in Society")
                     tone: LV.AbstractButton.Default
                     enabled: quickGenerate.mediaType === "Video" ? generation.videoModels.length > 0 : generation.models.length > 0
-                    onClicked: modelMenu.openFor(modelButton, 0, modelButton.height + LV.Theme.gap2)
+                    onClicked: modelMenu.openFor(modelButton, 0, modelButton.height + Style.Tokens.metric("Theme Metrics/Space/2"))
                 }
                 LV.LabelMenuButton {
                     id: vaeButton
@@ -738,7 +805,7 @@ LV.ApplicationWindow {
                     Layout.fillWidth: true
                     text: generation.selectedVae.length ? qsTr("VAE: ") + generation.selectedVae : qsTr("VAE: Model default")
                     tone: LV.AbstractButton.Default
-                    onClicked: vaeMenu.openFor(vaeButton, 0, vaeButton.height + LV.Theme.gap2)
+                    onClicked: vaeMenu.openFor(vaeButton, 0, vaeButton.height + Style.Tokens.metric("Theme Metrics/Space/2"))
                 }
                 LV.Label {
                     Layout.fillWidth: true

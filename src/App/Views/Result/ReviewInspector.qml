@@ -4,6 +4,7 @@ import ".." as Frames
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -15,7 +16,7 @@ Item {
     readonly property var focused: review.focusedEntry
     LV.VStack {
         anchors.fill: parent
-        spacing: LV.Theme.gap8
+        spacing: Style.Tokens.metric("Theme Metrics/Space/8")
         LV.HStack {
             Layout.fillWidth: true
             LV.Label { text: qsTr("INSPECTOR"); style: caption; Layout.fillWidth: true }
@@ -34,7 +35,7 @@ Item {
         }
         LV.HStack {
             Layout.fillWidth: true
-            LV.Label { text: qsTr("Preview"); style: caption; color: LV.Theme.textSecondary; Layout.fillWidth: true }
+            LV.Label { text: qsTr("Preview"); style: caption; color: Style.Tokens.color("Theme Colors/Text/bodyColor"); Layout.fillWidth: true }
             LV.LabelButton { text: qsTr("Expand"); enabled: !!(root.focused.imageSource || root.focused.mediaSource || root.focused.documentSource); tone: LV.AbstractButton.Default; onClicked: root.previewRequested() }
             LV.LabelButton { text: qsTr("Save current"); enabled: !!(root.focused.documentSource || root.focused.mediaSource || root.focused.imageSource); tone: LV.AbstractButton.Default; onClicked: root.saveRequested() }
         }
@@ -50,16 +51,16 @@ Item {
             Controls.ScrollBar.vertical: Controls.ScrollBar { policy: Controls.ScrollBar.AsNeeded }
             LV.VStack {
                 id: fields
-                width: Math.max(0, viewport.width - LV.Theme.gap8)
-                spacing: LV.Theme.gap8
+                width: Math.max(0, viewport.width - Style.Tokens.metric("Theme Metrics/Space/8"))
+                spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                 Repeater {
                     model: root.review.inspectorRows
                     delegate: LV.VStack {
                         id: field
                         required property var modelData
                         Layout.fillWidth: true
-                        spacing: LV.Theme.gap2
-                        LV.Label { Layout.fillWidth: true; text: field.modelData.label; style: caption; color: LV.Theme.textSecondary }
+                        spacing: Style.Tokens.metric("Theme Metrics/Space/2")
+                        LV.Label { Layout.fillWidth: true; text: field.modelData.label; style: caption; color: Style.Tokens.color("Theme Colors/Text/bodyColor") }
                         Controls.TextArea {
                             objectName: "reviewInspector" + field.modelData.label.replace(/\s/g, "")
                             Layout.fillWidth: true
@@ -68,7 +69,7 @@ Item {
                             selectByMouse: true
                             wrapMode: TextEdit.WrapAnywhere
                             textFormat: TextEdit.PlainText
-                            color: LV.Theme.textPrimary
+                            color: Style.Tokens.color("Theme Colors/Text/titleHeaderColor")
                             font: inspectorLabel.font
                             padding: 0
                             background: null
@@ -82,14 +83,14 @@ Item {
                     text: qsTr("Job · %1").arg(root.focused.id || "")
                     style: caption
                     wrapMode: Text.WrapAnywhere
-                    color: LV.Theme.textSecondary
+                    color: Style.Tokens.color("Theme Colors/Text/bodyColor")
                 }
                 LV.Label {
                     Layout.fillWidth: true
                     text: qsTr("Original · %1").arg(root.focused.documentSource || root.focused.mediaSource || qsTr("Unavailable"))
                     style: caption
                     wrapMode: Text.WrapAnywhere
-                    color: LV.Theme.textSecondary
+                    color: Style.Tokens.color("Theme Colors/Text/bodyColor")
                 }
             }
         }

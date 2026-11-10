@@ -4,6 +4,7 @@
 #include <QStringList>
 #include <iiSDKCore/Process/Process.h>
 #include <memory>
+#include <functional>
 
 // GUI projection of a Core-owned process session. Native launch, pipe transfer,
 // termination/reaping and file leases live on its dispatch worker.
@@ -30,6 +31,10 @@ public:
     void probeOutput(quint64 token);
     void cancel();
     void retire(std::shared_ptr<void> currentFiles = {});
+    // Close admission, cancel owned processes and join their native workers
+    // away from the UI. Completion is delivered on the receiver's thread.
+    static void shutdownAsync(QObject *receiver, std::function<void()> completion,
+                              std::function<void()> beforeWait = {});
 signals:
     void started();
     void outputAvailable(const QByteArray &data);

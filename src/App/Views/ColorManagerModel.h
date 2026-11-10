@@ -62,6 +62,10 @@ class ColorManagerSurface : public QQuickPaintedItem {
     Q_PROPERTY(bool interactive READ interactive WRITE setInteractive NOTIFY interactiveChanged)
     Q_PROPERTY(bool showMarker READ showMarker WRITE setShowMarker NOTIFY showMarkerChanged)
     Q_PROPERTY(bool checkerboard READ checkerboard WRITE setCheckerboard NOTIFY checkerboardChanged)
+    Q_PROPERTY(QColor markerDark MEMBER markerDark_ NOTIFY paletteChanged)
+    Q_PROPERTY(QColor markerLight MEMBER markerLight_ NOTIFY paletteChanged)
+    Q_PROPERTY(QColor checkerDark MEMBER checkerDark_ NOTIFY paletteChanged)
+    Q_PROPERTY(QColor checkerLight MEMBER checkerLight_ NOTIFY paletteChanged)
 public:
     enum Field { HueCube, BrightnessCube, ColorWheel, HueRail, BrightnessRail, Spectrum, ChannelRamp };
     Q_ENUM(Field)
@@ -86,6 +90,7 @@ signals:
     void interactiveChanged();
     void showMarkerChanged();
     void checkerboardChanged();
+    void paletteChanged();
 protected:
     void mousePressEvent(QMouseEvent*) override;
     void mouseMoveEvent(QMouseEvent*) override;
@@ -93,6 +98,7 @@ protected:
     void keyPressEvent(QKeyEvent*) override;
 private:
     QPointer<ColorManagerModel> model_;
+    QColor markerDark_, markerLight_, checkerDark_, checkerLight_;
     int field_=HueCube,channel_=int(iiColorManager::Channel::Red);
     bool interactive_=true,showMarker_=true,checkerboard_=true,pressed_=false;
     void select(const QPointF&);

@@ -35,9 +35,11 @@
 #include <QDir>
 #include <QClipboard>
 #include <QBuffer>
+#include <QDateTime>
 #include <QDirIterator>
 #include <QDesktopServices>
 #include <QElapsedTimer>
+#include <QFont>
 #include <QGuiApplication>
 #include <QApplication>
 #include <QImage>
@@ -50,6 +52,8 @@
 #include <QMap>
 #include <QMouseEvent>
 #include <QLineF>
+#include <QLocalServer>
+#include <QLocalSocket>
 #include <QProcessEnvironment>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
@@ -79,12 +83,14 @@
 #include <QTcpSocket>
 #include <QWheelEvent>
 #include "Generation/GenerationController.h"
+#include "Generation/GenerationComposerModel.h"
 #include "Publishing/SocialPublishingController.h"
 #include "Publishing/PublishDraft.h"
 #include "Publishing/PublishReview.h"
 #include "Generation/AdvancedImageParameters.h"
 #include "Generation/VideoGeneration.h"
 #include "../../tests/LocalRuntimeProbeReady.h"
+#include "../../tests/fixtures/LicenseTokenFixture.h"
 #include "Views/Result/ImageFileExporter.h"
 #include "Views/Result/GenerationReviewModel.h"
 #include "Views/Result/PhotoLibraryExporter.h"
@@ -204,41 +210,19 @@ bool iconColorsNear(const QColor &left, const QColor &right)
         && qAbs(left.blue() - right.blue()) <= tolerance;
 }
 
-bool captureToolbarIconColor(QQuickItem *icon, const QColor &expected,
-                             QColor *dominant, QString *error)
+bool captureToolbarIcon(QQuickItem *icon, QImage *result, QString *error)
 {
-    const auto fail = [&](const QString &message) {
-        *error = message;
-        return false;
-    };
+    const auto fail = [&](const QString &message) { *error = message; return false; };
     const auto capture = icon->grabToImage();
     if (!capture) return fail("Could not capture the toolbar icon");
     QSignalSpy ready(capture.data(), &QQuickItemGrabResult::ready);
     if (capture->image().isNull() && !ready.wait(5000))
         return fail("Toolbar icon capture did not finish");
-    const auto image = capture->image();
-    QMap<QRgb, int> coreColors;
-    for (int y = 0; y < image.height(); ++y)
-        for (int x = 0; x < image.width(); ++x) {
-            const auto pixel = image.pixelColor(x, y);
-            if (pixel.alpha() >= 230) ++coreColors[pixel.rgb()];
-        }
-    if (coreColors.isEmpty()) return fail("Toolbar icon has no opaque stroke pixels");
-    auto mostFrequent = coreColors.cbegin();
-    for (auto color = coreColors.cbegin(); color != coreColors.cend(); ++color)
-        if (color.value() > mostFrequent.value()) mostFrequent = color;
-    *dominant = QColor::fromRgb(mostFrequent.key());
-    const int largest = qMax(dominant->red(), qMax(dominant->green(), dominant->blue()));
-    const int smallest = qMin(dominant->red(), qMin(dominant->green(), dominant->blue()));
-    if (largest - smallest < 24)
-        return fail("Toolbar icon is achromatic: " + dominant->name());
-    if (!expected.isValid() || !iconColorsNear(*dominant, expected))
-        return fail("Toolbar icon color " + dominant->name()
-                    + " does not match " + expected.name());
-    for (auto color = coreColors.cbegin(); color != coreColors.cend(); ++color)
-        if (!iconColorsNear(QColor::fromRgb(color.key()), *dominant))
-            return fail("Toolbar icon contains more than one stroke color");
-    return true;
+    *result = capture->image();
+    for (int y = 0; y < result->height(); ++y)
+        for (int x = 0; x < result->width(); ++x)
+            if (result->pixelColor(x, y).alpha() > 16) return true;
+    return fail("Toolbar icon has no visible pixels");
 }
 
 QVariantList graphicRows(const QVariantList &rows)
@@ -446,13 +430,39 @@ QQuickItem *menuEntry(QQuickItem *root, const QString &label)
 }
 }
 
+class EntryLicenseFixture final : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(bool licensed READ licensed WRITE setLicensed NOTIFY changed)
+    Q_PROPERTY(bool checking READ checking WRITE setChecking NOTIFY changed)
+    Q_PROPERTY(QString code READ code WRITE setCode NOTIFY changed)
+public:
+    bool licensed() const { return licensed_; }
+    bool checking() const { return checking_; }
+    QString code() const { return code_; }
+    void setLicensed(bool value) { if (licensed_ != value) { licensed_ = value; emit changed(); } }
+    void setChecking(bool value) { if (checking_ != value) { checking_ = value; emit changed(); } }
+    void setCode(const QString &value) { if (code_ != value) { code_ = value; emit changed(); } }
+    Q_INVOKABLE void refresh() { ++checks; }
+    Q_INVOKABLE bool openSociety() { ++opens; return mayOpen; }
+    int checks = 0, opens = 0;
+    bool mayOpen = true;
+signals:
+    void changed();
+private:
+    bool licensed_ = false, checking_ = true;
+    QString code_;
+};
+
 class GuiTests : public QObject
 {
     Q_OBJECT
 
 private slots:
+    void licenseEntryGatesWorkspaceAndPreservesItOnRecheck();
+    void licenseEntryUsesTheSocietyAccount();
     void failureDetailsShowFullTextAndScroll();
     void mainStartupPerformance();
+    void mainRemainsInteractiveWhileStorageConnects();
     void homeDefersEditorUntilNeeded();
     void historyAppearsBelowQuickGenerateAndScrolls_data();
     void historyAppearsBelowQuickGenerateAndScrolls();
@@ -608,6 +618,7 @@ private slots:
     void sharedControlsSubmitCurrentSelection_data();
     void sharedControlsSubmitCurrentSelection();
     void advancedGenerationDefaultsAndDynamicCollections();
+    void advancedImageModelSelectorTracksInventory();
     void advancedAttachmentsPersistNativeSources();
     void advancedControlsAppearOnlyAfterAdd();
     void advancedWorkspacePreservesDraftAndScrolls();
@@ -634,6 +645,235 @@ private slots:
 private:
     QUrl m_societyUrl;
 };
+
+void GuiTests::licenseEntryGatesWorkspaceAndPreservesItOnRecheck()
+{
+    EntryLicenseFixture account;
+    QTemporaryDir storage(DREAMSCAPES_TEST_RESOURCES "/license-entry-XXXXXX.societycontainer");
+    QVERIFY(storage.isValid()); QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+    QQmlEngine engine;
+    QQmlComponent component(&engine, sourceUrl("Main.qml"));
+    std::unique_ptr<QObject> root(component.createWithInitialProperties({
+        {QStringLiteral("licenseAccount"), QVariant::fromValue(static_cast<QObject *>(&account))},
+        {QStringLiteral("initialContainerPath"), storage.path()}
+    }));
+    QVERIFY2(root, qPrintable(component.errorString()));
+    auto *window = qobject_cast<QQuickWindow *>(root.get()); QVERIFY(window);
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+    auto *content = item(root.get(), "appContent"); QVERIFY(content);
+    auto *toolbar = item(root.get(), "desktopHomeToolbar"); QVERIFY(toolbar);
+    auto *newShortcut = root->findChild<QObject *>("newCanvasShortcut"); QVERIFY(newShortcut);
+    QTRY_VERIFY(item(root.get(), "societyLicenseGate"));
+    auto *gate = item(root.get(), "societyLicenseGate");
+    QVERIFY(!gate->isVisible()); QVERIFY(content->isVisible()); QVERIFY(content->isEnabled());
+    QVERIFY(toolbar->isVisible()); QVERIFY(newShortcut->property("enabled").toBool());
+    QVERIFY(!window->property("licenseGranted").toBool());
+    account.setCode(QStringLiteral("license_not_owned")); account.setChecking(false);
+    QTRY_VERIFY(gate->isVisible()); QVERIFY(!content->isVisible()); QVERIFY(!content->isEnabled());
+    QTRY_VERIFY(gate->findChild<QObject *>("licenseStatus"));
+    QVERIFY(gate->findChild<QObject *>("licenseStatus")->property("text").toString().contains("does not", Qt::CaseInsensitive));
+    QVERIFY(QMetaObject::invokeMethod(gate, "retryRequested")); QCOMPARE(account.checks, 1);
+    QVERIFY(QMetaObject::invokeMethod(gate, "openSocietyRequested")); QCOMPARE(account.opens, 1);
+    account.mayOpen = false;
+    QVERIFY(QMetaObject::invokeMethod(gate, "openSocietyRequested")); QCOMPARE(account.opens, 2);
+    QVERIFY(gate->property("actionError").toString().contains("Could not open Society"));
+    QVERIFY(QMetaObject::invokeMethod(gate, "retryRequested")); QCOMPARE(account.checks, 2);
+    QVERIFY(gate->property("actionError").toString().isEmpty());
+    QVERIFY(QMetaObject::invokeMethod(gate, "openSocietyRequested")); QCOMPARE(account.opens, 3);
+    QVERIFY(!gate->property("actionError").toString().isEmpty());
+    QVERIFY(QMetaObject::invokeMethod(window, "refreshLicense")); QCOMPARE(account.checks, 3);
+    QVERIFY(gate->property("actionError").toString().isEmpty());
+    QVERIFY(QMetaObject::invokeMethod(gate, "openSocietyRequested")); QCOMPARE(account.opens, 4);
+    account.setLicensed(true);
+    QTRY_VERIFY(window->property("licenseGranted").toBool());
+    QVERIFY(gate->property("actionError").toString().isEmpty());
+    QTRY_VERIFY(content->isVisible()); QVERIFY(content->isEnabled());
+    QVERIFY(toolbar->isVisible()); QVERIFY(newShortcut->property("enabled").toBool());
+    QVERIFY(!gate->isVisible());
+    auto *generation = window->findChild<GenerationController *>("generationController"); QVERIFY(generation);
+    QTRY_VERIFY_WITH_TIMEOUT(generation->connected(), 20000);
+    QVariant opened;
+    QVERIFY(QMetaObject::invokeMethod(window, "openCanvas", Q_RETURN_ARG(QVariant, opened),
+                                      Q_ARG(QVariant, QString()), Q_ARG(QVariant, QVariantMap{})));
+    QVERIFY(opened.toBool());
+    auto *editor = item(window, "canvasEditor"); QVERIFY(editor);
+    auto *canvas = qobject_cast<EditorCanvas *>(item(editor, "editorBlankCanvas"));
+    QVERIFY(canvas && canvas->documentReady()); QVERIFY(canvas->addPaintLayer());
+    const auto document = iiSharedCanvas::encodeIisc(*canvas->document()).bytes;
+    QVERIFY(window->setProperty("generationRequestError", QStringLiteral("retained draft state")));
+    account.setLicensed(false);
+    QTRY_VERIFY(gate->isVisible()); QVERIFY(!content->isVisible()); QVERIFY(!content->isEnabled());
+    QVERIFY(!newShortcut->property("enabled").toBool());
+    account.setLicensed(true);
+    QTRY_VERIFY(content->isVisible());
+    QTRY_VERIFY(editor->isVisible());
+    QCOMPARE(item(window, "canvasEditor"), editor);
+    QCOMPARE(iiSharedCanvas::encodeIisc(*canvas->document()).bytes, document);
+    QCOMPARE(window->property("generationRequestError").toString(), QStringLiteral("retained draft state"));
+}
+
+void GuiTests::licenseEntryUsesTheSocietyAccount()
+{
+    QTemporaryDir fixture(DREAMSCAPES_TEST_RESOURCES "/license-society-XXXXXX"); QVERIFY(fixture.isValid());
+    const auto storagePath = fixture.filePath("isolated.societycontainer");
+    QVERIFY(QDir().mkpath(storagePath));
+    QString storageError;
+    QVERIFY2(iiSocietyContainer::SocietyDrive::create(storagePath, &storageError), qPrintable(storageError));
+    GenerationRuntime runtime{qEnvironmentVariable("IILD_GENERATOR_EXECUTABLE"), "auto", 10, 1024, {}};
+    runtime.enforceLicense = true;
+    runtime.licenseSocket = fixture.filePath("missing-broker.sock");
+    runtime.localServiceSocket = QStringLiteral("disabled");
+    QScopedValueRollback<std::optional<GenerationRuntime>> override(guiRuntimeOverride, runtime);
+    QQmlApplicationEngine engine;
+    engine.setInitialProperties({{QStringLiteral("initialContainerPath"), storagePath}});
+    engine.load(sourceUrl("Main.qml")); QCOMPARE(engine.rootObjects().size(), 1);
+    auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first()); QVERIFY(window);
+    auto *controller = window->findChild<GenerationController *>("generationController"); QVERIFY(controller);
+    auto *account = qobject_cast<SocietyAccount *>(controller->account()); QVERIFY(account);
+    QCOMPARE(unwrapped(window->property("licenseAccount")).value<QObject *>(), static_cast<QObject *>(account));
+    QTRY_COMPARE_WITH_TIMEOUT(account->code(), QStringLiteral("society_unavailable"), 15000);
+    QVERIFY(!account->licensed()); QVERIFY(!window->property("licenseGranted").toBool());
+    QTRY_VERIFY(item(window, "societyLicenseGate"));
+    QVERIFY(item(window, "societyLicenseGate")->isVisible());
+    QVERIFY(!item(window, "appContent")->isVisible());
+
+    // Verify the same window boundary with a real SocietyAccount and signed
+    // fixture responses, without contacting the user's Society process.
+    bool tampered = true;
+    int requests = 0;
+    QLocalServer broker;
+    broker.setSocketOptions(QLocalServer::UserAccessOption);
+    QVERIFY(broker.listen(fixture.filePath("signed.sock")));
+    connect(&broker, &QLocalServer::newConnection, &broker, [&] {
+        while (auto *socket = broker.nextPendingConnection()) {
+            connect(socket, &QLocalSocket::disconnected, socket, &QObject::deleteLater);
+            connect(socket, &QLocalSocket::readyRead, socket, [&, socket] {
+                const auto data = socket->property("request").toByteArray() + socket->readAll();
+                socket->setProperty("request", data);
+                if (data.size() < 4) return;
+                const auto *p = reinterpret_cast<const unsigned char *>(data.constData());
+                const quint32 n = (quint32(p[0]) << 24) | (quint32(p[1]) << 16)
+                    | (quint32(p[2]) << 8) | quint32(p[3]);
+                if (data.size() < 4 + int(n)) return;
+                const auto request = QJsonDocument::fromJson(data.mid(4, n)).object();
+                ++requests;
+                const auto now = QDateTime::currentSecsSinceEpoch();
+                const QJsonObject payload{{"v", 1}, {"iss", "https://iisacc.com"}, {"aud", "society"},
+                    {"sub", "fixture-owner"}, {"deviceId", QString(64, 'a')}, {"issuedAt", now},
+                    {"expiresAt", now + 3600}, {"licenses", QJsonArray{QJsonObject{
+                        {"productId", "dreamscapes"}, {"licensed", true}, {"expiresAt", QJsonValue::Null}}}}};
+                auto token = dreamscapes_license_fixture::sign(
+                    QJsonDocument(payload).toJson(QJsonDocument::Compact).toStdString());
+                if (tampered) token[token.find('.') + 5] ^= 1;
+                const auto body = QJsonDocument(QJsonObject{{"requestId", request.value("requestId")},
+                    {"allowed", true}, {"licenseToken", QString::fromStdString(token)}}).toJson(QJsonDocument::Compact);
+                const auto size = quint32(body.size()); QByteArray header;
+                header.append(char(size >> 24)); header.append(char(size >> 16));
+                header.append(char(size >> 8)); header.append(char(size));
+                socket->write(header + body); socket->disconnectFromServer();
+            });
+        }
+    });
+    using namespace iisacc::accounts::native;
+    SocietySessionOptions options{.product_id = "dreamscapes",
+        .device = {std::string(64, 'a'), "pc", "Fixture", "macos", "1", "com.iisacc.dreamscapes", "1"},
+        .socket_path = fixture.filePath("signed.sock").toStdString(), .timeout = std::chrono::seconds(2),
+        .keys = {{"dreamscapes-fixture", dreamscapes_license_fixture::publicKey()}}};
+    SocietyAccount signedAccount(options);
+    QVERIFY(window->setProperty("licenseAccount", QVariant::fromValue(static_cast<QObject *>(&signedAccount))));
+    QTRY_COMPARE_WITH_TIMEOUT(signedAccount.code(), QStringLiteral("invalid_society_response"), 10000);
+    QVERIFY(!signedAccount.licensed());
+    QVERIFY(!window->property("licenseGranted").toBool());
+    QVERIFY(item(window, "societyLicenseGate")->isVisible());
+    tampered = false; signedAccount.refresh();
+    QTRY_VERIFY_WITH_TIMEOUT(signedAccount.licensed(), 10000);
+    QTRY_VERIFY(window->property("licenseGranted").toBool());
+    QTRY_VERIFY(item(window, "appContent")->isVisible());
+    const auto requestsAtGrant = requests;
+    tampered = true; signedAccount.refresh();
+    QCOMPARE(signedAccount.code(), QStringLiteral("licensed"));
+    QVERIFY(window->property("licenseGranted").toBool());
+    QVERIFY(item(window, "appContent")->isVisible());
+    QCOMPARE(requests, requestsAtGrant);
+}
+
+void GuiTests::advancedImageModelSelectorTracksInventory()
+{
+    QQmlEngine engine;
+    QQmlComponent component(&engine, sourceUrl("Views/Home/AdvancedGenerate.qml"));
+    std::unique_ptr<QObject> view(component.create());
+    QVERIFY2(view, qPrintable(component.errorString()));
+    auto *panel = qobject_cast<QQuickItem *>(view.get());
+    QVERIFY(panel);
+    QQuickWindow window;
+    window.resize(402, 844);
+    panel->setParentItem(window.contentItem());
+    panel->setSize(QSizeF(402, 844));
+    auto *row = item(view.get(), "advancedModel");
+    QVERIFY(row);
+    const QVariantList models{QVariantMap{{"id", "first"}, {"name", "First model"}},
+                              QVariantMap{{"id", "second"}, {"name", "Second model"}}};
+    QVERIFY(view->setProperty("models", models));
+    QTRY_COMPARE(listProperty(row, "options"), QVariantList({"Selected model", "First model", "Second model"}));
+    QTRY_COMPARE(listProperty(row, "optionValues"), QVariantList({"", "first", "second"}));
+    auto *selector = visualItem(row, "panelRow_selector");
+    QVERIFY(selector);
+    QTRY_COMPARE(selector->property("count").toInt(), 3);
+    auto *menu = selector->property("popup").value<QObject *>();
+    QVERIFY(menu);
+    QTRY_COMPARE(listProperty(menu, "entryDelegateItems").size(), 3);
+    QCOMPARE(listProperty(menu, "entryDelegateItems").at(1).toMap().value("label").toString(), QString("First model"));
+    QCOMPARE(listProperty(menu, "entryDelegateItems").at(2).toMap().value("label").toString(), QString("Second model"));
+    QVariant selected;
+    QVERIFY(QMetaObject::invokeMethod(selector, "choose", Q_RETURN_ARG(QVariant, selected), Q_ARG(QVariant, 2)));
+    QVERIFY(selected.toBool());
+    auto *draft = view->findChild<AdvancedImageParameters *>("advancedParameterStore");
+    QVERIFY(draft);
+    QCOMPARE(draft->parameters().value("model").toString(), QString("second"));
+    QVERIFY(view->setProperty("models", QVariantList{models[1], models[0]}));
+    QTRY_COMPARE(row->property("selectorIndex").toInt(), 1);
+    QCOMPARE(draft->parameters().value("model").toString(), QString("second"));
+    panel->setParentItem(nullptr);
+
+    // Exercise the real workspace/controller binding and the same model
+    // projection used by Home with an isolated Society inventory.
+    QTemporaryDir storage(DREAMSCAPES_TEST_RESOURCES "/advanced-models-XXXXXX.societycontainer");
+    QVERIFY(storage.isValid());
+    QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+    const auto addModel = [&](const QString &name) {
+        QFile file(storage.filePath("Models/" + name));
+        return file.open(QIODevice::WriteOnly) && file.write("protocol fixture") > 0;
+    };
+    QVERIFY(addModel("first.safetensors"));
+    GuiGenerationController controller;
+    QVERIFY(controller.connectStorage(storage.path()));
+    QTRY_COMPARE_WITH_TIMEOUT(controller.models().size(), 1, 15000);
+    GenerationComposerModel home;
+    home.setGeneration(&controller);
+    QCOMPARE(home.modelChoices(), controller.models());
+    QQmlComponent workspaceComponent(&engine, sourceUrl("Views/Home/ImageGenerationWorkspace.qml"));
+    std::unique_ptr<QObject> workspace(workspaceComponent.createWithInitialProperties(
+        {{"generation", QVariant::fromValue(static_cast<QObject *>(&controller))}}));
+    QVERIFY2(workspace, qPrintable(workspaceComponent.errorString()));
+    auto *workspaceRow = item(workspace.get(), "advancedModel");
+    QVERIFY(workspaceRow);
+    auto expectedNames = [&] {
+        QVariantList result{"Selected model"};
+        for (const auto &entry : home.modelChoices()) result.append(entry.toMap().value("name"));
+        return result;
+    };
+    QTRY_COMPARE(listProperty(workspaceRow, "options"), expectedNames());
+    QVERIFY(addModel("second.safetensors"));
+    controller.refreshModels();
+    QTRY_COMPARE_WITH_TIMEOUT(home.modelChoices().size(), 2, 15000);
+    QTRY_COMPARE(listProperty(workspaceRow, "options"), expectedNames());
+    workspace.reset();
+    home.setGeneration(nullptr);
+    bool stopped = false;
+    controller.finishShutdownAsync(&controller, [&] { stopped = true; });
+    QTRY_VERIFY_WITH_TIMEOUT(stopped, 15000);
+    QTRY_VERIFY_WITH_TIMEOUT(storage.remove(), 15000);
+}
 
 void GuiTests::advancedGenerationDefaultsAndDynamicCollections()
 {
@@ -831,7 +1071,7 @@ void GuiTests::advancedGenerationDefaultsAndDynamicCollections()
     QCOMPARE(evaluate("advancedView.addControlNet('Depth')").toInt(), 3);
     QCOMPARE(view->property("controlNetCount").toInt(), 3);
     QCOMPARE(view->property("nextControlNetNumber").toInt(), 4);
-    const auto reference = sourceUrl("Views/Result/Assets/right.svg").toString();
+    const auto reference = sourceUrl("Views/Video/Assets/coastal-reference.png").toString();
     for (int index = 0; index < 20; ++index)
         QVERIFY(evaluate(QString("advancedView.addReferenceImage('%1')").arg(reference)).toBool());
     QVERIFY(!evaluate("advancedView.addReferenceImage('file:///reference-overflow.png')").toBool());
@@ -1400,25 +1640,26 @@ void GuiTests::mobileHomeUsesFigmaSectionsLimitsAndLvrsNavigation()
     QCOMPARE(navigation->property("currentIndex").toInt(), 0);
     QVERIFY(navigation->property("searchVisible").toBool());
     QCOMPARE(navigation->height(), 88.0);
-    const QStringList navigationAssets {"home", "tools", "storage", "notification", "account"};
+    const QStringList navigationAssets {"home", "collection-asset", "sqlFile", "toolwindownotifications", "role"};
     for (int index = 0; index < navigationAssets.size(); ++index) {
         auto *tab = visualItem(navigation, QString("mobileNavigationTab%1").arg(index).toUtf8().constData());
         QVERIFY(tab);
-        QVERIFY(tab->property("preserveIconColors").toBool());
+        QVERIFY(!tab->property("preserveIconColors").toBool());
+        QCOMPARE(tab->property("foreground").value<QColor>(),
+                 theme->property(index == 0 ? "primaryHover" : "bodyColor").value<QColor>());
         const auto source = tab->property("iconSource").toUrl();
-        QVERIFY(source.path().endsWith("/Navigation/" + navigationAssets[index] + ".svg"));
+        QVERIFY(source.path().endsWith("/LVRS/resources/iconset/" + navigationAssets[index] + ".svg"));
         QFile asset(source.isLocalFile() ? source.toLocalFile() : ":" + source.path());
         QVERIFY(asset.open(QIODevice::ReadOnly));
         QVERIFY(asset.size() > 0);
         auto *icon = visualItem(tab, "mobileNavigationIcon");
         QVERIFY(icon);
         QTRY_COMPARE(icon->property("status").toInt(), 1); // Image.Ready
-        QCOMPARE(icon->width(), index == 2 ? 17.5 : 24.0);
-        QCOMPARE(icon->height(), index == 2 ? 20.5545 : 24.0);
+        QCOMPARE(icon->size(), QSizeF(24, 24));
     }
     auto *search = visualItem(navigation, "mobileNavigationSearch");
-    QVERIFY(search && search->property("preserveIconColors").toBool());
-    QVERIFY(search->property("iconSource").toUrl().path().endsWith("/Navigation/search.svg"));
+    QVERIFY(search && !search->property("preserveIconColors").toBool());
+    QVERIFY(search->property("iconSource").toUrl().path().endsWith("/LVRS/resources/iconset/generalsearch.svg"));
     QTRY_COMPARE(recent->property("count").toInt(), 20);
     QTRY_COMPARE(published->property("count").toInt(), 4);
     QTRY_COMPARE(history->property("count").toInt(), 20);
@@ -1554,16 +1795,16 @@ void GuiTests::desktopHomeSidebarMatchesFigmaAndScrolls()
     QVERIFY(actions.isValid());
     struct Row { const char *key; const char *label; const char *icon; const char *asset; qreal y; };
     const Row rows[] = {
-        {"home", "Home", "nodeshomeFolder", "home.svg", 8},
-        {"canvas", "New Canvas", "imagefitContent", "canvas.svg", 35},
-        {"image", "Image", "unconditionalImageGeneration", "image.svg", 59},
-        {"video", "Video", "imageToVideo", "video.svg", 83},
-        {"audio", "Audio", "volume", "audio.svg", 107},
-        {"board", "Board", "pattern", "board.svg", 131},
-        {"tools", "Tools", "collection", "tools.svg", 155},
+        {"home", "Home", "nodeshomeFolder", "nodeshomeFolder.svg", 8},
+        {"canvas", "New Canvas", "imagefitContent", "imagefitContent.svg", 35},
+        {"image", "Image", "unconditionalImageGeneration", "unconditionalImageGeneration.svg", 59},
+        {"video", "Video", "imageToVideo", "imageToVideo.svg", 83},
+        {"audio", "Audio", "volume", "volume.svg", 107},
+        {"board", "Board", "pattern", "pattern.svg", 131},
+        {"tools", "Tools", "collection", "collection.svg", 155},
         {"files", "Files", "sqlFile", "sqlFile.svg", 182},
-        {"assets", "Assets", "asset-library", "assets.svg", 206},
-        {"history", "Generation History", "profileCPU", "history.svg", 230}
+        {"assets", "Assets", "asset-library", "asset-library.svg", 206},
+        {"history", "Generation History", "profileCPU", "profileCPU.svg", 230}
     };
     for (const auto &expected : rows) {
         auto *row = visualItem(sidebar.data(), qPrintable(QString("desktopAction_") + expected.key));
@@ -2043,7 +2284,15 @@ void GuiTests::publishWorkspaceRetainsTheEditorAndUsesRealCanvases()
     auto *publishingSettings=item(view,"publishPublishingSection");
     auto *addMention=item(view,"publishAddMention");
     QVERIFY(publishingSettings && addMention);
+    QCOMPARE(addMention->property("iconName").toString(), QString("generaladd"));
     QTRY_COMPARE(publishingSettings->height(),bounds(addMention,publishingSettings).bottom());
+    auto *contentStepper = item(view, "publishContentTypeStepper");
+    auto *contentMenu = view->findChild<QObject *>("publishContentTypeMenu");
+    QVERIFY(contentStepper && contentMenu);
+    click(window, contentStepper);
+    QTRY_VERIFY(contentMenu->property("visible").toBool());
+    QVERIFY(QMetaObject::invokeMethod(contentMenu, "close"));
+    QTRY_VERIFY(!contentMenu->property("visible").toBool());
     QQuickItem *preview=nullptr; QTRY_VERIFY((preview=visualItem(view,"publishCanvasPreview-0")));
     QTRY_COMPARE(preview->property("status").toInt(),1);
     QCOMPARE(canvas->zoom(),zoom); QCOMPARE(QPointF(canvas->panX(),canvas->panY()),pan);
@@ -2064,6 +2313,9 @@ void GuiTests::publishWorkspaceRetainsTheEditorAndUsesRealCanvases()
     QVERIFY(QMetaObject::invokeMethod(view,"selectSection",Q_ARG(QVariant,"rights")));
     auto *adult=item(view,"publishAdult");
     QVERIFY(adult && inspectorViewport);
+    QCOMPARE(adult->property("checkedColor").value<QColor>(), theme->property("accentGreen").value<QColor>());
+    QCOMPARE(adult->property("checkColor").value<QColor>(), theme->property("windowAlt").value<QColor>());
+    QVERIFY(!adult->property("useFigmaCheckedAssets").toBool());
     QTRY_VERIFY(bounds(adult,inspectorViewport).top()>=0 && bounds(adult,inspectorViewport).bottom()<=inspectorViewport->height());
     click(window,item(view,"publishAdult")); QTRY_VERIFY(draft->values().value("adult").toBool());
     const auto directory=qEnvironmentVariable("DREAMSCAPES_CAPTURE_DIR");
@@ -2538,6 +2790,13 @@ void GuiTests::canvasToolFeedbackFollowsNativePointer()
     auto *toolbar = item(editor.data(), "editorToolbar");
     auto *sheet = editor->findChild<QObject *>("editorToolSheet");
     QVERIFY(canvas && feedback && toolbar && sheet);
+    QCOMPARE(feedback->property("lightColor").value<QColor>(), theme->property("textTokenBase").value<QColor>());
+    QCOMPARE(feedback->property("darkColor").value<QColor>(), theme->property("canvas").value<QColor>());
+    QCOMPARE(feedback->property("gestureColor").value<QColor>(), theme->property("primaryOverlay").value<QColor>());
+    const auto previewColors = canvas->toolPreviewColors();
+    QCOMPARE(previewColors.value("foreground").value<QColor>(), theme->property("accentBlue").value<QColor>());
+    QCOMPARE(previewColors.value("surface").value<QColor>(), theme->property("surfaceSolid").value<QColor>());
+    QCOMPARE(previewColors.value("guide").value<QColor>(), theme->property("descriptionColor").value<QColor>());
     QCOMPARE(feedback->acceptedMouseButtons(), Qt::NoButton);
     QVERIFY(canvas->createCanvas({{"width", 96}, {"height", 96}, {"unit", "px"}, {"background", "Transparent"}}));
     canvas->setZoom(3);
@@ -2644,25 +2903,30 @@ void GuiTests::desktopHomeRendersFigmaFrame()
     QTRY_COMPARE(item(window, "desktopRecentFileCards")->property("count").toInt(), 6);
     QTRY_COMPARE(item(window, "generationHistoryCards")->property("count").toInt(), 6);
     QTest::qWait(200);
-    int exportedImages = 0;
+    const QSet<QString> toolbarIcons{"inputFieldSearch.svg", "toolwindownotifications.svg", "role-1.svg"};
+    QSet<QString> loadedToolbarIcons;
     const auto checkImages = [&](auto &&self, QQuickItem *parent) -> void {
         for (auto *child : parent->childItems()) {
-            const auto source = child->property("source").toUrl().toString();
-            if (child->isVisible() && source.contains("Assets/Desktop/") && child->property("status").isValid()) {
-                ++exportedImages;
-                QCOMPARE(child->property("status").toInt(), 1); // Image.Ready
-                const auto asset = QUrl(source).fileName();
-                const QSizeF expected = asset == "home.svg" ? QSizeF(16, 16)
-                    : asset == "files.svg" ? QSizeF(13.375, 15.6659)
-                    : asset == "search.svg" ? QSizeF(12, 12)
-                    : asset == "spark.svg" || asset == "open.svg" ? QSizeF(24, 24) : QSizeF(18, 18);
-                QCOMPARE(child->size(), expected);
+            const auto source = child->property("source").toUrl();
+            const auto name = source.fileName();
+            if (child->isVisible() && source.path().contains("/LVRS/resources/iconset/") &&
+                toolbarIcons.contains(name) && child->property("status").isValid()) {
+                QTRY_COMPARE(child->property("status").toInt(), 1);
+                loadedToolbarIcons.insert(name);
             }
             self(self, child);
         }
     };
     checkImages(checkImages, window->contentItem());
-    QVERIFY(exportedImages >= 12); // 9 original sidebar exports + 3 toolbar; Files uses LVRS sqlFile.
+    QCOMPARE(loadedToolbarIcons, toolbarIcons);
+    for (const auto *key : {"home", "canvas", "image", "video", "audio", "board", "tools", "files", "assets", "history"}) {
+        auto *row = visualItem(item(window, "desktopSidebar"), qPrintable(QString("desktopAction_") + key));
+        QVERIFY(row);
+        auto *icon = visualItem(row, QString(key) == "home" ? "iconButton_icon" : "menuItem_iconImage");
+        QVERIFY(icon);
+        QTRY_COMPARE(icon->property("status").toInt(), 1);
+        QVERIFY(icon->property("source").toUrl().path().contains("/LVRS/resources/iconset/"));
+    }
     auto *filesIcon = visualItem(item(window, "desktopSidebar"), "desktopAction_files");
     QVERIFY(filesIcon);
     filesIcon = visualItem(filesIcon, "menuItem_iconImage");
@@ -5248,30 +5512,29 @@ void GuiTests::mobileEditorToolbarSlidesAndSelects()
         QCOMPARE(selections.size(), beforeDrag);
     }
 
-    QFile manifest(sourceUrl("Views/Editor/Assets/manifest.json").toLocalFile());
-    QVERIFY(manifest.open(QIODevice::ReadOnly));
-    const auto assets = QJsonDocument::fromJson(manifest.readAll()).object()["icons"].toArray();
-    QCOMPARE(assets.size(), 18);
-    QSet<QRgb> renderedAccentColors;
-    for (int index = 0; index < assets.size(); ++index) {
-        const auto asset = assets[index].toObject();
-        const auto file = asset["file"].toString();
-        const auto key = file.chopped(4);
-        const auto path = sourceUrl("Views/Editor/Assets/" + file).toLocalFile();
-        QVERIFY(QFileInfo(path).size() > 0);
-        const QColor expectedAccent(asset["strokeColor"].toString());
-        QColor beforeSelection, selectedAccent, afterSelection;
+    const QStringList expectedKeys{"elements", "text", "camera-photo", "file", "background", "audio-track", "canvas",
+        "generative", "layers", "select", "color", "effects", "retouch", "fill", "brush", "auto-enhance", "masking", "eraser"};
+    const QStringList expectedLabels{"Elements", "Text", "Camera/Photo", "File", "Background", "Audio track", "Canvas",
+        "Generative", "Layers", "Select", "Color", "Effects", "Retouch", "Fill", "Brush", "Adjust", "Masking", "Eraser"};
+    QCOMPARE(activeTools.size(), expectedKeys.size());
+    for (int index = 0; index < activeTools.size(); ++index) {
+        const auto role = activeTools[index].toMap();
+        const auto key = role["key"].toString();
+        QCOMPARE(key, expectedKeys[index]);
+        const auto iconName = role["icon"].toString();
+        QVERIFY(!iconName.isEmpty());
+        QImage beforeSelection, selectedAccent, afterSelection;
         QString colorError;
         // Expose the icon without selecting it. ListView may recreate delegates
         // when wrapping between the first and last mobile tools.
-        QVERIFY(QMetaObject::invokeMethod(toolbar, "syncTool", Q_ARG(QVariant, (index + 1) % assets.size())));
+        QVERIFY(QMetaObject::invokeMethod(toolbar, "syncTool", Q_ARG(QVariant, (index + 1) % activeTools.size())));
         QQmlExpression expose(QQmlEngine::contextForObject(list), list,
             QString("positionViewAtIndex(%1, ListView.Contain)").arg(index));
         expose.evaluate();
         QVERIFY2(!expose.hasError(), qPrintable(expose.error().toString()));
         QTRY_VERIFY(toolFor(key) && !toolFor(key)->property("selected").toBool());
         QTRY_COMPARE(item(toolFor(key), "editorToolIcon")->property("status").toInt(), 1);
-        QVERIFY2(captureToolbarIconColor(item(toolFor(key), "editorToolIcon"), expectedAccent,
+        QVERIFY2(captureToolbarIcon(item(toolFor(key), "editorToolIcon"),
                                         &beforeSelection, &colorError),
                  qPrintable(key + " before selection: " + colorError));
         QVERIFY(QMetaObject::invokeMethod(toolbar, "selectTool", Q_ARG(QVariant, index)));
@@ -5279,36 +5542,40 @@ void GuiTests::mobileEditorToolbarSlidesAndSelects()
         auto *tool = toolFor(key);
         QCOMPARE(tool->width(), 86.0);
         QCOMPARE(tool->height(), 68.0);
-        QCOMPARE(tool->property("text").toString(), key == "auto-enhance" ? QString("Adjust") : asset["label"].toString());
+        QCOMPARE(tool->property("text").toString(), expectedLabels[index]);
         auto *icon = item(tool, "editorToolIcon");
         auto *slot = item(tool, "editorToolIconSlot");
-        QVERIFY(icon && slot);
+        auto *label = item(tool, "editorToolLabel");
+        QVERIFY(icon && slot && label);
+        const auto labelFont = label->property("font").value<QFont>();
+        QCOMPARE(labelFont.pixelSize(), theme->property("textCaption").toInt());
+        QCOMPARE(int(labelFont.weight()), theme->property("textBodyWeight").toInt());
+        QCOMPARE(label->property("lineHeight").toReal(), theme->property("textCaptionLineHeight").toReal());
+        QVERIFY2(label->implicitWidth() <= label->width() + 1.0, qPrintable(key + " caption is clipped"));
         QTRY_COMPARE(icon->property("status").toInt(), 1);
-        QCOMPARE(icon->property("source").toUrl(), QUrl::fromLocalFile(path));
+        const auto source = icon->property("source").toUrl();
+        QVERIFY(source.path().endsWith("/LVRS/resources/iconset/" + iconName + ".svg"));
+        QFile sharedIcon(source.isLocalFile() ? source.toLocalFile() : ":" + source.path());
+        QVERIFY(sharedIcon.open(QIODevice::ReadOnly) && sharedIcon.size() > 0);
         QCOMPARE(slot->size(), QSizeF(22, 22));
-        QCOMPARE(icon->width(), asset["width"].toString().toDouble());
-        QCOMPARE(icon->height(), asset["height"].toString().toDouble());
-        QCOMPARE(icon->x(), asset["x"].toDouble());
-        QCOMPARE(icon->y(), asset["y"].toDouble());
-        QVERIFY2(captureToolbarIconColor(icon, expectedAccent, &selectedAccent, &colorError),
+        QCOMPARE(icon->size(), QSizeF(18, 18));
+        QCOMPARE(icon->position(), QPointF(2, 2));
+        QVERIFY2(captureToolbarIcon(icon, &selectedAccent, &colorError),
                  qPrintable(key + " selected: " + colorError));
-        QVERIFY(iconColorsNear(beforeSelection, selectedAccent));
-        QVERIFY2(!renderedAccentColors.contains(selectedAccent.rgb()), qPrintable("Repeated toolbar accent: " + key));
-        renderedAccentColors.insert(selectedAccent.rgb());
+        QCOMPARE(beforeSelection, selectedAccent);
         QVERIFY(QMetaObject::invokeMethod(toolSheet, "dismiss"));
         QTRY_VERIFY(!toolSheet->property("visible").toBool());
-        QVERIFY(QMetaObject::invokeMethod(toolbar, "syncTool", Q_ARG(QVariant, (index + 1) % assets.size())));
+        QVERIFY(QMetaObject::invokeMethod(toolbar, "syncTool", Q_ARG(QVariant, (index + 1) % activeTools.size())));
         expose.evaluate();
         QVERIFY2(!expose.hasError(), qPrintable(expose.error().toString()));
         QTRY_VERIFY(toolFor(key) && !toolFor(key)->property("selected").toBool());
         QTRY_COMPARE(item(toolFor(key), "editorToolIcon")->property("status").toInt(), 1);
-        QVERIFY2(captureToolbarIconColor(item(toolFor(key), "editorToolIcon"), expectedAccent,
+        QVERIFY2(captureToolbarIcon(item(toolFor(key), "editorToolIcon"),
                                         &afterSelection, &colorError),
                  qPrintable(key + " after deselection: " + colorError));
-        QVERIFY(iconColorsNear(selectedAccent, afterSelection));
+        QCOMPARE(selectedAccent, afterSelection);
         QVERIFY(QMetaObject::invokeMethod(toolbar, "syncTool", Q_ARG(QVariant, index)));
     }
-    QCOMPARE(renderedAccentColors.size(), 18);
     QCOMPARE(editor->property("selectedTool").toString(), "eraser");
     auto *last = toolFor("eraser");
     QVERIFY(bounds(last, list).right() <= list->width() + 1);
@@ -5981,7 +6248,7 @@ void GuiTests::applicationLaunchWindowDefaults()
 
 void GuiTests::mainStartupPerformance()
 {
-    QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/startup-performance-XXXXXX.societycontainer");QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+    QTemporaryDir storage(DREAMSCAPES_TEST_RESOURCES "/startup-performance-XXXXXX.societycontainer");QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
     for(int attempt=0;attempt<3;++attempt){
         QQmlApplicationEngine engine;engine.setInitialProperties({{"initialContainerPath",storage.path()}});QElapsedTimer timer;timer.start();engine.load(sourceUrl("Main.qml"));
         const auto milliseconds=timer.nsecsElapsed()/1000000.0;QCOMPARE(engine.rootObjects().size(),1);auto *window=qobject_cast<QQuickWindow *>(engine.rootObjects().first());QVERIFY(window);
@@ -5995,14 +6262,56 @@ void GuiTests::mainStartupPerformance()
         QVERIFY(publishing->jobs().isEmpty());
         QVERIFY(QFile::exists(QStringLiteral(":/licenses/iiSocialPublish/nlohmann-json/LICENSE.MIT")));
         qInfo().noquote()<<QString("PERF main_startup attempt=%1 qml_load_ms=%2 objects=%3 editor_created=%4").arg(attempt).arg(milliseconds,0,'f',3).arg(window->findChildren<QObject *>().size()).arg(bool(item(window,"canvasEditor")));
+        auto *generation = window->findChild<GenerationController *>("generationController");
+        QVERIFY(generation);
+        QTRY_VERIFY_WITH_TIMEOUT(generation->connected(), 20000);
+        QVERIFY(!generation->storageInitializing());
         window->hide();
     }
 }
+void GuiTests::mainRemainsInteractiveWhileStorageConnects()
+{
+    QTemporaryDir storage(DREAMSCAPES_TEST_RESOURCES "/gui-connect-XXXXXX.societycontainer");
+    QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+    auto entered = std::make_shared<std::atomic_bool>(false);
+    auto release = std::make_shared<std::binary_semaphore>(0);
+    bool released = false;
+    const auto releaseOnExit = qScopeGuard([&] { if (!released) release->release(); });
+    GenerationRuntime runtime;
+    runtime.beforeInitialStoragePreparation = [entered, release] { *entered = true; release->acquire(); };
+    QScopedValueRollback<std::optional<GenerationRuntime>> override(guiRuntimeOverride, runtime);
+    QQmlApplicationEngine engine;
+    engine.setInitialProperties({{"initialContainerPath", storage.path()}});
+    engine.load(sourceUrl("Main.qml"));
+    QCOMPARE(engine.rootObjects().size(), 1);
+    auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
+    QVERIFY(window);
+    auto *generation = window->findChild<GenerationController *>("generationController");
+    QVERIFY(generation);
+    QTRY_VERIFY_WITH_TIMEOUT(entered->load(), 5000);
+    QVERIFY(generation->storageInitializing());
+    auto *refresh = item(window, "refreshSociety");
+    QVERIFY(refresh && !refresh->isEnabled());
+    window->show();
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+    auto *sidebar = item(window, "desktopSidebar");
+    QVERIFY(sidebar);
+    auto *imageAction = visualItem(sidebar, "desktopAction_image");
+    QVERIFY(imageAction);
+    click(window, imageAction);
+    auto *imageWorkspace = item(window, "imageGenerationWorkspace");
+    QVERIFY(imageWorkspace && imageWorkspace->isVisible());
+    released = true;
+    release->release();
+    QTRY_VERIFY_WITH_TIMEOUT(generation->connected(), 20000);
+    QVERIFY(!generation->storageInitializing());
+}
 void GuiTests::homeDefersEditorUntilNeeded()
 {
-    QTemporaryDir storage(DREAMSCAPES_TEST_DIRECTORY "/lazy-editor-XXXXXX.societycontainer");QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
+    QTemporaryDir storage(DREAMSCAPES_TEST_RESOURCES "/lazy-editor-XXXXXX.societycontainer");QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
     QQmlApplicationEngine engine;engine.setInitialProperties({{"initialContainerPath",storage.path()}});engine.load(sourceUrl("Main.qml"));QCOMPARE(engine.rootObjects().size(),1);
     auto *window=qobject_cast<QQuickWindow *>(engine.rootObjects().first());QVERIFY(window);QVERIFY(!item(window,"canvasEditor"));
+    auto *generation=window->findChild<GenerationController *>("generationController");QVERIFY(generation);QTRY_VERIFY_WITH_TIMEOUT(generation->connected(),20000);
     window->show();QVERIFY(QTest::qWaitForWindowExposed(window));
     QVariant opened;
     QVERIFY(QMetaObject::invokeMethod(window,"openCanvas",Q_RETURN_ARG(QVariant,opened),Q_ARG(QVariant,QString()),Q_ARG(QVariant,QVariantMap{})));
@@ -6292,14 +6601,10 @@ void GuiTests::desktopEditorLayoutCentersCanvas()
     QVERIFY(!visualItem(editor.data(), "editorTool-asset"));
     auto *content = list->property("contentItem").value<QQuickItem *>();
     QVERIFY(content);
-    QFile manifest(sourceUrl("Views/Editor/Assets/manifest.json").toLocalFile());
-    QVERIFY(manifest.open(QIODevice::ReadOnly));
-    const auto icons = QJsonDocument::fromJson(manifest.readAll()).object()["icons"].toArray();
-    QCOMPARE(icons.size(), 18);
-    QSet<QRgb> renderedAccentColors;
-    for (int index = 0; index < icons.size(); ++index) {
-        const auto asset = icons[index].toObject();
-        const auto key = asset["file"].toString().chopped(4);
+    const auto activeTools = listProperty(toolbar, "tools");
+    QCOMPARE(activeTools.size(), 18);
+    for (int index = 0; index < activeTools.size(); ++index) {
+        const auto key = activeTools[index].toMap()["key"].toString();
         QQuickItem *tool = nullptr;
         QTRY_VERIFY((tool = visualItem(content, qPrintable("editorTool-" + key))));
         QCOMPARE(bounds(tool, toolbar), QRectF(4, 8 + index * 26 + (index >= 4 ? 5 : 0) + (index >= 9 ? 5 : 0) + (index >= 12 ? 5 : 0), 22, 22));
@@ -6310,13 +6615,16 @@ void GuiTests::desktopEditorLayoutCentersCanvas()
         QVERIFY(!item(tool, "editorToolLabel"));
         QTRY_COMPARE(icon->property("status").toInt(), 1);
         QCOMPARE(icon->size(), QSizeF(18,18));
-        QVERIFY(icon->property("source").toUrl().toString().endsWith("/Assets/tool-"+key+".svg"));
-        const QColor expectedAccent(asset["strokeColor"].toString());
-        QColor beforeSelection, selectedAccent, afterSelection;
+        const auto iconName = activeTools[index].toMap()["icon"].toString();
+        const auto source = icon->property("source").toUrl();
+        QVERIFY(source.path().endsWith("/LVRS/resources/iconset/" + iconName + ".svg"));
+        QFile sharedIcon(source.isLocalFile() ? source.toLocalFile() : ":" + source.path());
+        QVERIFY(sharedIcon.open(QIODevice::ReadOnly) && sharedIcon.size() > 0);
+        QImage beforeSelection, selectedAccent, afterSelection;
         QString colorError;
-        QVERIFY(QMetaObject::invokeMethod(toolbar, "syncTool", Q_ARG(QVariant, (index + 1) % icons.size())));
+        QVERIFY(QMetaObject::invokeMethod(toolbar, "syncTool", Q_ARG(QVariant, (index + 1) % activeTools.size())));
         QVERIFY(!tool->property("selected").toBool());
-        QVERIFY2(captureToolbarIconColor(icon, expectedAccent, &beforeSelection, &colorError),
+        QVERIFY2(captureToolbarIcon(icon, &beforeSelection, &colorError),
                  qPrintable(key + " before selection: " + colorError));
         click(&window, tool);
         QCOMPARE(editor->property("selectedTool").toString(), key);
@@ -6325,27 +6633,24 @@ void GuiTests::desktopEditorLayoutCentersCanvas()
         QVERIFY(background);
         QCOMPARE(tool->property("tone").toInt(),1);
         QTRY_COMPARE(background->property("color").value<QColor>(),tool->property("backgroundColorPressed").value<QColor>());
-        QVERIFY2(captureToolbarIconColor(icon, expectedAccent, &selectedAccent, &colorError),
+        QVERIFY2(captureToolbarIcon(icon, &selectedAccent, &colorError),
                  qPrintable(key + " selected: " + colorError));
-        QVERIFY(iconColorsNear(beforeSelection, selectedAccent));
-        QVERIFY2(!renderedAccentColors.contains(selectedAccent.rgb()), qPrintable("Repeated toolbar accent: " + key));
-        renderedAccentColors.insert(selectedAccent.rgb());
-        QVERIFY(QMetaObject::invokeMethod(toolbar, "syncTool", Q_ARG(QVariant, (index + 1) % icons.size())));
+        QCOMPARE(beforeSelection, selectedAccent);
+        QVERIFY(QMetaObject::invokeMethod(toolbar, "syncTool", Q_ARG(QVariant, (index + 1) % activeTools.size())));
         QVERIFY(!tool->property("selected").toBool());
-        QVERIFY2(captureToolbarIconColor(icon, expectedAccent, &afterSelection, &colorError),
+        QVERIFY2(captureToolbarIcon(icon, &afterSelection, &colorError),
                  qPrintable(key + " after deselection: " + colorError));
-        QVERIFY(iconColorsNear(selectedAccent, afterSelection));
+        QCOMPARE(selectedAccent, afterSelection);
         QVERIFY(QMetaObject::invokeMethod(toolbar, "syncTool", Q_ARG(QVariant, index)));
     }
-    QCOMPARE(renderedAccentColors.size(), 18);
     const auto toolbarCapture = toolbar->grabToImage();
     QVERIFY(toolbarCapture);
     QTRY_VERIFY(!toolbarCapture->image().isNull());
     const auto railImage = toolbarCapture->image();
-    QCOMPARE(railImage.pixelColor(railImage.width()-1,railImage.height()/2), QColor("#0c0c0c"));
+    QCOMPARE(railImage.pixelColor(railImage.width()-1,railImage.height()/2), QColor("#101010"));
     auto* railFrame=item(toolbar,"panelFrame_tools");QVERIFY(railFrame);
     QVERIFY(!railFrame->property("leftEdge").toBool());
-    QVERIFY(railImage.pixelColor(0,railImage.height()/2)!=QColor("#0c0c0c"));
+    QVERIFY(railImage.pixelColor(0,railImage.height()/2)!=QColor("#101010"));
     QVERIFY(QMetaObject::invokeMethod(toolbar, "selectTool", Q_ARG(QVariant, 0)));
     QVERIFY(editor->setProperty("desktopPanelExpanded", true));
     const auto centered = [&]() {
@@ -6469,8 +6774,8 @@ void GuiTests::desktopEditorToolbarScrollsAndNavigates()
         }
         QVERIFY(QMetaObject::invokeMethod(toolbar, "syncTool", Q_ARG(QVariant, 0)));
         auto *first = visualItem(toolbar, "editorTool-elements"); QVERIFY(first);
-        QCOMPARE(first->property("iconName").toString(), QStringLiteral("elements"));
-        QVERIFY(first->property("iconSource").toUrl().toString().endsWith("/Assets/tool-elements.svg"));
+        QCOMPARE(first->property("iconName").toString(), QStringLiteral("rectangle"));
+        QVERIFY(first->property("iconSource").toUrl().path().endsWith("/LVRS/resources/iconset/rectangle.svg"));
         first->forceActiveFocus(Qt::TabFocusReason);
         for (const auto &key : QStringList{"text", "camera-photo", "file"}) {
             QTest::keyClick(&window, Qt::Key_Down);
@@ -6946,8 +7251,10 @@ void GuiTests::desktopEditorElementsMatchesFigma()
             QVERIFY(icon);
             QTRY_COMPARE(icon->property("status").toInt(), 1);
             QCOMPARE(icon->size(), QSizeF(18, 18));
-            QCOMPARE(icon->property("source").toUrl().fileName(), tabAssets[tab]);
-            QVERIFY(QFileInfo(icon->property("source").toUrl().toLocalFile()).size() > 0);
+            const auto source = icon->property("source").toUrl();
+            QVERIFY(source.path().endsWith("/LVRS/resources/iconset/" + tabAssets[tab]));
+            QFile asset(source.isLocalFile() ? source.toLocalFile() : ":" + source.path());
+            QVERIFY(asset.open(QIODevice::ReadOnly) && asset.size() > 0);
             QQmlExpression checked(qmlContext(button), button, "Accessible.checked");
             QTRY_COMPARE(checked.evaluate().toBool(), tab == spec["selectedTab"].toInt());
         }
@@ -6958,7 +7265,7 @@ void GuiTests::desktopEditorElementsMatchesFigma()
         const auto selecting = spec["selectedTab"].toInt() == 0;
         QTRY_COMPARE(headerIcon->property("status").toInt(), 1);
         QCOMPARE(headerIcon->size(), selecting ? QSizeF(18, 18) : QSizeF(16, 16));
-        QCOMPARE(headerIcon->property("source").toUrl().fileName(), selecting ? QString("unselect-all.svg") : QString("auto-refresh.svg"));
+        QCOMPARE(headerIcon->property("source").toUrl().fileName(), selecting ? QString("unselectAll.svg") : QString("autoRefresh.svg"));
         if (spec.contains("heading")) {
             QVERIFY(visualText(panel, spec["heading"].toString()));
             auto *heading = visualItem(panel, selecting ? "elementsSelectionHeading" : "elementsHeading");
@@ -6996,12 +7303,11 @@ void GuiTests::desktopEditorElementsMatchesFigma()
                 QCOMPARE(slider->size(), QSizeF(398, 22));
                 QCOMPARE(bounds(slider, wrapper), QRectF(0, 30, 398, 22));
                 QCOMPARE(slider->property("value").toDouble(), control["initial"].toDouble());
-                auto *thumb = visualItem(slider, qPrintable("elementsThumb-" + field));
+                auto *thumb = visualItem(slider, "slider_thumb");
                 QVERIFY(thumb && thumb->isVisible());
-                QTRY_COMPARE(thumb->property("status").toInt(), 1);
-                QCOMPARE(thumb->size(), QSizeF(18, 18));
-                const auto thumbAsset = id == "polygon" ? "thumb-650-15793.svg" : id == "fill" ? "thumb-650-15795.svg" : id == "stroke" ? "thumb-650-15796.svg" : "thumb.svg";
-                QCOMPARE(thumb->property("source").toUrl().fileName(), QString(thumbAsset));
+                QCOMPARE(thumb->property("fillColor").value<QColor>(), theme->property("titleHeaderColor").value<QColor>());
+                QCOMPARE(thumb->width(), slider->property("thumbDiameter").toReal() + 8.0);
+                QCOMPARE(thumb->height(), thumb->width());
             } else if (kind == "toggle") {
                 auto *toggle = visualItem(wrapper, qPrintable("elementsToggle-" + field));
                 QVERIFY(toggle);
@@ -7073,7 +7379,7 @@ void GuiTests::desktopEditorElementsMatchesFigma()
             QCOMPARE(combo->property("text").toString(), spec["scope"].toObject()["initial"].toString());
             QTRY_COMPARE(arrow->property("status").toInt(), 1);
             QCOMPARE(arrow->size(), QSizeF(18, 18));
-            QCOMPARE(arrow->property("source").toUrl().fileName(), QString("arrow-down-tone-primary.svg"));
+            QCOMPARE(arrow->property("source").toUrl().fileName(), QString("generalchevronDownAccent.svg"));
         }
         for (const auto &label : spec["labels"].toArray()) QVERIFY2(visualText(panel, label.toString()), qPrintable(label.toString()));
         if (spec.contains("selectionRows")) {
@@ -7088,7 +7394,7 @@ void GuiTests::desktopEditorElementsMatchesFigma()
                 QCOMPARE(bounds(entryItem, dock), QRectF(12, top - 5 + row * 44, 398, 36));
                 QVERIFY(visualText(entryItem, names[row].toString()));
                 QCOMPARE(check->property("checked").toBool(), selected[row].toBool());
-                QCOMPARE(check->property("checkedAssetSourceEnabled").toUrl().fileName(), QString("checkbox.svg"));
+                QCOMPARE(check->property("checkedAssetSourceEnabled").toUrl().fileName(), QString("checkboxCheckedEnabled.svg"));
             }
         }
         if (!captureDirectory.isEmpty()) {
@@ -7658,7 +7964,7 @@ void GuiTests::editorLayerPanelFourStates()
     const auto checkFooter = [&] {
         QTest::mouseMove(&window, {10, window.height() - 5});
         const QStringList actions{"layerNew", "layerGroup", "layerMerge", "layerDuplicate", "layerMask", "layerLock", "layerDelete"};
-        const QStringList assets{"NewLayer.svg", "Group.svg", "Merge.svg", "DuplicateLayer.svg", "LayerMask.svg", "Lock.svg", "Generaldelete.svg"};
+        const QStringList assets{"new-layer.svg", "group.svg", "merge.svg", "duplicate-layer.svg", "layer-mask.svg", "lock.svg", "generaldelete.svg"};
         for (int index = 0; index < actions.size(); ++index) {
             auto *button = layerItem(actions[index].toUtf8().constData()); QVERIFY(button);
             const auto destructive = actions[index] == "layerDelete";
@@ -7670,8 +7976,10 @@ void GuiTests::editorLayerPanelFourStates()
             QTRY_COMPARE(icon->property("status").toInt(), 1);
             QCOMPARE(icon->size(), QSizeF(18, 18));
             QCOMPARE(button->property("iconSource").toUrl().fileName(), assets[index]);
-            const QFileInfo asset(button->property("iconSource").toUrl().toLocalFile());
-            QVERIFY(asset.isFile() && asset.size() > 0);
+            const auto source = button->property("iconSource").toUrl();
+            QVERIFY(source.path().contains("/LVRS/resources/iconset/"));
+            QFile asset(source.isLocalFile() ? source.toLocalFile() : ":" + source.path());
+            QVERIFY(asset.open(QIODevice::ReadOnly) && asset.size() > 0);
             if (destructive) {
                 const auto capture = icon->grabToImage(QSize(72, 72)); QVERIFY(capture);
                 QTRY_VERIFY(!capture->image().isNull());
@@ -7679,9 +7987,9 @@ void GuiTests::editorLayerPanelFourStates()
                 for (int y = 0; y < capture->image().height(); ++y)
                     for (int x = 0; x < capture->image().width(); ++x) {
                         const auto pixel = capture->image().pixelColor(x, y);
-                        foregroundVisible |= pixel.alpha() > 40 && iconColorsNear(pixel, QColor("#CED0D6"));
+                        foregroundVisible |= pixel.alpha() > 40 && iconColorsNear(pixel, theme->property("primaryHover").value<QColor>());
                     }
-                QVERIFY2(foregroundVisible, "Figma's light delete glyph must remain visible on the Destructive surface");
+                QVERIFY2(foregroundVisible, "The shared LVRS delete glyph must remain visible on the Destructive surface");
             }
         }
     };
@@ -7701,8 +8009,8 @@ void GuiTests::editorLayerPanelFourStates()
     QVERIFY(visibilityIcon);
     QTRY_COMPARE(visibilityIcon->property("status").toInt(), 1);
     QCOMPARE(visibilityIcon->size(), QSizeF(16, 16));
-    QCOMPARE(visibilityIcon->property("source").toUrl().fileName(), QString("Visibility.svg"));
-    // Check the exported eye's axes in scene coordinates, including parent transforms.
+    QCOMPARE(visibilityIcon->property("source").toUrl().fileName(), QString("visibility.svg"));
+    // Check the shared eye's axes in scene coordinates, including parent transforms.
     const auto leftEye = visibilityIcon->mapToScene(QPointF(0, 8));
     const auto rightEye = visibilityIcon->mapToScene(QPointF(16, 8));
     const auto topEye = visibilityIcon->mapToScene(QPointF(8, 2.5));
@@ -8184,16 +8492,31 @@ void GuiTests::editorTextPanelFourStates()
         QTRY_COMPARE(icon->property("status").toInt(), 1);
         QCOMPARE(icon->size(), QSizeF(18, 18));
     }
-    // Every original Figma icon must be a loaded, proportionate local asset.
+    // Text-tool icons use LVRS assets; the unique cloud shape uses the same
+    // theme foreground. Check actual loading and geometry.
     const auto images = panel->findChildren<QQuickItem *>();
+    const QSet<QString> sharedTextIcons{"align-bottom.svg", "align-center.svg", "align-middle.svg",
+        "align-top.svg", "area-text.svg", "autoRefresh.svg", "callout.svg", "centerAlign.svg",
+        "comment.svg", "font.svg", "font-size.svg", "leftAlign.svg", "paragraph-justify.svg",
+        "rightAlign.svg", "text.svg"};
+    int checkedIcons = 0;
     for (auto *image : images) {
         const auto source = image->property("source").toUrl();
-        if (!source.toString().contains("Assets/Text/")) continue;
+        if (!(source.toString().contains("/LVRS/resources/iconset/") && sharedTextIcons.contains(source.fileName()))) continue;
+        ++checkedIcons;
         QTRY_COMPARE(image->property("status").toInt(), 1);
         QVERIFY(!source.scheme().startsWith("http"));
-        const QStringList insetAssets{"AutoRefresh.svg", "LeftAlign.svg", "CenterAlign.svg", "RightAlign.svg"};
+        const QStringList insetAssets{"autoRefresh.svg", "leftAlign.svg", "centerAlign.svg", "rightAlign.svg"};
         const qreal artworkSize = insetAssets.contains(source.fileName()) ? 16 : 18;
         QCOMPARE(image->size(), QSizeF(artworkSize, artworkSize));
+    }
+    QVERIFY(checkedIcons >= 4);
+    if (viewIndex == 3) {
+        auto *cloud = visualItem(panel, "textCloudGlyph");
+        QVERIFY(cloud && cloud->isVisible());
+        auto *cloudPath = cloud->findChild<QObject *>("textCloudGlyphPath");
+        QVERIFY(cloudPath);
+        QCOMPARE(cloudPath->property("fillColor").value<QColor>(), theme->property("bodyColor").value<QColor>());
     }
     QVERIFY(canvas->createText({24, 30}));
     const auto before = iiSharedCanvas::renderFrame(*canvas->document(), 0).pixels.pixels;
@@ -9272,9 +9595,10 @@ void GuiTests::desktopEditorToolPanelsMatchFigma()
             QTRY_COMPARE(icon->property("status").toInt(), 1);
             QCOMPARE(icon->size(), QSizeF(18, 18));
             QCOMPARE(bounds(icon, preview), QRectF(250, 13, 18, 18));
-            QCOMPARE(icon->property("source").toUrl().fileName(), QString("general-chevron-right.svg"));
-            QFile asset(icon->property("source").toUrl().toLocalFile());
-            QVERIFY(asset.exists() && asset.size() > 0);
+            const auto source = icon->property("source").toUrl();
+            QVERIFY(source.path().endsWith("/LVRS/resources/iconset/generalchevronRight.svg"));
+            QFile asset(source.isLocalFile() ? source.toLocalFile() : ":" + source.path());
+            QVERIFY(asset.open(QIODevice::ReadOnly) && asset.size() > 0);
             auto *value = visualItem(preview, "editorPreviewValue");
             QVERIFY(value);
             QCOMPARE(value->property("text").toString(), QString("View"));
@@ -10791,9 +11115,13 @@ void GuiTests::resultCannotOpenProjectWithoutReadableImage()
 
 void GuiTests::mainCreatesOneSharedWindow()
 {
+    QTemporaryDir storage(DREAMSCAPES_TEST_RESOURCES "/shared-window-XXXXXX.societycontainer");
+    QVERIFY(storage.isValid());
+    QVERIFY(iiSocietyContainer::SocietyDrive::create(storage.path()));
     QPointer<QQuickWindow> window;
     {
         QQmlApplicationEngine engine;
+        engine.setInitialProperties({{QStringLiteral("initialContainerPath"), storage.path()}});
         engine.load(sourceUrl("Main.qml"));
         QCOMPARE(engine.rootObjects().size(), 1);
         window = qobject_cast<QQuickWindow *>(engine.rootObjects().constFirst());
@@ -11049,6 +11377,10 @@ void GuiTests::preferencesCategoriesAndDefaultModels()
     }
     click(preferences, visualItem(preferences->contentItem(), "preferencesCategoryAccount"));
     QVERIFY(visualItem(preferences->contentItem(), "preferencesAccountDetails")->isVisible());
+    auto *accountRefresh = visualItem(preferences->contentItem(), "preferencesAccountRefresh");
+    auto *openSociety = visualItem(preferences->contentItem(), "preferencesOpenSociety");
+    QVERIFY(accountRefresh && openSociety);
+    QCOMPARE(accountRefresh->property("text").toString(), QString("Check license"));
     QVERIFY(!image->isVisible());
     const auto sidebarCapture = qEnvironmentVariable("DREAMSCAPES_SIDEBAR_PREFERENCES_SCREENSHOT");
     if (!sidebarCapture.isEmpty()) {
@@ -11346,7 +11678,7 @@ void GuiTests::preferencesAccountAvatarFollowsSdk()
     auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
     auto *controller = window->findChild<GenerationController *>("generationController");
     QVERIFY(controller);
-    QVERIFY(qobject_cast<iisacc::accounts::Account *>(controller->account()));
+    QVERIFY(qobject_cast<SocietyAccount *>(controller->account()));
     QVERIFY(QMetaObject::invokeMethod(window, "openPreferences"));
     auto *preferences = window->findChild<QQuickWindow *>("preferencesWindow");
     QVERIFY(preferences);
@@ -12449,19 +12781,24 @@ void GuiTests::videoWorkspaceRoutesEditsAndGenerates()
     auto *state=workspace->findChild<QObject *>("videoTimelineState"); QVERIFY(state);
     const auto capture=qEnvironmentVariable("DREAMSCAPES_CAPTURE_DIR");
     if(!capture.isEmpty()) { QVERIFY(QDir().mkpath(capture)); QTest::qWait(120); QVERIFY(window->grabWindow().save(capture+"/video-workspace-default.png")); }
-    QSet<QString> originalIcons;
-    for(auto *control:workspace->findChildren<QQuickItem *>()) {
+    const QSet<QString> expectedIcons{"playFirst.svg", "previous-frame.svg", "play.svg", "next-frame.svg",
+        "loop.svg", "settings.svg", "snap.svg", "link.svg", "generaladd.svg"};
+    QSet<QString> sharedIcons;
+    for(auto *control:timeline->findChildren<QQuickItem *>()) {
         const auto source=control->property("resolvedIconSource").toUrl();
-        if(!source.toString().contains("/Video/Assets/")) continue;
-        originalIcons.insert(QFileInfo(source.path()).fileName());
+        const auto name=QFileInfo(source.path()).fileName();
+        if(!source.path().contains("/LVRS/resources/iconset/") || !expectedIcons.contains(name)) continue;
+        sharedIcons.insert(name);
         QCOMPARE(control->property("iconSize").toInt(),16);
         auto *image=control->findChild<QQuickItem *>("iconButton_icon"); QVERIFY(image);
         QTRY_COMPARE(image->property("status").toInt(),1);
         QTRY_COMPARE(image->width(),16.0); QTRY_COMPARE(image->height(),16.0);
     }
-    QCOMPARE(originalIcons.size(),9);
+    QCOMPARE(sharedIcons,expectedIcons);
     auto *playheadMarker=item(workspace,"videoPlayheadMarker"); QVERIFY(playheadMarker);
-    QTRY_COMPARE(playheadMarker->property("status").toInt(),1);
+    QTRY_VERIFY(playheadMarker->property("available").toBool());
+    QCOMPARE(playheadMarker->property("fillColor").value<QColor>().name(),
+             QColor::fromRgbF(0.1557759940624237,0.5030806064605713,0.8999999761581421).name());
     QCOMPARE(playheadMarker->size(),QSizeF(22,26));
     auto *ruler=item(workspace,"videoFrameRuler"); QVERIFY(ruler);
     auto *keyframesButton=visualItem(workspace,"videoTimeline-mode-Keyframes"); QVERIFY(keyframesButton);
@@ -12814,12 +13151,12 @@ int main(int argc, char **argv)
     // Qt Labs Platform menus require the Widgets fallback on offscreen surfaces.
     QApplication application(argc, argv);
     registerStorageViewTypes();
-    QTemporaryDir settings(DREAMSCAPES_TEST_DIRECTORY "/gui-storage-XXXXXX");
+    QTemporaryDir settings(DREAMSCAPES_TEST_RESOURCES "/gui-storage-XXXXXX");
     if (!settings.isValid()) return 1;
     qputenv("SOCIETY_STORAGE_SETTINGS_PATH", settings.filePath("storage.json").toUtf8());
     qunsetenv("SOCIETY_CONTAINER_PATH");
     qputenv("IILD_GENERATOR_EXECUTABLE", DREAMSCAPES_FAKE_GENERATOR);
-    qputenv("DREAMSCAPES_TEMP_DIRECTORY", DREAMSCAPES_TEST_DIRECTORY);
+    qputenv("DREAMSCAPES_TEMP_DIRECTORY", DREAMSCAPES_TEST_RESOURCES);
     qputenv("SOCIETY_DISABLE_SESSION_RESTORE", "1");
     qmlRegisterType<GuiGenerationController>("Dreamscapes.Storage", 1, 0, "GenerationController");
     qputenv("DREAMSCAPES_TEST_PRESET_FILE", settings.filePath("advanced-presets.json").toUtf8());

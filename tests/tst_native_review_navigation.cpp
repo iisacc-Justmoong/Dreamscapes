@@ -118,7 +118,7 @@ void closeDuringNotification() {
 void sharedNavigationLifetime() {
     auto session = std::make_shared<Session>();
     session->replaceEntries({entry(0), entry(1)});
-    auto navigation = std::make_shared<lvui::native::CollectionNavigation>();
+    auto navigation = std::make_shared<dreamscapes::review::CollectionNavigation>();
     auto binding = ReviewNavigation::bind(session, navigation);
     const auto target = binding->tokenForKey(session->keyAt(1));
     navigation->set_state({.current_key = target, .anchor_key = target, .selected_keys = {target}});

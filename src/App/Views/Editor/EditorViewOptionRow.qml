@@ -2,9 +2,14 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
+    component ThemedAlignmentOverlay: EditorAlignmentOverlay {
+        accentColor: Style.Tokens.color("Theme Colors/Accent/Blue/Default")
+        outlineColor: Style.Tokens.color("Theme Colors/Text/bodyColor")
+    }
     required property var canvas
     required property string family
     required property var definition
@@ -127,11 +132,11 @@ Item {
     }
     Rectangle {
         visible: root.definition.kind === "preview"
-        anchors.fill: parent; radius: LV.Theme.radiusControl; color: LV.Theme.panelBackground10
+        anchors.fill: parent; radius: LV.Theme.radiusControl; color: Style.Tokens.color("Theme Colors/Panel/surfaceInput")
         Loader {
             anchors.fill: parent
             active: root.definition.kind === "preview"
-            sourceComponent: EditorAlignmentOverlay { objectName: "viewOptionsPreview-" + root.family; canvas: root.canvas; family: root.family; preview: true }
+            sourceComponent: ThemedAlignmentOverlay { objectName: "viewOptionsPreview-" + root.family; canvas: root.canvas; family: root.family; preview: true }
         }
     }
 }

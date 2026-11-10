@@ -100,6 +100,7 @@ EditorAlignmentOverlay::EditorAlignmentOverlay(QQuickItem *parent) : QQuickItem(
     setFlag(ItemHasContents);
     setClip(true);
     setAcceptedMouseButtons(Qt::LeftButton);
+    connect(this, &EditorAlignmentOverlay::paletteChanged, this, &EditorAlignmentOverlay::refresh);
     connect(this, &QQuickItem::widthChanged, this, &EditorAlignmentOverlay::refresh);
     connect(this, &QQuickItem::heightChanged, this, &EditorAlignmentOverlay::refresh);
     connect(this, &QQuickItem::windowChanged, this, [this](QQuickWindow *window) {
@@ -192,7 +193,7 @@ QSGNode *EditorAlignmentOverlay::renderGeometry() {
     auto reference = m_preview ? view : rect(m_canvas->viewReference(m_family));
     std::vector<A::Line> lines;
     std::vector<QPointF> minor, major;
-    QColor color(values.value("color", "#548AF7").toString());
+    QColor color = values.contains("color") ? QColor(values.value("color").toString()) : m_accentColor;
     color.setAlphaF(color.alphaF() * values.value("opacity", 70).toDouble() / 100);
     bool dots = false, dashed = false;
     if (m_family == "grid") {
@@ -256,7 +257,7 @@ QSGNode *EditorAlignmentOverlay::renderGeometry() {
                     minor.push_back(item.value("b").toPointF());
                 }
             }
-        color = QColor("#548AF7");
+        color = m_accentColor;
     } else if (m_family == "outlines") {
         if (!options->display().value("outlines").toBool() &&
             options->display().value("composite") != "Outlines")
@@ -281,7 +282,7 @@ QSGNode *EditorAlignmentOverlay::renderGeometry() {
                 lines.push_back({{a.x(), a.y()}, {b.x(), b.y()}, true});
             }
         }
-        color = QColor("#B9BDC5");
+        color = m_outlineColor;
     }
     for (const auto l : lines) {
         if (minor.size() + major.size() > 60000)

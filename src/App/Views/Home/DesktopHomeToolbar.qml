@@ -4,6 +4,7 @@ import Dreamscapes.Storage 1.0
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 LV.HStack {
     id: root
@@ -19,11 +20,11 @@ LV.HStack {
     signal activityRequested()
     signal searchDismissed()
     signal fileRequested(var file)
-    spacing: LV.Theme.gap8
+    spacing: Style.Tokens.metric("Theme Metrics/Space/8")
     function focusSearch() { searchField.inputItem.forceActiveFocus(); showSearchResults() }
     function showSearchResults() {
         if (!inlineSearch || !searchActive || !query.trim().length) { searchMenu.close(); return }
-        const point = searchField.mapToItem(searchMenu.parent, 0, searchField.height + LV.Theme.gap4)
+        const point = searchField.mapToItem(searchMenu.parent, 0, searchField.height + Style.Tokens.metric("Theme Metrics/Space/4"))
         searchMenu.x = Math.max(8, Math.min(point.x, searchMenu.parent.width - searchMenu.width - 8))
         searchMenu.y = point.y
         searchMenu.open()
@@ -56,7 +57,7 @@ LV.HStack {
         leadingItems: Image {
             width: 12
             height: 12
-            source: "Assets/Desktop/search.svg"
+            source: LV.Theme.iconPath("inputFieldSearch")
         }
         onTextChanged: {
             root.activityRequested()
@@ -82,12 +83,12 @@ LV.HStack {
         focus: false
         // The search shortcut restores canvas focus when dismissing with Escape.
         closePolicy: Controls.Popup.CloseOnPressOutside
-        padding: LV.Theme.gap8
-        width: Math.min(384, parent ? Math.max(0, parent.width - LV.Theme.gap16) : root.width)
+        padding: Style.Tokens.metric("Theme Metrics/Space/8")
+        width: Math.min(384, parent ? Math.max(0, parent.width - Style.Tokens.metric("Theme Metrics/Space/16")) : root.width)
         implicitHeight: resultsColumn.implicitHeight + topPadding + bottomPadding
         contentItem: LV.VStack {
             id: resultsColumn
-            spacing: LV.Theme.gap2
+            spacing: Style.Tokens.metric("Theme Metrics/Space/2")
             Repeater {
                 model: root.searchResults
                 LV.MenuItem {
@@ -113,7 +114,7 @@ LV.HStack {
             LV.Label {
                 visible: !root.searchResults.length
                 Layout.fillWidth: true
-                Layout.preferredHeight: LV.Theme.controlHeightSm
+                Layout.preferredHeight: Style.Tokens.metric("Theme Metrics/Size/22")
                 text: qsTr("No matching files")
                 style: description
                 verticalAlignment: Text.AlignVCenter
@@ -123,7 +124,7 @@ LV.HStack {
     LV.IconButton {
         id: notifications
         objectName: "desktopNotifications"
-        iconSource: Qt.resolvedUrl("Assets/Desktop/notification.svg")
+        iconSource: LV.Theme.iconPath("toolwindownotifications")
         tone: LV.AbstractButton.Default
         Accessible.name: qsTr("Notifications")
         LV.Tooltip {
@@ -131,12 +132,12 @@ LV.HStack {
             target: notifications
             text: notifications.Accessible.name
         }
-        onClicked: notificationMenu.openFor(notifications, 0, height + LV.Theme.gap4)
+        onClicked: notificationMenu.openFor(notifications, 0, height + Style.Tokens.metric("Theme Metrics/Space/4"))
     }
     LV.IconButton {
         id: account
         objectName: "desktopAccount"
-        iconSource: Qt.resolvedUrl("Assets/Desktop/account.svg")
+        iconSource: LV.Theme.iconPath("role-1")
         tone: LV.AbstractButton.Default
         Accessible.name: qsTr("Account")
         LV.Tooltip {
@@ -144,7 +145,7 @@ LV.HStack {
             target: account
             text: account.Accessible.name
         }
-        onClicked: accountMenu.openFor(account, 0, height + LV.Theme.gap4)
+        onClicked: accountMenu.openFor(account, 0, height + Style.Tokens.metric("Theme Metrics/Space/4"))
     }
     LV.ContextMenu {
         id: accountMenu

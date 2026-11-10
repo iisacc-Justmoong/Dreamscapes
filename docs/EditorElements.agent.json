@@ -10,8 +10,8 @@
   },
   "source": {
     "path": "docs/EditorElements.md",
-    "sha256": "49836ccacec20475070cb5271efc149232bf9498bbe8e66df7a13daffd88850b",
-    "bytes": 13382,
+    "sha256": "b8753e8b199f599d71ff954d008383f6b0e5e2a01496a49c87935ca6d0e522fb",
+    "bytes": 13275,
     "line_count": 99,
     "encoding": "utf-8",
     "language": "ko"
@@ -200,7 +200,7 @@
       "kind": "paragraph",
       "start_line": 28,
       "end_line": 28,
-      "raw": "All exported Elements SVGs are local files under `Assets/Elements`. Their bytes and SVG root dimensions are retained. Slider thumb, optional ticks/focus-ring and dropdown variants remain separate assets; the Figma screenshots are verification references and are never used as implementation textures. The independent `fixtures/ElementsPanelsFigma.json` records each supplied frame, its visible controls, defaults, measured bounds, source hashes and exported asset metadata.\n"
+      "raw": "Elements controls use the shared LVRS icon library and the stock LVRS slider thumb and focus ring. Retired product-specific UI SVG copies have been removed. Figma screenshots are never used as implementation textures. The independent `fixtures/ElementsPanelsFigma.json` records each supplied frame, its visible controls, defaults, measured bounds, source hashes and shared icon roles.\n"
     },
     {
       "id": "b000018",
@@ -316,7 +316,7 @@
       "kind": "paragraph",
       "start_line": 44,
       "end_line": 44,
-      "raw": "`tests/test_elements_panels.py` checks all ten requested node IDs, independently saved field lists and reference geometry, the high-fidelity Figma evidence when available, every exported SVG's bytes/root dimensions, and desktop/mobile routing to the dedicated view.\n"
+      "raw": "`tests/test_elements_panels.py` checks all ten requested node IDs, independently saved field lists and reference geometry, the high-fidelity Figma evidence when available, shared icon and slider use, and desktop/mobile routing to the dedicated view.\n"
     },
     {
       "id": "b000034",
@@ -330,7 +330,7 @@
       "kind": "paragraph",
       "start_line": 46,
       "end_line": 46,
-      "raw": "`desktopEditorElementsMatchesFigma` uses a real three-shape native document. It checks all ten visible field sets, reference geometry and exported icon render sizes, captures each 432×559px state, and exercises view navigation, actual selection actions, numeric and slider input, both-axis size-limit validation, Image fill source settings and cancellation, color acceptance/cancellation, Reset and retained state. The existing dock-resize and mobile-sheet tests have a dedicated Elements branch; the obsolete unified Elements row is excluded from the historical generic-panel fixture.\n"
+      "raw": "`desktopEditorElementsMatchesFigma` uses a real three-shape native document. It checks all ten visible field sets, reference geometry and shared icon render sizes, captures each 432×559px state, and exercises view navigation, actual selection actions, numeric and slider input, both-axis size-limit validation, Image fill source settings and cancellation, color acceptance/cancellation, Reset and retained state. The existing dock-resize and mobile-sheet tests have a dedicated Elements branch; the obsolete unified Elements row is excluded from the historical generic-panel fixture.\n"
     },
     {
       "id": "b000036",
@@ -594,7 +594,7 @@
       {
         "block_id": "b000017",
         "line": 28,
-        "text": "All exported Elements SVGs are local files under `Assets/Elements`. Their bytes and SVG root dimensions are retained. Slider thumb, optional ticks/focus-ring and dropdown variants remain separate assets; the Figma screenshots are verification references and are never used as implementation textures. The independent `fixtures/ElementsPanelsFigma.json` records each supplied frame, its visible controls, defaults, measured bounds, source hashes and exported asset metadata.",
+        "text": "Elements controls use the shared LVRS icon library and the stock LVRS slider thumb and focus ring. Retired product-specific UI SVG copies have been removed. Figma screenshots are never used as implementation textures. The independent `fixtures/ElementsPanelsFigma.json` records each supplied frame, its visible controls, defaults, measured bounds, source hashes and shared icon roles.",
         "basis": "lexical_match",
         "context": "paragraph"
       },

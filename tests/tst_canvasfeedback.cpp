@@ -44,6 +44,9 @@ class CanvasFeedbackTests : public QObject {
     }
     static QImage artwork(FeedbackCanvas &canvas) {
         EditorCanvasFeedback feedback; feedback.setSize(canvas.size()); feedback.setCanvas(&canvas);
+        feedback.setProperty("lightColor", QColor(Qt::white));
+        feedback.setProperty("darkColor", QColor("#101010"));
+        feedback.setProperty("gestureColor", QColor(40, 128, 229, 64));
         QImage image(256, 256, QImage::Format_ARGB32); image.fill(Qt::transparent);
         QPainter painter(&image); feedback.paint(&painter); return image;
     }

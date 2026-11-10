@@ -4,6 +4,7 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
+import Dreamscapes.Style 1.0 as Style
 
 LV.VStack {
     id: root
@@ -26,7 +27,7 @@ LV.VStack {
     readonly property alias count: cards.count
     readonly property real cardWidth: metrics.implicitWidth
     readonly property real cardHeight: metrics.implicitHeight
-    readonly property int visibleColumns: Math.max(1, Math.floor((width + LV.Theme.gap16) / (cardWidth + LV.Theme.gap16)))
+    readonly property int visibleColumns: Math.max(1, Math.floor((width + Style.Tokens.metric("Theme Metrics/Space/16")) / (cardWidth + Style.Tokens.metric("Theme Metrics/Space/16"))))
     LV.Card { id: metrics; type: LV.Card.File; size: LV.Card.Medium; visible: false }
     signal viewAllRequested()
     signal fileRequested(var file)
@@ -43,11 +44,11 @@ LV.VStack {
         const card = cards.itemAtIndex(0)
         if (card) card.forceActiveFocus()
     }
-    spacing: LV.Theme.gap12
+    spacing: Style.Tokens.metric("Theme Metrics/Space/12")
     LV.HStack {
         Layout.fillWidth: true
         Layout.minimumWidth: 0
-        spacing: LV.Theme.gap8
+        spacing: Style.Tokens.metric("Theme Metrics/Space/8")
         LV.Label {
             text: root.title
             style: header
@@ -59,7 +60,7 @@ LV.VStack {
             visible: root.width >= 500
             text: root.imageSelectionEnabled ? qsTr("%1 results").arg(root.visibleFiles.length) : qsTr("%1 files").arg(root.visibleFiles.length)
             style: caption
-            color: LV.Theme.descriptionColor
+            color: Style.Tokens.color("Theme Colors/Text/descriptionColor")
         }
         Item {
             Layout.fillWidth: true
@@ -97,8 +98,8 @@ LV.VStack {
         orientation: ListView.Horizontal
         flickableDirection: Flickable.HorizontalFlick
         spacing: root.visibleColumns > 1 && count >= root.visibleColumns
-            ? Math.max(LV.Theme.gap16, (width - root.visibleColumns * root.cardWidth) / (root.visibleColumns - 1))
-            : LV.Theme.gap16
+            ? Math.max(Style.Tokens.metric("Theme Metrics/Space/16"), (width - root.visibleColumns * root.cardWidth) / (root.visibleColumns - 1))
+            : Style.Tokens.metric("Theme Metrics/Space/16")
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         activeFocusOnTab: true

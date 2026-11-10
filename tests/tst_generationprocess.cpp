@@ -12,6 +12,8 @@
 #include <QtTest>
 #include <atomic>
 #include <thread>
+#include <semaphore>
+#include <QScopeGuard>
 #if defined(Q_OS_UNIX)
 #include <signal.h>
 #include <cerrno>
@@ -139,9 +141,14 @@ private slots:
     // This is last: quit closes process admission for this application lifetime.
     void applicationShutdownRetiresOwnedProcesses() {
         GenerationProcess process;QByteArray bytes;connect(&process,&GenerationProcess::outputAvailable,this,[&](const QByteArray &data){bytes+=data;});launch(process,{"hold"});QTRY_VERIFY(bytes.contains("ready"));const auto pid=process.processId();QVERIFY(pid>1&&!gone(pid));
-        QVERIFY(QMetaObject::invokeMethod(QCoreApplication::instance(),"aboutToQuit",Qt::DirectConnection));const bool reapedBeforeQuitReturned=gone(pid);
-        // Also clean up on the old implementation when the red check fails.
-        process.cancel();QTRY_VERIFY(gone(pid));QVERIFY(reapedBeforeQuitReturned);
+        auto entered=std::make_shared<std::atomic_bool>(false);auto gate=std::make_shared<std::binary_semaphore>(0);
+        bool released=false;const auto release=qScopeGuard([&]{if(!released)gate->release();});bool complete=false, heartbeat=false;
+        QElapsedTimer elapsed;elapsed.start();
+        GenerationProcess::shutdownAsync(this,[&]{complete=true;},[entered,gate]{*entered=true;gate->acquire();});
+        QVERIFY(elapsed.elapsed()<250);QTRY_VERIFY(entered->load());
+        QTimer::singleShot(0,this,[&]{heartbeat=true;});QTRY_VERIFY(heartbeat);QVERIFY(!complete);QVERIFY(!gone(pid));
+        released=true;gate->release();QTRY_VERIFY_WITH_TIMEOUT(complete,10000);QVERIFY(gone(pid));
+        elapsed.restart();QVERIFY(QMetaObject::invokeMethod(QCoreApplication::instance(),"aboutToQuit",Qt::DirectConnection));QVERIFY(elapsed.elapsed()<250);
     }
 };
 QTEST_GUILESS_MAIN(GenerationProcessTests)

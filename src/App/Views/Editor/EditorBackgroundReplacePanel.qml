@@ -3,6 +3,7 @@ import QtQuick
 import Dreamscapes.Storage 1.0
 import QtQuick.Dialogs
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Column {
     id: root
@@ -35,8 +36,8 @@ Column {
     component Well: Rectangle {
         required property string label
         required property string kind
-        width:root.width; height:44; radius:4; color:LV.Theme.surfaceRaised
-        LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; x:12; width:parent.width-24; height:parent.height; style:body; color:LV.Theme.bodyColor; text:parent.label; verticalAlignment:Text.AlignVCenter }
+        width:root.width; height:44; radius:4; color:Style.Tokens.color("Theme Colors/Panel/surfaceRaised")
+        LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; x:12; width:parent.width-24; height:parent.height; style:body; color:Style.Tokens.color("Theme Colors/Text/bodyColor"); text:parent.label; verticalAlignment:Text.AlignVCenter }
         DropArea { anchors.fill:parent; onDropped:drop=>{if(drop.urls.length){root.choose(drop.urls[0],parent.kind);drop.acceptProposedAction()}} }
     }
     EditorBackgroundSection {
@@ -57,7 +58,7 @@ Column {
     }
     EditorBackgroundSection {
         title:qsTr("Generate")
-        LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; width:parent.width; height:18; style:body; color:LV.Theme.titleHeaderColor; text:qsTr("Prompt") }
+        LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; width:parent.width; height:18; style:body; color:Style.Tokens.color("Theme Colors/Text/titleHeaderColor"); text:qsTr("Prompt") }
         Parameter { field:"replacePrompt"; type:"text"; value:root.value(field,"Soft studio background, warm daylight"); onEdited:next=>root.edit(field,next) }
         Parameter { field:"replaceModel"; title:qsTr("Model"); value:root.value(field,"Current generation model"); options:NativeData.presentation.prepend("Current generation model", NativeData.presentation.choices(root.toolState.generationRuntime ? root.toolState.generationRuntime.models : [])); onEdited:next=>root.edit(field,next) }
         Parameter { field:"replaceVariations"; title:qsTr("Variations"); type:"number"; unit:""; minimum:1; maximum:16; value:root.value(field,4); onEdited:next=>root.edit(field,next) }
@@ -90,7 +91,7 @@ Column {
     }
     EditorBackgroundSection {
         title:qsTr("Transform & blend")
-        LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; width:parent.width; height:18; style:body; color:LV.Theme.bodyColor; text:qsTr("Image fit") }
+        LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; width:parent.width; height:18; style:body; color:Style.Tokens.color("Theme Colors/Text/bodyColor"); text:qsTr("Image fit") }
         Row {
             spacing:8
             Repeater { model:[{name:"Fill",icon:"crop"},{name:"Fit",icon:"fit-canvas"},{name:"Stretch",icon:"scale"}]; IconAction { id: selectionButton2; required property var modelData; objectName:"background-fit-"+modelData.name; actionName:modelData.name; iconName:modelData.icon; tone: LV.AbstractButton.Borderless; onClicked:root.edit("replaceFit",modelData.name)
@@ -125,7 +126,7 @@ Column {
             IconAction { actionName:qsTr("Reset"); iconName:"reset"; onClicked:root.reset() }
         }
     }
-    LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; visible:root.toolState.notice.length>0; width:parent.width; style:caption; color:LV.Theme.bodyColor; text:root.toolState.notice; wrapMode:Text.WordWrap; sizeToContentHeight:true }
+    LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; visible:root.toolState.notice.length>0; width:parent.width; style:caption; color:Style.Tokens.color("Theme Colors/Text/bodyColor"); text:root.toolState.notice; wrapMode:Text.WordWrap; sizeToContentHeight:true }
     FileDialog { id:sourceDialog; property string kind:"Image"; title:kind==="Image"?qsTr("Choose image"):qsTr("Choose image or canvas"); nameFilters:kind==="Image"?[qsTr("Images (*.png *.jpg *.jpeg *.webp *.bmp *.tif *.tiff *.heic)")]:[qsTr("Images and canvas (*.iisc *.png *.jpg *.jpeg *.webp *.bmp *.tif *.tiff *.heic)")]; onAccepted:root.choose(selectedFile,kind) }
     LV.ContextMenu { id:recentMenu; showIconSlot:false; items:NativeData.presentation.filenames(root.recent); onItemTriggered:index=>root.choose(root.recent[index],"File") }
 }

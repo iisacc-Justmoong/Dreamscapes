@@ -3,6 +3,7 @@ import QtQuick
 import ".." as Frames
 import QtQuick.Dialogs
 import LVRS 1.0 as LV
+import "LvrsEditorIcons.js" as LvrsIcons
 import Dreamscapes.Storage 1.0
 import ".." as Shared
 
@@ -67,7 +68,7 @@ Column {
     function swatchColor() { const revision = nativeDraft.revision; return nativeDraft.swatchColor() }
     function curveChannel() { const revision = nativeDraft.revision; return nativeDraft.curveChannel() }
     function curvePoints(row) { const revision = nativeDraft.revision; return nativeDraft.curvePoints(row) }
-    function asset(name) { return Qt.resolvedUrl("Assets/Graphic/" + (name === "adjust" ? "Adjustment" : name) + ".svg") }
+    function asset(name) { return LvrsIcons.resolve(LV.Theme, "Graphic", name) }
     onToolIdChanged: { previewSheet.close(); operationSheet.close(); colorSheet.close(); collectionSheet.close(); restoreView() }
     Component.onCompleted: restoreView()
 

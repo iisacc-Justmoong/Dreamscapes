@@ -5,6 +5,7 @@ import ".." as Frames
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -53,7 +54,7 @@ Item {
     function addAttachment(source) { return nativeComposer.addAttachment(source) }
     function generationParameters(model) { return nativeComposer.generationParameters(model) }
     property bool menusOpenUpward: false
-    property real contentInset: LV.Theme.gap10
+    property real contentInset: Style.Tokens.metric("Theme Metrics/Space/10")
     readonly property var platformInputMethod: Qt.inputMethod
     signal generateRequested(string prompt, string mediaType, string aspectRatio, int count)
     signal paintRequested()
@@ -68,7 +69,7 @@ Item {
 
     implicitWidth: 402
     implicitHeight: (desktopLayout && desktopComposer ? desktopComposer.implicitHeight : content.implicitHeight + contentInset * 2)
-        + (notice.visible ? notice.implicitHeight + LV.Theme.gap8 : 0)
+        + (notice.visible ? notice.implicitHeight + Style.Tokens.metric("Theme Metrics/Space/8") : 0)
 
     Loader {
         id: desktopLoader
@@ -81,8 +82,8 @@ Item {
 
     function openMenu(menu, button) {
         const offset = menusOpenUpward
-            ? -(menu.height > 0 ? menu.height : menu.implicitHeight) - LV.Theme.gap2
-            : button.height + LV.Theme.gap2
+            ? -(menu.height > 0 ? menu.height : menu.implicitHeight) - Style.Tokens.metric("Theme Metrics/Space/2")
+            : button.height + Style.Tokens.metric("Theme Metrics/Space/2")
         menu.openFor(button, 0, offset)
     }
 
@@ -114,7 +115,7 @@ Item {
         anchors.top: parent.top
         anchors.margins: root.contentInset
         height: implicitHeight
-        spacing: root.canvasEnabled ? LV.Theme.gap16 : LV.Theme.gap8
+        spacing: root.canvasEnabled ? Style.Tokens.metric("Theme Metrics/Space/16") : Style.Tokens.metric("Theme Metrics/Space/8")
         alignment: Qt.AlignLeft
 
         HomePaintCanvas {
@@ -130,7 +131,7 @@ Item {
             objectName: root.desktopLayout ? "compactPromptField" : "promptField"
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            placeholderColor: LV.Theme.titleHeaderColor
+            placeholderColor: Style.Tokens.color("Theme Colors/Text/titleHeaderColor")
             placeholderText: qsTr("Prompt")
             style: roundedStyle
             clearButtonVisible: false
@@ -154,7 +155,7 @@ Item {
             spacing: 0
 
             // Preserve natural button widths when the shared layout narrows.
-            readonly property real actionSpacing: Math.min(LV.Theme.gap8, Math.max(0,
+            readonly property real actionSpacing: Math.min(Style.Tokens.metric("Theme Metrics/Space/8"), Math.max(0,
                 (width - mediaButton.implicitWidth - ratioButton.implicitWidth
                  - countButton.implicitWidth - generateButton.implicitWidth
                  - (attachButton.visible ? attachButton.implicitWidth : 0)) / (root.canvasEnabled ? 4 : 3)))
@@ -216,7 +217,7 @@ Item {
                 Layout.minimumWidth: implicitWidth
                 text: qsTr("Generate")
                 iconMode: root.canvasEnabled && root.width < 320
-                iconSource: Qt.resolvedUrl("../Result/Assets/right.svg")
+                iconSource: LV.Theme.iconPath("generalright")
                 iconSize: 18
                 Accessible.name: qsTr("Generate")
                 tone: LV.AbstractButton.Primary
@@ -230,7 +231,7 @@ Item {
             visible: root.mediaType === "Video"
             Layout.fillWidth: true
             height: implicitHeight
-            spacing: LV.Theme.gap8
+            spacing: Style.Tokens.metric("Theme Metrics/Space/8")
             LV.LabelMenuButton {
                 id: videoModelButton
                 objectName: "videoModelButton"
@@ -242,7 +243,7 @@ Item {
             }
             LV.HStack {
                 Layout.fillWidth: true
-                spacing: LV.Theme.gap8
+                spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                 ChoiceButton {
                     id: durationButton
                     objectName: "videoDurationButton"
@@ -305,7 +306,7 @@ Item {
             implicitHeight: 18
             LV.Label {
                 id: choiceLabel
-                height: LV.Theme.textBodyLineHeight
+                height: Style.Tokens.metric("Theme Typography/Body/textBodyLineHeight")
                 anchors.verticalCenter: parent.verticalCenter
                 text: choice.text
                 style: body
@@ -317,7 +318,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 18
                 height: 18
-                source: Qt.resolvedUrl("Assets/media-chevron.svg")
+                source: LV.Theme.iconPath("generalchevronDown")
                 sourceSize: Qt.size(18 * Screen.devicePixelRatio, 18 * Screen.devicePixelRatio)
             }
         }
@@ -327,13 +328,13 @@ Item {
         id: notice
         objectName: "quickGenerateNotice"
         anchors.top: root.desktopLayout ? desktopLoader.bottom : content.bottom
-        anchors.topMargin: LV.Theme.gap8
+        anchors.topMargin: Style.Tokens.metric("Theme Metrics/Space/8")
         anchors.left: parent.left
         anchors.right: parent.right
         visible: text.length > 0
         text: root.errorText || (root.desktopLayout && root.desktopComposer ? root.desktopComposer.errorText : "")
             || (root.canvasEnabled ? homePaint.canvas.inputError : "")
-        color: LV.Theme.descriptionColor
+        color: Style.Tokens.color("Theme Colors/Text/descriptionColor")
         wrapMode: Text.Wrap
         sizeToContentHeight: true
         Accessible.name: text

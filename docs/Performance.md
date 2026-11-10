@@ -1,5 +1,53 @@
 # Runtime size and UI responsiveness
 
+## Initial Society storage and model inventory
+
+GenerationController constructs a deferred FileSystem, and the presence-only
+Helper no longer constructs a second eager storage mirror. Initial storage
+selection, legacy cleanup, mirror capture and model inspection run on a worker;
+the window shows a connecting state until the captured drive is adopted. A newer
+explicit selection and owner destruction invalidate pending delivery. Repeated
+background model inventory uses an independent coalesced worker rather than the
+global Qt thread pool, so a stalled inventory is not joined by that pool during
+shutdown. A blocked inventory for an old selection cannot hold up a new
+selection's subsequent polling; its late result is discarded. Explicit selection
+and Refresh keep their synchronous behavior. While the initial selection is
+unavailable, failed background probes do not repeatedly reopen it on the GUI
+thread; a later successful probe still uses the existing refresh path.
+
+The focused tests hold initial preparation or inventory behind a gate, verify a
+GUI event can be delivered, validate selection/result ownership, and destroy
+the controller without releasing the gate first. Separate subprocess fixtures
+confirm that the process exits while either the initial preparation or the model
+inventory remains blocked. They also check real fixture storage and model
+results. These are bounded component tests, not cold launch or physical device
+measurements; the subprocess fixtures do not instantiate the presence Helper
+or run inference. The application now starts and stops the Helper asynchronously.
+Normal Quit keeps the event loop running while accepted Helper records, owned
+generation processes, background generation work and detached SDK file workers
+are retired. The final Quit is sent only after these barriers complete. Explicit
+SDK synchronous methods, UI snapshot adoption, forced OS termination and dynamic
+library loading remain separate boundaries; an indefinitely stalled OS I/O call
+can still delay completion while the event loop remains responsive.
+
+On 2026-11-01, the installed 0.1.1 macOS bundle was launched three times with
+a fresh, isolated Society fixture and QML/scene-graph disk caches disabled. From
+process-start confirmation to the root-loaded event, the runs took 1223, 1237,
+and 1272 ms; an ordinary native Quit request to process exit took 329, 269, and
+377 ms. Each run observed the Helper peer and confirmed that its presence and the
+local application endpoint were removed after Quit. These are warm, idle test
+runs, not first-paint, input-latency, large-library or real-inference benchmarks.
+The first launch of the external-volume build had taken 47286 ms; a process sample
+showed it waiting in macOS dynamic-loader code-signature validation before app
+code ran. That observation does not establish a fixed cold-launch time. A native
+Quit during active generation could not be exercised in this isolated app session
+because a licensed Society session was unavailable; process cancellation and
+reaping were instead checked in the generation-process fixture. One later MCP
+test of the external build timed out after 25 seconds before producing app logs;
+the same test passed earlier against that build and passed against the installed
+app. The MCP server's own listen/close lifecycle still runs synchronously and was
+not migrated by this change.
+
 결과 검토의 포커스·선택·리뷰 변경은 필요한 행과 역할만 알린다. 포커스 이동과
 개수 조회의 불필요한 전체 순회·정렬 제거는 [검토 모델 성능](ReviewModelPerformance.md)에
 계약과 검증 방법을 기록한다.
@@ -334,11 +382,17 @@ heartbeat or focus changes. Normal shutdown drains those commits. Atomic publica
 permissions and directory validation are preserved. Stopping a Helper drains its
 active operation and invalidates queued results before removing its own record.
 
-The application requires iiSocietyHelper 0.9.5 or later. A tested package installed
+The application requires iiSocietyHelper 0.11.0 or later and a build containing
+the `Helper(FileSystem::Initialization, QObject *)` overload; an older package
+with the same version number does not provide this constructor. A tested package installed
 under `build/runtime-sdk/iiSocietyHelper` is supported alongside the normal SDK
 installation; `iiSocietyHelper_DIR` selects the exact package. Keep its
 iiFileProvider, iiSocietyContainer, iiSharedCanvas Core/Quick and iiSocietySync
 dependencies from the same verified package graph when configuring the product.
+For native macOS builds, configuration also compiles and links the inventory API
+used by the Helper monitor. This catches an older same-version FileTree package
+that would otherwise make the application fail at dynamic-library load time.
+This probe does not validate every dependency or cover cross-compiled targets.
 The iiWebServer dependency must also include the file-provider presentation
 filter: preview companions and temporary lease files are not public file entries.
 A product-owned installation in `build/runtime-sdk/iiWebServer` is searched for

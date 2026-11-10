@@ -410,15 +410,13 @@ bool EditorToolStateModel::editLayerOpacity(const QString &text) {
     setNotice(accepted ? QString() : engine_->error());
     return accepted;
 }
-QVariantList EditorToolStateModel::layerHierarchy(const QUrl &assetRoot, const QVariantMap &collapsed) const {
+QVariantList EditorToolStateModel::layerHierarchy(const QVariantMap &collapsed) const {
     QVariantList rows;
     if (!engine_)
         return rows;
     for (const auto &value : engine_->layerHierarchy()) {
         auto row = value.toMap();
         row["count"] = 0;
-        row["iconSource"] = assetRoot.resolved(
-            QUrl((row.value("locked").toBool() ? QStringLiteral("Lock") : row.value("kind").toString()) + ".svg"));
         if (row.value("group").toBool())
             row["expanded"] = !collapsed.value(row.value("layerId").toString()).toBool();
         rows.push_back(row);

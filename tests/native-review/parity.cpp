@@ -1,4 +1,9 @@
+#ifdef DREAMSCAPES_REVIEW_BASELINE
+#include "fixtures/legacy-review/BaselineReviewModel.h"
+using GenerationReviewModel = BaselineReviewModel;
+#else
 #include "App/Views/Result/GenerationReviewModel.h"
+#endif
 #include "App/Views/Result/NativeReviewSession.h"
 #include <QCoreApplication>
 #include <QDateTime>

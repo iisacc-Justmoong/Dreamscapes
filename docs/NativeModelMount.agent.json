@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/NativeModelMount.md",
-    "sha256": "37599cbbb8266fb9288d60ec1333702bddffa7e534d4da0b3ec219575c7c2099",
-    "bytes": 3059,
-    "line_count": 48,
+    "sha256": "7d730ed0a91d7840936f4a1f5df0f0bbf71452f9ee023de04f6535a2dc2fba3e",
+    "bytes": 3957,
+    "line_count": 61,
     "encoding": "utf-8",
     "language": "en"
   },
@@ -70,94 +70,108 @@
       "id": "b000007",
       "kind": "paragraph",
       "start_line": 13,
-      "end_line": 19,
-      "raw": "A split Krea2 model needs Qwen3-VL-4B and Wan2.1 VAE components. Missing components\nare mounted from `Models/.generation-resources/iiLocalDiffusion/` in Society,\nusing the SDK generation resource catalog. The SDK validates the full external\ntensor layouts before assembling the model. Explicit selections keep precedence;\nembedded components are retained. Partial embedded text encoders are rejected by\ncontext validation rather than replaced silently. Required components remain\nenabled when optional style modifiers are disabled.\n"
+      "end_line": 24,
+      "raw": "An Anima Safetensors package may contain a Qwen text encoder and Qwen Image VAE\nunder package-specific keys. Before native image generation, iiLocalDiffusion\nidentifies the components from their tensor names and prepares checksum-verified\ncopies in the generation's temporary workspace. The original package is left\nunchanged. Explicit component selections take precedence; an embedded primary\ntransformer is reconstructed only when its keys are not at the package root.\nPreparation reports progress, observes cancellation and runs away from the UI\nthread. Both quick and advanced image generation pass the prepared components to\nthe native engine while retaining their existing sampling settings. Temporary\ncopies require enough local storage and last only as long as the generation\nworkspace. Metadata inspection and fixture tests do not prove real inference or\nthe visual quality of an output.\n"
     },
     {
       "id": "b000008",
       "kind": "blank",
-      "start_line": 20,
-      "end_line": 20,
+      "start_line": 25,
+      "end_line": 25,
       "raw": "\n"
     },
     {
       "id": "b000009",
       "kind": "paragraph",
-      "start_line": 21,
-      "end_line": 25,
-      "raw": "`scripts/provision_generation_resources.py` installs checksum-verified resources\nfrom an installed SDK. Repeating the command preserves existing resource files.\nAdding catalog entries stages and verifies all new files before atomically\npublishing the updated manifest. A catalog update that would change a previously\ninstalled payload identity is rejected. Check mode never updates the store.\n"
+      "start_line": 26,
+      "end_line": 32,
+      "raw": "A split Krea2 model needs Qwen3-VL-4B and Wan2.1 VAE components. Missing components\nare mounted from `Models/.generation-resources/iiLocalDiffusion/` in Society,\nusing the SDK generation resource catalog. The SDK validates the full external\ntensor layouts before assembling the model. Explicit selections keep precedence;\nembedded components are retained. Partial embedded text encoders are rejected by\ncontext validation rather than replaced silently. Required components remain\nenabled when optional style modifiers are disabled.\n"
     },
     {
       "id": "b000010",
       "kind": "blank",
-      "start_line": 26,
-      "end_line": 26,
+      "start_line": 33,
+      "end_line": 33,
       "raw": "\n"
     },
     {
       "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 34,
+      "end_line": 38,
+      "raw": "`scripts/provision_generation_resources.py` installs checksum-verified resources\nfrom an installed SDK. Repeating the command preserves existing resource files.\nAdding catalog entries stages and verifies all new files before atomically\npublishing the updated manifest. A catalog update that would change a previously\ninstalled payload identity is rejected. Check mode never updates the store.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 39,
+      "end_line": 39,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
       "kind": "fenced_code",
-      "start_line": 27,
-      "end_line": 31,
+      "start_line": 40,
+      "end_line": 44,
       "raw": "```sh\npython3 scripts/provision_generation_resources.py \\\n  --source \"$HOME/.local/SDK/iiLocalDiffusion/share/iiLocalDiffusion/resources\" \\\n  --society /absolute/path/to/Society.societycontainer\n```\n",
       "language": "sh",
       "code": "python3 scripts/provision_generation_resources.py \\\n  --source \"$HOME/.local/SDK/iiLocalDiffusion/share/iiLocalDiffusion/resources\" \\\n  --society /absolute/path/to/Society.societycontainer\n",
       "closed": true
     },
     {
-      "id": "b000012",
-      "kind": "blank",
-      "start_line": 32,
-      "end_line": 32,
-      "raw": "\n"
-    },
-    {
-      "id": "b000013",
-      "kind": "paragraph",
-      "start_line": 33,
-      "end_line": 36,
-      "raw": "Model enumeration must also use the current Society storage SDK. A synchronized\ncatalog can temporarily precede the local owner's full-file indexing; the\ncurrent SDK reconciles local file metadata so available checkpoint files remain\nvisible. Rebuilding the application refreshes its embedded SDK runtime.\n"
-    },
-    {
       "id": "b000014",
-      "kind": "blank",
-      "start_line": 37,
-      "end_line": 37,
-      "raw": "\n"
-    },
-    {
-      "id": "b000015",
-      "kind": "paragraph",
-      "start_line": 38,
-      "end_line": 44,
-      "raw": "`Dreamscapes.GenerationResourceProvisioning` covers additive upgrades, interrupted\npublication, preserved file identity and incompatible-resource rejection.\n`Dreamscapes.GenerationResources` rejects weights in the app bundle. The native\nSDK's `NativeKrea2NamesTests`, `NativeLlmConfigTests` and VAE contract tests cover\nmounting behavior. `NativeComponentMountIntegration` is an opt-in real-checkpoint\nresident preparation and 128px/one-step inference check; it does not certify\nnormal-resolution generation speed or image quality.\n"
-    },
-    {
-      "id": "b000016",
       "kind": "blank",
       "start_line": 45,
       "end_line": 45,
       "raw": "\n"
     },
     {
-      "id": "b000017",
+      "id": "b000015",
       "kind": "paragraph",
       "start_line": 46,
-      "end_line": 46,
-      "raw": "The native module also mounts the original Qwen3-VL `model.language_model` text tower without converting or rewriting encoder files. Resource audits include text encoders and stream their SHA-256 checks to avoid loading multi-gigabyte payloads into memory.\n"
+      "end_line": 49,
+      "raw": "Model enumeration must also use the current Society storage SDK. A synchronized\ncatalog can temporarily precede the local owner's full-file indexing; the\ncurrent SDK reconciles local file metadata so available checkpoint files remain\nvisible. Rebuilding the application refreshes its embedded SDK runtime.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 50,
+      "end_line": 50,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 51,
+      "end_line": 57,
+      "raw": "`Dreamscapes.GenerationResourceProvisioning` covers additive upgrades, interrupted\npublication, preserved file identity and incompatible-resource rejection.\n`Dreamscapes.GenerationResources` rejects weights in the app bundle. The native\nSDK's `NativeKrea2NamesTests`, `NativeLlmConfigTests` and VAE contract tests cover\nmounting behavior. `NativeComponentMountIntegration` is an opt-in real-checkpoint\nresident preparation and 128px/one-step inference check; it does not certify\nnormal-resolution generation speed or image quality.\n"
     },
     {
       "id": "b000018",
       "kind": "blank",
-      "start_line": 47,
-      "end_line": 47,
+      "start_line": 58,
+      "end_line": 58,
       "raw": "\n"
     },
     {
       "id": "b000019",
       "kind": "paragraph",
-      "start_line": 48,
-      "end_line": 48,
+      "start_line": 59,
+      "end_line": 59,
+      "raw": "The native module also mounts the original Qwen3-VL `model.language_model` text tower without converting or rewriting encoder files. Resource audits include text encoders and stream their SHA-256 checks to avoid loading multi-gigabyte payloads into memory.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 60,
+      "end_line": 60,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 61,
+      "end_line": 61,
       "raw": "Generation and local-Society fixtures use temporary `.societycontainer` packages, matching the current storage SDK source boundary. This does not relax rejection of bare directories, redirected roots or nested source containers.\n"
     }
   ],
@@ -175,21 +189,28 @@
     "directive_candidates": [
       {
         "block_id": "b000007",
-        "line": 18,
-        "text": "context validation rather than replaced silently. Required components remain",
+        "line": 23,
+        "text": "workspace. Metadata inspection and fixture tests do not prove real inference or",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000009",
-        "line": 25,
+        "line": 31,
+        "text": "context validation rather than replaced silently. Required components remain",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000011",
+        "line": 38,
         "text": "installed payload identity is rejected. Check mode never updates the store.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000013",
-        "line": 33,
+        "block_id": "b000015",
+        "line": 46,
         "text": "Model enumeration must also use the current Society storage SDK. A synchronized",
         "basis": "lexical_match",
         "context": "paragraph"
@@ -197,7 +218,7 @@
     ],
     "commands": [
       {
-        "block_id": "b000011",
+        "block_id": "b000013",
         "language": "sh",
         "code": "python3 scripts/provision_generation_resources.py \\\n  --source \"$HOME/.local/SDK/iiLocalDiffusion/share/iiLocalDiffusion/resources\" \\\n  --society /absolute/path/to/Society.societycontainer\n"
       }

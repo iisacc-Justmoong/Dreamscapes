@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import LVRS 1.0 as LV
 import "../Home"
+import Dreamscapes.Style 1.0 as Style
 
 Column {
     id: root
@@ -11,7 +12,7 @@ Column {
     property bool readOnly: false
     property alias inputItem: input.inputItem
     signal edited(string value)
-    spacing: LV.Theme.gap6
+    spacing: Style.Tokens.metric("Theme Metrics/Space/6")
     LV.Label { width: parent.width; visible: text.length > 0; text: root.label; style: caption }
     PromptField {
         id: input

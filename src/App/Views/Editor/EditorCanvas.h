@@ -56,6 +56,7 @@ class EditorCanvas : public iiSharedCanvas::CanvasItem {
     Q_PROPERTY(QUrl selectionOverlay READ selectionOverlay NOTIFY selectionOverlayChanged)
     Q_PROPERTY(QString toolHint READ toolHint NOTIFY toolStateChanged)
     Q_PROPERTY(QVariantMap toolState READ toolState NOTIFY toolStateChanged)
+    Q_PROPERTY(QVariantMap toolPreviewColors READ toolPreviewColors WRITE setToolPreviewColors NOTIFY toolPreviewColorsChanged)
     Q_PROPERTY(QString generationSeed READ generationSeed NOTIFY documentInfoChanged)
     Q_PROPERTY(bool previewMirrorX READ previewMirrorX NOTIFY toolStateChanged)
     Q_PROPERTY(bool previewMirrorY READ previewMirrorY NOTIFY toolStateChanged)
@@ -83,6 +84,12 @@ public:
     ~EditorCanvas() override;
     EditorViewOptions *viewOptions() const {return m_viewOptions.get();}
     QVariantList alignmentFeedback() const {return m_alignmentFeedback;}
+    QVariantMap toolPreviewColors() const { return m_toolPreviewColors; }
+    void setToolPreviewColors(const QVariantMap &colors) {
+        if (m_toolPreviewColors == colors) return;
+        m_toolPreviewColors = colors;
+        emit toolPreviewColorsChanged();
+    }
     Q_INVOKABLE bool createViewGuides();
     Q_INVOKABLE QVariantList viewRulerTicks(bool horizontal, double extent) const;
     Q_INVOKABLE QPointF snapViewPosition(const QPointF &itemPosition);
@@ -241,6 +248,7 @@ signals:
     void fileViewInformationChanged();
     void errorChanged();
     void toolStateChanged();
+    void toolPreviewColorsChanged();
     void historyRestored(QVariantMap settings);
     void activeArtboardChanged();
     void pagePresentationChanged();
@@ -261,6 +269,8 @@ protected:
     void hoverLeaveEvent(QHoverEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
 private:
+    // Presentation colors are supplied by the host and never modify document data.
+    QVariantMap m_toolPreviewColors;
     // Rendering a different file, edit revision or artboard cannot retain an old presentation.
     quint64 m_presentationEpoch = 0;
     struct AlignmentLayer {QString id;QRectF bounds;std::vector<dreamscapes::alignment::Point> anchors;std::vector<dreamscapes::alignment::Line> baselines;};
@@ -283,7 +293,7 @@ private:
     QPainterPath gestureFeedbackPath() const;
     QPainterPath brushFeedbackPath() const;
     QTransform feedbackTransform() const;
-    void paintInteractionFeedback(QPainter *painter, qreal dashOffset) const;
+    void paintInteractionFeedback(QPainter *painter, qreal dashOffset, const QColor &light, const QColor &dark, const QColor &gestureColor) const;
     void updateSelectionOutline(const QImage &prepared = {});
     QPointF m_feedbackPointer;
     bool m_feedbackPointerInside = false;

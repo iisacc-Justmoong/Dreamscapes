@@ -6,6 +6,7 @@ import QtQuick.Window
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -23,7 +24,7 @@ Item {
     function stateName(state) { return projection.queueStateLabel(state) }
     LV.VStack {
         anchors.fill: parent
-        spacing: LV.Theme.gap8
+        spacing: Style.Tokens.metric("Theme Metrics/Space/8")
         LV.HStack {
             Layout.fillWidth: true
             LV.Label { text: qsTr("GENERATION"); style: caption; Layout.fillWidth: true }
@@ -37,8 +38,8 @@ Item {
         GridLayout {
             Layout.fillWidth: true
             columns: 2
-            columnSpacing: LV.Theme.gap8
-            rowSpacing: LV.Theme.gap4
+            columnSpacing: Style.Tokens.metric("Theme Metrics/Space/8")
+            rowSpacing: Style.Tokens.metric("Theme Metrics/Space/4")
             LV.Label { text: qsTr("Running  %1").arg(root.count(["running","connecting-host","downloading"])); style: caption }
             LV.Label { text: qsTr("Queued  %1").arg(root.count(["queued"])); style: caption }
             LV.Label { text: qsTr("Complete  %1").arg(root.count(["completed"])); style: caption }
@@ -52,7 +53,7 @@ Item {
             Image {
                 objectName: "reviewQueueLivePreview"
                 anchors.fill: parent
-                anchors.bottomMargin: LV.Theme.controlHeightSm
+                anchors.bottomMargin: Style.Tokens.metric("Theme Metrics/Size/22")
                 source: parent.visible ? root.previewSource : ""
                 sourceSize.width: Math.ceil(width * Screen.devicePixelRatio)
                 sourceSize.height: Math.ceil(height * Screen.devicePixelRatio)
@@ -71,16 +72,16 @@ Item {
             model: root.jobs
             clip: true
             reuseItems: true
-            spacing: LV.Theme.gap4
+            spacing: Style.Tokens.metric("Theme Metrics/Space/4")
             boundsBehavior: Flickable.StopAtBounds
             Controls.ScrollBar.vertical: Controls.ScrollBar { policy: Controls.ScrollBar.AsNeeded }
             delegate: Rectangle {
                 id: row
                 required property var modelData
                 width: queue.width
-                height: content.implicitHeight + LV.Theme.gap8 * 2
-                radius: LV.Theme.gap4
-                color: LV.Theme.surfaceSolid
+                height: content.implicitHeight + Style.Tokens.metric("Theme Metrics/Space/8") * 2
+                radius: Style.Tokens.metric("Theme Metrics/Space/4")
+                color: Style.Tokens.color("Theme Colors/Panel/surfaceSolid")
                 border.width: root.selectedJob === modelData.id ? 1 : 0
                 border.color: LV.Theme.accent
                 readonly property bool active: !!root.activeJob.id && root.activeJob.id === modelData.id
@@ -91,12 +92,12 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: LV.Theme.gap8
-                    spacing: LV.Theme.gap4
+                    anchors.margins: Style.Tokens.metric("Theme Metrics/Space/8")
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/4")
                     LV.HStack {
                         Layout.fillWidth: true
                         LV.Label { text: qsTr("Job %1").arg((row.modelData.id || "").slice(0,8)); style: caption; Layout.fillWidth: true; elide: Text.ElideRight }
-                        LV.Label { text: root.stateName(row.modelData.state); style: caption; color: row.modelData.state === "failed" ? LV.Theme.accentRed : LV.Theme.textSecondary }
+                        LV.Label { text: root.stateName(row.modelData.state); style: caption; color: row.modelData.state === "failed" ? Style.Tokens.color("Theme Colors/Accent/Red/Default") : Style.Tokens.color("Theme Colors/Text/bodyColor") }
                     }
                     LV.Label {
                         Layout.fillWidth: true

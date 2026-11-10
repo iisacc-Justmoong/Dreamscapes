@@ -9,6 +9,7 @@ import QtCore
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
 import "../Home"
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -214,7 +215,7 @@ Item {
         objectName: "imageContextMenu"
         property var targets: []
         showIconSlot: false
-        itemWidth: Math.min(280,Math.max(150,root.width - LV.Theme.gap24))
+        itemWidth: Math.min(280,Math.max(150,root.width - Style.Tokens.metric("Theme Metrics/Space/24")))
         items: [
             {label:qsTr("Shortlist · %1 results").arg(targets.length)},
             {label:qsTr("Reject · %1 results").arg(targets.length)},
@@ -242,8 +243,8 @@ Item {
         objectName: "resultToolbar"
         anchors.top: parent.top
         width: parent.width
-        height: implicitHeight + LV.Theme.gap8
-        spacing: LV.Theme.gap8
+        height: implicitHeight + Style.Tokens.metric("Theme Metrics/Space/8")
+        spacing: Style.Tokens.metric("Theme Metrics/Space/8")
         LV.LabelButton { objectName: "reviewBackButton"; text: qsTr("Back"); tone: LV.AbstractButton.Default; onClicked: root.backRequested() }
         LV.Label { text: qsTr("Generation review"); style: body; Layout.fillWidth: true; Layout.minimumWidth: 0; elide: Text.ElideRight }
         LV.Label { objectName: "galleryImageCount"; text: qsTr("%1 results").arg(review.totalCount); style: caption; visible: root.width >= 500 }
@@ -258,7 +259,7 @@ Item {
         anchors.bottom: actionViewport.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottomMargin: LV.Theme.gap8
+        anchors.bottomMargin: Style.Tokens.metric("Theme Metrics/Space/8")
         ReviewQueue {
             id: queuePanel
             objectName: "reviewQueuePanel"
@@ -288,15 +289,15 @@ Item {
             objectName: "reviewResultsArea"
             anchors.left: root.showQueue ? queuePanel.right : parent.left
             anchors.right: root.wide ? inspector.left : parent.right
-            anchors.leftMargin: root.showQueue ? LV.Theme.gap12 : 0
-            anchors.rightMargin: root.wide ? LV.Theme.gap12 : 0
+            anchors.leftMargin: root.showQueue ? Style.Tokens.metric("Theme Metrics/Space/12") : 0
+            anchors.rightMargin: root.wide ? Style.Tokens.metric("Theme Metrics/Space/12") : 0
             height: parent.height
             clip: true
             Flickable {
                 id: filterViewport
                 objectName: "reviewFilterViewport"
                 width: parent.width
-                height: filters.implicitHeight + LV.Theme.gap8
+                height: filters.implicitHeight + Style.Tokens.metric("Theme Metrics/Space/8")
                 contentWidth: filters.implicitWidth
                 contentHeight: height
                 clip: true
@@ -304,7 +305,7 @@ Item {
                 boundsBehavior: Flickable.StopAtBounds
                 LV.HStack {
                     id: filters
-                    spacing: LV.Theme.gap4
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/4")
                     Repeater {
                         model: ["all","shortlisted","unreviewed","rejected","images","videos"]
                         delegate: LV.LabelButton {
@@ -415,8 +416,8 @@ Item {
                     Accessible.onPressAction: root.activateImage(tile.index,0)
                     Rectangle {
                         anchors.fill: parent
-                        anchors.margins: LV.Theme.gap2
-                        color: LV.Theme.surfaceSolid
+                        anchors.margins: Style.Tokens.metric("Theme Metrics/Space/2")
+                        color: Style.Tokens.color("Theme Colors/Panel/surfaceSolid")
                         Image {
                             id: thumbnail
                             objectName: "galleryThumbnail"
@@ -432,7 +433,7 @@ Item {
                         }
                         LV.Label {
                             anchors.centerIn: parent
-                            width: parent.width - LV.Theme.gap8
+                            width: parent.width - Style.Tokens.metric("Theme Metrics/Space/8")
                             visible: thumbnail.status !== Image.Ready
                             horizontalAlignment: Text.AlignHCenter
                             wrapMode: Text.Wrap
@@ -443,13 +444,13 @@ Item {
                             anchors.left: parent.left
                             anchors.right: parent.right
                             anchors.bottom: parent.bottom
-                            height: tileLabel.implicitHeight + LV.Theme.gap4
-                            color: LV.Theme.surfaceSolid
+                            height: tileLabel.implicitHeight + Style.Tokens.metric("Theme Metrics/Space/4")
+                            color: Style.Tokens.color("Theme Colors/Panel/surfaceSolid")
                             opacity: 0.92
                             LV.Label {
                                 id: tileLabel
                                 anchors.fill: parent
-                                anchors.margins: LV.Theme.gap2
+                                anchors.margins: Style.Tokens.metric("Theme Metrics/Space/2")
                                 text: qsTr("%1 · %2 · %3").arg(tile.ordinal.toString().padStart(2,"0")).arg(tile.mediaType).arg((tile.entry.id || qsTr("Unavailable")).slice(0,8))
                                 style: caption
                                 elide: Text.ElideRight
@@ -458,18 +459,18 @@ Item {
                         Rectangle {
                             anchors.top: parent.top
                             anchors.right: parent.right
-                            anchors.margins: LV.Theme.gap4
-                            width: stateLabel.implicitWidth + LV.Theme.gap8
-                            height: stateLabel.implicitHeight + LV.Theme.gap4
-                            radius: LV.Theme.gap4
-                            color: LV.Theme.surfaceSolid
+                            anchors.margins: Style.Tokens.metric("Theme Metrics/Space/4")
+                            width: stateLabel.implicitWidth + Style.Tokens.metric("Theme Metrics/Space/8")
+                            height: stateLabel.implicitHeight + Style.Tokens.metric("Theme Metrics/Space/4")
+                            radius: Style.Tokens.metric("Theme Metrics/Space/4")
+                            color: Style.Tokens.color("Theme Colors/Panel/surfaceSolid")
                             visible: tile.selected || tile.reviewState !== "unreviewed"
                             LV.Label {
                                 id: stateLabel
                                 anchors.centerIn: parent
                                 text: (tile.selected ? "✓ " : "") + (tile.reviewState === "shortlisted" ? "★" : tile.reviewState === "rejected" ? "×" : "")
                                 style: caption
-                                color: tile.reviewState === "shortlisted" ? LV.Theme.accent : LV.Theme.textPrimary
+                                color: tile.reviewState === "shortlisted" ? LV.Theme.accent : Style.Tokens.color("Theme Colors/Text/titleHeaderColor")
                             }
                         }
                         Rectangle { anchors.fill: parent; color: "transparent"; border.width: tile.selected ? 2 : tile.focused ? 1 : 0; border.color: LV.Theme.accent }
@@ -503,7 +504,7 @@ Item {
             LV.Label {
                 id: emptyLabel
                 anchors.centerIn: parent
-                width: Math.max(0,parent.width - LV.Theme.gap16)
+                width: Math.max(0,parent.width - Style.Tokens.metric("Theme Metrics/Space/16"))
                 visible: review.count === 0
                 style: caption
                 horizontalAlignment: Text.AlignHCenter
@@ -518,7 +519,7 @@ Item {
         objectName: "reviewActionViewport"
         anchors.bottom: resultStatus.top
         width: parent.width
-        height: actions.implicitHeight + LV.Theme.gap4
+        height: actions.implicitHeight + Style.Tokens.metric("Theme Metrics/Space/4")
         contentWidth: actions.implicitWidth
         contentHeight: height
         clip: true
@@ -526,7 +527,7 @@ Item {
         boundsBehavior: Flickable.StopAtBounds
         LV.HStack {
             id: actions
-            spacing: LV.Theme.gap8
+            spacing: Style.Tokens.metric("Theme Metrics/Space/8")
             LV.Label { objectName: "reviewSelectedCount"; text: qsTr("%1 selected%2").arg(review.selectedCount).arg(review.hiddenSelectedCount ? qsTr(" · %1 hidden").arg(review.hiddenSelectedCount) : ""); style: caption }
             ImageSelectionBar {
                 id: imageSelection
@@ -550,16 +551,16 @@ Item {
         objectName: "resultStatus"
         anchors.bottom: parent.bottom
         width: parent.width
-        height: implicitHeight + LV.Theme.gap4
+        height: implicitHeight + Style.Tokens.metric("Theme Metrics/Space/4")
         style: caption
         elide: Text.ElideRight
         text: (batchExporter.busy ? qsTr("Exporting %1 / %2…").arg(batchExporter.processed).arg(batchExporter.total)
             : root.saveFeedback || root.errorText || root.statusText || qsTr("F Shortlist · X Reject · Space Preview · C Compare · Enter Edit · Review decisions last for this session")).replace(/[\r\n\u2028\u2029]+/g, " ")
-        color: root.errorText.length && !root.saveFeedback.length ? LV.Theme.accentRed : LV.Theme.textSecondary
+        color: root.errorText.length && !root.saveFeedback.length ? Style.Tokens.color("Theme Colors/Accent/Red/Default") : Style.Tokens.color("Theme Colors/Text/bodyColor")
     }
     Rectangle {
         anchors.fill: workspace
-        color: LV.Theme.surfaceSolid
+        color: Style.Tokens.color("Theme Colors/Panel/surfaceSolid")
         visible: root.queueOpen || root.inspectorOpen
         z: 2
         LV.LabelButton { id: drawerClose; anchors.top: parent.top; anchors.right: parent.right; text: qsTr("Close"); tone: LV.AbstractButton.Default; onClicked: root.goBack() }
@@ -586,7 +587,7 @@ Item {
     }
     Rectangle {
         anchors.fill: parent
-        color: LV.Theme.surfaceSolid
+        color: Style.Tokens.color("Theme Colors/Panel/surfaceSolid")
         visible: root.detailVisible
         z: 3
         LV.HStack {

@@ -48,12 +48,24 @@ parser.add_argument('--ffprobe', default='ffprobe')
 parser.add_argument('--work-dir', type=pathlib.Path)
 parser.add_argument('--cache-dir', type=pathlib.Path)
 parser.add_argument('--preview-dir', type=pathlib.Path)
-parser.add_argument('--backend', choices=['local', 'video'])
+parser.add_argument('--backend', choices=['local', 'video', 'diffusers'])
+parser.add_argument('--model-config-preset')
+parser.add_argument('--moss-transformer-storage')
+parser.add_argument('--moss-text-encoder')
 parser.add_argument('--generation-resources', type=pathlib.Path)
 parser.add_argument('--default-modifiers', action=argparse.BooleanOptionalAction, default=True)
 
 def generate(arguments, request_count=1):
     args = parser.parse_args(arguments)
+    if args.backend == 'diffusers' and args.prompt == 'dependency-progress-fixture':
+        for count in (1, 1, 0, 1.5, 2):
+            print('IILD_DEPENDENCY_PROGRESS ' + json.dumps({'schema': 'iild-dependency-progress-v1',
+                  'completed_modules': count}), flush=True)
+        print('IILD_DEPENDENCY_PROGRESS ' + json.dumps({'schema': 'invalid',
+              'completed_modules': 3}), flush=True)
+    if args.backend == 'diffusers':
+        print('IILD_DIFFUSERS_PROGRESS ' + json.dumps({'schema': 'iild-diffusers-progress-v1',
+              'stage': 'denoising', 'step': 1, 'total': args.steps}), flush=True)
     if args.backend == 'video':
         if args.prompt == 'video-diagnostic-failure':
             print('IILD_VIDEO_PROGRESS ' + json.dumps({'schema': 'iild-video-progress-v1',
@@ -178,6 +190,11 @@ def generate(arguments, request_count=1):
                   'stage': stage, 'step': step, 'total': total}), flush=True)
 
     record = {key: str(value) if isinstance(value, pathlib.Path) else value for key, value in vars(args).items()}
+    if args.moss_text_encoder:
+        record['moss_text_encoder_sha256'] = hashlib.sha256(pathlib.Path(args.moss_text_encoder).read_bytes()).hexdigest()
+    if args.backend == 'diffusers' and args.vae:
+        record['moss_vae_sha256'] = hashlib.sha256(pathlib.Path(args.vae).read_bytes()).hexdigest()
+        record['moss_transformer_sha256'] = hashlib.sha256(pathlib.Path(args.model_path).read_bytes()).hexdigest()
     record.update(worker_pid=os.getpid(), request_count=request_count,
                   python_cache_prefix=os.environ.get('PYTHONPYCACHEPREFIX'),
                   dont_write_bytecode=os.environ.get('PYTHONDONTWRITEBYTECODE'),

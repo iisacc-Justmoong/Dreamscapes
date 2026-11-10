@@ -2,6 +2,11 @@
 
 기준 디자인은 [Figma 1264:19399](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1264-19399&m=dev)이다.
 에디터 상단 Publish는 앱 내부의 이 화면을 연다. Society 앱 실행이나 앱 간 통신을 사용하지 않는다.
+게시 화면의 입력과 단계 표시는 LVRS 컨트롤과 글꼴 역할을 사용한다.
+Figma의 대상별 설정 시안도 공통 LVRS 텍스트 스타일에 연결하고 기존
+제품 전용 `Publish / Title`, `Section`, `Paragraph`, `Caption`, `Body`,
+`Large` 스타일 정의를 제거했다. 외부 플랫폼의 네이티브 미리보기 스타일과
+브랜드, 실제 콘텐츠 미리보기는 별도로 보존한다.
 
 ## 화면 전환과 원본 보존
 
@@ -92,8 +97,9 @@ Preview는 현재 초안을 읽기 전용으로 확인하는 화면 상태이다
 
 ## 정적 자산과 검증
 
-`Views/Publishing/Assets`의 chevron-down, stepper, add는 Figma 원본 18×18 SVG,
-checkbox는 17×17 SVG이다. 다운로드한 원본을 변경하지 않고 번들 리소스에 포함한다.
+게시 화면의 펼침·추가 아이콘과 선택 표시, 스테퍼는 공통 LVRS 컴포넌트와
+토큰을 사용한다. 초록 선택 표시는 LVRS Green과 windowAlt 역할을 사용하고,
+선택 입력의 스테퍼는 공통 기본 상태를 사용한다. 제품 전용 컨트롤 SVG는 제거한다.
 캔버스 작품은 사용자 문서 데이터이므로 정적 예시 PNG로 대체하지 않는다.
 
 `Dreamscapes.PublishDraft`는 실제 다중 캔버스 구성, 부분 행 알림, 게시 순서와

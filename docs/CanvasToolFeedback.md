@@ -7,8 +7,9 @@ content, change the IISC schema, or implement Adobe's private renderer.
 `EditorCanvasFeedback` is an input-transparent native painted surface above the
 document, existing mask tint and transform controls. It has no accepted mouse
 buttons, touch input or hover handlers. `EditorCanvas` remains the sole input
-owner. The feedback artwork and selection/shape drafts do not modify document pixels, history,
-authorship or a working file. Completed paint and mask operations retain their
+owner. QML supplies the LVRS canvas, base text and blue overlay colors to the native
+painted surface, including when the shared theme changes. The feedback artwork and
+selection/shape drafts do not modify document pixels, history, authorship or a working file. Completed paint and mask operations retain their
 existing native transactions and Undo behavior.
 
 - Select Rectangle, Triangle and Lasso show a black-and-white dashed contour

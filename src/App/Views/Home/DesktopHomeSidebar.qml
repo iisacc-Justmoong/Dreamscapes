@@ -2,13 +2,14 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 LV.List {
     id: root
     objectName: "desktopSidebar"
     property bool compact: false
     property string selectedAction: "home"
-    readonly property real contentPadding: LV.Theme.gap8
+    readonly property real contentPadding: Style.Tokens.metric("Theme Metrics/Space/8")
     signal actionRequested(string action)
     items: [({})]
     footerVisible: false
@@ -41,18 +42,18 @@ LV.List {
             spacing: 0
             Repeater {
                 model: [
-                    { key: "home", title: qsTr("Home"), icon: "nodeshomeFolder", asset: "home" },
+                    { key: "home", title: qsTr("Home"), icon: "nodeshomeFolder" },
                     { key: "divider1" },
-                    { key: "canvas", title: qsTr("New Canvas"), icon: "imagefitContent", asset: "canvas" },
-                    { key: "image", title: qsTr("Image"), icon: "unconditionalImageGeneration", asset: "image" },
-                    { key: "video", title: qsTr("Video"), icon: "imageToVideo", asset: "video" },
-                    { key: "audio", title: qsTr("Audio"), icon: "volume", asset: "audio" },
-                    { key: "board", title: qsTr("Board"), icon: "pattern", asset: "board" },
-                    { key: "tools", title: qsTr("Tools"), icon: "collection", asset: "tools" },
+                    { key: "canvas", title: qsTr("New Canvas"), icon: "imagefitContent" },
+                    { key: "image", title: qsTr("Image"), icon: "unconditionalImageGeneration" },
+                    { key: "video", title: qsTr("Video"), icon: "imageToVideo" },
+                    { key: "audio", title: qsTr("Audio"), icon: "volume" },
+                    { key: "board", title: qsTr("Board"), icon: "pattern" },
+                    { key: "tools", title: qsTr("Tools"), icon: "collection" },
                     { key: "divider2" },
                     { key: "files", title: qsTr("Files"), icon: "sqlFile" },
-                    { key: "assets", title: qsTr("Assets"), icon: "asset-library", asset: "assets" },
-                    { key: "history", title: qsTr("Generation History"), icon: "profileCPU", asset: "history" }
+                    { key: "assets", title: qsTr("Assets"), icon: "asset-library" },
+                    { key: "history", title: qsTr("Generation History"), icon: "profileCPU" }
                 ]
                 delegate: LV.VStack {
                     id: entry
@@ -74,22 +75,20 @@ LV.List {
                         label: root.compact ? "" : entry.modelData.title || ""
                         iconSize: 18
                         iconName: entry.modelData.icon || ""
-                        iconSource: entry.modelData.asset && entry.modelData.key !== "home"
-                            ? Qt.resolvedUrl("Assets/Desktop/" + entry.modelData.asset + ".svg") : ""
                         showIconSlot: entry.modelData.key !== "home"
                         keyVisible: false
                         showChevron: false
                         leftPadding: entry.modelData.key === "home"
-                            ? LV.Theme.scaleMetric(30) : LV.Theme.gap4
+                            ? LV.Theme.scaleMetric(30) : Style.Tokens.metric("Theme Metrics/Space/4")
                         // Figma places this 16px image at the top-left of its 18px slot.
                         LV.IconButton {
                             visible: entry.modelData.key === "home"
-                            x: LV.Theme.gap4
+                            x: Style.Tokens.metric("Theme Metrics/Space/4")
                             y: LV.Theme.scaleMetric(3)
                             width: LV.Theme.scaleMetric(16)
                             height: width
                             iconSize: LV.Theme.scaleMetric(16)
-                            iconSource: Qt.resolvedUrl("Assets/Desktop/home.svg")
+                            iconSource: LV.Theme.iconPath("nodeshomeFolder")
                             horizontalPadding: 0
                             verticalPadding: 0
                             enabled: false
@@ -97,9 +96,9 @@ LV.List {
                             Accessible.ignored: true
                         }
                         state: root.selectedAction === entry.modelData.key ? selectedState : defaultState
-                        backgroundColor: isSelected ? LV.Theme.accentBlueMuted : "transparent"
-                        backgroundColorHover: isSelected ? LV.Theme.accentBlueMuted : LV.Theme.surfaceAlt
-                        backgroundColorPressed: LV.Theme.accentBlueMuted
+                        backgroundColor: isSelected ? Style.Tokens.color("Theme Colors/Accent/Blue/Selected") : "transparent"
+                        backgroundColorHover: isSelected ? Style.Tokens.color("Theme Colors/Accent/Blue/Selected") : Style.Tokens.color("Theme Colors/Panel/surfaceAlt")
+                        backgroundColorPressed: Style.Tokens.color("Theme Colors/Accent/Blue/Selected")
                         Accessible.name: entry.modelData.title || ""
                         Accessible.role: Accessible.Button
                         LV.Tooltip {

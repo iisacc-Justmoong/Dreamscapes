@@ -55,6 +55,7 @@ Markdown is the maintained human source. Agent JSON is a structured, source-trac
 | [`docs/HomePaintCanvas.md`](HomePaintCanvas.md) | [JSON](HomePaintCanvas.agent.json) |
 | [`docs/ImageCanvasStorage.md`](ImageCanvasStorage.md) | [JSON](ImageCanvasStorage.agent.json) |
 | [`docs/InteractionAudit.md`](InteractionAudit.md) | [JSON](InteractionAudit.agent.json) |
+| [`docs/LVUIStyleMigration.md`](LVUIStyleMigration.md) | [JSON](LVUIStyleMigration.agent.json) |
 | [`docs/LayerHistogram.md`](LayerHistogram.md) | [JSON](LayerHistogram.agent.json) |
 | [`docs/Mcp.md`](Mcp.md) | [JSON](Mcp.agent.json) |
 | [`docs/MobileNavigationIcons.md`](MobileNavigationIcons.md) | [JSON](MobileNavigationIcons.agent.json) |
@@ -81,6 +82,7 @@ Markdown is the maintained human source. Agent JSON is a structured, source-trac
 | [`docs/SharedLogicalStorage.md`](SharedLogicalStorage.md) | [JSON](SharedLogicalStorage.agent.json) |
 | [`docs/SingleAppBuild.md`](SingleAppBuild.md) | [JSON](SingleAppBuild.agent.json) |
 | [`docs/SocialPublishing.md`](SocialPublishing.md) | [JSON](SocialPublishing.agent.json) |
+| [`docs/SocietyAccount.md`](SocietyAccount.md) | [JSON](SocietyAccount.agent.json) |
 | [`docs/SocietyAliases.md`](SocietyAliases.md) | [JSON](SocietyAliases.agent.json) |
 | [`docs/StorageBrowser.md`](StorageBrowser.md) | [JSON](StorageBrowser.agent.json) |
 | [`docs/StorageInitialization.md`](StorageInitialization.md) | [JSON](StorageInitialization.agent.json) |

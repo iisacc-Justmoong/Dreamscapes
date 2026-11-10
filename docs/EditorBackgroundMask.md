@@ -40,11 +40,9 @@ the controls. They anchor above the control and close from hover/focus changes,
 without an outside-press dismissal grab, so an already open tooltip cannot
 consume the next tool click or switch gesture.
 
-Tool, selection, list and overlay icons resolve through the installed LVRS
-icon library. `Assets/Background/mask-apply.svg` is the exact Figma export of
-the Apply checkmark with the theme foreground override for its accent button.
-It is packaged by the existing Background SVG resource glob. No temporary
-Figma asset URL is used at runtime.
+Tool, selection, list and overlay icons resolve through the shared LVRS
+icon library. The Apply action uses LVRS `generalcheckmark`; the Figma panel
+uses the same icon component. No temporary Figma asset URL is used at runtime.
 
 ## Editing contract
 

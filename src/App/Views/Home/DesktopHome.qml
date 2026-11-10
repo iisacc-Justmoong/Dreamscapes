@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -18,7 +19,7 @@ Item {
     property string selectedAction: "home"
     property string browserSection: ""
     readonly property bool compact: width < LV.Theme.scaleMetric(700)
-    readonly property real contentHorizontalInset: compact ? LV.Theme.gap12 : LV.Theme.gap16
+    readonly property real contentHorizontalInset: compact ? Style.Tokens.metric("Theme Metrics/Space/12") : Style.Tokens.metric("Theme Metrics/Space/16")
     readonly property bool wideWorkspace: viewport.width >= 1040
     readonly property var selectedFile: recentFilesTable.selectedFile
     property string modelName: ""
@@ -81,7 +82,7 @@ Item {
             Layout.fillHeight: true
             visible: !root.browserSection && root.selectedAction !== "image" && root.selectedAction !== "video"
             contentWidth: width
-            contentHeight: content.y + content.implicitHeight + LV.Theme.gap16
+            contentHeight: content.y + content.implicitHeight + Style.Tokens.metric("Theme Metrics/Space/16")
             boundsBehavior: Flickable.StopAtBounds
             clip: true
             Controls.ScrollBar.vertical: Controls.ScrollBar { policy: Controls.ScrollBar.AsNeeded }
@@ -89,13 +90,13 @@ Item {
                 id: content
                 objectName: "desktopHomeContent"
                 x: root.contentHorizontalInset
-                y: LV.Theme.gap16
+                y: Style.Tokens.metric("Theme Metrics/Space/16")
                 width: Math.max(0, viewport.width - root.contentHorizontalInset * 2)
-                spacing: LV.Theme.gap12
+                spacing: Style.Tokens.metric("Theme Metrics/Space/12")
                 LV.HStack {
                     Layout.fillWidth: true
                     LV.Label { text: qsTr("Workspace"); style: header }
-                    LV.Label { text: qsTr("Create and continue"); style: caption; color: LV.Theme.descriptionColor; visible: content.width > 500 }
+                    LV.Label { text: qsTr("Create and continue"); style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor"); visible: content.width > 500 }
                     Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
                     LV.LabelButton { tone: LV.AbstractButton.Default; objectName: "homeOpenFile"; text: qsTr("Open file"); onClicked: root.openFileRequested() }
                     LV.LabelButton { tone: LV.AbstractButton.Default; objectName: "homeNewCanvas"; text: qsTr("New canvas"); onClicked: root.activate("canvas") }
@@ -111,7 +112,7 @@ Item {
                     visible: text.length > 0
                     text: root.errorText
                     style: caption
-                    color: LV.Theme.accentRed
+                    color: Style.Tokens.color("Theme Colors/Accent/Red/Default")
                     wrapMode: Text.Wrap
                     sizeToContentHeight: true
                     Layout.fillWidth: true
@@ -121,8 +122,8 @@ Item {
                     objectName: "homeFileWorkspace"
                     Layout.fillWidth: true
                     columns: root.wideWorkspace ? 2 : 1
-                    columnSpacing: LV.Theme.gap12
-                    rowSpacing: LV.Theme.gap12
+                    columnSpacing: Style.Tokens.metric("Theme Metrics/Space/12")
+                    rowSpacing: Style.Tokens.metric("Theme Metrics/Space/12")
                     readonly property real panelHeight: root.wideWorkspace
                         ? Math.max(360, viewport.height - promptSlot.height - 284) : 360
                     Item {
@@ -130,7 +131,7 @@ Item {
                         Layout.preferredWidth: 700; Layout.preferredHeight: workArea.panelHeight
                         HomeRecentFiles {
                             id: recentFilesTable
-                            anchors.fill: parent; anchors.margins: LV.Theme.gap12
+                            anchors.fill: parent; anchors.margins: Style.Tokens.metric("Theme Metrics/Space/12")
                             files: root.recentFiles
                             loading: root.loading
                             onViewAllRequested: root.browseRequested()
@@ -142,7 +143,7 @@ Item {
                         Layout.fillWidth: true; Layout.minimumWidth: 0
                         Layout.preferredWidth: 515; Layout.preferredHeight: workArea.panelHeight
                         HomeSelectedFile {
-                            anchors.fill: parent; anchors.margins: LV.Theme.gap12
+                            anchors.fill: parent; anchors.margins: Style.Tokens.metric("Theme Metrics/Space/12")
                             file: recentFilesTable.selectedFile
                             onFileRequested: function(file) { root.fileRequested(file) }
                         }
@@ -152,8 +153,8 @@ Item {
                     objectName: "homeSessionWorkspace"
                     Layout.fillWidth: true
                     columns: root.wideWorkspace ? 2 : 1
-                    columnSpacing: LV.Theme.gap12
-                    rowSpacing: LV.Theme.gap12
+                    columnSpacing: Style.Tokens.metric("Theme Metrics/Space/12")
+                    rowSpacing: Style.Tokens.metric("Theme Metrics/Space/12")
                     HomeQueueBar {
                         Layout.fillWidth: true; Layout.minimumWidth: 0
                         Layout.preferredWidth: 526; Layout.preferredHeight: 160
@@ -167,7 +168,7 @@ Item {
                         Layout.fillWidth: true; Layout.minimumWidth: 0
                         Layout.preferredWidth: 689; Layout.preferredHeight: 160
                         HomeRecentGenerations {
-                            anchors.fill: parent; anchors.margins: LV.Theme.gap12
+                            anchors.fill: parent; anchors.margins: Style.Tokens.metric("Theme Metrics/Space/12")
                             files: root.generationHistory
                             loading: root.loading
                             onViewAllRequested: root.historyRequested()
@@ -178,11 +179,11 @@ Item {
                 }
                 LV.HStack {
                     objectName: "homeSessionStatus"
-                    Layout.preferredHeight: LV.Theme.controlHeightSm
+                    Layout.preferredHeight: Style.Tokens.metric("Theme Metrics/Size/22")
                     Layout.fillWidth: true
-                    LV.Label { text: root.generationStatus || qsTr("Session · Idle"); style: caption; color: LV.Theme.descriptionColor; elide: Text.ElideRight; Layout.maximumWidth: content.width / 2 }
+                    LV.Label { text: root.generationStatus || qsTr("Session · Idle"); style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor"); elide: Text.ElideRight; Layout.maximumWidth: content.width / 2 }
                     Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
-                    LV.Label { text: qsTr("Storage · Society drive"); style: caption; color: LV.Theme.descriptionColor }
+                    LV.Label { text: qsTr("Storage · Society drive"); style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor") }
                 }
                 LV.LabelButton {
                     objectName: "desktopGenerationSettings"

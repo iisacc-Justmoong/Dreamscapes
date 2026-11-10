@@ -10,8 +10,8 @@
   },
   "source": {
     "path": "docs/EditorFilePanel.md",
-    "sha256": "2c2d1dd01c1a8f48f5c7c1c1581c0bffe767a23574cbfa9121094dba03e1f520",
-    "bytes": 5419,
+    "sha256": "b07ab2475363908304b4409cb954aca1183149d799178973220eecc7bd68a8ac",
+    "bytes": 5449,
     "line_count": 34,
     "encoding": "utf-8",
     "language": "ko"
@@ -111,7 +111,7 @@
       "kind": "paragraph",
       "start_line": 13,
       "end_line": 13,
-      "raw": "`EditorFilePanel.qml`은 LVRS IconSegmentedControl·IconButton·Label과 기존 수동 PanelRow로 구성한다. 432px 패널 기준 내부 너비는 398px, 레이블 152px, 값 234px, 열 간격 12px이다. 상단 세그먼트와 현재 상태 아이콘은 고정하며 본문만 스크롤한다. 모바일에서는 LVRS Large Sheet 내부에 같은 패널을 채운다. 좁은 도크·시트에서는 레이블 폭을 줄이고 값 영역을 줄바꿈한다. 원본 SVG 세 개를 Assets/File에 보존하며 런타임 Figma URL을 사용하지 않는다.\n"
+      "raw": "`EditorFilePanel.qml`은 LVRS IconSegmentedControl·IconButton·Label과 기존 수동 PanelRow로 구성한다. 432px 패널 기준 내부 너비는 398px, 레이블 152px, 값 234px, 열 간격 12px이다. 상단 세그먼트와 현재 상태 아이콘은 고정하며 본문만 스크롤한다. 모바일에서는 LVRS Large Sheet 내부에 같은 패널을 채운다. 좁은 도크·시트에서는 레이블 폭을 줄이고 값 영역을 줄바꿈한다. 컨트롤 아이콘은 LVRS 공통 아이콘 라이브러리에서 조회하며 런타임 Figma URL을 사용하지 않는다.\n"
     },
     {
       "id": "b000010",
@@ -267,7 +267,7 @@
       {
         "block_id": "b000009",
         "line": 13,
-        "text": "`EditorFilePanel.qml`은 LVRS IconSegmentedControl·IconButton·Label과 기존 수동 PanelRow로 구성한다. 432px 패널 기준 내부 너비는 398px, 레이블 152px, 값 234px, 열 간격 12px이다. 상단 세그먼트와 현재 상태 아이콘은 고정하며 본문만 스크롤한다. 모바일에서는 LVRS Large Sheet 내부에 같은 패널을 채운다. 좁은 도크·시트에서는 레이블 폭을 줄이고 값 영역을 줄바꿈한다. 원본 SVG 세 개를 Assets/File에 보존하며 런타임 Figma URL을 사용하지 않는다.",
+        "text": "`EditorFilePanel.qml`은 LVRS IconSegmentedControl·IconButton·Label과 기존 수동 PanelRow로 구성한다. 432px 패널 기준 내부 너비는 398px, 레이블 152px, 값 234px, 열 간격 12px이다. 상단 세그먼트와 현재 상태 아이콘은 고정하며 본문만 스크롤한다. 모바일에서는 LVRS Large Sheet 내부에 같은 패널을 채운다. 좁은 도크·시트에서는 레이블 폭을 줄이고 값 영역을 줄바꿈한다. 컨트롤 아이콘은 LVRS 공통 아이콘 라이브러리에서 조회하며 런타임 Figma URL을 사용하지 않는다.",
         "basis": "lexical_match",
         "context": "paragraph"
       },

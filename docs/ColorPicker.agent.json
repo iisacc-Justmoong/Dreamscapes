@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/ColorPicker.md",
-    "sha256": "8098fa1fe9168f9d62727e8de6f320459c2dde9ae21566c0c31ad525e6094ff9",
-    "bytes": 3473,
-    "line_count": 53,
+    "sha256": "63cd1a5452f7a64fe41384950e300ea81b45ce4c6a4cc1378a9494d0829f96bc",
+    "bytes": 3640,
+    "line_count": 55,
     "encoding": "utf-8",
     "language": "en"
   },
@@ -42,77 +42,77 @@
       "id": "b000003",
       "kind": "paragraph",
       "start_line": 3,
-      "end_line": 7,
-      "raw": "Dreamscapes links the installed `iiColorManager::iiColorManager` 0.1.0 CMake\ntarget. The Qt-free C++23 SDK owns color conversions, numeric channel ranges,\npicker coordinates, dynamic ramps, web-safe quantization, gamut indication and\naccept/cancel snapshots. `Views/ColorManagerModel` is the Qt GUI boundary;\n`Views/ColorPicker.qml` uses the installed LVRS controls and theme.\n"
+      "end_line": 9,
+      "raw": "Dreamscapes links the installed `iiColorManager::iiColorManager` 0.1.0 CMake\ntarget. The Qt-free C++23 SDK owns color conversions, numeric channel ranges,\npicker coordinates, dynamic ramps, web-safe quantization, gamut indication and\naccept/cancel snapshots. `Views/ColorManagerModel` is the Qt GUI boundary;\n`Views/ColorPicker.qml` uses the installed LVRS controls and theme.\nThe picker marker and alpha checkerboard receive shared LVRS neutral colors through\nthe presentation surface; selected, recent and custom colors remain document data.\n"
     },
     {
       "id": "b000004",
       "kind": "blank",
-      "start_line": 8,
-      "end_line": 8,
+      "start_line": 10,
+      "end_line": 10,
       "raw": "\n"
     },
     {
       "id": "b000005",
       "kind": "paragraph",
-      "start_line": 9,
-      "end_line": 14,
+      "start_line": 11,
+      "end_line": 16,
       "raw": "The mode menu lists Hue Cube, Brightness Cube, Color Wheel, Grayscale Slider,\nRGB Sliders, HSB Sliders, CMYK Sliders, Lab Sliders and Web Color Sliders in that\norder. Mouse drags, keyboard arrows, sliders and numeric entries edit the same\nnative state. Alpha, hexadecimal input, previous/current previews, recent colors\nand Apply/Cancel are shared across all modes. Selecting a mode does not edit a\ndocument or quantize its selected color.\n"
     },
     {
       "id": "b000006",
       "kind": "blank",
-      "start_line": 15,
-      "end_line": 15,
+      "start_line": 17,
+      "end_line": 17,
       "raw": "\n"
     },
     {
       "id": "b000007",
       "kind": "paragraph",
-      "start_line": 16,
-      "end_line": 23,
+      "start_line": 18,
+      "end_line": 25,
       "raw": "The picker header follows the title/selector row in Dreamscapes Figma\n[`1023:70876`](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1023-70876),\nspecifically header `1031:184463`: `Color picker` on the left and a compact,\nright-aligned LVRS ComboBox above the interactive picker. The selector adapts to\nthe selected mode's full name instead of stretching across the row. Its native\nPrimary/UpDown appearance and icon come from installed LVRS; no exported image\nor temporary Figma URL is used at runtime. Clicking, Space or Return opens all\nnine modes. The menu aligns with the selector and stays inside a narrow viewport.\n"
     },
     {
       "id": "b000008",
       "kind": "blank",
-      "start_line": 24,
-      "end_line": 24,
+      "start_line": 26,
+      "end_line": 26,
       "raw": "\n"
     },
     {
       "id": "b000009",
       "kind": "paragraph",
-      "start_line": 25,
-      "end_line": 29,
+      "start_line": 27,
+      "end_line": 31,
       "raw": "The shared picker replaces the former six-mode `LV.ColorPicker` in all four\nproduction paths: Home paint color, Editor document paint color, ordinary tool\ncolor fields, and graphic adjustment color fields. Existing host handlers still\ncommit only on acceptance. The public QML `setColor`, `setHex`, `accept`, `cancel`,\n`accepted`, `canceled`, and `colorEdited` contracts remain available.\n"
     },
     {
       "id": "b000010",
       "kind": "blank",
-      "start_line": 30,
-      "end_line": 30,
+      "start_line": 32,
+      "end_line": 32,
       "raw": "\n"
     },
     {
       "id": "b000011",
       "kind": "paragraph",
-      "start_line": 31,
-      "end_line": 36,
+      "start_line": 33,
+      "end_line": 38,
       "raw": "The implementation refers to the recovered Photoshop color-panel/dialog\ndeclarations under `Engineering/Projects/Adobe/Photoshop`. See the SDK's\n`docs/PhotoshopEvidence.md` for source scope and its `docs/ColorModes.md` for\nconversion and interaction contracts. Lab uses sRGB↔D50 CIELAB with Bradford\nadaptation. CMYK is a generic model; it does not substitute for a document's ICC\npress profile. This UI work does not establish Adobe native pixel parity.\n"
     },
     {
       "id": "b000012",
       "kind": "blank",
-      "start_line": 37,
-      "end_line": 37,
+      "start_line": 39,
+      "end_line": 39,
       "raw": "\n"
     },
     {
       "id": "b000013",
       "kind": "paragraph",
-      "start_line": 38,
-      "end_line": 53,
+      "start_line": 40,
+      "end_line": 55,
       "raw": "Build and test with the existing `build/` tree. The `Dreamscapes.ColorManager`\ntest covers all nine modes at 280px and 402px, native model bindings, numeric\nedits, pointer/keyboard surfaces and accept/cancel. It verifies the header and\nselector geometry and chooses every mode through the real menu at both widths.\nIts nine GUI captures are\nwritten to `build/color-manager-verification/`. Existing Home/tool/graphic GUI\nregressions cover the production caller paths. The real application registration\nis in `src/main.cpp`, independently of the test registration.\nThe Home painting fixture creates an isolated Society drive for attachment\nimports and restores its previous container environment on every exit. It does\nnot depend on the user's active drive. Packaged startup verification removes\ndevelopment library/import overrides and checks the bundle's real entry point.\nThe packaged entry check allows 90 seconds for a cold start from the external\nworkspace volume; its process is still required to emit `root-loaded`, create\none window, and discover the isolated test helper. Elapsed time alone is not a\nsuccessful startup result.\n"
     }
   ],
@@ -130,7 +130,7 @@
     "directive_candidates": [
       {
         "block_id": "b000013",
-        "line": 51,
+        "line": 53,
         "text": "workspace volume; its process is still required to emit `root-loaded`, create",
         "basis": "lexical_match",
         "context": "paragraph"
@@ -143,7 +143,7 @@
         "label": "`1023:70876`",
         "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1023-70876",
         "kind": "external",
-        "line": 17
+        "line": 19
       }
     ],
     "tables": []

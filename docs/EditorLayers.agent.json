@@ -10,8 +10,8 @@
   },
   "source": {
     "path": "docs/EditorLayers.md",
-    "sha256": "a91b136740ed04ec0bdb4759b99c7dee78e1eaab278cdf653e750146aec2644f",
-    "bytes": 6521,
+    "sha256": "df8b6663b8b128a20b3d90f6a7aa654c8a42381ffbb545fa05bfdb8c9821bf9a",
+    "bytes": 6608,
     "line_count": 33,
     "encoding": "utf-8",
     "language": "en"
@@ -71,7 +71,7 @@
       "kind": "paragraph",
       "start_line": 7,
       "end_line": 7,
-      "raw": "The current compact reference frames have a 398px content width inside the 432px frame. Their natural content heights are 407, 487, 512 and 472px; the resizable dock can give the live hierarchy additional vertical space. The four native LVRS segmented buttons, typography, colors, radii, inputs, slider, menus and icon buttons use the installed LVRS framework. The hierarchy composes `LV.HierarchyList` and `LV.HierarchyItem`, the native parts of `LV.Hierarchy`, with compact 17 px rows and a trailing visibility control. The 32 exported SVG assets preserve their original view boxes and root geometry. Narrow docks reflow actions and scroll taller content.\n"
+      "raw": "The current compact reference frames have a 398px content width inside the 432px frame. Their natural content heights are 407, 487, 512 and 472px; the resizable dock can give the live hierarchy additional vertical space. The four native LVRS segmented buttons, typography, colors, radii, inputs, slider, menus and icon buttons use the installed LVRS framework. The hierarchy composes `LV.HierarchyList` and `LV.HierarchyItem`, the native parts of `LV.Hierarchy`, with compact 17 px rows and a trailing visibility control. Control icons resolve through the shared LVRS library; duplicate product-specific SVG copies have been removed. The hierarchy model returns layer semantics, and the view resolves the corresponding shared icon. Narrow docks reflow actions and scroll taller content.\n"
     },
     {
       "id": "b000008",
@@ -129,7 +129,7 @@
       "kind": "paragraph",
       "start_line": 15,
       "end_line": 15,
-      "raw": "The trailing visibility icon uses the original 16 px horizontal eye exported from [Hierarchy 564:93009](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-93009), saved as `Visibility.svg`, without rotation. Figma's slot is named Chevron, but its current component is `generalshow`; it must not be replaced with a directional chevron. The eye's horizontal orientation is independent of the left-side group disclosure and the layer's visible/hidden state.\n"
+      "raw": "The trailing visibility icon uses LVRS `visibility`, a 16 px horizontal eye matching [Hierarchy 564:93009](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-93009), without rotation. Figma's slot is named Chevron, but its current component is `generalshow`; it must not be replaced with a directional chevron. The eye's horizontal orientation is independent of the left-side group disclosure and the layer's visible/hidden state.\n"
     },
     {
       "id": "b000016",
@@ -245,7 +245,7 @@
       "kind": "paragraph",
       "start_line": 31,
       "end_line": 31,
-      "raw": "The hierarchy's active row must track the selected document layer after duplicate, direct document selection, visibility updates and user row activation. The Layer GUI regression checks both document IDs and native row selection; all seven footer tones and rendered background colors are checked against Figma's default and destructive states before locking, while locked and after unlocking. It also checks each existing footer asset's local file, native icon slot and rendered size.\n"
+      "raw": "The hierarchy's active row must track the selected document layer after duplicate, direct document selection, visibility updates and user row activation. The Layer GUI regression checks both document IDs and native row selection; all seven footer tones and rendered background colors are checked against Figma's default and destructive states before locking, while locked and after unlocking. It also checks footer icon loading, native icon slots and rendered sizes.\n"
     },
     {
       "id": "b000032",
@@ -301,7 +301,7 @@
       {
         "block_id": "b000015",
         "line": 15,
-        "text": "The trailing visibility icon uses the original 16 px horizontal eye exported from [Hierarchy 564:93009](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-93009), saved as `Visibility.svg`, without rotation. Figma's slot is named Chevron, but its current component is `generalshow`; it must not be replaced with a directional chevron. The eye's horizontal orientation is independent of the left-side group disclosure and the layer's visible/hidden state.",
+        "text": "The trailing visibility icon uses LVRS `visibility`, a 16 px horizontal eye matching [Hierarchy 564:93009](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-93009), without rotation. Figma's slot is named Chevron, but its current component is `generalshow`; it must not be replaced with a directional chevron. The eye's horizontal orientation is independent of the left-side group disclosure and the layer's visible/hidden state.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
@@ -315,7 +315,7 @@
       {
         "block_id": "b000031",
         "line": 31,
-        "text": "The hierarchy's active row must track the selected document layer after duplicate, direct document selection, visibility updates and user row activation. The Layer GUI regression checks both document IDs and native row selection; all seven footer tones and rendered background colors are checked against Figma's default and destructive states before locking, while locked and after unlocking. It also checks each existing footer asset's local file, native icon slot and rendered size.",
+        "text": "The hierarchy's active row must track the selected document layer after duplicate, direct document selection, visibility updates and user row activation. The Layer GUI regression checks both document IDs and native row selection; all seven footer tones and rendered background colors are checked against Figma's default and destructive states before locking, while locked and after unlocking. It also checks footer icon loading, native icon slots and rendered sizes.",
         "basis": "lexical_match",
         "context": "paragraph"
       }

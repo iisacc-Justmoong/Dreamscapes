@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 LV.InputField {
     id: root
@@ -8,8 +9,8 @@ LV.InputField {
     // Keep the LVRS one-line size and padding, adding space for every wrapped line.
     wrapMode: TextInput.Wrap
     centeredTextHeight: contentHeight > Math.ceil(lineMetrics.height)
-        ? Math.ceil(contentHeight) : LV.Theme.textBodyLineHeight
-    insetVertical: Math.max(0, (fieldMinHeight - LV.Theme.textBodyLineHeight) / 2)
+        ? Math.ceil(contentHeight) : Style.Tokens.metric("Theme Typography/Body/textBodyLineHeight")
+    insetVertical: Math.max(0, (fieldMinHeight - Style.Tokens.metric("Theme Typography/Body/textBodyLineHeight")) / 2)
 
     FontMetrics { id: lineMetrics; font: root.inputItem.font }
 
@@ -30,7 +31,7 @@ LV.InputField {
             return
         const caret = inputItem.cursorRectangle
         const position = inputItem.mapToItem(viewport, caret.x, caret.y)
-        const margin = LV.Theme.gap4
+        const margin = Style.Tokens.metric("Theme Metrics/Space/4")
         const offset = position.y < margin ? position.y - margin
             : position.y + caret.height > viewport.height - margin
                 ? position.y + caret.height - viewport.height + margin : 0

@@ -5,6 +5,7 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -40,7 +41,7 @@ Item {
         contentWidth: Math.max(width, root.compact ? 500 : 650); contentHeight: height
         boundsBehavior: Flickable.StopAtBounds; flickableDirection: Flickable.HorizontalFlick; clip: true
         RowLayout {
-            width: headerViewport.contentWidth; height: 22; spacing: LV.Theme.gap12
+            width: headerViewport.contentWidth; height: 22; spacing: Style.Tokens.metric("Theme Metrics/Space/12")
             LV.LabelButton { objectName: "publishBack"; text: qsTr("Back"); Layout.preferredHeight: 22; tone: LV.AbstractButton.Default; onClicked: root.backRequested() }
             LV.Label { text: root.previewing ? qsTr("Preview") : qsTr("New post"); style: header }
             Item { Layout.fillWidth: true }
@@ -50,7 +51,7 @@ Item {
                 text: qsTr("Drafts"); Layout.preferredHeight: 22; rightPadding: 22
                 tone: LV.AbstractButton.Default
                 onClicked: draftsMenu.openFor(drafts,0,height+4)
-                Image { anchors.right: parent.right; anchors.rightMargin: 2; anchors.verticalCenter: parent.verticalCenter; width: 18; height: 18; source: "Assets/chevron-down.svg"; sourceSize.width: 18; sourceSize.height: 18 }
+                Image { anchors.right: parent.right; anchors.rightMargin: 2; anchors.verticalCenter: parent.verticalCenter; width: 18; height: 18; source: LV.Theme.iconPath("generalchevronDown"); sourceSize.width: 18; sourceSize.height: 18 }
             }
             LV.Label { objectName: "publishDraftStatus"; visible: !root.compact; text: draft.dirty ? qsTr("Draft · Unsaved changes") : draft.path.length ? qsTr("Draft · All changes saved") : qsTr("Draft · Not saved"); style: caption }
             LV.LabelButton { objectName: "publishPreview"; text: root.previewing ? qsTr("Edit") : qsTr("Preview"); Layout.preferredHeight: 22; tone: LV.AbstractButton.Default; onClicked: root.previewing = !root.previewing }
@@ -58,15 +59,15 @@ Item {
             LV.LabelButton {
                 objectName: "publishSubmit"
                 text: qsTr("Publish"); Layout.preferredHeight: 22; tone: LV.AbstractButton.Primary
-                backgroundColor: LV.Theme.accentGreen
-                backgroundColorHover: Qt.darker(LV.Theme.accentGreen,1.12)
-                backgroundColorPressed: Qt.darker(LV.Theme.accentGreen,1.2)
-                textColor: LV.Theme.windowAlt
+                backgroundColor: Style.Tokens.color("Theme Colors/Accent/Green/Default")
+                backgroundColorHover: Qt.darker(Style.Tokens.color("Theme Colors/Accent/Green/Default"),1.12)
+                backgroundColorPressed: Qt.darker(Style.Tokens.color("Theme Colors/Accent/Green/Default"),1.2)
+                textColor: Style.Tokens.color("Theme Colors/Panel/windowAlt")
                 onClicked: root.reviewDestination(reviewModel.platform)
             }
         }
     }
-    Rectangle { x: 24; y: headerViewport.y+headerViewport.height+20; width: Math.max(0,root.width-48); height: 1; color: LV.Theme.panelBackground10 }
+    Rectangle { x: 24; y: headerViewport.y+headerViewport.height+20; width: Math.max(0,root.width-48); height: 1; color: Style.Tokens.color("Theme Colors/Panel/surfaceInput") }
     PublishChoice {
         id: compactNavigation
         objectName: "publishCompactNavigation"
@@ -85,10 +86,10 @@ Item {
             width: root.compact ? authoringBody.width : Math.max(0,authoringBody.width-364)
             height: authoringBody.height
             visible: !root.compact || root.section === "content" || root.section === "ownership"
-            model: draft.canvases; spacing: LV.Theme.gap16
+            model: draft.canvases; spacing: Style.Tokens.metric("Theme Metrics/Space/16")
             boundsBehavior: Flickable.StopAtBounds; clip: true; cacheBuffer: 200
             header: Column {
-                width: document.width; spacing: LV.Theme.gap12
+                width: document.width; spacing: Style.Tokens.metric("Theme Metrics/Space/12")
                 Row {
                     width: parent.width
                     LV.Label { width: Math.max(0,parent.width-110); text: qsTr("TITLE"); style: description }
@@ -109,13 +110,13 @@ Item {
                 required property string altText
                 objectName: "publishCanvas-" + index
                 width: document.width
-                padding: 16; spacing: LV.Theme.gap12
+                padding: 16; spacing: Style.Tokens.metric("Theme Metrics/Space/12")
                 Row {
                     visible: !root.previewing
-                    width: parent.width-32; spacing: LV.Theme.gap8
+                    width: parent.width-32; spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                     Item { width: Math.max(0,parent.width-moveUp.width-moveDown.width-16); height: 22 }
-                    LV.LabelButton { id: moveUp; objectName: "publishMoveUp-" + block.index; text: qsTr("Move ↑"); height: 22; tone: LV.AbstractButton.Borderless; textColor: LV.Theme.accentGreen; enabled: block.index > 0; onClicked: draft.moveCanvas(block.index,-1) }
-                    LV.LabelButton { id: moveDown; objectName: "publishMoveDown-" + block.index; text: qsTr("Move ↓"); height: 22; tone: LV.AbstractButton.Borderless; textColor: LV.Theme.accentGreen; enabled: block.index+1 < draft.count; onClicked: draft.moveCanvas(block.index,1) }
+                    LV.LabelButton { id: moveUp; objectName: "publishMoveUp-" + block.index; text: qsTr("Move ↑"); height: 22; tone: LV.AbstractButton.Borderless; textColor: Style.Tokens.color("Theme Colors/Accent/Green/Default"); enabled: block.index > 0; onClicked: draft.moveCanvas(block.index,-1) }
+                    LV.LabelButton { id: moveDown; objectName: "publishMoveDown-" + block.index; text: qsTr("Move ↓"); height: 22; tone: LV.AbstractButton.Borderless; textColor: Style.Tokens.color("Theme Colors/Accent/Green/Default"); enabled: block.index+1 < draft.count; onClicked: draft.moveCanvas(block.index,1) }
                 }
                 PublishCanvasPreview {
                     objectName: "publishCanvasPreview-" + block.index
@@ -128,7 +129,7 @@ Item {
                 PublishField { objectName: "publishAltText-" + block.index; width: Math.max(0,block.width-32); label: qsTr("Alt text"); value: block.altText; placeholder: qsTr("Describe this canvas for accessibility"); readOnly: root.previewing; onEdited: next => draft.editCanvas(block.canvasId,"altText",next) }
             }
             footer: Column {
-                width: document.width; spacing: LV.Theme.gap16
+                width: document.width; spacing: Style.Tokens.metric("Theme Metrics/Space/16")
                 LV.LabelButton { objectName: "publishAddCanvas"; width: parent.width; text: qsTr("Add ↓"); tone: LV.AbstractButton.Default; visible: !root.previewing; onClicked: addMenu.openFor(this,0,height+4) }
                 Rectangle {
                     objectName: "publishCreditsPanel"
@@ -136,7 +137,7 @@ Item {
                     color: "transparent"; radius: 0; border.width: 1; border.color: documentFrame.panelBorderColor
                     Column {
                         id: credits
-                        x: 16; y: 16; width: parent.width-32; spacing: LV.Theme.gap8
+                        x: 16; y: 16; width: parent.width-32; spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                         LV.Label { text: qsTr("Credits & source"); style: header2 }
                         PublishField { objectName: "publishCredits"; width: parent.width; label: qsTr("Attribution"); value: draft.values.credits || ""; placeholder: qsTr("Authors, collaborators and attribution"); readOnly: root.previewing; onEdited: next => draft.edit("credits",next) }
                         LV.Label { width: parent.width; text: draft.sourceName + (root.project.filePath.length ? " · " + root.project.filePath : ""); style: caption; wrapMode: Text.WrapAnywhere; sizeToContentHeight: true }

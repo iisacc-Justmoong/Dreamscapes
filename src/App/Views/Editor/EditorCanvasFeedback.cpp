@@ -24,6 +24,7 @@ EditorCanvasFeedback::EditorCanvasFeedback(QQuickItem *parent) : QQuickItem(pare
     setAcceptHoverEvents(false);
     setClip(true);
     m_surface = new FeedbackSurface(this);
+    connect(this, &EditorCanvasFeedback::paletteChanged, this, [this] { m_surface->update(); });
     m_ants.setInterval(100);
     connect(&m_ants, &QTimer::timeout, this, [this] {
         m_dashOffset = std::fmod(m_dashOffset + 1, 8);
@@ -77,5 +78,5 @@ void EditorCanvasFeedback::refreshFeedback() {
     m_surface->update();
 }
 void EditorCanvasFeedback::paint(QPainter *painter) {
-    if (m_canvas && m_canvas->isVisible()) m_canvas->paintInteractionFeedback(painter, m_dashOffset);
+    if (m_canvas && m_canvas->isVisible()) m_canvas->paintInteractionFeedback(painter, m_dashOffset, m_lightColor, m_darkColor, m_gestureColor);
 }

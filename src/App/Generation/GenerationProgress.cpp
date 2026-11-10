@@ -74,6 +74,43 @@ void GenerationController::readProcessOutput(const QByteArray &data)
         if (nativeProgress >= 0 && line.size() - nativeProgress <= 4096)
             acceptNativeWorkerProgress(line.mid(nativeProgress + 21));
         if (!owner) return;
+        const QByteArray dependencyMarker("IILD_DEPENDENCY_PROGRESS ");
+        const auto dependencyProgress = line.indexOf(dependencyMarker);
+        if (dependencyProgress >= 0 && line.size() - dependencyProgress <= 4096 && m_imageWorker
+            && busy() && !m_cancelled && !m_nativeTimedOut && !m_publicationPending && !m_finishing) {
+            const auto event = QJsonDocument::fromJson(line.mid(dependencyProgress + dependencyMarker.size())).object();
+            const auto value = event.value("completed_modules");
+            const int completed = value.toInt(-1);
+            if (event.value("schema") == "iild-dependency-progress-v1" && value.isDouble()
+                && value.toDouble(-1) == completed && completed > m_dependencyModulesSeen && completed <= 1000000) {
+                m_dependencyModulesSeen = completed;
+                m_workerProgressKey = "dependencies:" + QString::number(completed);
+                m_workerDeadline.start(std::max(1, m_runtime.nativeTimeoutMilliseconds));
+                setInferenceStatus({{"state", "loading-dependencies"}, {"backend", "diffusers"},
+                                    {"ready", false}, {"completedModules", completed}});
+                if (!owner) return;
+            }
+        }
+        const QByteArray marker("IILD_DIFFUSERS_PROGRESS ");
+        const auto diffusersProgress = line.indexOf(marker);
+        if (diffusersProgress >= 0 && line.size() - diffusersProgress <= 4096 && m_imageWorker
+            && busy() && !m_cancelled && !m_nativeTimedOut && !m_publicationPending && !m_finishing) {
+            const auto event = QJsonDocument::fromJson(line.mid(diffusersProgress + marker.size())).object();
+            const int step = event.value("step").toInt(-1), total = event.value("total").toInt(-1);
+            if (event.value("schema") == "iild-diffusers-progress-v1" && event.value("stage") == "denoising"
+                && step > 0 && total >= step && total <= 1000
+                && (total != m_previewTotalSteps || step > m_previewStep)) {
+                const auto id = m_active.value("id");
+                m_previewStep = step; m_previewTotalSteps = total;
+                m_workerProgressKey = "diffusers:" + QString::number(step) + '/' + QString::number(total);
+                m_workerDeadline.start(std::max(1, m_runtime.nativeTimeoutMilliseconds));
+                emit previewChanged();
+                if (!owner || m_active.value("id") != id || m_cancelled || m_finishing || m_publicationPending) return;
+                setInferenceStatus({{"state", "denoising"}, {"backend", "diffusers"}, {"ready", false},
+                                    {"step", step}, {"total", total}});
+                if (!owner) return;
+            }
+        }
         const auto telemetryStart = line.indexOf("IILD_NATIVE_TELEMETRY ");
         if (telemetryStart >= 0 && line.size() - telemetryStart <= 8192 && busy() && !m_cancelled && !m_publicationPending && !m_finishing) {
             const auto event = QJsonDocument::fromJson(line.mid(telemetryStart + 22)).object();
@@ -175,6 +212,7 @@ void GenerationController::sendWorkerRequest()
     if (busy() && m_cancelled) { stopProcess(false); return; }
     if (busy()) {
         m_workerProgressKey.clear();
+        m_dependencyModulesSeen = 0;
         m_workerDeadline.start(std::max(1, m_runtime.nativeTimeoutMilliseconds));
     }
     const auto files = busy()
@@ -252,7 +290,7 @@ void GenerationController::acceptPreview(const QByteArray &line)
     QImageReader reader(path);
     const auto size = reader.size();
     if (size.isEmpty() || size.width() > 512 || size.height() > 512 || reader.read().isNull()) return;
-    if (!m_runtime.nativeInference && !m_nativeTimedOut)
+    if ((!m_runtime.nativeInference || m_imageWorker) && !m_nativeTimedOut)
         m_workerDeadline.start(std::max(1, m_runtime.nativeTimeoutMilliseconds));
     m_previewImage = QUrl::fromLocalFile(path);
     m_previewJobId = m_active.value("id").toString();

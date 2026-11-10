@@ -5,6 +5,7 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -68,8 +69,8 @@ Item {
 
     LV.VStack {
         anchors.fill: parent
-        anchors.margins: LV.Theme.gap12
-        spacing: LV.Theme.gap10
+        anchors.margins: Style.Tokens.metric("Theme Metrics/Space/12")
+        spacing: Style.Tokens.metric("Theme Metrics/Space/10")
         LV.HStack {
             Layout.fillWidth: true
             LV.LabelButton {
@@ -213,7 +214,7 @@ Item {
             Layout.fillWidth: true
             visible: text.length > 0
             text: root.notice || root.errorText || (root.container ? root.container.errorString : "")
-            color: LV.Theme.accentRed
+            color: Style.Tokens.color("Theme Colors/Accent/Red/Default")
             style: caption
             wrapMode: Text.Wrap
             sizeToContentHeight: true
@@ -240,8 +241,8 @@ Item {
                     required property int index
                     required property var modelData
                     objectName: "storageBrowserCard" + index
-                    width: grid.cellWidth - LV.Theme.gap8
-                    height: grid.cellHeight - LV.Theme.gap8
+                    width: grid.cellWidth - Style.Tokens.metric("Theme Metrics/Space/8")
+                    height: grid.cellHeight - Style.Tokens.metric("Theme Metrics/Space/8")
                     type: modelData.isDirectory ? LV.Card.Folder : LV.Card.File
                     detail: LV.Card.Brief
                     size: LV.Card.Medium
@@ -267,7 +268,7 @@ Item {
             LV.Label {
                 objectName: "storageBrowserEmpty"
                 anchors.centerIn: parent
-                width: Math.max(0, parent.width - LV.Theme.gap24)
+                width: Math.max(0, parent.width - Style.Tokens.metric("Theme Metrics/Space/24"))
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.Wrap
                 sizeToContentHeight: true

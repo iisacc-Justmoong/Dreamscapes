@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/SharedLogicalStorage.md",
-    "sha256": "c648af1cd66d0b812ac3da62eb9f1f85c79704d2a143cd9c8850427012d405a3",
-    "bytes": 2897,
-    "line_count": 15,
+    "sha256": "8ab0168c1d3d8929ed35da153e83c86bbc69afd9ceb932175690b1c24e027c33",
+    "bytes": 3239,
+    "line_count": 17,
     "encoding": "utf-8",
     "language": "ko"
   },
@@ -126,8 +126,8 @@
       "id": "b000015",
       "kind": "paragraph",
       "start_line": 15,
-      "end_line": 15,
-      "raw": "검증은 `DreamscapesGenerationTests sharedLogicalDiskPublishesBeforeSocietyAndSurvivesAdoption`으로 수행한다. 공유 그룹 fixture에서 모델을 읽고 실제 PNG를 게시한 뒤 Society 인수 이후에도 동일 경로와 식별자, 이미지, 모델 목록이 유지되는지 확인한다. Apple의 실제 entitlement와 App Group API 검증은 iiSocietyContainer의 iOS 플랫폼 검증으로 별도 수행한다.\n"
+      "end_line": 17,
+      "raw": "검증은 `DreamscapesGenerationTests sharedLogicalDiskPublishesBeforeSocietyAndSurvivesAdoption`으로 수행한다. 공유 그룹 fixture에서 모델을 읽고 실제 PNG를 게시한 뒤 Society 인수 이후에도 동일 경로와 식별자, 이미지, 모델 목록이 유지되는지 확인한다. Apple의 실제 entitlement와 App Group API 검증은 iiSocietyContainer의 iOS 플랫폼 검증으로 별도 수행한다.\nfixture는 `resources/`의 임시 디렉터리에 만들고 종료 시 정리한다. 외장 저장소가 느린 환경을 고려해 생성 완료를 최대 90초 기다린다.\n2026-10-30 Mac 단독 실행에서 이 fixture 검사는 통과했다. 이는 실제 계정의 Society 연결이나 라이선스 활성화 검증과는 별개이다.\n"
     }
   ],
   "outline": [

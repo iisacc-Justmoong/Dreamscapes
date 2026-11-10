@@ -16,7 +16,7 @@ class SyncGuard final {
 } // namespace
 
 ReviewNavigation::ReviewNavigation(std::shared_ptr<Session> session,
-                                   std::shared_ptr<lvui::native::CollectionNavigation> navigation, bool ownsNavigation)
+                                   std::shared_ptr<dreamscapes::review::CollectionNavigation> navigation, bool ownsNavigation)
     : session_(std::move(session)), navigation_(std::move(navigation)), ownsNavigation_(ownsNavigation) {
     if (!session_ || !navigation_)
         throw std::invalid_argument("Review navigation requires a session and a navigation object");
@@ -24,13 +24,13 @@ ReviewNavigation::ReviewNavigation(std::shared_ptr<Session> session,
 
 std::shared_ptr<ReviewNavigation> ReviewNavigation::create(std::shared_ptr<Session> session) {
     auto result = std::shared_ptr<ReviewNavigation>(new ReviewNavigation(
-        std::move(session), std::make_shared<lvui::native::CollectionNavigation>(), true));
+        std::move(session), std::make_shared<dreamscapes::review::CollectionNavigation>(), true));
     result->start();
     return result;
 }
 
 std::shared_ptr<ReviewNavigation> ReviewNavigation::bind(
-    std::shared_ptr<Session> session, std::shared_ptr<lvui::native::CollectionNavigation> navigation) {
+    std::shared_ptr<Session> session, std::shared_ptr<dreamscapes::review::CollectionNavigation> navigation) {
     auto result = std::shared_ptr<ReviewNavigation>(new ReviewNavigation(std::move(session), std::move(navigation), false));
     result->start();
     return result;
@@ -66,7 +66,7 @@ void ReviewNavigation::start() {
     });
 }
 
-lvui::native::CollectionNavigation &ReviewNavigation::navigation() {
+dreamscapes::review::CollectionNavigation &ReviewNavigation::navigation() {
     requireOwner();
     return *navigation_;
 }

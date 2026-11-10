@@ -4,8 +4,10 @@ import ".." as Frames
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
+import "LvrsEditorIcons.js" as LvrsIcons
 import Dreamscapes.Storage 1.0
 import ".." as Views
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -44,7 +46,7 @@ Item {
     ]
     implicitWidth: 398
     implicitHeight: Math.max([407, 487, 512, 472][panelIndex], layout.implicitHeight)
-    function asset(name) { return Qt.resolvedUrl("Assets/Layers/" + name + ".svg") }
+    function asset(name) { return LvrsIcons.resolve(LV.Theme, "Layers", name) }
     function report(success) { toolState.notice = success ? "" : engine.error }
     function refreshHistogram() { histogramAnalysis.refresh() }
     function toggleVisibility(row) { report(row.group ? engine.setLayerGroupVisible(row.layerId, !row.visible) : engine.setLayerVisible(row.layerId, !row.visible)) }
@@ -131,7 +133,7 @@ Item {
             objectName: "layerActionLabel-" + tile.entry.key
             anchors.bottom: parent.bottom; anchors.bottomMargin: 4; anchors.left: parent.left; anchors.right: parent.right
             anchors.leftMargin: 4; anchors.rightMargin: 4
-            height: 26; style: body; color: tile.entry.color || LV.Theme.bodyColor
+            height: 26; style: body; color: tile.entry.color || Style.Tokens.color("Theme Colors/Text/bodyColor")
             text: tile.entry.label; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
             wrapMode: Text.WordWrap; lineHeightMode: Text.FixedHeight; lineHeight: 13
         }
@@ -215,7 +217,7 @@ Item {
             Layout.fillWidth: true; Layout.preferredHeight: 20
             spacing: 8
             Image { y: 1; width: 18; height: 18; source: LV.Theme.iconPath(root.panelIcons[root.panelIndex]); sourceSize: Qt.size(72, 72) }
-            LV.Label { width: parent.width - 26; height: 20; text: root.panelTitles[root.panelIndex]; style: body; font.pixelSize: 15; font.weight: Font.Medium; elide: Text.ElideRight }
+            LV.Label { width: parent.width - 26; height: 20; text: root.panelTitles[root.panelIndex]; style: body; font.pixelSize: Style.Tokens.metric("Theme Typography/Subheader/textSubheader"); font.weight: Style.Tokens.metric("Theme Typography/Weight/Medium"); elide: Text.ElideRight }
         }
         LV.Label { Layout.fillWidth: true; visible: root.toolState.notice.length > 0; text: root.toolState.notice; style: caption; wrapMode: Text.Wrap; sizeToContentHeight: true }
         Loader {
@@ -277,7 +279,8 @@ Item {
                         model: {
                             if (!root.engine) return []
                             const revision = root.engine.revision, selected = root.engine.selectedLayerId, layers = root.engine.layers
-                            return root.toolState.nativeModel.layerHierarchy(Qt.resolvedUrl("Assets/Layers/"),root.collapsedGroups)
+                            const rows = root.toolState.nativeModel.layerHierarchy(root.collapsedGroups)
+                            return rows.map(row => Object.assign({}, row, {iconSource: root.asset(row.locked ? "Lock" : row.kind || "ImageGutter14X14")}))
                         }
                         onActiveChanged: function(item) { if (item && item.nodeData && !item.nodeData.group && item.nodeData.layerId !== root.engine.selectedLayerId) root.report(root.engine.selectLayer(item.nodeData.layerId)) }
                         onExpansionChanged: function(item, expanded) { if (item.nodeData.group) root.toolState.nativeModel.expandLayerGroup(item.nodeData.layerId, expanded) }
@@ -342,22 +345,22 @@ Item {
             ScopeRow { Layout.fillWidth: true; label: qsTr("Source"); value: root.composite ? qsTr("Composite") : qsTr("Selected layer"); onOpened: function(target) { sourceMenu.openFor(target, 0, target.height) } }
             ActionGrid {
                 Layout.fillWidth: true; preferredColumns: 4
-                entries: [ {key: "RGB", label: "RGB", icon: "ProofColors", active: root.channel === "RGB", enabled: true}, {key: "Red", label: qsTr("Red"), icon: "Levels", color: LV.Theme.accentRed, active: root.channel === "Red", enabled: true}, {key: "Green", label: qsTr("Green"), icon: "Levels", color: LV.Theme.accentGreen, active: root.channel === "Green", enabled: true}, {key: "Blue", label: qsTr("Blue"), icon: "Levels", color: LV.Theme.accentBlue, active: root.channel === "Blue", enabled: true} ]
+                entries: [ {key: "RGB", label: "RGB", icon: "ProofColors", active: root.channel === "RGB", enabled: true}, {key: "Red", label: qsTr("Red"), icon: "Levels", color: Style.Tokens.color("Theme Colors/Accent/Red/Default"), active: root.channel === "Red", enabled: true}, {key: "Green", label: qsTr("Green"), icon: "Levels", color: Style.Tokens.color("Theme Colors/Accent/Green/Default"), active: root.channel === "Green", enabled: true}, {key: "Blue", label: qsTr("Blue"), icon: "Levels", color: Style.Tokens.color("Theme Colors/Accent/Blue/Default"), active: root.channel === "Blue", enabled: true} ]
             }
             ColumnLayout {
                 Layout.fillWidth: true; spacing: 8
                 Heading { label: qsTr("Distribution") }
                 Rectangle {
-                    Layout.fillWidth: true; implicitHeight: 179; color: LV.Theme.panelBackground08; radius: LV.Theme.radiusMd
+                    Layout.fillWidth: true; implicitHeight: 179; color: Style.Tokens.color("Theme Colors/Panel/surfacePanel"); radius: Style.Tokens.metric("Theme Metrics/Radius/8")
                     ColumnLayout {
                         anchors.fill: parent; anchors.margins: 16; spacing: 8
                         Canvas {
                             id: plot; objectName: "layerHistogramPlot"; Layout.fillWidth: true; Layout.preferredHeight: 128
                             onWidthChanged: requestPaint()
                             onPaint: {
-                                const ctx = getContext("2d"); ctx.clearRect(0, 0, width, height); ctx.strokeStyle = LV.Theme.panelBackground12
+                                const ctx = getContext("2d"); ctx.clearRect(0, 0, width, height); ctx.strokeStyle = Style.Tokens.color("Theme Colors/Panel/surfaceRaised")
                                 for (let y = 32; y <= 128; y += 32) { ctx.beginPath(); ctx.moveTo(0, Math.min(127, y)); ctx.lineTo(width, Math.min(127, y)); ctx.stroke() }
-                                const series = [{name: "red", label: "Red", color: LV.Theme.accentRed}, {name: "green", label: "Green", color: LV.Theme.accentGreen}, {name: "blue", label: "Blue", color: LV.Theme.accentBlue}]
+                                const series = [{name: "red", label: "Red", color: Style.Tokens.color("Theme Colors/Accent/Red/Default")}, {name: "green", label: "Green", color: Style.Tokens.color("Theme Colors/Accent/Green/Default")}, {name: "blue", label: "Blue", color: Style.Tokens.color("Theme Colors/Accent/Blue/Default")}]
                                 let maximum = 1
                                 series.forEach(function(s) { if (root.channel === "RGB" || root.channel === s.label) (root.histogram[s.name] || []).forEach(function(v) { maximum = Math.max(maximum, v) }) })
                                 series.forEach(function(s) {
@@ -405,10 +408,10 @@ Item {
                 Layout.fillWidth: true; spacing: 8
                 Heading { label: qsTr("Color sample") }
                 Rectangle {
-                    Layout.fillWidth: true; implicitHeight: Math.max(56, sampleValues.implicitHeight + 16); color: LV.Theme.panelBackground08; radius: LV.Theme.radiusMd
+                    Layout.fillWidth: true; implicitHeight: Math.max(56, sampleValues.implicitHeight + 16); color: Style.Tokens.color("Theme Colors/Panel/surfacePanel"); radius: Style.Tokens.metric("Theme Metrics/Radius/8")
                     RowLayout {
                         anchors.fill: parent; anchors.margins: 8; spacing: 8
-                        Rectangle { Layout.preferredWidth: 40; Layout.preferredHeight: 40; color: root.sample.color; radius: LV.Theme.radiusMd; border.color: LV.Theme.panelBackground12; border.width: root.sample.valid ? 0 : 1 }
+                        Rectangle { Layout.preferredWidth: 40; Layout.preferredHeight: 40; color: root.sample.color; radius: Style.Tokens.metric("Theme Metrics/Radius/8"); border.color: Style.Tokens.color("Theme Colors/Panel/surfaceRaised"); border.width: root.sample.valid ? 0 : 1 }
                         ColumnLayout { id: sampleValues; Layout.fillWidth: true; spacing: 4; LV.Label { Layout.fillWidth: true; text: root.sample.pending ? qsTr("Sampling…") : root.sample.hex; style: body } LV.Label { Layout.fillWidth: true; text: root.sample.error || root.sample.rgb; style: caption; wrapMode: Text.Wrap; sizeToContentHeight: true } }
                     }
                 }

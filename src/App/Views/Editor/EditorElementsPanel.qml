@@ -2,7 +2,9 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Dreamscapes.Storage 1.0
 import LVRS 1.0 as LV
+import "LvrsEditorIcons.js" as LvrsIcons
 import ".." as Views
+import Dreamscapes.Style 1.0 as Style
 
 Column {
     id: root
@@ -25,7 +27,7 @@ Column {
     width: 398
     spacing: 12
 
-    function asset(name) { return Qt.resolvedUrl("Assets/Elements/" + name + ".svg") }
+    function asset(name) { return LvrsIcons.resolve(LV.Theme, "Elements", name) }
     function buttonColor(control) {
         return control.interaction.surfacePhase === "disabled" ? control.backgroundColorDisabled
             : control.interaction.surfacePhase === "press" || control.checked ? control.backgroundColorPressed
@@ -57,7 +59,7 @@ Column {
     }
     component Description: LV.Label {
         style: caption
-        color: LV.Theme.bodyColor
+        color: Style.Tokens.color("Theme Colors/Text/bodyColor")
         opacity: 0.8
         width: parent.width
         wrapMode: Text.WordWrap
@@ -145,28 +147,6 @@ Column {
             showMinMax: false; showSymbol: false; showTicks: false; showLabels: false
             Accessible.name: NativeData.elements.field(numeric.fieldId).label
             onMoved: root.edit(numeric.fieldId, value)
-            handle: Item {
-                implicitWidth: slider.rangeInset * 2
-                implicitHeight: slider.controlHeight
-                width: Math.min(implicitWidth, slider.availableWidth); height: slider.height
-                x: slider.leftPadding + Math.max(0, Math.min(1, slider.displayedPosition)) * slider.rangeWidth
-                Image {
-                    objectName: "elementsThumb-" + numeric.fieldId
-                    anchors.centerIn: parent
-                    anchors.verticalCenterOffset: 1
-                    width: 18; height: 18
-                    source: root.asset(root.currentViewId === "polygon" ? "thumb-650-15793" : root.currentViewId === "fill" ? "thumb-650-15795" : root.currentViewId === "stroke" ? "thumb-650-15796" : "thumb")
-                    sourceSize: Qt.size(72, 72)
-                    visible: slider.effectiveThumbVisible
-                }
-                Image {
-                    anchors.centerIn: parent
-                    width: 18; height: 18
-                    source: root.asset("focus-ring")
-                    sourceSize: Qt.size(72, 72)
-                    visible: slider.effectiveFocusRing
-                }
-            }
         }
     }
     component DimensionsControl: Column {
@@ -368,14 +348,13 @@ Column {
                 required property var modelData
                 objectName: "elementsSelectionRow-" + index
                 width: parent.width; height: 36
-                radius: LV.Theme.radiusMd
+                radius: Style.Tokens.metric("Theme Metrics/Radius/8")
                 color: "transparent"
                 TapHandler { onTapped: function(eventPoint) { if (eventPoint.position.x >= 37) root.setSelected(entry.modelData, !entry.modelData.selected) } }
                 LV.CheckBox {
                     objectName: "elementsSelectionCheck-" + entry.index
                     x: 12; anchors.verticalCenter: parent.verticalCenter
                     boxSize: 17
-                    checkedAssetSourceEnabled: root.asset("checkbox")
                     checked: entry.modelData.selected
                     Accessible.name: entry.modelData.name
                     onClicked: root.setSelected(entry.modelData, checked)

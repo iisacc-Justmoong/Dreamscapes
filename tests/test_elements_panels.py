@@ -1,10 +1,9 @@
-"""Verify the independent ten-view Figma baseline and exported Elements assets."""
+"""Verify the independent ten-view Figma baseline and shared Elements icons."""
 import hashlib
 import json
 from pathlib import Path
 import re
 import unittest
-import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 EDITOR = ROOT / "src/App/Views/Editor"
@@ -77,21 +76,14 @@ class ElementsPanelContracts(unittest.TestCase):
             for label in view.get("labels", []):
                 self.assertIn(label, text, view["id"])
 
-    def test_every_exported_svg_keeps_its_original_bytes_and_root_geometry(self):
-        self.assertEqual(len(self.fixture["assets"]), 23)
-        for asset in self.fixture["assets"]:
-            path = EDITOR / "Assets/Elements" / asset["name"]
-            self.assertTrue(path.is_file(), asset["name"])
-            self.assertGreater(path.stat().st_size, 0, asset["name"])
-            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), asset["sha256"], asset["name"])
-            root = ET.parse(path).getroot()
-            self.assertEqual(root.attrib.get("width"), asset["width"], asset["name"])
-            self.assertEqual(root.attrib.get("height"), asset["height"], asset["name"])
-            self.assertTrue(root.attrib.get("viewBox"), asset["name"])
-        dimensions = {asset["name"]: [asset["width"], asset["height"]] for asset in self.fixture["assets"]}
-        self.assertEqual(dimensions["auto-refresh.svg"], ["16", "16"])
-        for name in ["rectangle", "ellipse", "polygon", "line", "fill", "stroke", "direct-select", "group", "unselect-all"]:
-            self.assertEqual(dimensions[name + ".svg"], ["18", "18"])
+    def test_controls_use_shared_lvrs_icons_and_slider_handle(self):
+        resolver = (EDITOR / "LvrsEditorIcons.js").read_text()
+        panel = (EDITOR / "EditorElementsPanel.qml").read_text()
+        for role, icon in self.fixture["sharedIcons"].items():
+            self.assertIn(f'"{role}": "{icon}"', resolver)
+        self.assertNotIn('Assets/Elements/', panel)
+        self.assertNotIn('elementsThumb-', panel)
+        self.assertNotIn('handle: Item {', panel)
 
     def test_elements_are_routed_to_the_dedicated_view_on_desktop_and_mobile(self):
         for name in ["EditorDesktopPanel.qml", "EditorToolSheet.qml"]:

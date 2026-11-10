@@ -4,6 +4,7 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
+import Dreamscapes.Style 1.0 as Style
 
 Controls.Popup {
     id: root
@@ -12,7 +13,7 @@ Controls.Popup {
     modal: true
     focus: true
     // LVRS ApplicationWindow's Figma Content uses 12px on every edge.
-    padding: LV.Theme.gap12
+    padding: Style.Tokens.metric("Theme Metrics/Space/12")
     property Item availableArea: null
     readonly property rect availableBounds: {
         if (!availableArea || !parent)
@@ -22,8 +23,8 @@ Controls.Popup {
         return Qt.rect(origin.x, origin.y, geometry.width, geometry.height)
     }
     closePolicy: Controls.Popup.CloseOnEscape
-    width: Math.max(0, Math.min(1280, availableBounds.width - (compact ? 0 : LV.Theme.gap16 * 2)))
-    height: Math.max(0, Math.min(880, availableBounds.height - (compact ? 0 : LV.Theme.gap16 * 2)))
+    width: Math.max(0, Math.min(1280, availableBounds.width - (compact ? 0 : Style.Tokens.metric("Theme Metrics/Space/16") * 2)))
+    height: Math.max(0, Math.min(880, availableBounds.height - (compact ? 0 : Style.Tokens.metric("Theme Metrics/Space/16") * 2)))
     x: availableBounds.x + (availableBounds.width - width) / 2
     y: availableBounds.y + (availableBounds.height - height) / 2
     readonly property bool compact: availableBounds.width < 1000
@@ -70,8 +71,8 @@ Controls.Popup {
             viewport.contentY = Math.max(0, Math.min(viewport.contentHeight - viewport.height,
                 point.y + control.height - viewport.height + 16))
     }
-    background: Rectangle { color: "#202020"; radius: 0; border.width: 1; border.color: LV.Theme.accentGrayMuted }
-    Controls.Overlay.modal: Rectangle { color: Qt.rgba(0, 0, 0, 0.6) }
+    background: Rectangle { color: Style.Tokens.color("Theme Colors/Panel/window"); radius: 0; border.width: 1; border.color: LV.Theme.accentGrayMuted }
+    Controls.Overlay.modal: Rectangle { color: LV.Theme.overlayBackdrop }
     Shortcut { sequence: StandardKey.Find; enabled: root.opened; onActivated: root.compact ? compactSearchField.forceInputFocus() : searchField.forceInputFocus() }
     Shortcut { sequence: "Ctrl+Return"; enabled: root.opened; onActivated: root.create() }
 
@@ -81,20 +82,20 @@ Controls.Popup {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: root.compact ? 132 : 96
-            color: "#242424"
+            color: Style.Tokens.color("Theme Colors/Panel/surfaceSolid")
             LV.VStack {
                 alignment: Qt.AlignLeft
                 anchors.fill: parent
-                anchors.margins: root.compact ? LV.Theme.gap12 : LV.Theme.gap24
-                spacing: LV.Theme.gap8
+                anchors.margins: root.compact ? Style.Tokens.metric("Theme Metrics/Space/12") : Style.Tokens.metric("Theme Metrics/Space/24")
+                spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                 LV.HStack {
                     Layout.fillWidth: true
-                    spacing: LV.Theme.gap12
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/12")
                     LV.VStack {
                         alignment: Qt.AlignLeft
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
-                        spacing: LV.Theme.gap2
+                        spacing: Style.Tokens.metric("Theme Metrics/Space/2")
                         LV.Label { Layout.fillWidth: true; text: qsTr("New canvas"); style: title2; elide: Text.ElideRight }
                         LV.Label { Layout.fillWidth: true; text: qsTr("Start with a size. Make it your own."); style: caption; visible: !root.compact }
                     }
@@ -152,8 +153,8 @@ Controls.Popup {
             Layout.fillHeight: true
             LV.HStack {
                 anchors.fill: parent
-                anchors.margins: LV.Theme.gap24
-                spacing: LV.Theme.gap24
+                anchors.margins: Style.Tokens.metric("Theme Metrics/Space/24")
+                spacing: Style.Tokens.metric("Theme Metrics/Space/24")
                 visible: !root.compact
                 Controls.ScrollView {
                     id: categoryScroll
@@ -164,8 +165,8 @@ Controls.Popup {
                     LV.VStack {
                         alignment: Qt.AlignLeft
                         width: 200
-                        spacing: LV.Theme.gap2
-                        LV.Label { text: qsTr("CATEGORIES"); style: caption; Layout.bottomMargin: LV.Theme.gap8 }
+                        spacing: Style.Tokens.metric("Theme Metrics/Space/2")
+                        LV.Label { text: qsTr("CATEGORIES"); style: caption; Layout.bottomMargin: Style.Tokens.metric("Theme Metrics/Space/8") }
                         Repeater {
                             model: catalogue.categories
                             LV.MenuItem {
@@ -178,15 +179,15 @@ Controls.Popup {
                                 iconName: "imagefitContent"
                                 keyVisible: false
                                 showChevron: false
-                                backgroundColor: isSelected ? "#283653" : "transparent"
-                                backgroundColorHover: isSelected ? "#283653" : LV.Theme.surfaceAlt
-                                backgroundColorPressed: isSelected ? "#283653" : LV.Theme.accentMuted
+                                backgroundColor: isSelected ? Style.Tokens.color("Theme Colors/Accent/Blue/Selected") : "transparent"
+                                backgroundColorHover: isSelected ? Style.Tokens.color("Theme Colors/Accent/Blue/Selected") : Style.Tokens.color("Theme Colors/Panel/surfaceAlt")
+                                backgroundColorPressed: isSelected ? Style.Tokens.color("Theme Colors/Accent/Blue/Selected") : LV.Theme.accentMuted
                                 state: !root.custom && root.categoryIndex === index && root.query === "" ? selectedState : defaultState
                                 onClicked: root.chooseCategory(index)
                                 onActiveFocusChanged: if (activeFocus) root.scrollIntoView(categoryItem, root.categoryViewport)
                             }
                         }
-                        LV.Label { text: qsTr("%1 canvas presets").arg(catalogue.count); style: caption; Layout.topMargin: LV.Theme.gap8 }
+                        LV.Label { text: qsTr("%1 canvas presets").arg(catalogue.count); style: caption; Layout.topMargin: Style.Tokens.metric("Theme Metrics/Space/8") }
                         LV.LabelButton {
                             Layout.fillWidth: true
                             text: qsTr("Custom dimensions")
@@ -211,21 +212,21 @@ Controls.Popup {
                     Layout.fillHeight: true
                     contentWidth: availableWidth
                     clip: true
-                    background: Rectangle { color: "#242424" }
+                    background: Rectangle { color: Style.Tokens.color("Theme Colors/Panel/surfaceSolid") }
                     Loader { width: detailsScroll.availableWidth; sourceComponent: root.visible && !root.compact ? detailsComponent : null }
                 }
             }
             Controls.ScrollView {
                 id: compactScroll
                 anchors.fill: parent
-                anchors.margins: LV.Theme.gap12
+                anchors.margins: Style.Tokens.metric("Theme Metrics/Space/12")
                 visible: root.compact
                 contentWidth: availableWidth
                 clip: true
                 LV.VStack {
                     alignment: Qt.AlignLeft
                     width: compactScroll.availableWidth
-                    spacing: LV.Theme.gap16
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/16")
                     Loader { Layout.fillWidth: true; sourceComponent: root.visible && root.compact ? galleryComponent : null }
                     Loader { Layout.fillWidth: true; sourceComponent: root.visible && root.compact ? detailsComponent : null }
                 }
@@ -234,16 +235,16 @@ Controls.Popup {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: root.compact ? 94 : 68
-            color: "#242424"
+            color: Style.Tokens.color("Theme Colors/Panel/surfaceSolid")
             LV.HStack {
                 anchors.fill: parent
-                anchors.margins: root.compact ? LV.Theme.gap12 : LV.Theme.gap24
-                spacing: LV.Theme.gap12
+                anchors.margins: root.compact ? Style.Tokens.metric("Theme Metrics/Space/12") : Style.Tokens.metric("Theme Metrics/Space/24")
+                spacing: Style.Tokens.metric("Theme Metrics/Space/12")
                 LV.VStack {
                     alignment: Qt.AlignLeft
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
-                    spacing: LV.Theme.gap2
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/2")
                     LV.Label {
                         objectName: "canvasSelectionSummary"
                         Layout.fillWidth: true
@@ -273,7 +274,7 @@ Controls.Popup {
         LV.VStack {
             alignment: Qt.AlignLeft
             id: gallery
-            spacing: LV.Theme.gap16
+            spacing: Style.Tokens.metric("Theme Metrics/Space/16")
             LV.HStack {
                 Layout.fillWidth: true
                 LV.Label {
@@ -306,8 +307,8 @@ Controls.Popup {
                 Layout.fillWidth: true
                 visible: root.custom
                 columns: root.compact ? 1 : 3
-                rowSpacing: LV.Theme.gap8
-                columnSpacing: LV.Theme.gap12
+                rowSpacing: Style.Tokens.metric("Theme Metrics/Space/8")
+                columnSpacing: Style.Tokens.metric("Theme Metrics/Space/12")
                 Repeater {
                     model: [{name: "Square · 1:1", w:1080,h:1080}, {name:"Landscape · 16:9",w:1920,h:1080}, {name:"Portrait · 9:16",w:1080,h:1920}]
                     LV.LabelButton {
@@ -322,9 +323,9 @@ Controls.Popup {
             LV.VStack {
                 alignment: Qt.AlignLeft
                 Layout.fillWidth: true
-                Layout.topMargin: LV.Theme.gap24
+                Layout.topMargin: Style.Tokens.metric("Theme Metrics/Space/24")
                 visible: !root.custom && root.resultCount === 0
-                spacing: LV.Theme.gap12
+                spacing: Style.Tokens.metric("Theme Metrics/Space/12")
                 LV.Label { text: qsTr("No formats found"); style: header }
                 LV.Label { Layout.fillWidth: true; text: qsTr("Try a platform, format or size, such as Instagram, A4 or 1920 × 1080."); style: description; wrapMode: Text.Wrap }
                 LV.LabelButton { objectName: "canvasClearSearchButton"; text: qsTr("Clear search"); tone: LV.AbstractButton.Default; onClicked: root.search("") }
@@ -336,7 +337,7 @@ Controls.Popup {
                     id: section
                     required property var modelData
                     Layout.fillWidth: true
-                    spacing: LV.Theme.gap12
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/12")
                     LV.HStack {
                         Layout.fillWidth: true
                         LV.Label { Layout.fillWidth: true; text: section.modelData.name; style: header2; wrapMode: Text.Wrap }
@@ -346,8 +347,8 @@ Controls.Popup {
                         id: presetGrid
                         Layout.fillWidth: true
                         columns: Math.max(1, Math.min(3, Math.floor((gallery.width + 12) / 220)))
-                        columnSpacing: LV.Theme.gap12
-                        rowSpacing: LV.Theme.gap12
+                        columnSpacing: Style.Tokens.metric("Theme Metrics/Space/12")
+                        rowSpacing: Style.Tokens.metric("Theme Metrics/Space/12")
                         Repeater {
                             model: section.modelData.presets
                             Rectangle {
@@ -357,8 +358,8 @@ Controls.Popup {
                                 Layout.fillWidth: true
                                 Layout.preferredWidth: (gallery.width - (presetGrid.columns - 1) * 12) / presetGrid.columns
                                 Layout.preferredHeight: 144
-                                radius: LV.Theme.radiusMd
-                                color: "#242424"
+                                radius: Style.Tokens.metric("Theme Metrics/Radius/8")
+                                color: Style.Tokens.color("Theme Colors/Panel/surfaceSolid")
                                 border.width: root.selectedPreset.id === modelData.id && !root.custom ? 1 : 0
                                 border.color: LV.Theme.accent
                                 activeFocusOnTab: true
@@ -393,8 +394,8 @@ Controls.Popup {
                                 LV.VStack {
                                     alignment: Qt.AlignLeft
                                     anchors.fill: parent
-                                    anchors.margins: LV.Theme.gap12
-                                    spacing: LV.Theme.gap8
+                                    anchors.margins: Style.Tokens.metric("Theme Metrics/Space/12")
+                                    spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                                     CanvasSizePreview {
                                         Layout.fillWidth: true
                                         Layout.preferredHeight: 62
@@ -412,17 +413,17 @@ Controls.Popup {
                                         LV.VStack {
                                             anchors.left: parent.left
                                             anchors.right: parent.right
-                                            anchors.leftMargin: LV.Theme.gap12
-                                            anchors.rightMargin: LV.Theme.gap12
+                                            anchors.leftMargin: Style.Tokens.metric("Theme Metrics/Space/12")
+                                            anchors.rightMargin: Style.Tokens.metric("Theme Metrics/Space/12")
                                             anchors.verticalCenter: parent.verticalCenter
                                             height: implicitHeight
-                                            spacing: LV.Theme.gap4
+                                            spacing: Style.Tokens.metric("Theme Metrics/Space/4")
                                             alignment: Qt.AlignLeft
                                             LV.Label {
                                                 objectName: "canvasPresetLabel"
                                                 Layout.fillWidth: true
                                                 Layout.minimumWidth: 0
-                                                Layout.preferredHeight: LV.Theme.textBodyLineHeight
+                                                Layout.preferredHeight: Style.Tokens.metric("Theme Typography/Body/textBodyLineHeight")
                                                 style: body
                                                 text: card.modelData.name
                                                 elide: Text.ElideRight
@@ -431,7 +432,7 @@ Controls.Popup {
                                                 objectName: "canvasPresetDescription"
                                                 Layout.fillWidth: true
                                                 Layout.minimumWidth: 0
-                                                Layout.preferredHeight: LV.Theme.textCaptionLineHeight
+                                                Layout.preferredHeight: Style.Tokens.metric("Theme Typography/Caption/textCaptionLineHeight")
                                                 style: caption
                                                 text: card.modelData.width + " × " + card.modelData.height + " " + card.modelData.unit
                                                 elide: Text.ElideRight
@@ -452,7 +453,7 @@ Controls.Popup {
         Rectangle {
             id: details
             objectName: "canvasDetails"
-            color: "#242424"
+            color: Style.Tokens.color("Theme Colors/Panel/surfaceSolid")
             implicitHeight: detailsColumn.implicitHeight + 32
             LV.VStack {
                 alignment: Qt.AlignLeft
@@ -460,8 +461,8 @@ Controls.Popup {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.margins: LV.Theme.gap16
-                spacing: LV.Theme.gap12
+                anchors.margins: Style.Tokens.metric("Theme Metrics/Space/16")
+                spacing: Style.Tokens.metric("Theme Metrics/Space/12")
                 LV.Label { text: qsTr("CANVAS DETAILS"); style: caption }
                 CanvasSizePreview {
                     Layout.fillWidth: true
@@ -483,11 +484,11 @@ Controls.Popup {
                 }
                 LV.HStack {
                     Layout.fillWidth: true
-                    spacing: LV.Theme.gap12
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/12")
                     LV.VStack {
                         alignment: Qt.AlignLeft
                         Layout.fillWidth: true
-                        spacing: LV.Theme.gap4
+                        spacing: Style.Tokens.metric("Theme Metrics/Space/4")
                         LV.Label { text: qsTr("Width"); style: caption }
                         LV.InputField {
                             objectName: "canvasWidthInput"
@@ -502,7 +503,7 @@ Controls.Popup {
                     LV.VStack {
                         alignment: Qt.AlignLeft
                         Layout.fillWidth: true
-                        spacing: LV.Theme.gap4
+                        spacing: Style.Tokens.metric("Theme Metrics/Space/4")
                         LV.Label { text: qsTr("Height"); style: caption }
                         LV.InputField {
                             objectName: "canvasHeightInput"
@@ -518,7 +519,7 @@ Controls.Popup {
                 LV.VStack {
                     alignment: Qt.AlignLeft
                     Layout.fillWidth: true
-                    spacing: LV.Theme.gap4
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/4")
                     LV.Label { text: qsTr("Units"); style: caption }
                     LV.LabelMenuButton {
                         id: unitsButton
@@ -533,7 +534,7 @@ Controls.Popup {
                     alignment: Qt.AlignLeft
                     Layout.fillWidth: true
                     visible: root.unit !== "px"
-                    spacing: LV.Theme.gap4
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/4")
                     LV.Label { text: qsTr("Print resolution (PPI)"); style: caption }
                     LV.InputField { objectName: "canvasPpiInput"; Layout.fillWidth: true; text: root.resolution; clearButtonVisible: false; inputMethodHints: Qt.ImhDigitsOnly; onTextEdited: function(text) { root.custom = true; root.resolution = text } }
                     LV.Label { Layout.fillWidth: true; text: root.specification.valid ? root.specification.pixelWidth + " × " + root.specification.pixelHeight + " px" : "—"; style: caption }
@@ -542,7 +543,7 @@ Controls.Popup {
                 LV.VStack {
                     alignment: Qt.AlignLeft
                     Layout.fillWidth: true
-                    spacing: LV.Theme.gap4
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/4")
                     LV.Label { text: qsTr("Background"); style: caption }
                     LV.LabelMenuButton {
                         id: backgroundButton
@@ -559,7 +560,7 @@ Controls.Popup {
                     visible: text !== ""
                     text: root.creationError || root.specification.error || ""
                     style: caption
-                    color: LV.Theme.danger
+                    color: Style.Tokens.color("Theme Colors/Accent/Red/Default")
                     wrapMode: Text.Wrap
                 }
                 LV.Label { Layout.fillWidth: true; text: qsTr("Select a preset or customize its dimensions before creating."); style: caption; wrapMode: Text.Wrap }

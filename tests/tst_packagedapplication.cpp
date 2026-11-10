@@ -28,13 +28,24 @@ void PackagedApplicationTests::packagedApplicationStarts()
     QVERIFY2(!helperDirectory.isEmpty(), qPrintable(storageError));
     const auto endpointsDirectory = storage->ensureRuntimeDirectory("apps/test", &storageError);
     QVERIFY2(!endpointsDirectory.isEmpty(), qPrintable(storageError));
-    iiSocietyHelper::Helper observer;
+    QVERIFY(QFile::setPermissions(endpointsDirectory, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner));
+    // The observer must not start a second discovery of the user's selected drive.
+    iiSocietyHelper::Helper observer(iiSocietyHelper::FileSystem::Initialization::Deferred);
     QVERIFY(observer.start({"com.iisacc.dreamscapes.test", "Dreamscapes test", "1"},
                             {helperDirectory, 100, 5000}));
     auto environment = QProcessEnvironment::systemEnvironment();
     environment.insert("SOCIETY_CONTAINER_PATH", containerPath);
     environment.insert("SOCIETY_HELPER_DIRECTORY", helperDirectory);
     environment.insert("IILOCALLLM_APP_ENDPOINTS", endpointsDirectory);
+    environment.insert("QML_DISABLE_DISK_CACHE", "1");
+    environment.insert("QSG_RHI_PIPELINE_CACHE_LOAD", "0");
+    environment.insert("QSG_RHI_PIPELINE_CACHE_SAVE", "0");
+    const bool nativeQuit = qEnvironmentVariableIntValue("DREAMSCAPES_TEST_NATIVE_QUIT") == 1;
+    if (nativeQuit) {
+        environment.insert("QT_QPA_PLATFORM", "cocoa");
+        environment.remove("QT_QUICK_BACKEND");
+        environment.insert("IILOCALLLM_DISABLE_APP_MCP", "0");
+    }
     for (const auto *key : {"DYLD_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH", "QML_IMPORT_PATH", "QML2_IMPORT_PATH"})
         environment.remove(QString::fromLatin1(key));
     QProcess process;
@@ -55,6 +66,7 @@ void PackagedApplicationTests::packagedApplicationStarts()
         process.waitForReadyRead(100);
         output += process.readAll();
     }
+    const auto startupMs = timer.elapsed();
     const bool running = process.state() == QProcess::Running;
     // Both participants must actually observe each other through the installed SDK.
     QElapsedTimer discovery;
@@ -66,10 +78,35 @@ void PackagedApplicationTests::packagedApplicationStarts()
         output += process.readAll();
     }
     const auto peers = observer.peers();
-    process.terminate();
-    if (!process.waitForFinished(3000)) {
-        process.kill();
-        process.waitForFinished();
+    if (nativeQuit) {
+#ifdef Q_OS_MACOS
+        const bool endpointAdvertised = !QDir(endpointsDirectory).entryList({QStringLiteral("*.json")}, QDir::Files).isEmpty();
+        // Send the ordinary application Quit request to this exact child PID.
+        // Unlike SIGTERM, NSRunningApplication::terminate exercises Qt's Quit event.
+        QProcess request;
+        const auto script = QStringLiteral("ObjC.import('AppKit'); const app=$.NSRunningApplication.runningApplicationWithProcessIdentifier(%1); if(app.isNil()) throw Error('App not found'); if(!app.terminate) throw Error('Quit rejected');")
+                                .arg(process.processId());
+        QElapsedTimer quit; quit.start();
+        request.start(QStringLiteral("/usr/bin/osascript"), {QStringLiteral("-l"), QStringLiteral("JavaScript"), QStringLiteral("-e"), script});
+        QVERIFY2(request.waitForFinished(10000) && request.exitCode() == 0, request.readAllStandardError().constData());
+        QVERIFY2(process.waitForFinished(15000), "The native Quit request did not finish.");
+        qInfo() << "Native startup to root-loaded:" << startupMs << "ms; native Quit to exit:" << quit.elapsed() << "ms";
+        QCOMPARE(process.exitStatus(), QProcess::NormalExit);
+        QCOMPARE(process.exitCode(), 0);
+        output += process.readAll();
+        QVERIFY2(endpointAdvertised, output.constData());
+        QTRY_VERIFY_WITH_TIMEOUT(observer.peers().isEmpty(), 5000);
+        QVERIFY2(QDir(endpointsDirectory).entryList({QStringLiteral("*.json")}, QDir::Files).isEmpty(),
+                 "The app's local endpoint remained after normal Quit.");
+#else
+        QSKIP("Native Quit check is currently implemented for macOS.");
+#endif
+    } else {
+        process.terminate();
+        if (!process.waitForFinished(3000)) {
+            process.kill();
+            process.waitForFinished();
+        }
     }
     output += process.readAll();
     // Source GUI fixtures register their own types. Only this real entry-point

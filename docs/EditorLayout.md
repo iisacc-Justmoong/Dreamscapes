@@ -70,69 +70,50 @@ native editor and search interface without using production storage.
 
 ## Tool rail
 
-툴 탭은 LVRS의 필수 `iconName` 계약에 따라 도구 키를 아이콘 식별자로 전달한다. `iconSource`와 실제 이미지가 같은 기존 SVG를 참조하므로 데스크톱·모바일의 원본 도형과 배치는 유지된다.
+The application exposes 18 editor tools on a 30-pixel desktop rail and an
+84-pixel mobile rail. The desktop buttons use 22-pixel slots; mobile uses
+86 × 68-pixel tabs with a 22-pixel icon slot. Both layouts resolve their
+18-pixel artwork from the same LVRS icon library and follow LVRS button and
+tab states. The user-facing tool key remains separate from its icon name, so
+icons can change without changing commands or document data. Desktop Up/Down
+and mobile Left/Right navigation, Home/End, focus and scrolling are preserved.
 
-The desktop editor places a 52-pixel vertical toolbar between the canvas work
-area and the right tool panel. Its 18 LVRS tabs are 36 by 36 pixels, with a
-4-pixel gap and 8-pixel outer inset. The transparent, borderless rail has an
-18-pixel corner radius and hugs its 732-pixel content height. When the window
-is shorter, the rail clamps to that height and scrolls vertically. Selected
-tabs use the LVRS selected fill and a 1-pixel border. The 2319-by-1316 reference
-leaves 1782 pixels for the workspace, then 52 for the toolbar and 304 for the
-panel, after the 181-pixel sidebar. Mobile keeps its 84-pixel horizontal bottom
-toolbar with captions and its existing selected-tab styling.
-Their original SVGs occupy 22-pixel slots at (7, 8). Desktop tabs display
-icons and preserve tool names for accessibility and keyboard navigation.
-Up/Down selects the previous/next desktop tool; Home/End reaches the first/last
-tool. Selection, programmatic restoration and resizing keep the current tab
-inside the scrolling viewport. Mobile retains Left/Right navigation.
-All 18 icons retain the original Figma path geometry, natural bounds,
-viewBoxes, dimensions, stroke widths, caps and joins. Their source files and
-22-pixel slots are reused. The toolbar now gives every tool its own fixed
-opaque stroke color; Elements keeps its existing periwinkle. Only the
-six-digit stroke colors of the other 17 SVGs differ from their Figma exports,
-so the original byte counts and all non-color asset bytes remain unchanged.
+| Tool | LVRS icon |
+| --- | --- |
+| Elements | `rectangle` |
+| Text | `text` |
+| Camera/Photo | `panel-camera-live` |
+| File | `document-properties` |
+| Background | `background` |
+| Audio track | `audio-track` |
+| Canvas | `canvas-size` |
+| Generative | `spark` |
+| Layers | `panel-layers-stack` |
+| Select | `direct-select` |
+| Color | `color` |
+| Effects | `effect-stack` |
+| Retouch | `panel-retouch-heal` |
+| Fill | `fill` |
+| Brush | `brush` |
+| Adjust | `auto-tone` |
+| Masking | `layer-mask` |
+| Eraser | `eraser` |
 
-## Tool icon colors
+The Figma desktop and mobile rails use those same shared components. Retired
+product-specific toolbar SVGs and palette manifests are removed; earlier design
+snapshots remain available in version history.
+The older Figma Full 19 reference also contains an Asset item, while the
+application keeps Camera/Photo followed directly by File.
+Mobile labels use LVRS caption size and line height with the shared medium
+weight. Both the Figma rails and application reference these roles, rather than
+maintaining a 9-pixel product-specific text size. Other editor chrome takes
+its typography sizes, weights and font names from LVRS as well; editable
+document typography remains document data.
 
-Desktop and mobile use the same 18 colored SVGs. Every tool keeps its own
-color in both selected and unselected states, including hover and press.
-Selection remains visible through the existing LVRS tab background and focus
-styling. Icon color identifies the tool and does not indicate whether that
-tool is selected. Existing disabled behavior and tab interactions remain
-unchanged. The artwork uses flat named colors without gradients, opacity
-variants or numeric color levels.
-
-`src/App/Views/Editor/Assets/manifest.json` records each tool's `strokeColor`
-and descriptive `colorName` alongside its original Figma node, bounds,
-offsets and byte count. The eight LVRS `accentPalette` colors already present
-in Theme remain available; the toolbar uses a separate fixed artwork palette
-so all 18 tools have distinct colors without altering shared theme tokens.
-
-Asset is removed from the application toolbar and panel catalog. Camera/Photo
-is followed directly by File in both layouts and in keyboard navigation.
-Panel headings are numbered consecutively from 01 to 18 in that order.
-
-| Tool | Color name | Stroke color |
-| --- | --- | --- |
-| Elements | Periwinkle | `#8E8EFF` |
-| Text | Lavender | `#CBA6F7` |
-| Camera/Photo | Sky blue | `#64B5F6` |
-| File | Seafoam | `#80CBC4` |
-| Background | Green | `#62BA46` |
-| Audio track | Pink | `#F74F9E` |
-| Canvas | Yellow | `#FFC600` |
-| Generative | Purple | `#A550A7` |
-| Layers | Blue | `#007AFF` |
-| Select | Lime | `#CDDC39` |
-| Color | Orange | `#F7821B` |
-| Effects | Magenta | `#E879F9` |
-| Retouch | Peach | `#FFB4A2` |
-| Fill | Turquoise | `#2DD4BF` |
-| Brush | Red | `#FF5257` |
-| Adjust | Gold | `#F2C55C` |
-| Masking | Powder blue | `#A5C7E8` |
-| Eraser | Rose | `#F58CA8` |
+`Dreamscapes.EditorLayout` and the mobile toolbar GUI regression
+check shared icon loading, caption metrics and fit, geometry, selection,
+keyboard and scroll behavior.
+The visual checks do not imply installed-app or physical-device verification.
 
 ## Canvas work area
 

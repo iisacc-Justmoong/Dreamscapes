@@ -4,6 +4,7 @@ import ".." as Frames
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -33,11 +34,11 @@ Item {
             if (tile) { tile.localZoom = value; tile.localX = 0; tile.localY = 0 }
         }
     }
-    Rectangle { anchors.fill: parent; color: LV.Theme.surfaceSolid }
+    Rectangle { anchors.fill: parent; color: Style.Tokens.color("Theme Colors/Panel/surfaceSolid") }
     LV.VStack {
         anchors.fill: parent
-        anchors.margins: LV.Theme.gap8
-        spacing: LV.Theme.gap8
+        anchors.margins: Style.Tokens.metric("Theme Metrics/Space/8")
+        spacing: Style.Tokens.metric("Theme Metrics/Space/8")
         Flickable {
             objectName: "reviewCompareToolsViewport"
             Layout.fillWidth: true
@@ -62,8 +63,8 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             columns: Math.max(1, root.width < 700 || root.entries.length > 2 ? 2 : root.entries.length)
-            columnSpacing: LV.Theme.gap8
-            rowSpacing: LV.Theme.gap8
+            columnSpacing: Style.Tokens.metric("Theme Metrics/Space/8")
+            rowSpacing: Style.Tokens.metric("Theme Metrics/Space/8")
             Repeater {
                 id: tiles
                 model: root.entries

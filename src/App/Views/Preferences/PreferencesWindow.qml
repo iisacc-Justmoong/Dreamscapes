@@ -5,6 +5,7 @@ import ".." as Frames
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 import "../Home"
+import Dreamscapes.Style 1.0 as Style
 
 LV.ApplicationWindow {
     id: preferences
@@ -51,7 +52,7 @@ LV.ApplicationWindow {
             Layout.minimumWidth: Layout.preferredWidth
             Layout.maximumWidth: Layout.preferredWidth
             Layout.fillHeight: true
-            backgroundColor: LV.Theme.panelBackground03
+            backgroundColor: Style.Tokens.color("Theme Colors/Panel/windowAlt")
             LV.VStack {
                 required property var modelData
                 spacing: 0
@@ -61,7 +62,7 @@ LV.ApplicationWindow {
                     Layout.fillWidth: true
                     Layout.leftMargin: LV.Theme.scaleMetric(10)
                     Layout.rightMargin: LV.Theme.scaleMetric(10)
-                    spacing: LV.Theme.gap12
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/12")
                     LV.ListItem {
                         objectName: "preferencesCategoryAccount"
                         Layout.fillWidth: true
@@ -134,18 +135,18 @@ LV.ApplicationWindow {
             LV.VStack {
                 required property var modelData
                 width: driveDetails.width
-                spacing: LV.Theme.gap16
-                LV.Spacer { minLength: LV.Theme.gap8 }
+                spacing: Style.Tokens.metric("Theme Metrics/Space/16")
+                LV.Spacer { minLength: Style.Tokens.metric("Theme Metrics/Space/8") }
                 LV.Label {
-                    Layout.leftMargin: LV.Theme.gap20
-                    Layout.rightMargin: LV.Theme.gap20
+                    Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/20")
+                    Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/20")
                     Layout.fillWidth: true
                     text: qsTr("Storage")
                     style: header
                 }
                 LV.Label {
-                    Layout.leftMargin: LV.Theme.gap20
-                    Layout.rightMargin: LV.Theme.gap20
+                    Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/20")
+                    Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/20")
                     Layout.fillWidth: true
                     text: qsTr("Choose the existing Society drive used for shared models and files. This does not move or delete data.")
                     style: description
@@ -153,16 +154,16 @@ LV.ApplicationWindow {
                     sizeToContentHeight: true
                 }
                 LV.Label {
-                    Layout.leftMargin: LV.Theme.gap20
-                    Layout.rightMargin: LV.Theme.gap20
+                    Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/20")
+                    Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/20")
                     text: qsTr("Current location")
                     style: header2
                 }
                 LV.Label {
                     objectName: "preferencesCurrentDrive"
                     style: body
-                    Layout.leftMargin: LV.Theme.gap20
-                    Layout.rightMargin: LV.Theme.gap20
+                    Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/20")
+                    Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/20")
                     Layout.fillWidth: true
                     text: preferences.generation.connected ? preferences.generation.containerPath : qsTr("No Society drive connected")
                     textFormat: Text.PlainText
@@ -172,8 +173,8 @@ LV.ApplicationWindow {
                 LV.InputField {
                     id: locationField
                     objectName: "preferencesDriveLocation"
-                    Layout.leftMargin: LV.Theme.gap20
-                    Layout.rightMargin: LV.Theme.gap20
+                    Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/20")
+                    Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/20")
                     Layout.fillWidth: true
                     placeholderText: qsTr("Existing Society drive folder")
                     Accessible.name: qsTr("Society drive location")
@@ -182,10 +183,10 @@ LV.ApplicationWindow {
                     onAccepted: if (applyLocation.enabled) preferences.applyDriveLocation()
                 }
                 LV.HStack {
-                    Layout.leftMargin: LV.Theme.gap20
-                    Layout.rightMargin: LV.Theme.gap20
+                    Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/20")
+                    Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/20")
                     Layout.fillWidth: true
-                    spacing: LV.Theme.gap8
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                     LV.PushButton {
                         objectName: "browseSocietyDrive"
                         tone: LV.AbstractButton.Default
@@ -204,17 +205,17 @@ LV.ApplicationWindow {
                 LV.Label {
                     objectName: "preferencesDriveFeedback"
                     style: body
-                    Layout.leftMargin: LV.Theme.gap20
-                    Layout.rightMargin: LV.Theme.gap20
+                    Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/20")
+                    Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/20")
                     Layout.fillWidth: true
                     visible: text.length > 0
                     text: preferences.locationMessage
-                    color: preferences.locationFailed ? LV.Theme.accentRed : LV.Theme.textTokenBody
+                    color: preferences.locationFailed ? Style.Tokens.color("Theme Colors/Accent/Red/Default") : Style.Tokens.color("Theme Colors/Text/bodyColor")
                     textFormat: Text.PlainText
                     wrapMode: Text.WrapAnywhere
                     sizeToContentHeight: true
                 }
-                LV.Spacer { minLength: LV.Theme.gap20 }
+                LV.Spacer { minLength: Style.Tokens.metric("Theme Metrics/Space/20") }
             }
         }
         PreferenceList {
@@ -227,18 +228,18 @@ LV.ApplicationWindow {
             LV.VStack {
                 required property var modelData
                 width: generateDetails.width
-                spacing: LV.Theme.gap16
-                LV.Spacer { minLength: LV.Theme.gap8 }
+                spacing: Style.Tokens.metric("Theme Metrics/Space/16")
+                LV.Spacer { minLength: Style.Tokens.metric("Theme Metrics/Space/8") }
                 LV.Label {
-                    Layout.leftMargin: LV.Theme.gap20
-                    Layout.rightMargin: LV.Theme.gap20
+                    Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/20")
+                    Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/20")
                     Layout.fillWidth: true
                     text: preferences.currentCategory
                     style: header
                 }
                 LV.Label {
-                    Layout.leftMargin: LV.Theme.gap20
-                    Layout.rightMargin: LV.Theme.gap20
+                    Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/20")
+                    Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/20")
                     Layout.fillWidth: true
                     text: qsTr("Set the defaults used for new generations.")
                     style: description
@@ -247,10 +248,10 @@ LV.ApplicationWindow {
                 }
                 LV.VStack {
                     visible: preferences.currentCategory === "Image"
-                    Layout.leftMargin: LV.Theme.gap20
-                    Layout.rightMargin: LV.Theme.gap20
+                    Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/20")
+                    Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/20")
                     Layout.fillWidth: true
-                    spacing: LV.Theme.gap8
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                     LV.Label {
                         text: qsTr("Default image generation model")
                         style: body
@@ -269,10 +270,10 @@ LV.ApplicationWindow {
                 }
                 LV.VStack {
                     visible: preferences.currentCategory === "Video"
-                    Layout.leftMargin: LV.Theme.gap20
-                    Layout.rightMargin: LV.Theme.gap20
+                    Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/20")
+                    Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/20")
                     Layout.fillWidth: true
-                    spacing: LV.Theme.gap8
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                     LV.Label {
                         text: qsTr("Default video generation model")
                         style: body
@@ -290,10 +291,10 @@ LV.ApplicationWindow {
                     }
                 }
                 LV.VStack {
-                    Layout.leftMargin: LV.Theme.gap20
-                    Layout.rightMargin: LV.Theme.gap20
+                    Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/20")
+                    Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/20")
                     Layout.fillWidth: true
-                    spacing: LV.Theme.gap8
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                     LV.Label {
                         text: qsTr("Default prompt")
                         style: body
@@ -316,10 +317,10 @@ LV.ApplicationWindow {
                     }
                 }
                 LV.VStack {
-                    Layout.leftMargin: LV.Theme.gap20
-                    Layout.rightMargin: LV.Theme.gap20
+                    Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/20")
+                    Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/20")
                     Layout.fillWidth: true
-                    spacing: LV.Theme.gap8
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                     LV.Label {
                         objectName: "defaultNegativePromptLabel"
                         text: qsTr("Default negative prompt")
@@ -344,18 +345,18 @@ LV.ApplicationWindow {
                 }
                 LV.Label {
                     objectName: "preferencesModelFeedback"
-                    Layout.leftMargin: LV.Theme.gap20
-                    Layout.rightMargin: LV.Theme.gap20
+                    Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/20")
+                    Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/20")
                     Layout.fillWidth: true
                     visible: text.length > 0
                     text: preferences.generation.modelPreferencesError
                     textFormat: Text.PlainText
                     style: body
-                    color: LV.Theme.accentRed
+                    color: Style.Tokens.color("Theme Colors/Accent/Red/Default")
                     wrapMode: Text.WrapAnywhere
                     sizeToContentHeight: true
                 }
-                LV.Spacer { minLength: LV.Theme.gap20 }
+                LV.Spacer { minLength: Style.Tokens.metric("Theme Metrics/Space/20") }
             }
         }
         LV.VStack {
@@ -364,15 +365,31 @@ LV.ApplicationWindow {
             visible: preferences.currentCategory === "Account"
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.margins: LV.Theme.gap20
-            spacing: LV.Theme.gap16
+            Layout.margins: Style.Tokens.metric("Theme Metrics/Space/20")
+            spacing: Style.Tokens.metric("Theme Metrics/Space/16")
             LV.Label { text: qsTr("Account"); style: header; Layout.fillWidth: true }
             LV.Label {
-                text: qsTr("Manage your iisacc account in Society.")
+                text: qsTr("Sign in to Society to verify your Dreamscapes license.")
                 style: description
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
                 sizeToContentHeight: true
+            }
+            LV.Label {
+                objectName: "preferencesAccountStatus"
+                Layout.fillWidth: true
+                style: description
+                wrapMode: Text.Wrap
+                sizeToContentHeight: true
+                text: !preferences.account ? "" : preferences.account.checking ? qsTr("Checking your license…")
+                      : preferences.account.licensed ? qsTr("Dreamscapes license verified.")
+                      : preferences.account.code === "license_not_owned" ? qsTr("This Society account does not own Dreamscapes.")
+                      : qsTr("Open Society and sign in to check your license.")
+            }
+            LV.PushButton {
+                objectName: "preferencesAccountRefresh"
+                text: qsTr("Check license")
+                onClicked: preferences.account.refresh()
             }
             LV.PushButton {
                 objectName: "preferencesOpenSociety"
@@ -387,7 +404,7 @@ LV.ApplicationWindow {
             visible: preferences.currentCategory !== "Account" && preferences.currentCategory !== "Storage" && !preferences.generationCategory
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.margins: LV.Theme.gap20
+            Layout.margins: Style.Tokens.metric("Theme Metrics/Space/20")
             LV.Label {
                 objectName: "preferencesCategoryHeading"
                 text: preferences.currentCategory === "Appearance" ? qsTr("Appearence")

@@ -5,6 +5,8 @@ target. The Qt-free C++23 SDK owns color conversions, numeric channel ranges,
 picker coordinates, dynamic ramps, web-safe quantization, gamut indication and
 accept/cancel snapshots. `Views/ColorManagerModel` is the Qt GUI boundary;
 `Views/ColorPicker.qml` uses the installed LVRS controls and theme.
+The picker marker and alpha checkerboard receive shared LVRS neutral colors through
+the presentation surface; selected, recent and custom colors remain document data.
 
 The mode menu lists Hue Cube, Brightness Cube, Color Wheel, Grayscale Slider,
 RGB Sliders, HSB Sliders, CMYK Sliders, Lab Sliders and Web Color Sliders in that

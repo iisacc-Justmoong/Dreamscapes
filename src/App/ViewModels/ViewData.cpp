@@ -1,4 +1,5 @@
 #include "ViewData.h"
+#include "LvuiStyleTokens.h"
 #include "GenerationProjection.h"
 #include "SnapshotListModel.h"
 #include "VideoTimelineModel.h"
@@ -327,6 +328,7 @@ QVariantList ViewDataDomain::fieldsByType(const QVariant &fields, const QString 
     return read(Read::fieldsByType, {fields, type}).toList();
 }
 void registerNativeViewModelTypes() {
+    registerLvuiStyleTypes();
     qmlRegisterType<TimelinePlaybackModel>("Dreamscapes.Storage", 1, 0, "NativeTimelinePlayback");
     qmlRegisterUncreatableType<ViewProjectionModel>("Dreamscapes.Storage", 1, 0, "NativeViewProjection",
                                                    "Owned by NativeData");

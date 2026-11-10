@@ -48,6 +48,23 @@ Dreamscapes는 실패한 이미지·비디오 생성과 결과 게시 단계에 
 `modelInputFitsMeasuredContextWithoutChangingTheFullEvidence`는 모델별 입력 제한과
 근거 보존을 검증한다. 이는 모델이 반환한 해석의 정확성을 보증하지 않는다.
 
+이미지 생성 큐는 iiLocalDiffusion의 제한된 모델 헤더 검사로 엔진을 선택한다.
+MOSS Image 변환기와 INT8 Comfy 메타데이터가 감지된 파일은 별도 Diffusers 워커에서
+양자화 형식을 검증하며,
+필요한 구성 요소나 워커가 없으면 해당 오류를 보고한다. 네이티브 API를 직접 호출할 때는
+지원 한계와 필요한 구성 요소를 명시한다. 병합 메타데이터의 합성
+어댑터 매핑 개수는 기록된 출처 정보이며 품질이나 파일 손상의 증거로 단정하지 않는다.
+잘렸거나 읽을 수 없는 헤더와 검사 중 변경된 모델은 `model-input`으로 분류한다.
+기존 `get sd version from file failed` 오류는 `model-identification`으로 분류하되
+지원 범위·파일 상태 중 어느 하나를 근거 없이 확정하지 않는다. 언어 모델의 추가
+분석에 실패해도 원문과 결정론적 근거 보고서를 유지한다.
+
+`Dreamscapes.NativeModelDiagnostics`는 격리된 Society 시험 저장소와 합성 입력으로
+생성 큐에서 원인 미확정 오류와 모델 입력 오류가 실패 상세 보고서에
+전달되는지 확인한다. macOS 검사에서는 빌드가 선택한 SDK와 파일 제공자 경로를 지정해
+이전 설치 SDK가 빌드 대상을 가리지 않게 한다. 이 검사는 사전 학습된 가중치의 실제
+생성이나 이미지 품질을 입증하지 않는다.
+
 QML은 `latestFailure`, `failureAnalysis(jobId)`, `failureExplained(jobId, report)`를
 사용한다. `Failure details` 버튼과 스크롤 가능한 LVRS 모달은 전체 설명을 표시한다.
 보고서 본문은 읽기 전용 일반 텍스트이므로 드래그하여 부분 선택할 수 있다.
@@ -59,8 +76,12 @@ QML은 `latestFailure`, `failureAnalysis(jobId)`, `failureExplained(jobId, repor
 같은 결과를 제공한다. 보고서는 앱 데이터의 `FailureReports/.<job-id>.json`에 저장하고
 에이전트 실행 기록은 그 아래 `.sessions`에 저장한다. 이는 iiFileProvider가 문서
 미리보기를 생성하지 않는 내부 파일 경계이다. 저장 실패도 별도 필드로 알린다.
+선택적 언어 모델이 구조화된 답변의 출력 한도에 도달하면 미완성 출력을 채택하지
+않고 새 세션에서 짧은 설명을 한 번 재시도한다. 두 시도는 같은 60초 제한을 공유한다.
+다른 오류나 재시도 실패 시에는 원래 증거 보고서를 보존하고 `evidence-only`와 실제
+진단 오류를 표시한다. 이는 이미지 생성 자체를 재시도하거나 원인을 확정하지 않는다.
 테스트나 관리 환경은 `DREAMSCAPES_FAILURE_REPORTS_DIR`로 별도 보고서 저장소를
-지정할 수 있다. 테스트는 사용자 앱 데이터와 분리된 `build/` 하위 경로를 사용한다.
+지정할 수 있다. 테스트는 사용자 앱 데이터와 분리된 프로젝트 `resources/` 하위 임시 경로를 사용한다.
 
 CLI 최소 예제는 제품 루트에서 `build/DreamscapesFailureAgent <
 example/failure-context.json`으로 실행한다. `install.py`는 canonical 앱의 서명과

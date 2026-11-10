@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Dreamscapes.Storage 1.0
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 LV.HStack {
     id: root
@@ -20,7 +21,7 @@ LV.HStack {
         entries: root.entries
     }
     signal openRequested(var images)
-    spacing: LV.Theme.gap6
+    spacing: Style.Tokens.metric("Theme Metrics/Space/6")
     visible: selectionBackend ? entries.length > 0 : images.length > 1 || selectionMode
     function isSelected(entry) { const revision = nativeSelection.selectedKeys; return nativeSelection.isSelected(entry) }
     function toggle(entry) { nativeSelection.toggle(entry) }

@@ -4,9 +4,16 @@ import ".." as Frames
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
 import ".." as Shared
+import Dreamscapes.Style 1.0 as Style
 
 Column {
     id: root
+    component ThemedColorSurface: ColorManagerSurface {
+        markerDark: Style.Tokens.color("Theme Colors/Panel/canvas")
+        markerLight: Style.Tokens.color("Theme Colors/Text/textTokenBase")
+        checkerDark: LV.Theme.accentGrayMuted
+        checkerLight: LV.Theme.accentGrayPale
+    }
     objectName: "backgroundColorBody"
     required property var toolState
     NativeBackgroundModel {
@@ -54,13 +61,13 @@ Column {
         required property string title
         required property var channels
         width: root.width; height: 22; spacing: 8
-        LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; width: 44; height: 22; style: body; color: LV.Theme.titleHeaderColor; text: parent.title; verticalAlignment: Text.AlignVCenter }
+        LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; width: 44; height: 22; style: body; color: Style.Tokens.color("Theme Colors/Text/titleHeaderColor"); text: parent.title; verticalAlignment: Text.AlignVCenter }
         Repeater {
             model: parent.channels
             Row {
                 required property int modelData
                 width: (root.width-44-parent.channels.length*8)/parent.channels.length; height: 22; spacing: 4
-                LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; width:12; height:22; style:caption; color:LV.Theme.bodyColor; text:colorModel.channel(parent.modelData).label; verticalAlignment:Text.AlignVCenter }
+                LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; width:12; height:22; style:caption; color:Style.Tokens.color("Theme Colors/Text/bodyColor"); text:colorModel.channel(parent.modelData).label; verticalAlignment:Text.AlignVCenter }
                 ChannelInput { objectName:"backgroundChannel-"+parent.modelData; channel:parent.modelData; width:parent.width-16; Accessible.name:colorModel.channel(channel).name }
             }
         }
@@ -82,11 +89,11 @@ Column {
         Item {
             visible:colorModel.mode<=2
             objectName:"backgroundColorPlane"; width:parent.width; height:156
-            ColorManagerSurface { x:colorModel.mode===2?(parent.width-60-height)/2:0; width:colorModel.mode===2?height:parent.width-60; height:parent.height; model:colorModel; field:colorModel.mode===1?ColorManagerSurface.BrightnessCube:colorModel.mode===2?ColorManagerSurface.ColorWheel:ColorManagerSurface.HueCube }
-            ColorManagerSurface { x:parent.width-52; width:22; height:parent.height; rotation:colorModel.mode===0?180:0; model:colorModel; field:colorModel.mode===0?ColorManagerSurface.HueRail:ColorManagerSurface.BrightnessRail; showMarker:false }
+            ThemedColorSurface { x:colorModel.mode===2?(parent.width-60-height)/2:0; width:colorModel.mode===2?height:parent.width-60; height:parent.height; model:colorModel; field:colorModel.mode===1?ColorManagerSurface.BrightnessCube:colorModel.mode===2?ColorManagerSurface.ColorWheel:ColorManagerSurface.HueCube }
+            ThemedColorSurface { x:parent.width-52; width:22; height:parent.height; rotation:colorModel.mode===0?180:0; model:colorModel; field:colorModel.mode===0?ColorManagerSurface.HueRail:ColorManagerSurface.BrightnessRail; showMarker:false }
             Item {
                 x:parent.width-22; width:22; height:parent.height
-                ColorManagerSurface { anchors.centerIn:parent; width:parent.height; height:parent.width; rotation:-90; model:colorModel; field:ColorManagerSurface.ChannelRamp; channel:10; checkerboard:false; showMarker:false }
+                ThemedColorSurface { anchors.centerIn:parent; width:parent.height; height:parent.width; rotation:-90; model:colorModel; field:ColorManagerSurface.ChannelRamp; channel:10; checkerboard:false; showMarker:false }
             }
         }
         Column {
@@ -96,15 +103,15 @@ Column {
                 Row {
                     required property var modelData
                     width:root.width; height:22; spacing:8
-                    LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; width:12; height:22; style:caption; color:LV.Theme.bodyColor; text:colorModel.channel(parent.modelData).label; verticalAlignment:Text.AlignVCenter }
-                    ColorManagerSurface { objectName:"backgroundModeChannel-"+parent.modelData; width:parent.width-104; height:22; model:colorModel; field:ColorManagerSurface.ChannelRamp; channel:parent.modelData }
+                    LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; width:12; height:22; style:caption; color:Style.Tokens.color("Theme Colors/Text/bodyColor"); text:colorModel.channel(parent.modelData).label; verticalAlignment:Text.AlignVCenter }
+                    ThemedColorSurface { objectName:"backgroundModeChannel-"+parent.modelData; width:parent.width-104; height:22; model:colorModel; field:ColorManagerSurface.ChannelRamp; channel:parent.modelData }
                     ChannelInput { width:76; channel:parent.modelData }
                 }
             }
         }
         Row {
             width:parent.width; height:22; spacing:8
-            LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; width:Math.min(40,root.width*.1); height:22; style:body; color:LV.Theme.titleHeaderColor; text:qsTr("Hex"); verticalAlignment:Text.AlignVCenter }
+            LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; width:Math.min(40,root.width*.1); height:22; style:body; color:Style.Tokens.color("Theme Colors/Text/titleHeaderColor"); text:qsTr("Hex"); verticalAlignment:Text.AlignVCenter }
             LV.InputField {
                 id:hexInput
                 objectName:"background-hex"; width:root.width*188/398; height:22; fieldMinHeight:22; clearButtonVisible:false
@@ -119,7 +126,7 @@ Column {
                 onAccepted:{commit();root.forceActiveFocus()}
                 onFocusedChanged:if(!focused&&dirty)commit()
             }
-            LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; width:Math.min(40,root.width*.1); height:22; style:body; color:LV.Theme.bodyColor; text:qsTr("Alpha"); verticalAlignment:Text.AlignVCenter }
+            LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; width:Math.min(40,root.width*.1); height:22; style:body; color:Style.Tokens.color("Theme Colors/Text/bodyColor"); text:qsTr("Alpha"); verticalAlignment:Text.AlignVCenter }
             ChannelInput { objectName:"background-alpha"; width:parent.width-24-2*Math.min(40,root.width*.1)-root.width*188/398; channel:10 }
         }
         ChannelGroup { title:"RGB"; channels:[3,4,5] }
@@ -128,7 +135,7 @@ Column {
         ChannelGroup { title:"CMYK"; channels:[6,7,8,9] }
         Parameter { field:"backgroundOpacity"; title:qsTr("Opacity"); type:"slider"; value:root.value(field,100); onEdited:next=>root.edit(field,next) }
         Parameter { field:"backgroundExtend"; title:qsTr("Extend fill to bleed"); type:"toggle"; value:root.value(field,true); onEdited:next=>root.edit(field,next) }
-        LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; width:parent.width; height:18; style:caption; color:LV.Theme.bodyColor; text:qsTr("Foreground · %1").arg(root.value("backgroundColor","#8066FF")) }
+        LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; width:parent.width; height:18; style:caption; color:Style.Tokens.color("Theme Colors/Text/bodyColor"); text:qsTr("Foreground · %1").arg(root.value("backgroundColor","#8066FF")) }
     }
     EditorBackgroundSection {
         title:qsTr("Swatches")
@@ -144,12 +151,12 @@ Column {
                 LV.AbstractButton { required property color modelData; width:32; height:28; Accessible.name:qsTr("Swatch %1").arg(modelData); background:Rectangle { radius:4; color:parent.modelData; border.width:String(parent.modelData).toLowerCase()===String(root.value("backgroundColor","#8066FF")).toLowerCase()?2:0; border.color:LV.Theme.primary } onClicked:root.selectColor(modelData) }
             }
         }
-        LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; width:parent.width; height:18; style:caption; color:LV.Theme.bodyColor; text:qsTr("Recent colors") }
+        LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; width:parent.width; height:18; style:caption; color:Style.Tokens.color("Theme Colors/Text/bodyColor"); text:qsTr("Recent colors") }
         Flow { width:parent.width; spacing:8; Repeater { model:root.recent; LV.AbstractButton { required property color modelData; width:32; height:22; background:Rectangle { radius:4; color:parent.modelData } Accessible.name:qsTr("Recent color %1").arg(modelData); onClicked:root.selectColor(modelData) } } }
     }
     EditorBackgroundSection {
         title:qsTr("Gradient editor")
-        LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; width:parent.width; height:18; style:caption; color:LV.Theme.bodyColor; text:root.value("backgroundGradientName","Violet sunrise") }
+        LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; width:parent.width; height:18; style:caption; color:Style.Tokens.color("Theme Colors/Text/bodyColor"); text:root.value("backgroundGradientName","Violet sunrise") }
         EditorBackgroundGradient { objectName:"backgroundGradientPreview"; width:parent.width; height:32; stops:root.stops; angle:root.value("backgroundAngle",90); radial:root.value("backgroundGradientType","Linear")==="Radial" }
         Flow {
             width:parent.width; spacing:8
@@ -177,7 +184,7 @@ Column {
             LV.LabelButton { text:qsTr("Remove stop"); tone:LV.AbstractButton.Borderless; enabled:root.stops.length>2; onClicked:nativeBackground.removeStop(root.selectedStop) }
             LV.LabelButton { text:qsTr("Reverse"); tone:LV.AbstractButton.Borderless; onClicked:nativeBackground.reverseStops() }
         }
-        LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; width:parent.width; height:18; style:caption; color:LV.Theme.bodyColor; text:qsTr("Gradient presets") }
+        LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; width:parent.width; height:18; style:caption; color:Style.Tokens.color("Theme Colors/Text/bodyColor"); text:qsTr("Gradient presets") }
         Grid {
             width:parent.width; columns:3; columnSpacing:8; rowSpacing:8
             Repeater {
@@ -191,7 +198,7 @@ Column {
         LV.LabelButton { objectName:"background-applyColor"; text:qsTr("Apply color"); tone:LV.AbstractButton.Default; enabled:Boolean(root.toolState.engine)&&root.toolState.engine.documentReady; onClicked:root.apply() }
         LV.LabelButton { text:qsTr("Save preset"); tone:LV.AbstractButton.Borderless; onClicked:nativeBackground.saveGradient() }
     }
-    LV.Label { font.weight:Font.Normal; font.styleName:"Regular"; visible:root.toolState.notice.length>0; width:parent.width; style:caption; color:LV.Theme.bodyColor; text:root.toolState.notice; wrapMode:Text.WordWrap; sizeToContentHeight:true }
+    LV.Label { font.weight:Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; visible:root.toolState.notice.length>0; width:parent.width; style:caption; color:Style.Tokens.color("Theme Colors/Text/bodyColor"); text:root.toolState.notice; wrapMode:Text.WordWrap; sizeToContentHeight:true }
     LV.ContextMenu { id:modeMenu; objectName:"backgroundPickerMenu"; showIconSlot:false; items:colorModel.modeNames; onItemTriggered:index=>root.edit("backgroundPickerMode",index) }
     Frames.PanelSheet { id:stopSheet; parent:root.Window.window?root.Window.window.contentItem:null; title:qsTr("Gradient stop"); presentation:LV.Sheet.Mobile; topSafeInset:0; bottomSafeInset:0; contentComponent:Shared.ColorPicker { onAccepted:color=>{root.changeStop(root.selectedStop,"color",String(color));stopSheet.close()} onCanceled:stopSheet.close() } }
 }

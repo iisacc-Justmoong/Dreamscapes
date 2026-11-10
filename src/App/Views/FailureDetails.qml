@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 LV.Modal {
     id: root
@@ -58,14 +59,14 @@ LV.Modal {
                 cursorVisible: false
                 textFormat: TextEdit.PlainText
                 wrapMode: TextEdit.WrapAnywhere
-                color: LV.Theme.bodyColor
+                color: Style.Tokens.color("Theme Colors/Text/bodyColor")
                 selectionColor: LV.Theme.accent
-                selectedTextColor: LV.Theme.textPrimary
+                selectedTextColor: Style.Tokens.color("Theme Colors/Text/titleHeaderColor")
                 font.family: LV.Theme.fontBody
-                font.pixelSize: LV.Theme.textBody
-                font.weight: LV.Theme.textBodyWeight
+                font.pixelSize: Style.Tokens.metric("Theme Typography/Body/textBody")
+                font.weight: Style.Tokens.metric("Theme Typography/Weight/Medium")
                 font.styleName: LV.Theme.textBodyStyleName
-                font.letterSpacing: LV.Theme.textBodyLetterSpacing
+                font.letterSpacing: Style.Tokens.metric("Theme Typography/Tracking/Normal")
                 font.hintingPreference: Font.PreferNoHinting
                 text: root.reportText
             }

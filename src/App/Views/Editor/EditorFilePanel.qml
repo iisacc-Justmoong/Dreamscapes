@@ -3,7 +3,9 @@ import QtQuick
 import Dreamscapes.Storage 1.0
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
+import "LvrsEditorIcons.js" as LvrsIcons
 import ".." as Views
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -47,7 +49,7 @@ Item {
                 id: selectionButton1
                 required property var modelData
                 objectName: "editorFileView-" + modelData.id
-                iconSource: Qt.resolvedUrl("Assets/File/" + modelData.icon + ".svg")
+                iconSource: LvrsIcons.resolve(LV.Theme, "File", modelData.icon)
                 tone: LV.AbstractButton.Borderless
                 Accessible.name: modelData.name
                 Accessible.role: Accessible.PageTab
@@ -63,13 +65,13 @@ Item {
     Row {
         id: context
         objectName: "editorFileContext"
-        y: segments.height + LV.Theme.gap16
+        y: segments.height + Style.Tokens.metric("Theme Metrics/Space/16")
         height: 20
-        spacing: LV.Theme.gap8
+        spacing: Style.Tokens.metric("Theme Metrics/Space/8")
         Image {
             objectName: "editorFileContextIcon"
             width: 18; height: 18; y: 1
-            source: Qt.resolvedUrl("Assets/File/" + root.selectedView.icon + ".svg")
+            source: LvrsIcons.resolve(LV.Theme, "File", root.selectedView.icon)
             fillMode: Image.PreserveAspectFit
             sourceSize: Qt.size(72, 72)
         }
@@ -77,10 +79,10 @@ Item {
             objectName: "editorFileContextTitle"
             text: root.selectedView.name
             style: body
-            font.pixelSize: 15
-            font.weight: Font.Medium
-            font.styleName: "Medium"
-            color: LV.Theme.bodyColor
+            font.pixelSize: Style.Tokens.metric("Theme Typography/Subheader/textSubheader")
+            font.weight: Style.Tokens.metric("Theme Typography/Weight/Medium")
+            font.styleName: LV.Theme.textBodyStyleName
+            color: Style.Tokens.color("Theme Colors/Text/bodyColor")
             height: 20
             lineHeight: 20
             lineHeightMode: Text.FixedHeight
@@ -91,7 +93,7 @@ Item {
         id: viewport
         objectName: "editorFileViewport"
         anchors.top: context.bottom
-        anchors.topMargin: LV.Theme.gap16
+        anchors.topMargin: Style.Tokens.metric("Theme Metrics/Space/16")
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
@@ -106,22 +108,22 @@ Item {
         Column {
             id: sections
             width: viewport.width
-            spacing: LV.Theme.gap16
+            spacing: Style.Tokens.metric("Theme Metrics/Space/16")
             Repeater {
                 model: root.selectedView.sections
                 Column {
                     id: section
                     required property var modelData
                     width: sections.width
-                    spacing: LV.Theme.gap8
-                    Rectangle { width: section.width; height: 1; color: LV.Theme.panelBackground12 }
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/8")
+                    Rectangle { width: section.width; height: 1; color: Style.Tokens.color("Theme Colors/Panel/surfaceRaised") }
                     LV.Label {
                         text: root.sectionTitle(section.modelData.name)
                         style: body
-                        font.pixelSize: 15
-                        font.weight: Font.Medium
-                        font.styleName: "Medium"
-                        color: LV.Theme.titleHeaderColor
+                        font.pixelSize: Style.Tokens.metric("Theme Typography/Subheader/textSubheader")
+                        font.weight: Style.Tokens.metric("Theme Typography/Weight/Medium")
+                        font.styleName: LV.Theme.textBodyStyleName
+                        color: Style.Tokens.color("Theme Colors/Text/titleHeaderColor")
                         width: section.width
                         height: 20
                         lineHeight: 20
@@ -130,7 +132,7 @@ Item {
                     }
                     Column {
                         width: section.width
-                        spacing: LV.Theme.gap8
+                        spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                         Repeater {
                             model: section.modelData.rows
                             Item {
@@ -164,7 +166,7 @@ Item {
                                     width: Math.max(0, field.width - x)
                                     text: root.value(field.bindingKey)
                                     style: body
-                                    color: LV.Theme.bodyColor
+                                    color: Style.Tokens.color("Theme Colors/Text/bodyColor")
                                     wrapMode: Text.Wrap
                                     lineHeight: 13
                                     lineHeightMode: Text.FixedHeight

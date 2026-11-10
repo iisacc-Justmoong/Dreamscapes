@@ -1157,11 +1157,14 @@ void EditorLayerTimelineTests::rulerReferenceStyle() {
     auto *lanes=visualItem(timeline.data(),"editorTimelineLanes");QVERIFY(lanes);
     auto *baseline=visualItem(timeline.data(),"editorTimelineRulerBaseline");QVERIFY(baseline);
     QCOMPARE(baseline->height(),4.0);QCOMPARE(baseline->width(),lanes->property("contentWidth").toReal());
-    QCOMPARE(baseline->property("color").value<QColor>(),QColor("#f0f000"));
+    const auto yellow = QColor::fromRgbF(0.8999999761581421, 0.7625914812088013, 0.21295729279518127).name();
+    const auto blue = QColor::fromRgbF(0.1557759940624237, 0.5030806064605713, 0.8999999761581421).name();
+    QCOMPARE(baseline->property("color").value<QColor>().name(),yellow);
+    QCOMPARE(timeline->property("rulerPlayheadColor").value<QColor>().name(),blue);
     const auto step=timeline->property("tickStep").toInt();
     auto *major=visualItem(timeline.data(),"editorTimelineRulerMark-"+QString::number(step));QVERIFY(major);
     QCOMPARE(major->width(),2.0);QCOMPARE(major->height(),14.0);
-    QCOMPARE(major->property("color").value<QColor>(),QColor("#8d8d8d"));
+    QCOMPARE(major->property("color").value<QColor>(),QColor::fromRgbF(1,1,1,.6));
     QQuickItem *minor=nullptr;
     const auto visit=[&](auto &&self,QQuickItem *item)->void {
         if(item->isVisible()&&item->objectName().startsWith("editorTimelineRulerMinor-"))minor=item;
@@ -1177,11 +1180,11 @@ void EditorLayerTimelineTests::rulerReferenceStyle() {
     QCOMPARE(tip.y(),baseline->mapToItem(lanes,QPointF(0,baseline->height()/2)).y());
     QTest::qWait(60);const auto image=window.grabWindow();QVERIFY(!image.isNull());const auto ratio=image.width()/1568.0;
     const auto pixel=[&](QQuickItem *item,QPointF point){const auto scene=item->mapToItem(window.contentItem(),point);return image.pixelColor(qRound(scene.x()*ratio),qRound(scene.y()*ratio));};
-    QCOMPARE(pixel(baseline,{30,2}),QColor("#f0f000"));
-    QCOMPARE(pixel(marker,{4,4}),QColor("#548af7"));
-    QCOMPARE(pixel(marker,{11,24}),QColor("#548af7"));
+    QCOMPARE(pixel(baseline,{30,2}).name(),yellow);
+    QCOMPARE(pixel(marker,{4,4}).name(),blue);
+    QCOMPARE(pixel(marker,{11,24}).name(),blue);
     QCOMPARE(pixel(marker,{1,23}),window.color());
-    QCOMPARE(pixel(head,{1,50}),QColor("#548af7"));
+    QCOMPARE(pixel(head,{1,50}).name(),blue);
     QCOMPARE(encodeIisc(*canvas.document()).bytes,original);
     const auto capture=qEnvironmentVariable("DREAMSCAPES_CAPTURE_DIR");if(!capture.isEmpty())QVERIFY(image.save(capture+"/reference-ruler.png"));
 }

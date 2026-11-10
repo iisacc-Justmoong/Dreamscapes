@@ -6,7 +6,9 @@ import QtQuick.Controls as Controls
 import QtQuick.Dialogs
 import QtMultimedia
 import LVRS 1.0 as LV
+import "LvrsEditorIcons.js" as LvrsIcons
 import ".." as Views
+import Dreamscapes.Style 1.0 as Style
 
 Column {
     id: root
@@ -33,7 +35,7 @@ Column {
     spacing: 12
 
     function value(id) { return values[id] }
-    function asset(name) { return Qt.resolvedUrl("Assets/CameraPhoto/" + name + ".svg") }
+    function asset(name) { return LvrsIcons.resolve(LV.Theme, "CameraPhoto", name) }
     function edit(id, next) {
         if (toolState.toolId !== "camera-photo" || value(id) === next) return
         toolState.setValue(id, next)
@@ -95,7 +97,7 @@ Column {
         width: parent.width; height: 17
     }
     component Caption: LV.Label {
-        style: body; color: LV.Theme.bodyColor
+        style: body; color: Style.Tokens.color("Theme Colors/Text/bodyColor")
         width: parent.width; height: 18
         lineHeight: 18; elide: Text.ElideRight
     }
@@ -216,7 +218,7 @@ Column {
     component CapturedCard: Rectangle {
         objectName: "photoCurrentCaptured"
         width: parent.width; height: 135; radius: 8
-        color: LV.Theme.panelBackground08
+        color: Style.Tokens.color("Theme Colors/Panel/surfacePanel")
         Row {
             x: 8; y: 8; height: 18; width: parent.width - 16; spacing: 8
             Image { width: 18; height: 18; source: root.asset("panel-photo-source"); sourceSize: Qt.size(36, 36) }
@@ -224,7 +226,7 @@ Column {
         }
         Rectangle {
             x: (parent.width - width) / 2; y: 34; width: 138; height: 93
-            color: LV.Theme.panelBackground12
+            color: Style.Tokens.color("Theme Colors/Panel/surfaceRaised")
             Image {
                 objectName: "photoCapturedThumbnail"
                 anchors.fill: parent; source: root.backend ? root.backend.captureThumbnail : ""
@@ -233,7 +235,7 @@ Column {
             }
             LV.Label {
                 visible: !root.backend || !root.backend.captureThumbnail.toString().length
-                anchors.centerIn: parent; style: caption; text: root.backend && root.backend.currentCapture.toString().length ? qsTr("Video captured") : qsTr("No capture yet"); color: LV.Theme.captionColor
+                anchors.centerIn: parent; style: caption; text: root.backend && root.backend.currentCapture.toString().length ? qsTr("Video captured") : qsTr("No capture yet"); color: Style.Tokens.color("Theme Colors/Text/captionColor")
             }
         }
     }
@@ -243,7 +245,7 @@ Column {
         anchors.fill: parent
         z: 100
         property real cornerRadius: 8
-        property color surround: LV.Theme.surfaceSolid
+        property color surround: Style.Tokens.color("Theme Colors/Panel/surfaceSolid")
         ShapePath {
             fillColor: corners.surround; strokeColor: "transparent"
             startX: 0; startY: 0
@@ -323,7 +325,7 @@ Column {
                     id: preview
                     objectName: "photoCameraPreview"
                     width: parent.width; height: 144; radius: 8; clip: true
-                    color: LV.Theme.panelBackground08
+                    color: Style.Tokens.color("Theme Colors/Panel/surfacePanel")
                     Image { anchors.fill: parent; source: "Assets/CameraPhoto/preview-background.png"; fillMode: Image.PreserveAspectCrop }
                     VideoOutput {
                         id: video
@@ -337,8 +339,8 @@ Column {
                         visible: !video.visible
                         anchors.centerIn: parent; width: parent.width - 32; spacing: 8
                         Image { anchors.horizontalCenter: parent.horizontalCenter; width: 18; height: 18; source: root.asset("preview-camera") }
-                        LV.Label { width: parent.width; height: 18; style: body; font.pixelSize: 15; font.weight: Font.Medium; color: LV.Theme.window; text: qsTr("Camera preview"); horizontalAlignment: Text.AlignHCenter }
-                        LV.Label { width: parent.width; style: caption; color: LV.Theme.window; text: root.backend ? root.backend.cameraDescription : qsTr("Camera is not attached"); horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight }
+                        LV.Label { width: parent.width; height: 18; style: body; font.pixelSize: Style.Tokens.metric("Theme Typography/Subheader/textSubheader"); font.weight: Style.Tokens.metric("Theme Typography/Weight/Medium"); color: Style.Tokens.color("Theme Colors/Panel/window"); text: qsTr("Camera preview"); horizontalAlignment: Text.AlignHCenter }
+                        LV.Label { width: parent.width; style: caption; color: Style.Tokens.color("Theme Colors/Panel/window"); text: root.backend ? root.backend.cameraDescription : qsTr("Camera is not attached"); horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight }
                     }
                     TapHandler { onTapped: if (root.backend && !root.backend.busy) root.backend.startPreview(root.values) }
                     Rectangle {
@@ -346,14 +348,14 @@ Column {
                         anchors.centerIn: parent
                         width: Math.min(parent.width - 16, (parent.height - 16) * root.previewAspectRatio)
                         height: width / root.previewAspectRatio
-                        color: "transparent"; border.width: 1; border.color: LV.Theme.accentWhite; opacity: 0.5
+                        color: "transparent"; border.width: 1; border.color: Style.Tokens.color("Theme Colors/Text/textTokenBase"); opacity: 0.5
                     }
                     Repeater {
                         model: 4
                         Rectangle {
                             required property int index
                             visible: video.visible && root.value("cameraGrid")
-                            color: LV.Theme.accentWhite; opacity: 0.35
+                            color: Style.Tokens.color("Theme Colors/Text/textTokenBase"); opacity: 0.35
                             x: index < 2 ? preview.width * (index + 1) / 3 : 0
                             y: index < 2 ? 0 : preview.height * (index - 1) / 3
                             width: index < 2 ? 1 : preview.width
@@ -363,7 +365,7 @@ Column {
                     LV.Label {
                         visible: root.backend && root.backend.countdown > 0
                         anchors.centerIn: parent; style: title; text: root.backend ? String(root.backend.countdown) : ""
-                        color: LV.Theme.accentWhite
+                        color: Style.Tokens.color("Theme Colors/Text/textTokenBase")
                     }
                     Corners {}
                 }
@@ -372,7 +374,7 @@ Column {
                     Row {
                         width: parent.width; height: 17
                         Heading { width: parent.width / 2; label: qsTr("Device") }
-                        LV.Label { width: parent.width / 2; height: 17; style: body; color: root.backend && root.backend.previewActive ? LV.Theme.success : LV.Theme.captionColor; text: root.backend ? root.backend.cameraStatus : qsTr("Unavailable"); horizontalAlignment: Text.AlignRight; elide: Text.ElideRight }
+                        LV.Label { width: parent.width / 2; height: 17; style: body; color: root.backend && root.backend.previewActive ? Style.Tokens.color("Theme Colors/Accent/Green/Default") : Style.Tokens.color("Theme Colors/Text/captionColor"); text: root.backend ? root.backend.cameraStatus : qsTr("Unavailable"); horizontalAlignment: Text.AlignRight; elide: Text.ElideRight }
                     }
                     LV.ComboBox {
                         id: deviceBox
@@ -407,7 +409,7 @@ Column {
                     width: parent.width; height: 22; spacing: 8
                     LV.LabelButton { objectName: "photoCapturePhoto"; text: qsTr("Capture photo"); tone: LV.AbstractButton.Default; enabled: root.backend && root.backend.cameraAvailable && !root.backend.busy; onClicked: root.backend.capturePhoto(root.values) }
                     LV.LabelButton { id: videoButton; objectName: "photoCaptureVideo"; text: root.backend && root.backend.recording ? qsTr("Stop video") : qsTr("Capture video"); tone: LV.AbstractButton.Default; enabled: root.backend && root.backend.cameraAvailable && (!root.backend.busy || root.backend.recording); onClicked: root.backend.toggleVideo(root.values) }
-                    LV.Label { width: Math.max(0, parent.width - x); height: 22; style: body; text: root.recordingTime(); color: LV.Theme.danger; horizontalAlignment: Text.AlignRight; visible: root.backend && root.backend.recording }
+                    LV.Label { width: Math.max(0, parent.width - x); height: 22; style: body; text: root.recordingTime(); color: Style.Tokens.color("Theme Colors/Accent/Red/Default"); horizontalAlignment: Text.AlignRight; visible: root.backend && root.backend.recording }
                 }
                 CapturedCard {}
                 ImportRow {}
@@ -425,11 +427,11 @@ Column {
         Caption { height: root.width < 330 ? 36 : 18; wrapMode: Text.WordWrap; elide: Text.ElideNone; text: qsTr("Capture a display, an app window, or a precise region.") }
         Rectangle {
             objectName: "photoScreenPreview"
-            width: parent.width; height: 144; radius: 8; color: LV.Theme.panelBackground08
+            width: parent.width; height: 144; radius: 8; color: Style.Tokens.color("Theme Colors/Panel/surfacePanel")
             Column {
                 anchors.centerIn: parent; width: parent.width - 32; spacing: 8
                 Image { anchors.horizontalCenter: parent.horizontalCenter; width: 18; height: 18; source: root.asset("transform-selection") }
-                LV.Label { width: parent.width; height: 18; style: body; font.pixelSize: 15; font.weight: Font.Medium; text: root.backend && root.backend.countdown > 0 ? qsTr("Capture in %1 s").arg(root.backend.countdown) : qsTr("Screen capture"); horizontalAlignment: Text.AlignHCenter }
+                LV.Label { width: parent.width; height: 18; style: body; font.pixelSize: Style.Tokens.metric("Theme Typography/Subheader/textSubheader"); font.weight: Style.Tokens.metric("Theme Typography/Weight/Medium"); text: root.backend && root.backend.countdown > 0 ? qsTr("Capture in %1 s").arg(root.backend.countdown) : qsTr("Screen capture"); horizontalAlignment: Text.AlignHCenter }
                 LV.Label { width: parent.width; style: caption; text: root.captureTarget ? root.captureTarget.label + " · " + (root.captureTarget.pixelWidth || root.captureTarget.width) + " × " + (root.captureTarget.pixelHeight || root.captureTarget.height) : qsTr("Choose a display or window"); horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight }
             }
         }
@@ -519,7 +521,7 @@ Column {
                     required property int index
                     objectName: "photoGalleryTile-" + index
                     width: galleryGrid.cellWidth - 8; height: 104; radius: 8; clip: true
-                    color: LV.Theme.panelBackground08
+                    color: Style.Tokens.color("Theme Colors/Panel/surfacePanel")
                     border.width: entry.selected ? 2 : 0; border.color: LV.Theme.accent
                     Image { anchors.fill: parent; anchors.margins: tile.border.width; source: tile.entry.thumbnail || ""; asynchronous: true; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(400, 208) }
                     Image { visible: !tile.entry.thumbnail.toString().length; anchors.centerIn: parent; width: 18; height: 18; source: root.asset("panel-photo-source") }

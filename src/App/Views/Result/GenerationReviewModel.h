@@ -1,10 +1,12 @@
 #pragma once
-#include "ReviewSelection.h"
-#include "../../ViewModels/Native/ReviewCommands.h"
+#include "NativeReviewSession.h"
 #include <QAbstractListModel>
 #include <QVariantList>
 #include <QHash>
 #include <QSet>
+#include <cstdint>
+#include <functional>
+#include <memory>
 
 class GenerationReviewModel : public QAbstractListModel {
     Q_OBJECT
@@ -29,16 +31,17 @@ class GenerationReviewModel : public QAbstractListModel {
 public:
     enum Roles { KeyRole = Qt::UserRole + 1, EntryRole, ReviewStateRole, SelectedRole, FocusedRole,
         OrdinalRole, ThumbnailRole, MediaTypeRole, TitleRole };
-    explicit GenerationReviewModel(QObject* parent = nullptr) : QAbstractListModel(parent) {}
+    explicit GenerationReviewModel(QObject* parent = nullptr);
+    [[nodiscard]] std::shared_ptr<dreamscapes::review::Session> nativeSession() const { return m_session; }
     int rowCount(const QModelIndex& parent = {}) const override;
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int,QByteArray> roleNames() const override;
     QVariantList entries() const;
     void setEntries(const QVariantList& entries);
-    int totalCount() const { return int(m_selection.order().size()); }
+    int totalCount() const { return int(m_session->totalCount()); }
     int shortlistedCount() const;
     int rejectedCount() const;
-    int selectedCount() const { return m_selectedCount; }
+    int selectedCount() const { return int(m_session->selectedCount()); }
     int hiddenSelectedCount() const;
     QVariantList selectedEntries() const;
     QVariantList selectedImages() const;
@@ -53,7 +56,7 @@ public:
     QString sort() const { return m_sort; }
     void setFilter(const QString& filter);
     void setSort(const QString& sort);
-    bool selectionMode() const { return m_selectionMode; }
+    bool selectionMode() const { return m_session->selectionMode(); }
     void setSelectionMode(bool enabled);
     Q_INVOKABLE QString keyForEntry(const QVariantMap& entry) const;
     Q_INVOKABLE QVariantMap entryAt(int index) const;
@@ -88,17 +91,14 @@ private:
         State review;
         bool selected, focused;
     };
-    void publishState(bool reproject = true, const QSet<QString>& metadataChanged = {});
-    void publishFocus(const QString& previous);
-    bool reviewFiltered() const;
-    RowState rowState(const QString& key) const;
-    QStringList projection() const;
-    std::vector<std::string> visibleKeys() const;
-    std::vector<std::string> actionKeys() const;
+    void applyNativeChange(const dreamscapes::review::Change& change);
+    void synchronizeOriginals();
+    bool deferDuringNotification(std::function<void()> action);
+    QVariantList originalsFor(const std::vector<dreamscapes::vm::Value>& values) const;
     static QString stateName(State state);
     static State parseState(const QString& state);
-    dreamscapes::review::Selection m_selection;
-    dreamscapes::vm::ReviewCommands m_commands;
+    std::shared_ptr<dreamscapes::review::Session> m_session;
+    std::shared_ptr<dreamscapes::review::ChangePort> m_observer;
     QHash<QString,QVariantMap> m_entries;
     QHash<QString,int> m_ordinals;
     QHash<QString,int> m_visibleIndices;
@@ -106,6 +106,7 @@ private:
     QList<RowState> m_rowStates;
     QString m_filter = QStringLiteral("all"), m_sort = QStringLiteral("arrival");
     QString m_jobFilter;
-    bool m_selectionMode = false;
-    int m_selectedCount = 0, m_shortlistedCount = 0, m_rejectedCount = 0, m_hiddenSelectedCount = 0;
+    QSet<QString> m_rawMetadataChanged;
+    std::uint64_t m_notifications = 0;
+    bool m_notifying = false;
 };

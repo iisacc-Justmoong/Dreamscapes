@@ -7,6 +7,7 @@ import QtQuick.Dialogs
 import QtMultimedia
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -113,14 +114,14 @@ Item {
                                 Image { objectName:"videoReferencePreview"; anchors.fill:parent; source:root.selectedResult.imageSource || displayPreviews.sourceForUrl(root.referenceSource); asynchronous:true; sourceSize:Qt.size(Math.ceil(width*Screen.devicePixelRatio),Math.ceil(height*Screen.devicePixelRatio)); fillMode:root.selectedResult.imageSource ? Image.PreserveAspectFit : Image.PreserveAspectCrop; visible:source.toString().length>0 && player.playbackState!==MediaPlayer.PlayingState }
                                 VideoOutput { id:videoOutput; objectName:"videoWorkspaceOutput"; anchors.fill:parent; fillMode:VideoOutput.PreserveAspectFit; visible:!!root.selectedResult.mediaSource }
                             }
-                            LV.Label { objectName:"videoPreviewEmptyState"; anchors.centerIn:parent; width:parent.width-32; horizontalAlignment:Text.AlignHCenter; visible:!root.pending && !root.referenceSource && !root.selectedResult.imageSource && !root.selectedResult.mediaSource; text:qsTr("Enter a prompt to generate a video."); style:caption; color:LV.Theme.textSecondary; wrapMode:Text.Wrap }
+                            LV.Label { objectName:"videoPreviewEmptyState"; anchors.centerIn:parent; width:parent.width-32; horizontalAlignment:Text.AlignHCenter; visible:!root.pending && !root.referenceSource && !root.selectedResult.imageSource && !root.selectedResult.mediaSource; text:qsTr("Enter a prompt to generate a video."); style:caption; color:Style.Tokens.color("Theme Colors/Text/bodyColor"); wrapMode:Text.Wrap }
                             LV.Label { anchors.centerIn:parent; width:parent.width-24; horizontalAlignment:Text.AlignHCenter; wrapMode:Text.Wrap; visible:root.pending; text:root.statusText; style:body }
                         }
                         RowLayout {
                             id:previewActions; objectName:"videoPreviewActions"
                             anchors.bottom:statusStrip.top; width:parent.width; height:46; spacing:8
                             LV.LabelButton { objectName:"videoWorkspacePlay"; Layout.preferredWidth:52; Layout.leftMargin:12; text:player.playbackState===MediaPlayer.PlayingState ? qsTr("Pause") : qsTr("Play"); tone:LV.AbstractButton.Default; enabled:!!root.selectedResult.mediaSource || !!root.referenceSource; onClicked:{ if(root.selectedResult.mediaSource) { if(player.playbackState===MediaPlayer.PlayingState) player.pause(); else player.play() } else timeline.playing=!timeline.playing } }
-                            LV.Label { Layout.fillWidth:true; Layout.minimumWidth:0; text:root.saveFeedback || root.statusText; style:caption; elide:Text.ElideRight; color:root.failure ? LV.Theme.accentRed : LV.Theme.textSecondary }
+                            LV.Label { Layout.fillWidth:true; Layout.minimumWidth:0; text:root.saveFeedback || root.statusText; style:caption; elide:Text.ElideRight; color:root.failure ? Style.Tokens.color("Theme Colors/Accent/Red/Default") : Style.Tokens.color("Theme Colors/Text/bodyColor") }
                             LV.LabelButton { visible:root.pending; text:qsTr("Cancel"); tone:LV.AbstractButton.Default; onClicked:root.cancelBatch() }
                             LV.LabelButton { objectName:"videoResultSelector"; visible:root.results.length>1; text:qsTr("Results · %1").arg(root.results.length); tone:LV.AbstractButton.Default; onClicked:resultsMenu.openFor(this,0,height) }
                             LV.LabelButton { objectName:"videoWorkspaceSave"; Layout.rightMargin:12; visible:!!root.selectedResult.mediaSource; enabled:!exporter.busy; text:qsTr("Save video"); tone:LV.AbstractButton.Default; onClicked:root.saveVideoToFile() }

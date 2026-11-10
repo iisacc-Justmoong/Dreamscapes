@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Dreamscapes.Storage 1.0
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Column {
     id: root
@@ -10,7 +11,7 @@ Column {
     property bool readOnly: false
     property var providers: []
     signal reviewRequested(string platform)
-    spacing: LV.Theme.gap20
+    spacing: Style.Tokens.metric("Theme Metrics/Space/20")
     function positionFor(section) {
         const sections = {cover: cover, details: details, rights: rights, publishing: publishing}
         return sections[section] ? sections[section].y : 0
@@ -35,17 +36,16 @@ Column {
         width: root.width
         checked: Boolean(root.draft.values[field])
         enabled: !root.readOnly
-        checkedColor: LV.Theme.accentGreen
-        useFigmaCheckedAssets: true
-        checkedAssetSourceEnabled: Qt.resolvedUrl("Assets/checkbox.svg")
+        checkedColor: Style.Tokens.color("Theme Colors/Accent/Green/Default")
+        checkColor: Style.Tokens.color("Theme Colors/Panel/windowAlt")
         onToggled: root.draft.edit(field, checked)
     }
     component Heading: LV.Label { width: root.width; style: header2 }
-    component Divider: Rectangle { width: root.width; height: 1; color: LV.Theme.panelBackground10 }
+    component Divider: Rectangle { width: root.width; height: 1; color: Style.Tokens.color("Theme Colors/Panel/surfaceInput") }
     Column {
         id: cover
         objectName: "publishCoverSection"
-        width: parent.width; spacing: LV.Theme.gap12
+        width: parent.width; spacing: Style.Tokens.metric("Theme Metrics/Space/12")
         Heading { text: qsTr("Cover & preview") }
         PublishCanvasPreview { objectName: "publishCoverPreview"; width: root.width; height: width * 0.52; project: root.project; sourceIndex: root.coverPage() }
         PublishChoice {
@@ -70,7 +70,7 @@ Column {
     Column {
         id: details
         objectName: "publishDetailsSection"
-        width: parent.width; spacing: LV.Theme.gap12
+        width: parent.width; spacing: Style.Tokens.metric("Theme Metrics/Space/12")
         Heading { text: qsTr("Project details") }
         Field { objectName: "publishDescription"; field: "description"; label: qsTr("Description"); placeholder: qsTr("Describe this work") }
         Choice { objectName: "publishContentType"; field: "contentType"; label: qsTr("Content type"); options: ["Artwork","Environment concept","Illustration","Photography","Animation","Video","Design"] }
@@ -78,15 +78,15 @@ Column {
         Field { objectName: "publishSoftware"; field: "software"; label: qsTr("Software") }
         Field { id: tags; objectName: "publishTags"; field: "tags"; label: qsTr("Tags"); placeholder: qsTr("Separate tags with commas") }
         Flow {
-            width: root.width; spacing: LV.Theme.gap4
+            width: root.width; spacing: Style.Tokens.metric("Theme Metrics/Space/4")
             Repeater {
                 model: { root.draft.values; return root.draft.tags() }
                 Rectangle {
                     id: tag
                     required property string modelData
                     width: tagLabel.implicitWidth + 16; height: 20; radius: 10
-                    color: Qt.rgba(LV.Theme.accentGreen.r, LV.Theme.accentGreen.g, LV.Theme.accentGreen.b, 0.25)
-                    LV.Label { id: tagLabel; anchors.centerIn: parent; text: tag.modelData; style: caption; color: LV.Theme.accentGreen }
+                    color: Style.Tokens.color("Theme Colors/Accent/Green/Overlay")
+                    LV.Label { id: tagLabel; anchors.centerIn: parent; text: tag.modelData; style: caption; color: Style.Tokens.color("Theme Colors/Accent/Green/Default") }
                 }
             }
         }
@@ -95,7 +95,7 @@ Column {
     Column {
         id: rights
         objectName: "publishRightsSection"
-        width: parent.width; spacing: LV.Theme.gap12
+        width: parent.width; spacing: Style.Tokens.metric("Theme Metrics/Space/12")
         Heading { text: qsTr("Rights & safety") }
         Choice { objectName: "publishLicense"; field: "license"; label: qsTr("License"); options: ["All rights reserved","CC BY 4.0","CC BY-SA 4.0","CC BY-NC 4.0","CC0"] }
         Check { objectName: "publishAdult"; field: "adult"; text: qsTr("Contains adult content") }
@@ -107,7 +107,7 @@ Column {
     Column {
         id: publishing
         objectName: "publishPublishingSection"
-        width: parent.width; spacing: LV.Theme.gap12
+        width: parent.width; spacing: Style.Tokens.metric("Theme Metrics/Space/12")
         Heading { text: qsTr("Publishing") }
         Choice { objectName: "publishTime"; field: "publishTime"; label: qsTr("Publish time"); options: ["Publish immediately","Schedule"] }
         Field { objectName: "publishScheduledAt"; field: "scheduledAt"; label: qsTr("Scheduled time"); placeholder: "YYYY-MM-DD HH:MM UTC"; visible: root.draft.values.publishTime === "Schedule"; height: visible ? implicitHeight : 0 }
@@ -120,21 +120,21 @@ Column {
             width: root.width; height: 22; iconSize: 18
             tone: LV.AbstractButton.Default
             enabled: !root.readOnly
-            iconSource: Qt.resolvedUrl("Assets/add.svg")
+            iconName: "generaladd"
             Accessible.name: qsTr("Add mention")
             onClicked: { mentions.inputItem.forceActiveFocus(); mentions.inputItem.cursorPosition = mentions.inputItem.text.length }
         }
     }
     Divider {}
     Column {
-        width: parent.width; spacing: LV.Theme.gap8
+        width: parent.width; spacing: Style.Tokens.metric("Theme Metrics/Space/8")
         Heading { text: qsTr("Destinations") }
         Repeater {
             model: root.providers
             Row {
                 id: destination
                 required property var modelData
-                width: root.width; spacing: LV.Theme.gap8
+                width: root.width; spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                 LV.Label { width: Math.max(0,parent.width-reviewButton.width-8); text: destination.modelData.name; style: body }
                 LV.LabelButton { id: reviewButton; objectName: "publishReview-"+destination.modelData.id; text: qsTr("Review"); tone: LV.AbstractButton.Default; onClicked: root.reviewRequested(destination.modelData.id) }
             }

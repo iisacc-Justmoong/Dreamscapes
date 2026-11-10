@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Dreamscapes.Storage 1.0
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -281,9 +282,9 @@ Item {
         id: curveComponent
         Rectangle {
             implicitHeight: root.entry.height || 160
-            color: LV.Theme.panelBackground08
+            color: Style.Tokens.color("Theme Colors/Panel/surfacePanel")
             radius: 8
-            border.color: LV.Theme.panelBackground12
+            border.color: Style.Tokens.color("Theme Colors/Panel/surfaceRaised")
             Canvas {
                 id: curveCanvas
                 anchors.fill: parent
@@ -295,13 +296,13 @@ Item {
                 onPaint: {
                     const ctx = getContext("2d")
                     ctx.reset()
-                    ctx.strokeStyle = LV.Theme.panelBackground12
+                    ctx.strokeStyle = Style.Tokens.color("Theme Colors/Panel/surfaceRaised")
                     ctx.lineWidth = 1
                     for (let i = 1; i < 4; ++i) { ctx.beginPath(); ctx.moveTo(width * i / 4, 0); ctx.lineTo(width * i / 4, height); ctx.moveTo(0, height * i / 4); ctx.lineTo(width, height * i / 4); ctx.stroke() }
-                    ctx.beginPath(); ctx.strokeStyle = LV.Theme.captionColor; ctx.moveTo(0, height); ctx.lineTo(width, 0); ctx.stroke()
+                    ctx.beginPath(); ctx.strokeStyle = Style.Tokens.color("Theme Colors/Text/captionColor"); ctx.moveTo(0, height); ctx.lineTo(width, 0); ctx.stroke()
                     const points = root.presenter.curvePoints(root.entry)
                     const channel = String(root.presenter.curveChannel() || "")
-                    ctx.strokeStyle = channel === "Red" ? "#ff453a" : channel === "Green" ? "#30d158" : channel === "Blue" ? "#0a84ff" : LV.Theme.bodyColor
+                    ctx.strokeStyle = channel === "Red" ? Style.Tokens.color("Theme Colors/Accent/Red/Default") : channel === "Green" ? Style.Tokens.color("Theme Colors/Accent/Green/Default") : channel === "Blue" ? Style.Tokens.color("Theme Colors/Accent/Blue/Default") : Style.Tokens.color("Theme Colors/Text/bodyColor")
                     ctx.lineWidth = 2; ctx.beginPath()
                     if (Array.isArray(points)) points.forEach(function(p, i) { const x = (Array.isArray(p) ? p[0] : p.input === undefined ? p.x : p.input) * curveCanvas.width; const y = (1 - (Array.isArray(p) ? p[1] : p.output === undefined ? p.y : p.output)) * curveCanvas.height; if (!i) ctx.moveTo(x, y); else ctx.lineTo(x, y) })
                     ctx.stroke()

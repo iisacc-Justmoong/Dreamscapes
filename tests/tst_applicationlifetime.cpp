@@ -1,4 +1,5 @@
 #include "../src/App/ApplicationLifetime.h"
+#include "../src/App/ApplicationShutdownCoordinator.h"
 #include <QTimer>
 #include <QDebug>
 
@@ -7,6 +8,13 @@ int main(int argc, char **argv)
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
     configureApplicationLifetime(engine);
+    ApplicationShutdownCoordinator shutdown(&app);
+    bool cleanupStarted=false, cleanupFinished=false, heartbeat=false;
+    shutdown.add([&](std::function<void()> done) {
+        cleanupStarted=true;
+        QTimer::singleShot(20,&app,[&]{heartbeat=true;});
+        QTimer::singleShot(100,&app,[&,done=std::move(done)]{cleanupFinished=true;done();});
+    });
     engine.loadData("import QtQuick\nWindow { width: 160; height: 120; visible: true; property int retainedValue: 37 }");
     if (engine.rootObjects().size() != 1) return 10;
     auto *window = qobject_cast<QWindow *>(engine.rootObjects().first());
@@ -43,7 +51,7 @@ int main(int argc, char **argv)
     const int result = app.exec();
     qInfo() << "Event loop result" << result << "phase" << phase;
 #ifdef Q_OS_MACOS
-    return result == 0 && phase == 3 ? 0 : 1;
+    return result == 0 && phase == 3 && cleanupStarted && cleanupFinished && heartbeat ? 0 : 1;
 #else
     return result == 0 && phase == 1 ? 0 : 1;
 #endif

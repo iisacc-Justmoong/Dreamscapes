@@ -12,6 +12,10 @@
 #include <QImage>
 #include <QJsonDocument>
 #include <QSet>
+#if defined(Q_OS_MACOS)
+#include <cerrno>
+#include <signal.h>
+#endif
 
 namespace m = iiMultimodalAgent::mcp;
 namespace {
@@ -36,6 +40,10 @@ struct AppProcess : QProcess {
         env.insert("DREAMSCAPES_FAILURE_REPORTS_DIR", base + "/failure-reports");
         env.insert("QT_QPA_PLATFORM", "offscreen"); env.insert("QT_QUICK_BACKEND", "software");
         env.insert("QML_DISABLE_DISK_CACHE", "1");
+        if (qEnvironmentVariableIntValue("DREAMSCAPES_TEST_NATIVE_QUIT") == 1) {
+            env.insert("QT_QPA_PLATFORM", "cocoa"); env.remove("QT_QUICK_BACKEND");
+            env.insert("QSG_RHI_PIPELINE_CACHE_LOAD", "0"); env.insert("QSG_RHI_PIPELINE_CACHE_SAVE", "0");
+        }
         setProcessEnvironment(env); setProcessChannelMode(MergedChannels); setWorkingDirectory(base);
         logPath = base + "/app.log";
         start(qEnvironmentVariable("DREAMSCAPES_TEST_APP_PATH", MCP_APP_EXECUTABLE), {"--society-container", base + "/container.societycontainer"});
@@ -81,7 +89,7 @@ class McpTests : public QObject {
     Q_OBJECT
 private slots:
     void appQuestionsWaitForLocalUiAndCancelWithoutBlockingTools() {
-        QTemporaryDir base(MCP_TEST_DIRECTORY "/mcp-questions-XXXXXX"); QVERIFY(base.isValid()); base.setAutoRemove(false);
+        QTemporaryDir base(MCP_TEST_DIRECTORY "/mcp-questions-XXXXXX"); QVERIFY(base.isValid());
         QVERIFY(QDir().mkpath(base.filePath("container.societycontainer"))); QVERIFY(QDir().mkpath(base.filePath("tmp")));
         QVERIFY(iiSocietyContainer::SocietyDrive::create(base.filePath("container.societycontainer")));
         AppProcess process; process.startApp(base.path(), true); QVERIFY(process.waitForStarted());
@@ -115,7 +123,6 @@ private slots:
     }
     void actualAppGenerationQueueAndCancellation() {
         QTemporaryDir base(MCP_TEST_DIRECTORY "/mcp-dreamscapes-XXXXXX"); QVERIFY(base.isValid());
-        base.setAutoRemove(false);
         QVERIFY(QDir().mkpath(base.filePath("container.societycontainer"))); QVERIFY(QDir().mkpath(base.filePath("tmp")));
         const auto drive = iiSocietyContainer::SocietyDrive::create(base.filePath("container.societycontainer")); QVERIFY(drive);
         QVERIFY(write(base.filePath("container.societycontainer/Models/first.safetensors"), "MCP process-protocol fixture model 1"));
@@ -223,6 +230,61 @@ private slots:
         QVERIFY2(process.waitForRoot(), process.output.constData());
         QVERIFY(m::discoverLocalApplications(base.filePath("container.societycontainer/.society-runtime/apps/mcp")).applications.isEmpty());
         QVERIFY(!QFileInfo::exists(base.filePath("container.societycontainer/.society-runtime/apps/mcp")));
+    }
+    void nativeQuitReapsActiveGeneration() {
+#if defined(Q_OS_MACOS)
+        if (qEnvironmentVariableIntValue("DREAMSCAPES_TEST_NATIVE_QUIT") != 1)
+            QSKIP("Native Quit test requires a macOS window-server session.");
+        QTemporaryDir base(MCP_TEST_DIRECTORY "/mcp-native-quit-XXXXXX"); QVERIFY(base.isValid());
+        QVERIFY(QDir().mkpath(base.filePath("container.societycontainer"))); QVERIFY(QDir().mkpath(base.filePath("tmp")));
+        QVERIFY(iiSocietyContainer::SocietyDrive::create(base.filePath("container.societycontainer")));
+        QVERIFY(write(base.filePath("container.societycontainer/Models/worker.safetensors"), "fixture model"));
+        AppProcess process; process.startApp(base.path(), true); QVERIFY(process.waitForStarted());
+        QVERIFY2(process.waitForRoot(), process.output.constData());
+        const auto directory = base.filePath("container.societycontainer/.society-runtime/apps/mcp");
+        const auto discovered = m::discoverLocalApplications(directory); QCOMPARE(discovered.applications.size(), 1);
+        m::HttpClient client(clientOptions(discovered.applications.first()));
+        QTRY_COMPARE_WITH_TIMEOUT(data(client, "models")["total"].toInt(), 1, 10000);
+        const auto model = data(client, "models")["items"].toArray().first().toObject()["id"].toString();
+        QVERIFY(!call(client, "select_model", {{"id", model}})["isError"].toBool());
+        const auto submission = call(client, "generate", {{"prompt", "hold"}});
+        if (submission["isError"].toBool()) {
+            const auto message = submission["content"].toArray().first().toObject()["text"].toString();
+            if (!message.contains("license", Qt::CaseInsensitive))
+                QFAIL(qPrintable(message));
+            client.close();
+            const auto script = QStringLiteral("ObjC.import('AppKit'); const app=$.NSRunningApplication.runningApplicationWithProcessIdentifier(%1); if(app.isNil()) throw Error('App not found'); if(!app.terminate) throw Error('Quit rejected');")
+                                    .arg(process.processId());
+            QProcess request; request.start(QStringLiteral("/usr/bin/osascript"), {QStringLiteral("-l"), QStringLiteral("JavaScript"), QStringLiteral("-e"), script});
+            QVERIFY2(request.waitForFinished(10000) && request.exitCode() == 0, request.readAllStandardError().constData());
+            QVERIFY2(process.waitForFinished(15000), "The app did not finish normal Quit after the license check.");
+            QCOMPARE(process.exitStatus(), QProcess::NormalExit); QCOMPARE(process.exitCode(), 0);
+            QSKIP("Active-generation native Quit requires an available, licensed Society session.");
+        }
+        const auto job = submission["structuredContent"].toObject()["first_job_id"].toString();
+        QVERIFY(!job.isEmpty());
+        QTRY_COMPARE_WITH_TIMEOUT(findJob(client, job)["state"].toString(), QString("running"), 10000);
+        QProcess lookup; lookup.start(QStringLiteral("/usr/bin/pgrep"), {QStringLiteral("-P"), QString::number(process.processId())});
+        QVERIFY(lookup.waitForFinished(5000));
+        const auto children = QString::fromLocal8Bit(lookup.readAllStandardOutput()).split('\n', Qt::SkipEmptyParts);
+        QVERIFY2(!children.isEmpty(), "The running generation has no child worker process.");
+        client.close();
+        QElapsedTimer elapsed; elapsed.start();
+        const auto script = QStringLiteral("ObjC.import('AppKit'); const app=$.NSRunningApplication.runningApplicationWithProcessIdentifier(%1); if(app.isNil()) throw Error('App not found'); if(!app.terminate) throw Error('Quit rejected');")
+                                .arg(process.processId());
+        QProcess request; request.start(QStringLiteral("/usr/bin/osascript"), {QStringLiteral("-l"), QStringLiteral("JavaScript"), QStringLiteral("-e"), script});
+        QVERIFY2(request.waitForFinished(10000) && request.exitCode() == 0, request.readAllStandardError().constData());
+        QVERIFY2(process.waitForFinished(15000), "The app did not finish normal Quit while generation was active.");
+        qInfo() << "Native Quit with active generation:" << elapsed.elapsed() << "ms";
+        QCOMPARE(process.exitStatus(), QProcess::NormalExit); QCOMPARE(process.exitCode(), 0);
+        for (const auto &value : children) {
+            bool ok = false; const auto pid = value.toInt(&ok); QVERIFY(ok && pid > 0);
+            QTRY_VERIFY_WITH_TIMEOUT(::kill(pid, 0) == -1 && errno == ESRCH, 5000);
+        }
+        QVERIFY(m::discoverLocalApplications(directory).applications.isEmpty());
+#else
+        QSKIP("Native Quit test is currently implemented for macOS.");
+#endif
     }
 };
 QTEST_GUILESS_MAIN(McpTests)

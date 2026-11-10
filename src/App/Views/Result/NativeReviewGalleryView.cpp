@@ -2,8 +2,21 @@
 #include "NativeReviewGallery.generated.h"
 
 namespace dreamscapes::review {
+namespace {
+class GalleryImageResolver final : public lvui::native::ImageResolver<ii::gui::RasterImage> {
+    std::weak_ptr<ReviewGalleryModel> model_;
+  public:
+    explicit GalleryImageResolver(const std::shared_ptr<ReviewGalleryModel> &model) : model_(model) {}
+    std::shared_ptr<const ii::gui::RasterImage> image(std::string_view token, std::uint32_t width,
+                                                      std::uint32_t height) const override {
+        const auto model = model_.lock();
+        return model && model->active() ? model->imageForToken(token, width, height) : nullptr;
+    }
+};
+} // namespace
+
 ii::core::Result<void> buildReviewGallery(ii::gui::WidgetBuilder &widgets, ii::gui::Widget parent,
-                                          const GalleryConfigure &configure) {
+                                          const GalleryConfigure &configure, std::shared_ptr<Session> session) {
     auto wrapper =
         widgets.vstack(parent, "review-shortcuts", {.spacing = 0, .alignment = ii::gui::StackAlignment::stretch});
     if (!wrapper)
@@ -33,8 +46,13 @@ ii::core::Result<void> buildReviewGallery(ii::gui::WidgetBuilder &widgets, ii::g
     });
     if (!input)
         return input;
+    auto factories = lvui::native::BackendFactories{};
+    if (session) factories = factories.with<NativeReviewGalleryBackend>([session] {
+        return NativeReviewGalleryBackend(session);
+    });
     return lvui_generated::NativeReviewGallery::build(widgets, *wrapper, [&](auto &scope) {
         scope.backend_1.bindNavigation(scope.backend_0.shared());
+        (void)scope.image_services->resolver.set(std::make_shared<GalleryImageResolver>(scope.backend_1.model));
         *model = scope.backend_1.model;
         scope.backend_0.setDetailHandler([weak = *model] {
             if (auto owner = weak.lock())
@@ -42,6 +60,6 @@ ii::core::Result<void> buildReviewGallery(ii::gui::WidgetBuilder &widgets, ii::g
         });
         if (configure)
             configure(scope.backend_1.model);
-    });
+    }, nullptr, factories);
 }
 } // namespace dreamscapes::review

@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Window
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Window {
     id: root
@@ -17,13 +18,13 @@ Window {
     x: target.x || 0; y: target.y || 0
     width: target.width || 800; height: target.height || 600
     onVisibleChanged: if (visible) selection = Qt.rect(0, 0, 0, 0)
-    Rectangle { anchors.fill: parent; color: LV.Theme.window; opacity: 0.4 }
+    Rectangle { anchors.fill: parent; color: Style.Tokens.color("Theme Colors/Panel/window"); opacity: 0.4 }
     Rectangle {
         x: root.selection.x; y: root.selection.y
         width: root.selection.width; height: root.selection.height
-        color: "transparent"; border.width: 2; border.color: LV.Theme.accentWhite
+        color: "transparent"; border.width: 2; border.color: Style.Tokens.color("Theme Colors/Text/textTokenBase")
     }
-    LV.Label { anchors.top: parent.top; anchors.horizontalCenter: parent.horizontalCenter; anchors.topMargin: 24; style: body; color: LV.Theme.accentWhite; text: qsTr("Drag to capture a region · Esc to cancel") }
+    LV.Label { anchors.top: parent.top; anchors.horizontalCenter: parent.horizontalCenter; anchors.topMargin: 24; style: body; color: Style.Tokens.color("Theme Colors/Text/textTokenBase"); text: qsTr("Drag to capture a region · Esc to cancel") }
     MouseArea {
         anchors.fill: parent
         cursorShape: Qt.CrossCursor

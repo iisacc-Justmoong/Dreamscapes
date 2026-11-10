@@ -61,6 +61,7 @@ QString GenerationController::imageInputPath(const QString &source, QString *err
 QString GenerationController::enqueueVideo(const QString &prompt, const QString &aspectRatio,
     int count, const QUrl &firstFrame, int duration, int fps, qint64 seed)
 {
+    if (!requireLicense()) return {};
     if (!videoRuntimeAvailable()) { fail(tr("Video generation requires the desktop iiLocalDiffusion runtime.")); return {}; }
     if (duration < 1 || duration > 30 || !QList<int>{12,24,30,60,120}.contains(fps)) {
         fail(tr("Choose a video duration from 1 to 30 seconds and 12, 24, 30, 60 or 120 FPS.")); return {};
@@ -95,6 +96,7 @@ QString GenerationController::enqueueVideo(const QString &prompt, const QString 
 
 QString GenerationController::enqueueVideoRecipe(const QVariantMap &parameters)
 {
+    if (!requireLicense()) return {};
     if (!videoRuntimeAvailable()) { fail(tr("Video generation requires the desktop iiLocalDiffusion runtime.")); return {}; }
     if (!connected()) { fail(tr("Open Society on this device to load its storage map.")); return {}; }
     auto video = QJsonObject::fromVariantMap(parameters);
@@ -152,6 +154,7 @@ QString GenerationController::enqueueAdvanced(const QVariantMap &parameters)
 
 QString GenerationController::enqueueHomeCanvas(const QVariantMap &parameters, const QString &aspectRatio, bool explicitControls)
 {
+    if (!requireLicense()) return {};
     const auto size = imageSize(aspectRatio, 1024);
     if (!explicitControls && size != QSize(parameters.value("width").toInt(), parameters.value("height").toInt())) {
         fail(tr("The canvas dimensions do not match the selected ratio.")); return {};
@@ -233,6 +236,7 @@ QString GenerationController::enqueueAdvancedRequest(const QVariantMap &paramete
 QString GenerationController::enqueueRequest(const QString &prompt, const QSize &size, const QString &aspectRatio,
     int count, qint64 seed, int steps, QJsonObject advanced, QJsonObject video)
 {
+    if (!requireLicense()) return {};
     const bool isVideo = !video.isEmpty();
     const auto &explicitParameters = isVideo ? video : advanced;
     const auto negativePrompt = explicitParameters.contains("negativePrompt")

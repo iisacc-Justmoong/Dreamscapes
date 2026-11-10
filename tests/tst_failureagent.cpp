@@ -1,6 +1,7 @@
 #include "App/Generation/FailureAgent.h"
 #include "App/Generation/FailureEvidence.h"
 #include "App/Generation/FailureModelBudget.h"
+#include "App/Generation/FailureExplanationRetry.h"
 #include "App/Generation/FailureReportStorage.h"
 #include <QtTest>
 #include <QTemporaryDir>
@@ -44,6 +45,28 @@ class FailureAgentTests final : public QObject {
             {"reportPath", directory.isEmpty() ? QString() : directory + "/." + id + ".json"}};
     }
 private slots:
+    void outputLimitRetriesOnlyOnceWithoutChangingEvidence() {
+        using namespace iiMultimodalAgent::agent;
+        int attempts = 0;
+        const auto result = dreamscapes::retryFailureExplanation([&](bool concise) {
+            ++attempts; RunResult value;
+            if (!concise) { value.status = RunStatus::Failed; value.errorMessage = "Structured response reached the output limit before a complete turn"; }
+            else { value.status = RunStatus::Completed; value.text = "observed error; cause unknown"; }
+            return value;
+        });
+        QCOMPARE(attempts, 2); QCOMPARE(result.status, RunStatus::Completed);
+        attempts = 0;
+        const auto other = dreamscapes::retryFailureExplanation([&](bool) {
+            ++attempts; RunResult value; value.status = RunStatus::Failed; value.errorMessage = "model unavailable"; return value;
+        });
+        QCOMPARE(attempts, 1); QCOMPARE(other.errorMessage, QString("model unavailable"));
+        attempts = 0;
+        const auto repeated = dreamscapes::retryFailureExplanation([&](bool) {
+            ++attempts; RunResult value; value.status = RunStatus::Failed;
+            value.errorMessage = "Structured response reached the output limit before a complete turn"; return value;
+        });
+        QCOMPARE(attempts, 2); QCOMPARE(repeated.status, RunStatus::Failed);
+    }
     void modelInputFitsMeasuredContextWithoutChangingTheFullEvidence() {
         auto model = std::make_shared<CountingDiagnosticModel>();
         dreamscapes::FailureModelBudget budgeted(model);

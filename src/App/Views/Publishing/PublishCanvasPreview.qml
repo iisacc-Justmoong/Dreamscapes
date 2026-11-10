@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import ".." as Frames
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Rectangle {
     id: root
@@ -14,7 +15,7 @@ Rectangle {
     property int completion: 0
     readonly property alias status: artwork.status
     readonly property alias imageSource: artwork.source
-    color: LV.Theme.surfaceInput
+    color: Style.Tokens.color("Theme Colors/Panel/surfaceInput")
     radius: 0
     clip: true
     Connections {

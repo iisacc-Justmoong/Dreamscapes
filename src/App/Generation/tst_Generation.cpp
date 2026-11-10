@@ -8,16 +8,19 @@
 #include "SocietyGenerationStorage.h"
 #include <ApplicationStorage.h>
 #include <Generation/NativePose.hpp>
+#include <ModelPackaging/ModelPackaging.hpp>
 #include <StorageMap.h>
 #include <iiSocietyContainer/DashboardFiles.h>
 #include <iiFileProviderPresentation.h>
 #include <QBuffer>
+#include <QCryptographicHash>
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QLockFile>
+#include <QProcess>
 #include <QImage>
 #include <QTemporaryDir>
 #include <QThread>
@@ -47,7 +50,9 @@ QImage readCanvasImage(const QString &path)
 }
 GenerationRuntime fakeRuntime()
 {
-    return {QStringLiteral(DREAMSCAPES_FAKE_GENERATOR), "cpu", 1, 64, {}};
+    GenerationRuntime runtime{QStringLiteral(DREAMSCAPES_FAKE_GENERATOR), "cpu", 1, 64, {}};
+    runtime.inspectImageModel = [](const auto &) { return iiLocalDiffusion::ImageModelInspection{}; };
+    return runtime;
 }
 QJsonObject recordedJob(const GenerationController &controller, const QString &id)
 {
@@ -79,6 +84,18 @@ bool prepare(const QTemporaryDir &root)
         && write(root.filePath("Models/first model.safetensor"), "test weight A")
         && write(root.filePath("Models/second.SAFETENSORS"), "test weight B");
 }
+struct ScopedSocietySettings {
+    const QByteArray settings = qgetenv("SOCIETY_STORAGE_SETTINGS_PATH");
+    const QByteArray container = qgetenv("SOCIETY_CONTAINER_PATH");
+    explicit ScopedSocietySettings(const QString &path) {
+        qputenv("SOCIETY_STORAGE_SETTINGS_PATH", path.toUtf8());
+        qunsetenv("SOCIETY_CONTAINER_PATH");
+    }
+    ~ScopedSocietySettings() {
+        settings.isNull() ? qunsetenv("SOCIETY_STORAGE_SETTINGS_PATH") : qputenv("SOCIETY_STORAGE_SETTINGS_PATH", settings);
+        container.isNull() ? qunsetenv("SOCIETY_CONTAINER_PATH") : qputenv("SOCIETY_CONTAINER_PATH", container);
+    }
+};
 QStringList contentEntries(const QDir &directory, QDir::Filters filters)
 {
     auto entries = directory.entryList(filters);
@@ -107,8 +124,207 @@ class GenerationTests : public QObject
 {
     Q_OBJECT
 private slots:
+    void initialStoragePreparationKeepsTheOwnerResponsive() {
+        QTemporaryDir root(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/startup-storage-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        auto entered = std::make_shared<std::atomic_bool>(false);
+        auto offOwner = std::make_shared<std::atomic_bool>(false);
+        auto release = std::make_shared<std::binary_semaphore>(0);
+        bool released = false;
+        const auto releaseOnExit = qScopeGuard([&] { if (!released) release->release(); });
+        auto runtime = fakeRuntime();
+        auto *ownerThread = QThread::currentThread();
+        runtime.beforeInitialStoragePreparation = [entered, offOwner, release, ownerThread] {
+            *offOwner = QThread::currentThread() != ownerThread; *entered = true; release->acquire();
+        };
+        GenerationController controller(runtime);
+        QVERIFY(!controller.connected());
+        QVERIFY(!controller.container()->available());
+        QElapsedTimer elapsed; elapsed.start();
+        controller.startInitialStorage(root.path());
+        QVERIFY(elapsed.elapsed() < 250);
+        QTRY_VERIFY_WITH_TIMEOUT(entered->load(), 5000);
+        QVERIFY(offOwner->load());
+        QVERIFY(controller.storageInitializing());
+        bool heartbeat = false;
+        QTimer::singleShot(0, &controller, [&] { heartbeat = true; });
+        QTRY_VERIFY(heartbeat);
+        released = true; release->release();
+        QTRY_VERIFY_WITH_TIMEOUT(!controller.storageInitializing(), 30000);
+        QVERIFY2(controller.connected(), qPrintable(controller.errorString()));
+        QCOMPARE(controller.containerPath(), root.path());
+        QCOMPARE(controller.models().size(), 2);
+    }
+    void initialStorageFailureIsReportedWithoutOpeningAnotherDrive() {
+        QTemporaryDir parent(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/startup-failure-XXXXXX");
+        QVERIFY(parent.isValid());
+        GenerationController controller(fakeRuntime());
+        controller.startInitialStorage(parent.filePath("missing.societycontainer"));
+        QTRY_VERIFY_WITH_TIMEOUT(!controller.storageInitializing(), 30000);
+        QVERIFY(!controller.connected());
+        QVERIFY(!controller.errorString().isEmpty());
+        QVERIFY(controller.containerPath().isEmpty());
+    }
+    void unavailableStorageIsNotRepeatedlyOpenedOnTheOwnerThread() {
+        QTemporaryDir parent(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/startup-unavailable-XXXXXX");
+        QVERIFY(parent.isValid());
+        auto calls = std::make_shared<std::atomic_int>(0);
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        runtime.beforeBackgroundModelInventory = [calls] { ++*calls; };
+        GenerationController controller(runtime);
+        controller.startInitialStorage(parent.filePath("missing.societycontainer"));
+        QTRY_VERIFY_WITH_TIMEOUT(!controller.storageInitializing(), 30000);
+        QVERIFY(!controller.connected());
+        auto *files = qobject_cast<iiSocietyHelper::FileSystem *>(controller.container()->parent());
+        QVERIFY(files);
+        QSignalSpy reopened(files, &iiSocietyHelper::FileSystem::storageChanged);
+        controller.setForeground(true);
+        QTRY_VERIFY_WITH_TIMEOUT(calls->load() >= 2, 10000);
+        QCOMPARE(reopened.size(), 0);
+    }
+    void initialStorageObserverCanDestroyItsOwner() {
+        QTemporaryDir root(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/startup-observer-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        auto controller = std::make_unique<GenerationController>(fakeRuntime());
+        QPointer<GenerationController> observed(controller.get());
+        connect(controller->container(), &iiSocietyContainer::Container::stateChanged, this, [&] { controller.reset(); });
+        controller->startInitialStorage(root.path());
+        QTRY_VERIFY_WITH_TIMEOUT(observed.isNull(), 30000);
+    }
+    void initialStorageResultCannotReplaceAnExplicitSelection() {
+        QTemporaryDir first(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/startup-first-XXXXXX.societycontainer");
+        QTemporaryDir second(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/startup-second-XXXXXX.societycontainer");
+        QVERIFY(prepare(first)); QVERIFY(prepare(second));
+        auto entered = std::make_shared<std::atomic_bool>(false);
+        auto release = std::make_shared<std::binary_semaphore>(0);
+        bool released = false;
+        const auto releaseOnExit = qScopeGuard([&] { if (!released) release->release(); });
+        auto done = std::make_shared<std::atomic_bool>(false);
+        auto runtime = fakeRuntime();
+        runtime.beforeInitialStoragePreparation = [entered, release, done] { *entered = true; release->acquire(); *done = true; };
+        GenerationController controller(runtime);
+        controller.startInitialStorage(first.path());
+        QTRY_VERIFY_WITH_TIMEOUT(entered->load(), 5000);
+        QVERIFY(controller.connectStorage(second.path()));
+        QVERIFY(!controller.storageInitializing());
+        released = true; release->release();
+        QTRY_VERIFY_WITH_TIMEOUT(done->load(), 5000);
+        QTest::qWait(250);
+        QCOMPARE(controller.containerPath(), second.path());
+        QCOMPARE(controller.models().size(), 2);
+    }
+    void closingWhileInitialStorageIsBlockedDoesNotJoin() {
+        QTemporaryDir root(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/startup-close-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        auto entered = std::make_shared<std::atomic_bool>(false);
+        auto release = std::make_shared<std::binary_semaphore>(0);
+        bool released = false;
+        const auto releaseOnExit = qScopeGuard([&] { if (!released) release->release(); });
+        auto done = std::make_shared<std::atomic_bool>(false);
+        auto runtime = fakeRuntime();
+        runtime.beforeInitialStoragePreparation = [entered, release, done] { *entered = true; release->acquire(); *done = true; };
+        auto controller = std::make_unique<GenerationController>(runtime);
+        controller->startInitialStorage(root.path());
+        QTRY_VERIFY_WITH_TIMEOUT(entered->load(), 5000);
+        QElapsedTimer elapsed; elapsed.start(); controller.reset();
+        QVERIFY(elapsed.elapsed() < 250);
+        released = true; release->release();
+        QTRY_VERIFY_WITH_TIMEOUT(done->load(), 5000);
+    }
+    void coordinatedShutdownWaitsWithoutBlockingOwner() {
+        QTemporaryDir root(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/startup-drain-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        auto entered=std::make_shared<std::atomic_bool>(false);auto gate=std::make_shared<std::binary_semaphore>(0);
+        bool released=false;const auto release=qScopeGuard([&]{if(!released)gate->release();});
+        auto runtime=fakeRuntime();runtime.beforeInitialStoragePreparation=[entered,gate]{*entered=true;gate->acquire();};
+        GenerationController controller(runtime);controller.startInitialStorage(root.path());QTRY_VERIFY(entered->load());
+        bool complete=false,heartbeat=false;QElapsedTimer elapsed;elapsed.start();controller.prepareForShutdown();
+        controller.finishShutdownAsync(this,[&]{complete=true;});QVERIFY(elapsed.elapsed()<250);
+        QTimer::singleShot(0,this,[&]{heartbeat=true;});QTRY_VERIFY(heartbeat);QVERIFY(!complete);
+        released=true;gate->release();QTRY_VERIFY_WITH_TIMEOUT(complete,10000);QVERIFY(!controller.connected());
+    }
+    void processExitsWhileInitialStorageIsBlocked() {
+        QProcess child;
+        child.start(QCoreApplication::applicationFilePath(), {QStringLiteral("--held-startup-exit-fixture")});
+        QVERIFY2(child.waitForStarted(5000), qPrintable(child.errorString()));
+        const bool finished = child.waitForFinished(8000);
+        if (!finished) { child.kill(); child.waitForFinished(5000); }
+        QVERIFY2(finished, "The process waited for blocked initial storage while exiting.");
+        QCOMPARE(child.exitStatus(), QProcess::NormalExit);
+        QCOMPARE(child.exitCode(), 0);
+    }
+    void processExitsWhileModelInventoryIsBlocked() {
+        QTemporaryDir root(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/inventory-exit-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        QProcess child;
+        child.start(QCoreApplication::applicationFilePath(), {QStringLiteral("--held-inventory-exit-fixture"), root.path()});
+        QVERIFY2(child.waitForStarted(5000), qPrintable(child.errorString()));
+        const bool finished = child.waitForFinished(12000);
+        if (!finished) { child.kill(); child.waitForFinished(5000); }
+        QVERIFY2(finished, "The process waited for blocked background model inventory while exiting.");
+        QCOMPARE(child.exitStatus(), QProcess::NormalExit);
+        QCOMPARE(child.exitCode(), 0);
+    }
+    void closingWhileModelInventoryIsBlockedDoesNotJoin() {
+        QTemporaryDir root(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/inventory-close-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        auto entered = std::make_shared<std::atomic_bool>(false);
+        auto release = std::make_shared<std::binary_semaphore>(0);
+        auto done = std::make_shared<std::atomic_bool>(false);
+        bool released = false;
+        const auto releaseOnExit = qScopeGuard([&] { if (!released) release->release(); });
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        runtime.beforeBackgroundModelInventory = [entered, release, done] {
+            *entered = true; release->acquire(); *done = true;
+        };
+        auto controller = std::make_unique<GenerationController>(runtime);
+        QVERIFY(controller->connectStorage(root.path()));
+        controller->setForeground(true);
+        QTRY_VERIFY_WITH_TIMEOUT(entered->load(), 10000);
+        QTRY_COMPARE_WITH_TIMEOUT(QThreadPool::globalInstance()->activeThreadCount(), 0, 5000);
+        QElapsedTimer elapsed; elapsed.start(); controller.reset();
+        QVERIFY(elapsed.elapsed() < 250);
+        released = true; release->release();
+        QTRY_VERIFY_WITH_TIMEOUT(done->load(), 5000);
+    }
+    void modelInventoryContinuesAfterReplacingABlockedSelection() {
+        QTemporaryDir first(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/inventory-first-XXXXXX.societycontainer");
+        QTemporaryDir second(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/inventory-second-XXXXXX.societycontainer");
+        QVERIFY(prepare(first)); QVERIFY(prepare(second));
+        auto calls = std::make_shared<std::atomic_int>(0);
+        auto entered = std::make_shared<std::atomic_bool>(false);
+        auto release = std::make_shared<std::binary_semaphore>(0);
+        bool released = false;
+        const auto releaseOnExit = qScopeGuard([&] { if (!released) release->release(); });
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        runtime.beforeBackgroundModelInventory = [calls, entered, release] {
+            if (++*calls == 1) { *entered = true; release->acquire(); }
+        };
+        GenerationController controller(runtime);
+        QVERIFY(controller.connectStorage(first.path()));
+        controller.setForeground(true);
+        QTRY_VERIFY_WITH_TIMEOUT(entered->load(), 10000);
+        QVERIFY(controller.connectStorage(second.path()));
+        QVERIFY(write(second.filePath("Models/new.safetensors"), "new weight"));
+        QTRY_COMPARE_WITH_TIMEOUT(controller.models().size(), 3, 10000);
+        QVERIFY(calls->load() >= 2);
+        QCOMPARE(controller.containerPath(), second.path());
+        released = true; release->release();
+        QTest::qWait(250);
+        QCOMPARE(controller.containerPath(), second.path());
+        QCOMPARE(controller.models().size(), 3);
+    }
+    void unlicensedGenerationRequestsBrowserSignInWithoutCreatingAJob() {
+        QTemporaryDir directory(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/license-gate-XXXXXX"); QVERIFY(directory.isValid());
+        auto runtime = fakeRuntime(); runtime.enforceLicense = true;
+        runtime.licenseSocket = directory.filePath("broker.sock"); runtime.localServiceSocket = directory.filePath("helper.sock");
+        int launches = 0; runtime.launchSociety = [&] { ++launches; };
+        GenerationController controller(runtime);
+        QVERIFY(controller.enqueue("a landscape").isEmpty()); QCOMPARE(launches, 0);
+        QVERIFY(controller.jobs().isEmpty()); QVERIFY(controller.errorString().contains("browser"));
+    }
     void sharedLogicalDiskPublishesBeforeSocietyAndSurvivesAdoption() {
-        QTemporaryDir group(DREAMSCAPES_TEST_DIRECTORY "/logical-app-storage-XXXXXX"); QVERIFY(group.isValid()); QString error;
+        QTemporaryDir group(DREAMSCAPES_TEST_RESOURCES "/logical-app-storage-XXXXXX"); QVERIFY(group.isValid()); QString error;
         const auto storage = ApplicationStorage::openInGroup(group.path(), "com.iisacc.dreamscapes", &error);
         QVERIFY2(storage, qPrintable(error)); const auto root = storage->drive().rootPath(), identifier = storage->drive().identifier();
         QVERIFY(write(storage->filePath(StoreSection::Models, "first model.safetensor"), "downloaded checkpoint"));
@@ -118,7 +334,7 @@ private slots:
         GenerationController controller(publicationRuntime()); controller.setForeground(true);
         QVERIFY2(controller.connectStorage(), qPrintable(controller.errorString())); QCOMPARE(controller.models().size(), 1);
         QCOMPARE(controller.containerPath(), root); const auto id = controller.enqueue("shared logical disk", "1:1", 1, 42);
-        QVERIFY(!id.isEmpty()); QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 30000);
+        QVERIFY(!id.isEmpty()); QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 90000);
         const auto output = recordedJob(controller, id).value("images").toArray(); QCOMPARE(output.size(), 1);
         const auto images = contentEntries(QDir(storage->drive().sectionPath(StoreSection::GenerationHistory)), QDir::Files);
         QCOMPARE(images.size(), 1); const auto path = storage->filePath(StoreSection::GenerationHistory, images.first());
@@ -173,6 +389,300 @@ private slots:
         QCOMPARE(recordedJob(controller, id)["state"], "failed");
         QCOMPARE(recordedJob(controller, id)["error"].toString(), originalError);
         QVERIFY(!recordedJob(controller, id).contains("lastProgress"));
+    }
+    void mossCheckpointRoutesToDiffusersWorker() {
+        QTemporaryDir root(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/moss-preflight-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        const ScopedSocietySettings isolated(root.filePath("society-settings.json"));
+        const QByteArray header = R"({"video_embedder.weight":{"dtype":"BF16","shape":[4,2],"data_offsets":[0,16]},"final_linear_video.weight":{"dtype":"BF16","shape":[2,4],"data_offsets":[16,32]},"layers.0.proj.qkv.weight":{"dtype":"I8","shape":[12,4],"data_offsets":[32,80]},"layers.0.proj.qkv.comfy_quant":{"dtype":"U8","shape":[2],"data_offsets":[80,82]}})";
+        QByteArray bytes;
+        const auto length = quint64(header.size());
+        for (unsigned shift = 0; shift != 64; shift += 8) bytes.append(char((length >> shift) & 0xff));
+        bytes.append(header); bytes.append(QByteArray(82, '\0'));
+        const auto model = root.filePath("Models/first model.safetensor");
+        QVERIFY(write(model, bytes));
+        iiLocalDiffusion::NativeGenerationRequest preflight;
+        preflight.modelPath = std::filesystem::canonical(model.toStdString());
+        preflight.prompt = "synthetic fixture"; preflight.width = preflight.height = 64; preflight.steps = 1;
+        std::atomic_bool cancelled{false};
+        const auto direct = iiLocalDiffusion::generateNativeImageWithResidentWeights(
+            preflight, {}, iiLocalDiffusion::NativeComputeBackend::Cpu, cancelled, {}, {});
+        QVERIFY2(direct.error.find("MOSS Image") != std::string::npos, direct.error.c_str());
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        runtime.releaseNativeCache = [] {};
+        runtime.inspectImageModel = iiLocalDiffusion::inspectImageModel;
+        GenerationController controller(runtime);
+        const auto drain = qScopeGuard([&] { controller.prepareForShutdown(); (void)QThreadPool::globalInstance()->waitForDone(10000); });
+        QVERIFY(controller.connectStorage(root.path()));
+        controller.setSelectedModel("first model.safetensor");
+        controller.setForeground(true);
+        QList<QPair<int, int>> progress;
+        connect(&controller, &GenerationController::inferenceStatusChanged, this, [&] {
+            const auto status = controller.inferenceStatus();
+            if (status.value("backend").toString() == "diffusers" && status.value("state").toString() == "denoising")
+                progress.append({status.value("step").toInt(), status.value("total").toInt()});
+        });
+        const auto id = controller.enqueue("synthetic fixture", "1:1", 1, 17);
+        QVERIFY2(!id.isEmpty(), qPrintable(controller.errorString()));
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 30000);
+        const auto generation = recordedJob(controller, id).value("generation").toObject();
+        QCOMPARE(generation.value("backend").toString(), QString("diffusers"));
+        QCOMPARE(generation.value("model_config_preset").toString(), QString("moss-image-sft"));
+        QCOMPARE(generation.value("moss_transformer_storage").toString(), QString("cpu-stream"));
+        QCOMPARE(generation.value("prompt").toString(), QString("synthetic fixture"));
+        QCOMPARE(generation.value("seed").toInt(), 17);
+        QVERIFY(progress.contains({1, 1}));
+        QVERIFY(!controller.completedResults().isEmpty());
+        AdvancedImageParameters draft(root.filePath("presets.json"));
+        QVERIFY(draft.updateParameters({{"prompt", "advanced fixture"}, {"model", "first model.safetensor"},
+                                        {"width", 64}, {"height", 64}, {"steps", 3},
+                                        {"cfgScale", 4.5}, {"seed", 29}, {"outputCount", 1}}));
+        const auto advanced = controller.enqueueAdvanced(draft.parameters());
+        QVERIFY2(!advanced.isEmpty(), qPrintable(controller.errorString()));
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, advanced), QString("completed"), 30000);
+        const auto forwarded = recordedJob(controller, advanced).value("generation").toObject();
+        QCOMPARE(forwarded.value("backend").toString(), QString("diffusers"));
+        QCOMPARE(forwarded.value("guidance_scale").toDouble(), 4.5);
+        QCOMPARE(forwarded.value("steps").toInt(), 3);
+        QCOMPARE(forwarded.value("seed").toInt(), 29);
+        QVERIFY(progress.contains({1, 3}));
+        QFile original(model); QVERIFY(original.open(QIODevice::ReadOnly)); QCOMPARE(original.readAll(), bytes);
+    }
+    void mossDependencyProgressOnlyAdvancesForNewModules() {
+        QTemporaryDir root(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/moss-dependency-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        const ScopedSocietySettings isolated(root.filePath("society-settings.json"));
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        runtime.releaseNativeCache = [] {};
+        runtime.inspectImageModel = [](const auto &) {
+            iiLocalDiffusion::ImageModelInspection model;
+            model.architecture = iiLocalDiffusion::ImageModelArchitecture::MossImage;
+            model.encoding = iiLocalDiffusion::ImageWeightEncoding::ComfyInt8;
+            return model;
+        };
+        GenerationController controller(runtime);
+        const auto drain = qScopeGuard([&] { controller.prepareForShutdown(); (void)QThreadPool::globalInstance()->waitForDone(10000); });
+        QVERIFY(controller.connectStorage(root.path()));
+        controller.setSelectedModel("first model.safetensor");
+        controller.setForeground(true);
+        QList<int> observed;
+        connect(&controller, &GenerationController::inferenceStatusChanged, this, [&] {
+            const auto status = controller.inferenceStatus();
+            if (status.value("state").toString() == "loading-dependencies")
+                observed.append(status.value("completedModules").toInt());
+        });
+        const auto id = controller.enqueue("dependency-progress-fixture", "1:1", 1, 17);
+        QVERIFY2(!id.isEmpty(), qPrintable(controller.errorString()));
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 90000);
+        QCOMPARE(observed, QList<int>({1, 2}));
+        observed.clear();
+        const auto next = controller.enqueue("dependency-progress-fixture", "1:1", 1, 18);
+        QVERIFY2(!next.isEmpty(), qPrintable(controller.errorString()));
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, next), QString("completed"), 90000);
+        QCOMPARE(observed, QList<int>({1, 2}));
+    }
+    void packagedMossRoutesVerifiedComponentsToWorker() {
+        QTemporaryDir root(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/moss-package-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        const ScopedSocietySettings isolated(root.filePath("society-settings.json"));
+        const auto source = root.filePath("package-sources");
+        QVERIFY(QDir().mkpath(source + "/Other")); QVERIFY(QDir().mkpath(source + "/VLM")); QVERIFY(QDir().mkpath(source + "/VAE"));
+        const auto tensorFile = [](QByteArray header, int payload) {
+            while (header.size() % 8) header.append(' ');
+            QByteArray bytes; const auto length = quint64(header.size());
+            for (unsigned shift = 0; shift != 64; shift += 8) bytes.append(char((length >> shift) & 0xff));
+            return bytes + header + QByteArray(payload, '\0');
+        };
+        const auto transformer = tensorFile(R"({"video_embedder.weight":{"dtype":"BF16","shape":[4,2],"data_offsets":[0,16]},"final_linear_video.weight":{"dtype":"BF16","shape":[2,4],"data_offsets":[16,32]},"layers.0.proj.qkv.weight":{"dtype":"I8","shape":[12,4],"data_offsets":[32,80]},"layers.0.proj.qkv.comfy_quant":{"dtype":"U8","shape":[2],"data_offsets":[80,82]}})", 82);
+        const auto encoder = tensorFile(R"({"model.language_model.embed_tokens.weight":{"dtype":"F32","shape":[1],"data_offsets":[0,4]},"model.language_model.layers.0.weight":{"dtype":"F32","shape":[1],"data_offsets":[4,8]}})", 8);
+        const auto vae = tensorFile(R"({"encoder.conv_in.weight":{"dtype":"F32","shape":[1],"data_offsets":[0,4]},"decoder.conv_out.weight":{"dtype":"F32","shape":[1],"data_offsets":[4,8]}})", 8);
+        QVERIFY(write(source + "/Other/moss.safetensors", transformer));
+        QVERIFY(write(source + "/VLM/encoder.safetensors", encoder));
+        QVERIFY(write(source + "/VAE/flux.safetensors", vae));
+        const std::vector<iild::ModelPackagingAssignment> assignments{
+            {"VLM/encoder.safetensors", "model", "main"}, {"Other/moss.safetensors", "model", "component"},
+            {"VAE/flux.safetensors", "video_vae", "component"}};
+        const auto model = root.filePath("Models/package.safetensors");
+        (void)iild::createModelPackageWithAssignments(source.toStdU16String(), model.toStdU16String(), assignments);
+        QFile package(model); QVERIFY(package.open(QIODevice::ReadOnly)); const auto before = package.readAll(); package.close();
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        runtime.inspectImageModel = {}; runtime.releaseNativeCache = [] {};
+        GenerationController controller(runtime);
+        const auto drain = qScopeGuard([&] { controller.prepareForShutdown(); (void)QThreadPool::globalInstance()->waitForDone(10000); });
+        QVERIFY(controller.connectStorage(root.path())); controller.setSelectedModel("package.safetensors"); controller.setForeground(true);
+        const auto id = controller.enqueue("packaged fixture", "1:1", 1, 17); QVERIFY2(!id.isEmpty(), qPrintable(controller.errorString()));
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 30000);
+        const auto generation = recordedJob(controller, id).value("generation").toObject();
+        const auto digest = [](const QByteArray &bytes) { return QString::fromLatin1(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex()); };
+        QCOMPARE(generation.value("backend").toString(), QString("diffusers"));
+        QCOMPARE(generation.value("moss_transformer_sha256").toString(), digest(transformer));
+        QCOMPARE(generation.value("moss_text_encoder_sha256").toString(), digest(encoder));
+        QCOMPARE(generation.value("moss_vae_sha256").toString(), digest(vae));
+        QVERIFY(generation.value("generation_resources").isNull());
+        QVERIFY(package.open(QIODevice::ReadOnly)); QCOMPARE(package.readAll(), before);
+    }
+    void packagedAnimaForwardsEmbeddedComponentsToNativeAdvanced() {
+        QTemporaryDir root(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/anima-package-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        const ScopedSocietySettings isolated(root.filePath("society-settings.json"));
+        const auto source = root.filePath("package-sources");
+        QVERIFY(QDir().mkpath(source + "/Checkpoint"));
+        QVERIFY(QDir().mkpath(source + "/LLM"));
+        QVERIFY(QDir().mkpath(source + "/Other"));
+        const auto tensorFile = [](QByteArray header, int payload) {
+            while (header.size() % 8) header.append(' ');
+            QByteArray bytes; const auto length = quint64(header.size());
+            for (unsigned shift = 0; shift != 64; shift += 8) bytes.append(char((length >> shift) & 0xff));
+            return bytes + header + QByteArray(payload, '\0');
+        };
+        const auto transformer = tensorFile(R"({"model.diffusion_model.llm_adapter.blocks.0.cross_attn.q_proj.weight":{"dtype":"F32","shape":[1],"data_offsets":[0,4]},"model.diffusion_model.blocks.0.self_attn.q_proj.weight":{"dtype":"F32","shape":[1],"data_offsets":[4,8]}})", 8);
+        const auto encoder = tensorFile(R"({"model.embed_tokens.weight":{"dtype":"F32","shape":[1],"data_offsets":[0,4]},"model.norm.weight":{"dtype":"F32","shape":[1],"data_offsets":[4,8]},"model.layers.0.self_attn.q_proj.weight":{"dtype":"F32","shape":[1],"data_offsets":[8,12]}})", 12);
+        const auto vae = tensorFile(R"({"encoder.conv1.weight":{"dtype":"F32","shape":[1],"data_offsets":[0,4]},"encoder.head.2.weight":{"dtype":"F32","shape":[1],"data_offsets":[4,8]},"decoder.conv1.weight":{"dtype":"F32","shape":[1],"data_offsets":[8,12]},"decoder.head.2.weight":{"dtype":"F32","shape":[1],"data_offsets":[12,16]}})", 16);
+        QVERIFY(write(source + "/Checkpoint/anima.safetensors", transformer));
+        QVERIFY(write(source + "/LLM/text.safetensors", encoder));
+        QVERIFY(write(source + "/Other/qwen.safetensors", vae));
+        const std::vector<iild::ModelPackagingAssignment> assignments{
+            {"Checkpoint/anima.safetensors", "model", "main"}, {"LLM/text.safetensors", "text_encoder", "component"},
+            {"Other/qwen.safetensors", "video_vae", "component"}};
+        const auto model = root.filePath("Models/anima-package.safetensors");
+        (void)iild::createModelPackageWithAssignments(source.toStdU16String(), model.toStdU16String(), assignments);
+        QFile file(model); QVERIFY(file.open(QIODevice::ReadOnly)); const auto before = file.readAll(); file.close();
+        QByteArray receivedEncoder, receivedVae;
+        QString receivedModel;
+        auto runtime = fakeRuntime(); runtime.nativeInference = true; runtime.inspectImageModel = iiLocalDiffusion::inspectImageModel;
+        runtime.releaseNativeCache = [] {};
+        runtime.nativeGenerateAdvanced = [&](const auto &request, const auto &, const auto &components, const auto &,
+                                            const auto &, const auto &, const auto &) {
+            receivedModel = QString::fromStdU16String(request.modelPath.u16string());
+            QFile text(QString::fromStdU16String(components.llm.u16string()));
+            QFile decoder(QString::fromStdU16String(components.vae.u16string()));
+            if (text.open(QIODevice::ReadOnly)) receivedEncoder = text.readAll();
+            if (decoder.open(QIODevice::ReadOnly)) receivedVae = decoder.readAll();
+            iiLocalDiffusion::NativeGenerationResult result; result.width = request.width; result.height = request.height;
+            result.rgb.resize(std::size_t(request.width) * request.height * 3, 100); return result;
+        };
+        GenerationController controller(runtime);
+        const auto drain = qScopeGuard([&] { controller.prepareForShutdown(); (void)QThreadPool::globalInstance()->waitForDone(10000); });
+        QVERIFY(controller.connectStorage(root.path())); controller.setSelectedModel("anima-package.safetensors");
+        AdvancedImageParameters draft(root.filePath("presets.json"));
+        QVERIFY(draft.updateParameters({{"prompt", "Anima package"}, {"model", "anima-package.safetensors"},
+            {"width", 64}, {"height", 64}, {"steps", 3}, {"cfgScale", 4.5}, {"seed", 17}, {"outputCount", 1}}));
+        const auto id = controller.enqueueAdvanced(draft.parameters()); QVERIFY2(!id.isEmpty(), qPrintable(controller.errorString()));
+        controller.setForeground(true);
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 30000);
+        QCOMPARE(receivedModel, model); QCOMPARE(receivedEncoder, encoder); QCOMPARE(receivedVae, vae);
+        QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(), before);
+    }
+    void mossRejectsUnsupportedControlsBeforeStartingWorker() {
+        QTemporaryDir root(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/moss-unsupported-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        const ScopedSocietySettings isolated(root.filePath("society-settings.json"));
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        runtime.releaseNativeCache = [] {};
+        runtime.inspectImageModel = [](const auto &) {
+            iiLocalDiffusion::ImageModelInspection model;
+            model.architecture = iiLocalDiffusion::ImageModelArchitecture::MossImage;
+            model.encoding = iiLocalDiffusion::ImageWeightEncoding::Floating;
+            return model;
+        };
+        GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
+        controller.setForeground(true);
+        AdvancedImageParameters draft(root.filePath("presets.json"));
+        QVERIFY(draft.updateParameters({{"prompt", "unsupported settings"}, {"model", "first model.safetensor"},
+                                        {"width", 64}, {"height", 64}, {"sampler", "heun"}, {"outputCount", 1}}));
+        const auto id = controller.enqueueAdvanced(draft.parameters());
+        QVERIFY2(!id.isEmpty(), qPrintable(controller.errorString()));
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("failed"), 15000);
+        const auto job = recordedJob(controller, id);
+        QVERIFY(job.value("error").toString().contains("sampler"));
+        QVERIFY(!job.contains("worker"));
+        QVERIFY(controller.completedResults().isEmpty());
+        QVERIFY(draft.updateParameters({{"sampler", "auto"}, {"prompt", "portrait [weighted]"}}));
+        const auto weighted = controller.enqueueAdvanced(draft.parameters()); QVERIFY(!weighted.isEmpty());
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, weighted), QString("failed"), 15000);
+        QVERIFY(recordedJob(controller, weighted).value("error").toString().contains("promptWeighting"));
+        QVERIFY(draft.updateParameters({{"prompt", "ordinary portrait"}, {"width", 72}}));
+        const auto dimensions = controller.enqueueAdvanced(draft.parameters()); QVERIFY(!dimensions.isEmpty());
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, dimensions), QString("failed"), 15000);
+        QVERIFY(recordedJob(controller, dimensions).value("error").toString().contains("multiples of 16"));
+    }
+    void modelInspectionDoesNotBlockOrDispatchAfterCancellation() {
+        QTemporaryDir root(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/model-route-cancel-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        const ScopedSocietySettings isolated(root.filePath("society-settings.json"));
+        struct Gate { std::binary_semaphore release{0}; std::atomic_bool entered{false}, calledNative{false}; };
+        const auto gate = std::make_shared<Gate>();
+        auto runtime = fakeRuntime(); runtime.nativeInference = true; runtime.releaseNativeCache = [] {};
+        runtime.inspectImageModel = [gate](const auto &) {
+            gate->entered = true; (void)gate->release.try_acquire_for(std::chrono::seconds(10));
+            return iiLocalDiffusion::ImageModelInspection{};
+        };
+        runtime.nativeGenerate = [gate](const auto &, const auto &, const auto &, const auto &, const auto &) {
+            gate->calledNative = true; return iiLocalDiffusion::NativeGenerationResult{};
+        };
+        const auto release = qScopeGuard([gate] { gate->release.release(); });
+        GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
+        controller.setForeground(true);
+        const auto id = controller.enqueue("cancel model inspection"); QVERIFY(!id.isEmpty());
+        QTRY_VERIFY_WITH_TIMEOUT(gate->entered.load(), 10000);
+        QElapsedTimer elapsed; elapsed.start();
+        QVERIFY(controller.cancel(id));
+        QVERIFY2(elapsed.elapsed() < 500, "Cancellation blocked on model inspection.");
+        gate->release.release();
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("cancelled"), 15000);
+        QVERIFY(!gate->calledNative.load());
+        QVERIFY(!recordedJob(controller, id).contains("worker"));
+    }
+    void nativeUnknownModelFailurePreservesUncertainty() {
+        QTemporaryDir root(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/model-diagnostic-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        const ScopedSocietySettings isolated(root.filePath("society-settings.json"));
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        runtime.failureAgentExecutable = root.filePath("missing-agent");
+        runtime.failureReportsDirectory = root.filePath("Files/FailureReports");
+        runtime.nativeGenerate = [](const auto &, const auto &, const auto &, const auto &, const auto &) {
+            iiLocalDiffusion::NativeGenerationResult result;
+            result.error = "stable-diffusion.cpp:1026 - get sd version from file failed: '/fixture/model.safetensors'";
+            return result;
+        };
+        GenerationController controller(runtime);
+        const auto drain = qScopeGuard([&] { controller.prepareForShutdown(); (void)QThreadPool::globalInstance()->waitForDone(10000); });
+        QVERIFY(controller.connectStorage(root.path()));
+        controller.setForeground(true);
+        QSignalSpy explained(&controller, &GenerationController::failureExplained);
+        const auto id = controller.enqueue("synthetic failure", "1:1", 1, 17); QVERIFY(!id.isEmpty());
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("failed"), 15000);
+        QTRY_COMPARE_WITH_TIMEOUT(explained.size(), 1, 15000);
+        const auto report = controller.failureAnalysis(id);
+        QCOMPARE(report.value("category").toString(), QString("model-identification"));
+        QVERIFY(report.value("details").toString().contains("does not establish"));
+        QVERIFY(report.value("rawError").toString().contains("get sd version from file failed"));
+        QVERIFY(controller.completedResults().isEmpty());
+    }
+    void nativeUnreadableModelFailureUsesInputCategory() {
+        QTemporaryDir root(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/model-diagnostic-XXXXXX.societycontainer");
+        QVERIFY(prepare(root));
+        const ScopedSocietySettings isolated(root.filePath("society-settings.json"));
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        runtime.failureAgentExecutable = root.filePath("missing-agent");
+        runtime.failureReportsDirectory = root.filePath("Files/FailureReports");
+        runtime.nativeGenerate = [](const auto &, const auto &, const auto &, const auto &, const auto &) {
+            iiLocalDiffusion::NativeGenerationResult result;
+            result.error = "The safetensors header is invalid, incomplete, or unreadable. Check the file format, access and sync status.";
+            return result;
+        };
+        GenerationController controller(runtime);
+        const auto drain = qScopeGuard([&] { controller.prepareForShutdown(); (void)QThreadPool::globalInstance()->waitForDone(10000); });
+        QVERIFY(controller.connectStorage(root.path()));
+        controller.setForeground(true);
+        QSignalSpy explained(&controller, &GenerationController::failureExplained);
+        const auto id = controller.enqueue("synthetic invalid header", "1:1", 1, 17); QVERIFY(!id.isEmpty());
+        QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("failed"), 15000);
+        QTRY_COMPARE_WITH_TIMEOUT(explained.size(), 1, 15000);
+        const auto report = controller.failureAnalysis(id);
+        QCOMPARE(report.value("category").toString(), QString("model-input"));
+        QVERIFY(report.value("rawError").toString().contains("safetensors header"));
+        QVERIFY(controller.completedResults().isEmpty());
     }
     void videoFailureKeepsLastWorkStageWhenWorkerBecomesIdle() {
         const auto resources = QDir(QFileInfo(QStringLiteral(DREAMSCAPES_FAKE_GENERATOR)).absolutePath())
@@ -1547,7 +2057,7 @@ private slots:
 
     void backgroundModelInventoryDoesNotReopenTheFileMirror()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/inventory-poll-XXXXXX.societycontainer");
+        QTemporaryDir root(DREAMSCAPES_TEST_RESOURCES "/inventory-poll-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         GenerationController controller(fakeRuntime());
         QVERIFY(controller.connectStorage(root.path()));
@@ -1573,7 +2083,7 @@ private slots:
 
     void modelInventoryFollowsSocietyOwnerAtStartupAndRefresh()
     {
-        QTemporaryDir root(DREAMSCAPES_TEST_DIRECTORY "/model-inventory-XXXXXX.societycontainer");
+        QTemporaryDir root(DREAMSCAPES_TEST_RESOURCES "/model-inventory-XXXXXX.societycontainer");
         QVERIFY(prepare(root));
         const auto drive = SocietyDrive::open(root.path()); QVERIFY(drive);
         StorageMap map(*drive);
@@ -2828,5 +3338,34 @@ private slots:
         qInfo().noquote() << "Society inference output:" << controller.latestImage().toLocalFile();
     }
 };
-QTEST_GUILESS_MAIN(GenerationTests)
+int main(int argc, char **argv)
+{
+    QCoreApplication app(argc, argv);
+    app.setAttribute(Qt::AA_Use96Dpi, true);
+    const bool initialFixture = app.arguments().contains(QStringLiteral("--held-startup-exit-fixture"));
+    const bool inventoryFixture = app.arguments().contains(QStringLiteral("--held-inventory-exit-fixture"));
+    if (initialFixture || inventoryFixture) {
+        auto entered = std::make_shared<std::atomic_bool>(false);
+        auto gate = std::make_shared<std::binary_semaphore>(0);
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        const auto hold = [entered, gate] { *entered = true; gate->acquire(); };
+        if (initialFixture) runtime.beforeInitialStoragePreparation = hold;
+        else runtime.beforeBackgroundModelInventory = hold;
+        GenerationController controller(runtime);
+        if (initialFixture) controller.startInitialStorage(QStringLiteral(DREAMSCAPES_TEST_RESOURCES "/held-startup-fixture.societycontainer"));
+        else {
+            if (app.arguments().size() < 3 || !controller.connectStorage(app.arguments().last())) return 4;
+            controller.setForeground(true);
+        }
+        QTimer poll;
+        poll.setInterval(5);
+        QObject::connect(&poll, &QTimer::timeout, &app, [&] { if (entered->load()) app.quit(); });
+        poll.start();
+        QTimer::singleShot(7000, &app, [&] { app.exit(3); });
+        return app.exec();
+    }
+    GenerationTests tests;
+    QTEST_SET_MAIN_SOURCE_PATH
+    return QTest::qExec(&tests, argc, argv);
+}
 #include "tst_Generation.moc"

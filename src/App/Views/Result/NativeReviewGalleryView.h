@@ -9,5 +9,6 @@ namespace dreamscapes::review {
 // connected. The product supplies real results, previews and action handlers.
 using GalleryConfigure = std::function<void(const std::shared_ptr<ReviewGalleryModel> &)>;
 [[nodiscard]] ii::core::Result<void> buildReviewGallery(ii::gui::WidgetBuilder &, ii::gui::Widget parent = {},
-                                                        const GalleryConfigure &configure = {});
+                                                        const GalleryConfigure &configure = {},
+                                                        std::shared_ptr<Session> session = {});
 } // namespace dreamscapes::review

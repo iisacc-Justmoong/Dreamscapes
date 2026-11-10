@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 // Foreground decoration: it neither takes input nor participates in a layout.
 // An explicit target lets layout-owned panels keep their original geometry.
@@ -12,7 +12,7 @@ Rectangle {
     property bool rightEdge: true
     property bool bottomEdge: true
     property bool leftEdge: true
-    readonly property color panelBorderColor: "#0c0c0c"
+    readonly property color panelBorderColor: Style.Tokens.color("Theme Colors/Panel/canvas")
     readonly property int strokeWidth: 1
     readonly property bool completeBorder: topEdge && rightEdge && bottomEdge && leftEdge
     readonly property point origin: {

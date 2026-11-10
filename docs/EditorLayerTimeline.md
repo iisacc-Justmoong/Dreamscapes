@@ -112,8 +112,11 @@ bottom edge above a four-pixel yellow baseline. Minor steps divide the adaptive
 major interval into five or two integer-frame intervals; they never invent
 fractional frames. The playhead uses a 22-by-26-pixel downward-pointing pentagon
 with a two-pixel vertical stem, replacing the previous numbered rounded badge.
-Its tip stays on the stem at the baseline while zooming or panning. The reference
-sRGB colors are tick `#8d8d8d`, baseline `#f0f000`, and playhead `#4096f3`.
+Its tip stays on the stem at the baseline while zooming or panning. Tick, baseline
+and playhead use the shared LVRS description, yellow and blue roles respectively;
+the Figma timeline uses the corresponding library variables. The editor and video
+timelines share a vector marker whose fill follows the active LVRS color, and
+their transport controls resolve shared LVRS icons.
 
 `Dreamscapes.EditorLayerTimeline` uses native bitmap animation with different
 content on every frame, a static image with a shorter duration, and actual PCM

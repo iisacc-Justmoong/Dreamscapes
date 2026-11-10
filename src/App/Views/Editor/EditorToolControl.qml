@@ -4,6 +4,7 @@ import Dreamscapes.Storage 1.0
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 import ".." as Views
+import Dreamscapes.Style 1.0 as Style
 
 // Layout only: all visible controls are unmodified LVRS primitives.
 Item {
@@ -334,7 +335,7 @@ Item {
                 objectName: "editorPreviewValue"
                 text: qsTr("View")
                 style: previewValue.caption
-                color: LV.Theme.captionColor
+                color: Style.Tokens.color("Theme Colors/Text/captionColor")
                 horizontalAlignment: Text.AlignRight
                 Layout.preferredWidth: 72
                 Layout.minimumWidth: 72
@@ -349,7 +350,7 @@ Item {
                 implicitWidth: 18
                 implicitHeight: 18
                 iconSize: 18
-                iconSource: Qt.resolvedUrl("Assets/Panel/general-chevron-right.svg")
+                iconSource: LV.Theme.iconPath("generalchevronRight")
                 horizontalPadding: 0
                 verticalPadding: 0
                 tone: LV.AbstractButton.Borderless

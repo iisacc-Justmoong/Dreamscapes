@@ -41,6 +41,32 @@ class NativeViewModelBridgeTests : public QObject {
                  QStringLiteral("Rectangle"));
         QVERIFY(!item->property("graphic").value<QJSValue>().toVariant().toMap().isEmpty());
     }
+    void advancedImageModelChoicesPreserveLabelsAndIds() {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"QML(import QtQml
+import Dreamscapes.Storage 1.0
+QtObject {
+    property var rows: [{id: "first", name: "First model"}, {id: "second", name: "Second model"}]
+    property var options: NativeData.presentation.prepend("Selected model", NativeData.presentation.labels(rows, "name", "id"))
+    property var values: NativeData.presentation.prepend("", NativeData.presentation.values(rows, "id"))
+})QML", {});
+        QScopedPointer<QObject> item(component.create());
+        QVERIFY2(item, qPrintable(component.errorString()));
+        const auto list = [&](const char *name) {
+            const auto value = item->property(name);
+            return value.metaType() == QMetaType::fromType<QJSValue>() ? value.value<QJSValue>().toVariant().toList() : value.toList();
+        };
+        QCOMPARE(list("options"), QVariantList({"Selected model", "First model", "Second model"}));
+        QCOMPARE(list("values"), QVariantList({"", "first", "second"}));
+        QVERIFY(item->setProperty("rows", QVariantList{QVariantMap{{"id", "third"}, {"name", "Third model"}}}));
+        QCOMPARE(list("options"), QVariantList({"Selected model", "Third model"}));
+        QCOMPARE(list("values"), QVariantList({"", "third"}));
+        ViewData data;
+        const QUrl source(QStringLiteral("file:///original.png"));
+        const QVariantMap metadata{{"source", source}, {"seed", 42}};
+        QCOMPARE(data.presentation()->prepend(source, {metadata}), QVariantList({source, metadata}));
+    }
     void nativeCommandsAreCallableFromQml() {
         QQmlEngine engine;
         QQmlComponent component(&engine);

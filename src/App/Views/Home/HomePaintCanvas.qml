@@ -6,6 +6,7 @@ import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
 import ".." as Shared
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -51,7 +52,7 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             implicitHeight: panel.implicitHeight + 24
-            color: LV.Theme.panelBackground08
+            color: Style.Tokens.color("Theme Colors/Panel/surfacePanel")
             radius: 0
             ColumnLayout {
                 id: panel
@@ -68,7 +69,7 @@ Item {
                     spacing: 8
                     Tool {
                         objectName: "homeBrushButton"
-                        iconSource: Qt.resolvedUrl("Assets/Paint/brush.svg")
+                        iconSource: LV.Theme.iconPath("brush")
                         help: qsTr("Brush")
                         tone: canvas.toolMode === "brush" ? LV.AbstractButton.Primary : LV.AbstractButton.Default
                         onClicked: canvas.toolMode = "brush"
@@ -101,7 +102,7 @@ Item {
                             width: 32; height: 22
                             text: Math.round(canvas.brushSize) + qsTr("px")
                             style: description
-                            color: LV.Theme.descriptionColor
+                            color: Style.Tokens.color("Theme Colors/Text/descriptionColor")
                             verticalAlignment: Text.AlignVCenter
                         }
                     }
@@ -126,7 +127,7 @@ Item {
                             width: 34; height: 22
                             text: Math.round(canvas.brushOpacity * 100) + "%"
                             style: description
-                            color: LV.Theme.descriptionColor
+                            color: Style.Tokens.color("Theme Colors/Text/descriptionColor")
                             verticalAlignment: Text.AlignVCenter
                         }
                     }
@@ -209,7 +210,7 @@ Item {
                         Rectangle {
                             anchors.fill: parent
                             color: "transparent"
-                            border.color: dropZone.containsDrag ? LV.Theme.primary : "#d9d9cc"
+                            border.color: dropZone.containsDrag ? LV.Theme.primary : Style.Tokens.color("Theme Colors/Panel/canvas")
                             border.width: dropZone.containsDrag ? 2 : 1
                         }
                     }
@@ -222,14 +223,14 @@ Item {
                         sizeToContentHeight: true
                         visible: !canvas.hasContent && !dropZone.containsDrag
                         text: qsTr("Paint here or drag an attached image")
-                        color: "#85867b"
+                        color: Style.Tokens.color("Theme Colors/Panel/window")
                         style: description
                     }
                 }
                 RowLayout {
                     Layout.fillWidth: true
                     Item { Layout.fillWidth: true }
-                    LV.Label { text: root.aspectRatio + " · " + canvas.canvasWidth + " × " + canvas.canvasHeight; style: description; color: LV.Theme.descriptionColor }
+                    LV.Label { text: root.aspectRatio + " · " + canvas.canvasWidth + " × " + canvas.canvasHeight; style: description; color: Style.Tokens.color("Theme Colors/Text/descriptionColor") }
                 }
             }
         }
@@ -261,7 +262,7 @@ Item {
                             width: 340
                             height: 64
                             radius: 8
-                            color: LV.Theme.panelBackground08
+                            color: Style.Tokens.color("Theme Colors/Panel/surfacePanel")
                             Image {
                                 x: 8; y: 8; width: 48; height: 48
                                 source: card.modelData.previewSource || card.imageSource
@@ -277,7 +278,7 @@ Item {
                                     text: qsTr("Image · %1").arg(card.modelData.sizeBytes >= 1048576
                                         ? (card.modelData.sizeBytes / 1048576).toFixed(1) + " MB"
                                         : Math.max(1, Math.round(card.modelData.sizeBytes / 1024)) + " KB")
-                                    style: description; font.pixelSize: 11; color: LV.Theme.descriptionColor
+                                    style: description; font.pixelSize: Style.Tokens.metric("Theme Typography/Caption/textCaption"); color: Style.Tokens.color("Theme Colors/Text/descriptionColor")
                                 }
                             }
                             MouseArea {
@@ -328,7 +329,7 @@ Item {
             Layout.fillWidth: true
             visible: text.length > 0
             text: canvas.inputError
-            color: LV.Theme.descriptionColor
+            color: Style.Tokens.color("Theme Colors/Text/descriptionColor")
             wrapMode: Text.Wrap
             sizeToContentHeight: true
         }

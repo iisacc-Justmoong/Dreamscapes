@@ -3,6 +3,7 @@ import QtQuick
 import Dreamscapes.Storage 1.0
 import QtQuick.Layouts
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 // A passive panel surface. Only its value controls accept input or show hover.
 Item {
@@ -37,15 +38,15 @@ Item {
     property int miniItemWidth: LV.Theme.scaleMetric(170)
     property int minItemWidth: type === LV.ListItem.Mini ? miniItemWidth
         : type === LV.ListItem.Navigation || type === LV.ListItem.Toggle ? navigationItemWidth : LV.Theme.scaleMetric(400)
-    property int standardItemHeight: compact ? (type === LV.ListItem.Select ? LV.Theme.scaleMetric(20) : LV.Theme.controlHeightSm) + 2 * LV.Theme.gap4 : LV.Theme.scaleMetric(44)
+    property int standardItemHeight: compact ? (type === LV.ListItem.Select ? LV.Theme.scaleMetric(20) : Style.Tokens.metric("Theme Metrics/Size/22")) + 2 * Style.Tokens.metric("Theme Metrics/Space/4") : LV.Theme.scaleMetric(44)
     property Component trailingComponent: null
     readonly property alias inputControl: inputField
     readonly property bool flatPanelRow: true
     readonly property bool effectiveEnabled: enabled
     readonly property bool mini: type === LV.ListItem.Mini
     readonly property string variantName: ["Mini", "Detail", "Navigation", "Toggle", "Checkable", "Action", "ActionGroup", "Stepper", "Select", "InlineEdit"][type] || "Mini"
-    readonly property int insetHorizontal: mini ? LV.Theme.gap4 : compact ? LV.Theme.gap8 : LV.Theme.scaleMetric(12)
-    readonly property int insetVertical: mini ? LV.Theme.gap2 : compact ? LV.Theme.gap4 : LV.Theme.gap8
+    readonly property int insetHorizontal: mini ? Style.Tokens.metric("Theme Metrics/Space/4") : compact ? Style.Tokens.metric("Theme Metrics/Space/8") : LV.Theme.scaleMetric(12)
+    readonly property int insetVertical: mini ? Style.Tokens.metric("Theme Metrics/Space/2") : compact ? Style.Tokens.metric("Theme Metrics/Space/4") : Style.Tokens.metric("Theme Metrics/Space/8")
     signal edited(string field, var value)
     signal actionTriggered(string action, var payload)
     signal clicked()
@@ -94,7 +95,7 @@ Item {
         y: (root.height - height) / 2
         width: Math.max(0, root.width - 2 * root.insetHorizontal)
         height: implicitHeight
-        spacing: root.mini ? LV.Theme.scaleMetric(1) : root.compact ? LV.Theme.gap4 : LV.Theme.gap8
+        spacing: root.mini ? LV.Theme.scaleMetric(1) : root.compact ? Style.Tokens.metric("Theme Metrics/Space/4") : Style.Tokens.metric("Theme Metrics/Space/8")
         Image {
             visible: root.showLeadingIcon
             Layout.preferredWidth: root.iconSize; Layout.preferredHeight: root.iconSize
@@ -104,21 +105,21 @@ Item {
         }
         ColumnLayout {
             Layout.fillWidth: !root.fillControl; Layout.minimumWidth: 0
-            spacing: LV.Theme.gap4
+            spacing: Style.Tokens.metric("Theme Metrics/Space/4")
             LV.Label {
                 objectName: "panelRow_label"
                 text: root.label; style: body
-                color: root.enabled ? LV.Theme.bodyColor : LV.Theme.disabledColor
+                color: root.enabled ? Style.Tokens.color("Theme Colors/Text/bodyColor") : Style.Tokens.color("Theme Colors/Text/disabledColor")
                 Layout.fillWidth: true; Layout.minimumWidth: 0
-                Layout.preferredHeight: LV.Theme.textBodyLineHeight; Layout.maximumHeight: LV.Theme.textBodyLineHeight
+                Layout.preferredHeight: Style.Tokens.metric("Theme Typography/Body/textBodyLineHeight"); Layout.maximumHeight: Style.Tokens.metric("Theme Typography/Body/textBodyLineHeight")
                 verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
             }
             LV.Label {
                 visible: !root.mini && root.showDescription
                 text: root.description; style: caption
-                color: root.enabled ? LV.Theme.captionColor : LV.Theme.disabledColor
+                color: root.enabled ? Style.Tokens.color("Theme Colors/Text/captionColor") : Style.Tokens.color("Theme Colors/Text/disabledColor")
                 Layout.fillWidth: true; Layout.minimumWidth: 0
-                Layout.preferredHeight: LV.Theme.textCaptionLineHeight; Layout.maximumHeight: LV.Theme.textCaptionLineHeight
+                Layout.preferredHeight: Style.Tokens.metric("Theme Typography/Caption/textCaptionLineHeight"); Layout.maximumHeight: Style.Tokens.metric("Theme Typography/Caption/textCaptionLineHeight")
                 verticalAlignment: Text.AlignTop; elide: Text.ElideRight
             }
         }
@@ -133,18 +134,18 @@ Item {
             enabled: root.navigationEnabled
             tone: LV.AbstractButton.Borderless
             horizontalPadding: 0; verticalPadding: 0
-            implicitWidth: (root.showValue ? LV.Theme.scaleMetric(72) : 0) + (root.showTrailingIcon ? root.iconSize : 0) + (root.showValue && root.showTrailingIcon ? LV.Theme.gap4 : 0)
+            implicitWidth: (root.showValue ? LV.Theme.scaleMetric(72) : 0) + (root.showTrailingIcon ? root.iconSize : 0) + (root.showValue && root.showTrailingIcon ? Style.Tokens.metric("Theme Metrics/Space/4") : 0)
             implicitHeight: root.iconSize
             Accessible.name: root.label + ": " + (root.value || qsTr("Open"))
             onClicked: root.clicked()
             contentItem: LV.HStack {
-                spacing: LV.Theme.gap4
+                spacing: Style.Tokens.metric("Theme Metrics/Space/4")
                 LV.Label {
                     visible: root.showValue
-                    text: root.value; style: caption; color: LV.Theme.captionColor
+                    text: root.value; style: caption; color: Style.Tokens.color("Theme Colors/Text/captionColor")
                     horizontalAlignment: Text.AlignRight
                     Layout.preferredWidth: LV.Theme.scaleMetric(72)
-                    Layout.preferredHeight: LV.Theme.textCaptionLineHeight
+                    Layout.preferredHeight: Style.Tokens.metric("Theme Typography/Caption/textCaptionLineHeight")
                 }
                 Image {
                     visible: root.showTrailingIcon

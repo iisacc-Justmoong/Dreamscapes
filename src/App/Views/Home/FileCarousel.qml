@@ -4,6 +4,7 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
+import Dreamscapes.Style 1.0 as Style
 
 LV.VStack {
     id: root
@@ -26,17 +27,17 @@ LV.VStack {
         else root.fileRequested(file)
     }
 
-    implicitHeight: LV.Theme.controlHeightSm + spacing
+    implicitHeight: Style.Tokens.metric("Theme Metrics/Size/22") + spacing
         + (wrapCards && visibleFiles.length > 0 ? wrappedCards.implicitHeight : LV.Theme.scaleMetric(160))
-    spacing: LV.Theme.gap12
+    spacing: Style.Tokens.metric("Theme Metrics/Space/12")
 
     LV.HStack {
         Layout.fillWidth: true
-        Layout.preferredHeight: LV.Theme.controlHeightSm
+        Layout.preferredHeight: Style.Tokens.metric("Theme Metrics/Size/22")
 
         LV.Label {
             Layout.fillWidth: true
-            Layout.leftMargin: LV.Theme.gap4
+            Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/4")
             text: root.title
             style: body
             elide: Text.ElideRight
@@ -64,7 +65,7 @@ LV.VStack {
         visible: !root.wrapCards && count > 0
         model: root.visibleFiles
         orientation: ListView.Horizontal
-        spacing: LV.Theme.gap8
+        spacing: Style.Tokens.metric("Theme Metrics/Space/8")
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         activeFocusOnTab: true
@@ -128,7 +129,7 @@ LV.VStack {
         Layout.fillWidth: true
         Layout.preferredHeight: implicitHeight
         visible: root.wrapCards && root.visibleFiles.length > 0
-        spacing: LV.Theme.gap12
+        spacing: Style.Tokens.metric("Theme Metrics/Space/12")
         Repeater {
             model: root.wrapCards ? root.visibleFiles : []
             delegate: LV.Card {

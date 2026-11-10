@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import ".." as Frames
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -19,7 +20,7 @@ Item {
     visible: canvas.pagePresentation
     onVisibleChanged: if (!visible && root.project) root.project.cancelPagePreviews()
 
-    Rectangle { width: parent.width; height: 1; color: LV.Theme.panelBackground10 }
+    Rectangle { width: parent.width; height: 1; color: Style.Tokens.color("Theme Colors/Panel/surfaceInput") }
     ListView {
         id: pages
         objectName: "editorPagePreviewList"
@@ -75,14 +76,14 @@ Item {
             onClicked: if (root.project.setCurrentIndex(index)) root.canvas.forceActiveFocus()
             background: Rectangle {
                 radius: 4
-                color: preview.selected ? LV.Theme.panelBackground08 : preview.down ? LV.Theme.panelBackground06 : "transparent"
+                color: preview.selected ? Style.Tokens.color("Theme Colors/Panel/surfacePanel") : preview.down ? Style.Tokens.color("Theme Colors/Panel/surfaceAlt") : "transparent"
                 border.width: preview.selected ? 1 : 0
                 border.color: LV.Theme.accent
             }
             contentItem: Item {
                 Rectangle {
                     x: 8; y: 4; width: 72; height: 48
-                    color: LV.Theme.panelBackground06
+                    color: Style.Tokens.color("Theme Colors/Panel/surfaceAlt")
                 }
                 Image {
                     objectName: "editorPagePreviewImage" + preview.index
@@ -100,7 +101,7 @@ Item {
                     x: 4; y: 54; width: parent.width - 8; height: 14
                     text: qsTr("%1 · %2").arg(preview.index + 1).arg(preview.board.name || "")
                     style: description
-                    font.pixelSize: 10
+                    font.pixelSize: Style.Tokens.metric("Theme Typography/Caption/textCaption")
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
                 }

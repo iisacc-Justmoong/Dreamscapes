@@ -1,8 +1,11 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Shapes
 import Dreamscapes.Storage 1.0
 import LVRS 1.0 as LV
+import "LvrsEditorIcons.js" as LvrsIcons
 import ".." as Views
+import Dreamscapes.Style 1.0 as Style
 
 Column {
     id: root
@@ -15,7 +18,7 @@ Column {
     readonly property string readout: NativeData.text.readout(values)
     width: 398
     spacing: 12
-    function asset(name) { return Qt.resolvedUrl("Assets/Text/" + name + ".svg") }
+    function asset(name) { return LvrsIcons.resolve(LV.Theme, "Text", name) }
     function value(id) { return values[id] }
     function edit(id, next) { toolState.nativeModel.editText(id, next) }
     function patch(next) { toolState.nativeModel.patchText(next) }
@@ -255,7 +258,31 @@ Column {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: 34; height: 34
                     horizontalPadding: 8; verticalPadding: 8
-                    iconSource: root.asset(tile.modelData.icon)
+                    iconSource: tile.modelData.icon === "CloudBubbleEditableVector" ? "" : root.asset(tile.modelData.icon)
+                    contentItem: Item {
+                        implicitWidth: 18; implicitHeight: 18
+                        Image {
+                            objectName: "iconButton_icon"
+                            anchors.centerIn: parent
+                            width: 18; height: 18
+                            visible: tile.modelData.icon !== "CloudBubbleEditableVector"
+                            source: selectionButton3.iconSource
+                            sourceSize: Qt.size(72, 72)
+                            fillMode: Image.PreserveAspectFit
+                        }
+                        Shape {
+                            objectName: tile.modelData.icon === "CloudBubbleEditableVector" ? "textCloudGlyph" : ""
+                            anchors.centerIn: parent
+                            width: 18; height: 18
+                            visible: tile.modelData.icon === "CloudBubbleEditableVector"
+                            ShapePath {
+                                objectName: "textCloudGlyphPath"
+                                fillColor: Style.Tokens.color("Theme Colors/Text/bodyColor")
+                                strokeColor: "transparent"
+                                PathSvg { path: "M4.4 13.9C2.2 13.9 1 12.3 1 10.6C1 9 2 7.7 3.5 7.3C3.9 5.2 5.5 4 7.4 4C9.2 4 10.6 5 11.3 6.5C11.8 6.2 12.3 6.1 12.9 6.1C14.8 6.1 16.2 7.6 16.2 9.4C17.2 9.9 18 10.9 18 12.1C18 13.6 16.8 14.9 15.2 14.9H8L5.4 16.9V14.9H4.4V13.9Z" }
+                            }
+                        }
+                    }
                     tone: LV.AbstractButton.Default
                     Accessible.name: tile.modelData.name
                     Accessible.checkable: true
@@ -335,10 +362,10 @@ Column {
                 TextEdit {
                     objectName: "textContentInput"
                     anchors.fill: parent; anchors.leftMargin: 7; anchors.rightMargin: 7; anchors.topMargin: 8; anchors.bottomMargin: 8
-                    color: LV.Theme.titleHeaderColor
-                    font.family: LV.Theme.fontBody; font.pixelSize: LV.Theme.textBody; font.weight: Font.Medium
+                    color: Style.Tokens.color("Theme Colors/Text/titleHeaderColor")
+                    font.family: LV.Theme.fontBody; font.pixelSize: Style.Tokens.metric("Theme Typography/Body/textBody"); font.weight: Style.Tokens.metric("Theme Typography/Weight/Medium")
                     selectionColor: LV.Theme.accent
-                    selectedTextColor: LV.Theme.titleHeaderColor
+                    selectedTextColor: Style.Tokens.color("Theme Colors/Text/titleHeaderColor")
                     text: root.value("field-0")
                     wrapMode: TextEdit.Wrap; selectByMouse: true; clip: true
                     Accessible.name: qsTr("Text content")
@@ -362,7 +389,7 @@ Column {
                             required property var modelData
                             width: (roleRow.width - 8) / 2
                             height: Math.max(NativeData.text.roles[roleRow.index * 2].size, NativeData.text.roles[roleRow.index * 2 + 1].size) + 46
-                            color: LV.Theme.panelBackground08; radius: LV.Theme.radiusMd
+                            color: Style.Tokens.color("Theme Colors/Panel/surfacePanel"); radius: Style.Tokens.metric("Theme Metrics/Radius/8")
                             Column {
                                 anchors.fill: parent; anchors.margins: 8; spacing: 8
                                 LV.Label { width: parent.width; height: roleTile.height - 46; text: roleTile.modelData.name; style: roleTile.modelData.style }
@@ -427,15 +454,15 @@ Column {
             Column {
                 width: parent.width - 90; spacing: 4
                 LV.Label { width: parent.width; height: 13; style: body; text: root.value("field-1") }
-                LV.Label { width: parent.width; height: 11; style: caption; color: LV.Theme.bodyColor; text: root.readout }
+                LV.Label { width: parent.width; height: 11; style: caption; color: Style.Tokens.color("Theme Colors/Text/bodyColor"); text: root.readout }
             }
         }
-        LV.Label { visible: root.panelIndex === 2; x: 12; y: 12; width: parent.width - 24; height: 11; style: caption; color: LV.Theme.bodyColor; text: "Canvas · " + (root.engine && root.engine.editingHeight > 0 ? (root.engine.editingWidth / root.engine.editingHeight > 1.6 ? "16:9" : root.engine.editingWidth + ":" + root.engine.editingHeight) : "16:9") }
+        LV.Label { visible: root.panelIndex === 2; x: 12; y: 12; width: parent.width - 24; height: 11; style: caption; color: Style.Tokens.color("Theme Colors/Text/bodyColor"); text: "Canvas · " + (root.engine && root.engine.editingHeight > 0 ? (root.engine.editingWidth / root.engine.editingHeight > 1.6 ? "16:9" : root.engine.editingWidth + ":" + root.engine.editingHeight) : "16:9") }
         Rectangle {
             visible: root.panelIndex === 3
             x: parent.width * 0.18; y: 20; width: parent.width * 0.64; height: 40
             radius: root.value("field-10") === "Sharp" ? 0 : Number(root.value("textCornerRadius"))
-            color: Qt.rgba(0.17, 0.17, 0.17, root.value("field-6") / 100)
+            color: Qt.rgba(Style.Tokens.color("Theme Colors/Panel/surfaceControl").r, Style.Tokens.color("Theme Colors/Panel/surfaceControl").g, Style.Tokens.color("Theme Colors/Panel/surfaceControl").b, root.value("field-6") / 100)
         }
         LV.Label {
             visible: root.panelIndex !== 1
@@ -443,7 +470,7 @@ Column {
             y: root.panelIndex === 3 ? 29 : String(root.value("field-5")).indexOf("Top") === 0 ? 28 : String(root.value("field-5")).indexOf("Bottom") === 0 ? 48 : 38
             style: body
             text: root.panelIndex === 3 && root.value("field-0") === "Enter your text…" ? qsTr("Your words, in focus") : root.value("field-0")
-            color: root.panelIndex === 3 ? NativeData.text.fillColor(root.value("textFill"), root.value("textCustomFill")) : LV.Theme.bodyColor
+            color: root.panelIndex === 3 ? NativeData.text.fillColor(root.value("textFill"), root.value("textCustomFill")) : Style.Tokens.color("Theme Colors/Text/bodyColor")
             opacity: root.panelIndex === 3 ? root.value("textOpacity") / 100 : 1
             horizontalAlignment: root.panelIndex === 3 || NativeData.presentation.indexOf(["Bottom", "Center", "Top"], root.value("field-5")) >= 0 ? Text.AlignHCenter : String(root.value("field-5")).indexOf("right") >= 0 || root.value("field-5") === "Right" ? Text.AlignRight : Text.AlignLeft
             elide: Text.ElideRight

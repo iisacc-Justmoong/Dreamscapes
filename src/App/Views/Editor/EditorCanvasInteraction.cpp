@@ -157,7 +157,7 @@ void EditorCanvas::updateSelectionOutline(const QImage &prepared) {
     m_selectionOutline = m_selectionOutline.simplified();
     notifyInteractionFeedback();
 }
-void EditorCanvas::paintInteractionFeedback(QPainter *painter, qreal dashOffset) const {
+void EditorCanvas::paintInteractionFeedback(QPainter *painter, qreal dashOffset, const QColor &light, const QColor &dark, const QColor &gestureColor) const {
     if (!painter || !documentReady()) return;
     painter->save(); painter->setRenderHint(QPainter::Antialiasing);
     const auto mapping = feedbackTransform();
@@ -166,8 +166,8 @@ void EditorCanvas::paintInteractionFeedback(QPainter *painter, qreal dashOffset)
         painter->save();
         // Pixel-aligned ants keep black and white distinct on either backdrop.
         painter->setRenderHint(QPainter::Antialiasing, false);
-        QPen pen(Qt::white, 2); painter->setPen(pen); painter->setBrush(Qt::NoBrush); painter->drawPath(path);
-        pen.setColor(QColor("#202020")); pen.setWidthF(1); pen.setDashPattern({4, 4}); pen.setDashOffset(dashOffset);
+        QPen pen(light, 2); painter->setPen(pen); painter->setBrush(Qt::NoBrush); painter->drawPath(path);
+        pen.setColor(dark); pen.setWidthF(1); pen.setDashPattern({4, 4}); pen.setDashOffset(dashOffset);
         painter->setPen(pen); painter->drawPath(path);
         painter->restore();
     };
@@ -177,20 +177,20 @@ void EditorCanvas::paintInteractionFeedback(QPainter *painter, qreal dashOffset)
     const auto gesture = mapping.map(gestureFeedbackPath());
     if (!gesture.isEmpty()) {
         const bool trail = m_tool == "retouch" || m_tool == "eraser" || (m_tool == "masking" && m_toolValues.value("selector", "Brush").toString() == "Brush");
-        if (m_creatingElement || trail) painter->fillPath(gesture, QColor(64, 150, 243, 35));
+        if (m_creatingElement || trail) painter->fillPath(gesture, gestureColor);
         ants(gesture);
     }
     painter->restore();
     const auto cursor = brushFeedbackPath();
     if (!cursor.isEmpty()) {
-        painter->setBrush(Qt::NoBrush); painter->setPen(QPen(QColor("#202020"), 3)); painter->drawPath(cursor);
-        painter->setPen(QPen(Qt::white, 1)); painter->drawPath(cursor);
+        painter->setBrush(Qt::NoBrush); painter->setPen(QPen(dark, 3)); painter->drawPath(cursor);
+        painter->setPen(QPen(light, 1)); painter->drawPath(cursor);
         if (cursor.boundingRect().width() < 8 || m_tool == "retouch"
             || cursor.boundingRect().width() > width() || cursor.boundingRect().height() > height()) {
             QPainterPath center; center.moveTo(m_feedbackPointer + QPointF(-4, 0)); center.lineTo(m_feedbackPointer + QPointF(4, 0));
             center.moveTo(m_feedbackPointer + QPointF(0, -4)); center.lineTo(m_feedbackPointer + QPointF(0, 4));
-            painter->setPen(QPen(QColor("#202020"), 3)); painter->drawPath(center);
-            painter->setPen(QPen(Qt::white, 1)); painter->drawPath(center);
+            painter->setPen(QPen(dark, 3)); painter->drawPath(center);
+            painter->setPen(QPen(light, 1)); painter->drawPath(center);
         }
     }
     painter->restore();

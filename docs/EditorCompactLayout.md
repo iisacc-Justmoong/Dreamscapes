@@ -9,7 +9,7 @@
 패널마다 네 변을 모두 칠하면 맞닿은 경계가 두 논리 픽셀이 된다.
 `PanelFrame`의 `topEdge`, `rightEdge`, `bottomEdge`, `leftEdge`로 각 변의
 소유권을 지정한다. 기본값은 모두 true이므로 독립 패널의 기존 계약을 유지한다.
-색상은 LVRS `Theme.accentGrayMuted`, 폭은 한 논리 픽셀, 패널 반경은 0이다.
+색상은 LVRS `Theme.canvas`, 폭은 한 논리 픽셀, 패널 반경은 0이다.
 
 | 경계 | 한 번만 그리는 주체 |
 |---|---|
@@ -28,9 +28,8 @@
 
 데스크톱의 18개 도구는 LVRS `IconButton`을 사용한다. 이는 `PushButton`의
 아이콘 모드이며 기본 크기 22×22px, 아이콘 슬롯 18px를 그대로 사용한다.
-30px 도구 모음에 좌우 4px 여백을 둔다. 기존 유색 아이콘은 Figma의 18px
-컴포넌트 원본을 SVG로 내보내 `Assets/tool-*.svg`에 저장했다. 내부 16px
-벡터와 여백을 유지하므로 버튼 내부에서 원본 도형의 비율을 변경하지 않는다.
+30px 도구 모음에 좌우 4px 여백을 둔다. 18개 아이콘은 같은 역할의 공통
+LVRS 아이콘을 사용하며, 제품 전용 유색 SVG와 별도 팔레트는 제거했다.
 
 선택·hover·press는 버튼 상태로 표현하며 `tone=Default`를 변경하지 않는다.
 기존 `EditorButtonState`를 공유하여 선택을 Default의 pressed 표면에 연결한다.
@@ -59,7 +58,7 @@ Figma 예시의 트랙이나 클립을 앱에 생성하지 않는다.
 - 키프레임 위치·값·삭제, 트랙 이름, 상태·오류·뷰 범위
 
 레이어·오디오 추가, 프레임 소스 선택과 기존 트랙 메뉴도 유지한다.
-플레이헤드는 원본 Figma SVG와 같은 파란색 `#548af7`을 사용하며 드래그는 기존 C++ scrub 명령을
+플레이헤드는 LVRS `Accent/Blue/Default`를 사용하며 드래그는 기존 C++ scrub 명령을
 호출한다. 재생·클립 이동·트림·키프레임·곡선·오디오 경로를 대체하지 않는다.
 옵션 입력 필드의 유리 표면은 안정적인 ApplicationWindow 배경을 공유하므로,
 행을 옵션 창으로 배치할 때 입력 필드의 부모 탐색과 배경 판정이 서로 재평가되지 않는다.
@@ -72,7 +71,7 @@ Figma 예시의 트랙이나 클립을 앱에 생성하지 않는다.
 ## 검증
 
 `Dreamscapes.PanelFrames`는 공유 경계가 한 픽셀인지 실제 렌더링으로 검사하고,
-22px 도구 버튼과 18px 원본 SVG의 로드, 추가 옵션의 기존 명령, 옵션 열기·닫기와
+22px 도구 버튼과 18px 공통 LVRS 아이콘의 로드, 추가 옵션의 기존 명령, 옵션 열기·닫기와
 모드 전환의 문서 불변성을 검사한다. `Dreamscapes.TimelineViewport`는 32px
 눈금 아래의 클립 클릭이 눈금 클릭으로 판정되지 않는지 검사한다.
 `Dreamscapes.EditorLayerTimeline`은 눈금 높이 변경의 파일·revision·Undo 불변성과

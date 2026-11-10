@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Layouts
 import Qt.labs.folderlistmodel
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 LV.Modal {
     id: root
@@ -44,10 +45,10 @@ LV.Modal {
         showOnlyReadable: true
     }
     contentComponent: LV.VStack {
-        spacing: LV.Theme.gap8
+        spacing: Style.Tokens.metric("Theme Metrics/Space/8")
         LV.HStack {
             Layout.fillWidth: true
-            spacing: LV.Theme.gap8
+            spacing: Style.Tokens.metric("Theme Metrics/Space/8")
             LV.PushButton {
                 objectName: "preferencesFolderUp"
                 text: qsTr("Up")

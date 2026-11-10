@@ -17,7 +17,7 @@ ApplicationWindow(title: "Dreamscapes · Results", width: 1440, height: 900) {
              selectionMode: .multiple, selectOnMove: false, selectOnClick: false,
              onActivate: vm.activate) {
             VStack(id: "result", spacing: 4, alignment: .stretch) {
-                Image(id: "thumbnail", source: item.thumbnail, width: 152, height: 132, fit: .Cover)
+                Image(id: "thumbnail", source: item.token, width: 152, height: 132, fit: .Cover)
                 Label(id: "title", text: item.title, style: .caption)
                 Label(id: "review", text: item.reviewLabel, style: .caption)
             }

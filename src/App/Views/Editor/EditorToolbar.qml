@@ -3,6 +3,7 @@ import QtQuick
 import Dreamscapes.Storage 1.0
 import ".." as Frames
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Rectangle {
     id: root
@@ -24,24 +25,24 @@ Rectangle {
     signal toolSelected(string toolId)
 
     readonly property var tools: [
-        { key: "elements", label: qsTr("Elements"), iconWidth: 18.1, iconHeight: 18.1, iconX: 1.95, iconY: 1.95 },
-        { key: "text", label: qsTr("Text"), iconWidth: 14.4333, iconHeight: 18.1, iconX: 3.7833, iconY: 1.95 },
-        { key: "camera-photo", label: qsTr("Camera/Photo"), iconWidth: 16.2667, iconHeight: 16.2667, iconX: 2.8667, iconY: 2.8667 },
-        { key: "file", label: qsTr("File"), iconWidth: 13.5167, iconHeight: 19.9333, iconX: 4.7, iconY: 1.0333 },
-        { key: "background", label: qsTr("Background"), iconWidth: 18.1, iconHeight: 16.2667, iconX: 1.95, iconY: 2.8667 },
-        { key: "audio-track", label: qsTr("Audio track"), iconWidth: 16.2667, iconHeight: 18.1, iconX: 1.95, iconY: 1.95 },
-        { key: "canvas", label: qsTr("Canvas"), iconWidth: 18.1, iconHeight: 18.1, iconX: 1.95, iconY: 1.95 },
-        { key: "generative", label: qsTr("Generative"), iconWidth: 20.85, iconHeight: 19.9333, iconX: 0.1167, iconY: 1.0333 },
-        { key: "layers", label: qsTr("Layers"), iconWidth: 18.1003, iconHeight: 18.1, iconX: 1.95, iconY: 1.95 },
-        { key: "select", label: qsTr("Select"), iconWidth: 18.1, iconHeight: 18.1, iconX: 1.95, iconY: 1.95 },
-        { key: "color", label: qsTr("Color"), iconWidth: 18.1, iconHeight: 18.1, iconX: 1.95, iconY: 1.95 },
-        { key: "effects", label: qsTr("Effects"), iconWidth: 18.1, iconHeight: 18.1, iconX: 1.0333, iconY: 1.0333 },
-        { key: "retouch", label: qsTr("Retouch"), iconWidth: 16.5352, iconHeight: 14.9703, iconX: 1.6816, iconY: 1.6816 },
-        { key: "fill", label: qsTr("Fill"), iconWidth: 16.725, iconHeight: 18.1, iconX: 1.95, iconY: 1.95 },
-        { key: "brush", label: qsTr("Brush"), iconWidth: 17.1833, iconHeight: 17.1833, iconX: 1.95, iconY: 2.8667 },
-        { key: "auto-enhance", label: qsTr("Adjust"), iconWidth: 18.1, iconHeight: 18.1, iconX: 1.95, iconY: 1.95 },
-        { key: "masking", label: qsTr("Masking"), iconWidth: 19.9333, iconHeight: 14.4333, iconX: 1.0333, iconY: 3.7833 },
-        { key: "eraser", label: qsTr("Eraser"), iconWidth: 16.2667, iconHeight: 15.35, iconX: 2.8667, iconY: 3.7833 }
+        { key: "elements", icon: "rectangle", label: qsTr("Elements") },
+        { key: "text", icon: "text", label: qsTr("Text") },
+        { key: "camera-photo", icon: "panel-camera-live", label: qsTr("Camera/Photo") },
+        { key: "file", icon: "document-properties", label: qsTr("File") },
+        { key: "background", icon: "background", label: qsTr("Background") },
+        { key: "audio-track", icon: "audio-track", label: qsTr("Audio track") },
+        { key: "canvas", icon: "canvas-size", label: qsTr("Canvas") },
+        { key: "generative", icon: "spark", label: qsTr("Generative") },
+        { key: "layers", icon: "panel-layers-stack", label: qsTr("Layers") },
+        { key: "select", icon: "direct-select", label: qsTr("Select") },
+        { key: "color", icon: "color", label: qsTr("Color") },
+        { key: "effects", icon: "effect-stack", label: qsTr("Effects") },
+        { key: "retouch", icon: "panel-retouch-heal", label: qsTr("Retouch") },
+        { key: "fill", icon: "fill", label: qsTr("Fill") },
+        { key: "brush", icon: "brush", label: qsTr("Brush") },
+        { key: "auto-enhance", icon: "auto-tone", label: qsTr("Adjust") },
+        { key: "masking", icon: "layer-mask", label: qsTr("Masking") },
+        { key: "eraser", icon: "eraser", label: qsTr("Eraser") }
     ]
 
     function focusCurrent() {
@@ -78,7 +79,7 @@ Rectangle {
         width: Math.max(0, parent.width - x * 2)
         height: root.mobileLayout ? 68 : Math.max(0, root.height - y * 2)
         orientation: root.mobileLayout ? ListView.Horizontal : ListView.Vertical
-        spacing: LV.Theme.gap4
+        spacing: Style.Tokens.metric("Theme Metrics/Space/4")
         model: root.tools
         clip: true
         boundsBehavior: Flickable.StopAtBounds
@@ -104,7 +105,7 @@ Rectangle {
             Rectangle {
                 visible: host.groupOffset > 0
                 x: 1; width: 20; height: 1
-                color: LV.Theme.panelBackground08
+                color: Style.Tokens.color("Theme Colors/Panel/surfacePanel")
             }
             Loader {
                 id: buttonLoader
@@ -117,8 +118,8 @@ Rectangle {
                     LV.IconButton {
                         id: desktopTool
                         objectName: "editorTool-" + host.modelData.key
-                        iconName: host.modelData.key
-                        iconSource: Qt.resolvedUrl("Assets/tool-" + host.modelData.key + ".svg")
+                        iconName: host.modelData.icon
+                        iconSource: LV.Theme.iconPath(iconName)
                         tone: LV.AbstractButton.Default
                         autoExclusive: true
                         readonly property bool selected: toolList.currentIndex === host.index
@@ -147,13 +148,13 @@ Rectangle {
             width: LV.Theme.scaleMetric(root.mobileLayout ? 86 : 36)
             height: LV.Theme.scaleMetric(root.mobileLayout ? 68 : 36)
             text: modelData.label
-            iconName: modelData.key
-            iconSource: Qt.resolvedUrl("Assets/" + modelData.key + ".svg")
+            iconName: modelData.icon
+            iconSource: LV.Theme.iconPath(iconName)
             selected: toolList.currentIndex === index
             navigationBar: root
             tabIndex: index
             tabStyle: LV.Tab.Surface
-            cornerRadius: LV.Theme.radiusLg
+            cornerRadius: Style.Tokens.metric("Theme Metrics/Radius/12")
             horizontalPadding: 0
             verticalPadding: 0
             bottomPadding: 0
@@ -179,11 +180,11 @@ Rectangle {
 
             background: Rectangle {
                 radius: tool.cornerRadius
-                color: tool.selected ? LV.Theme.panelBackground10
-                    : tool.down ? LV.Theme.panelBackground08
-                    : tool.hovered ? LV.Theme.panelBackground06 : "transparent"
+                color: tool.selected ? Style.Tokens.color("Theme Colors/Panel/surfaceInput")
+                    : tool.down ? Style.Tokens.color("Theme Colors/Panel/surfacePanel")
+                    : tool.hovered ? Style.Tokens.color("Theme Colors/Panel/surfaceAlt") : "transparent"
                 border.width: tool.selected ? 1 : 0
-                border.color: LV.Theme.panelBackground08
+                border.color: Style.Tokens.color("Theme Colors/Panel/surfacePanel")
             }
             contentItem: Item {
                 Item {
@@ -194,10 +195,9 @@ Rectangle {
                     height: width
                     Image {
                         objectName: "editorToolIcon"
-                        x: LV.Theme.scaleRealMetric(tool.modelData.iconX)
-                        y: LV.Theme.scaleRealMetric(tool.modelData.iconY)
-                        width: LV.Theme.scaleRealMetric(tool.modelData.iconWidth)
-                        height: LV.Theme.scaleRealMetric(tool.modelData.iconHeight)
+                        anchors.centerIn: parent
+                        width: LV.Theme.iconSm
+                        height: LV.Theme.iconSm
                         source: tool.iconSource
                         sourceSize: Qt.size(width * Screen.devicePixelRatio, height * Screen.devicePixelRatio)
                         fillMode: Image.PreserveAspectFit
@@ -207,18 +207,18 @@ Rectangle {
                 LV.Label {
                     objectName: "editorToolLabel"
                     visible: root.mobileLayout
-                    x: LV.Theme.gap4
+                    x: Style.Tokens.metric("Theme Metrics/Space/4")
                     y: LV.Theme.scaleMetric(43)
                     width: LV.Theme.scaleMetric(78)
                     height: LV.Theme.scaleMetric(11)
                     text: tool.text
                     style: caption
-                    font.pixelSize: LV.Theme.scaleMetric(9)
-                    font.weight: Font.Medium
-                    font.styleName: "Medium"
-                    lineHeight: LV.Theme.scaleMetric(11)
+                    font.pixelSize: Style.Tokens.metric("Theme Typography/Caption/textCaption")
+                    font.weight: Style.Tokens.metric("Theme Typography/Weight/Medium")
+                    font.styleName: LV.Theme.textBodyStyleName
+                    lineHeight: Style.Tokens.metric("Theme Typography/Caption/textCaptionLineHeight")
                     horizontalAlignment: Text.AlignHCenter
-                    color: tool.selected ? LV.Theme.textTokenTitleHeader : LV.Theme.textTokenCaption
+                    color: tool.selected ? Style.Tokens.color("Theme Colors/Text/titleHeaderColor") : Style.Tokens.color("Theme Colors/Text/captionColor")
                     Accessible.ignored: true
                 }
             }

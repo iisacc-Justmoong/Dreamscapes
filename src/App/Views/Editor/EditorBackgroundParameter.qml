@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Dreamscapes.Storage 1.0
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Column {
     id: root
@@ -50,8 +51,8 @@ Column {
         LV.Label {
             visible: root.title.length > 0
             width: parent.width - control.width - 8
-            height: 22; style: body; font.weight: Font.Normal; font.styleName:"Regular"
-            color: LV.Theme.bodyColor; text: root.title; verticalAlignment: Text.AlignVCenter
+            height: 22; style: body; font.weight: Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName
+            color: Style.Tokens.color("Theme Colors/Text/bodyColor"); text: root.title; verticalAlignment: Text.AlignVCenter
         }
         Item {
             id: control
@@ -87,7 +88,7 @@ Column {
         Accessible.name: root.title
         onMoved: root.edited(value)
     }
-    LV.Label { visible: root.type === "choices" && root.title.length; width: parent.width; height: 18; style: body; font.weight: Font.Normal; font.styleName:"Regular"; color: LV.Theme.bodyColor; text: root.title }
+    LV.Label { visible: root.type === "choices" && root.title.length; width: parent.width; height: 18; style: body; font.weight: Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName:LV.Theme.textCaptionStyleName; color: Style.Tokens.color("Theme Colors/Text/bodyColor"); text: root.title }
     Flow {
         visible: root.type === "choices"; width: parent.width; spacing: 8
         Repeater {

@@ -5,6 +5,7 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
+import Dreamscapes.Style 1.0 as Style
 import "../Editor" as Editor
 
 FocusScope {
@@ -91,7 +92,7 @@ FocusScope {
         implicitWidth:24; implicitHeight:24; width:24; height:24
         LV.IconButton {
             id:iconButton; objectName:iconControl.objectName+"Button"
-            anchors.centerIn:parent; iconSize:16; iconSource:Qt.resolvedUrl("Assets/"+iconControl.asset+".svg")
+            anchors.centerIn:parent; iconSize:16; iconSource:LV.Theme.iconPath(iconControl.asset)
             tone:LV.AbstractButton.Default; Accessible.name:iconControl.tooltip
             Editor.EditorButtonState { button:iconButton; selectable:iconControl.selectable; selected:iconControl.selected }
             onClicked:iconControl.clicked()
@@ -113,11 +114,11 @@ FocusScope {
                     x:8; y:0; width:Math.max(775,parent.width-16); height:parent.height; spacing:8
                     LV.Label { text:qsTr("Timeline"); style:body }
                     HeaderButton { objectName:"videoAddShot"; Layout.preferredWidth:70; text:qsTr("+ Layer"); onClicked:root.stateModel.addShot() }
-                    Rectangle { Layout.preferredWidth:1; Layout.preferredHeight:16; color:LV.Theme.panelBackground12 }
-                    TimelineIcon { asset:"first"; tooltip:qsTr("First frame"); onClicked:root.seekFrame(0) }
-                    TimelineIcon { asset:"previous"; tooltip:qsTr("Previous frame"); onClicked:root.seekFrame(root.stateModel.playhead-1) }
+                    Rectangle { Layout.preferredWidth:1; Layout.preferredHeight:16; color:Style.Tokens.color("Theme Colors/Panel/surfaceRaised") }
+                    TimelineIcon { asset:"playFirst"; tooltip:qsTr("First frame"); onClicked:root.seekFrame(0) }
+                    TimelineIcon { asset:"previous-frame"; tooltip:qsTr("Previous frame"); onClicked:root.seekFrame(root.stateModel.playhead-1) }
                     TimelineIcon { objectName:"videoTimelinePlay"; asset:"play"; tooltip:root.playing ? qsTr("Pause timeline") : qsTr("Play timeline"); enabled:root.playbackAvailable; onClicked:root.playing=!root.playing }
-                    TimelineIcon { asset:"next"; tooltip:qsTr("Next frame"); onClicked:root.seekFrame(root.stateModel.playhead+1) }
+                    TimelineIcon { asset:"next-frame"; tooltip:qsTr("Next frame"); onClicked:root.seekFrame(root.stateModel.playhead+1) }
                     Button { objectName:"videoTimecode"; text:qsTr("%1 · %2").arg(root.timecode(root.stateModel.playhead)).arg(root.frameLabel(root.stateModel.playhead)); tone:LV.AbstractButton.Borderless }
                     TimelineIcon { objectName:"videoTimelineLoop"; asset:"loop"; tooltip:qsTr("Loop playback"); selectable:true; selected:root.loopPlayback; onClicked:root.loopPlayback=!root.loopPlayback }
                     Item { Layout.fillWidth:true; Layout.minimumWidth:0 }
@@ -138,7 +139,7 @@ FocusScope {
                     LV.InputField { objectName:"videoTimelineOut"; Layout.preferredWidth:68; text:root.hasContent ? root.frameLabel(root.stateModel.markOut) : "—"; enabled:root.hasContent; clearButtonVisible:false; onAccepted:function(value){root.setRange("markOut",value)} }
                     LV.Label { text:qsTr("Duration"); style:caption }
                     LV.InputField { Layout.preferredWidth:68; text:root.hasContent ? String(root.stateModel.markOut-root.stateModel.markIn+1)+"f" : "—"; enabled:false; clearButtonVisible:false }
-                    Rectangle { Layout.preferredWidth:1; Layout.preferredHeight:16; color:LV.Theme.panelBackground12 }
+                    Rectangle { Layout.preferredWidth:1; Layout.preferredHeight:16; color:Style.Tokens.color("Theme Colors/Panel/surfaceRaised") }
                     TimelineIcon { objectName:"videoTimelineSnap"; asset:"snap"; tooltip:qsTr("Snap to frames"); selectable:true; selected:root.stateModel.snap; onClicked:root.stateModel.snap=!root.stateModel.snap }
                     LV.ComboBox { objectName:"videoSnapInterval"; text:qsTr("%1 frame%2").arg(root.snapStep).arg(root.snapStep===1 ? "" : "s"); arrow:LV.Stepper.Down; tone:LV.AbstractButton.Borderless; onClicked:snapMenu.openFor(this,0,height) }
                     TimelineIcon { objectName:"videoTimelineLink"; asset:"link"; tooltip:qsTr("Link selection"); selectable:true; selected:root.stateModel.linked; onClicked:root.stateModel.linked=!root.stateModel.linked }
@@ -195,10 +196,10 @@ FocusScope {
                 Button { objectName:"videoRemoveTrack"; height:24; text:qsTr("− Track"); Accessible.name:qsTr("Remove track"); onClicked:root.stateModel.removeTrack(root.stateModel.selectedTrackId) }
                 LV.ComboBox { objectName:"videoClipTrackDestination"; width:160; height:24; arrow:LV.Stepper.Down; visible:!!root.stateModel.selectedShot.id || !!root.stateModel.selectedKey.id; text:qsTr("Track: %1").arg(root.stateModel.track(root.stateModel.selectedShot.trackId || root.stateModel.selectedKey.trackId).name || ""); onClicked:clipTrackMenu.openFor(this,0,height) }
             }
-            LV.Label { id:trackError; objectName:"videoTrackError"; x:8; y:trackControls.visible ? trackControls.y+trackControls.height+4 : tools.y+tools.height+6; width:parent.width-16; visible:root.stateModel.error.length>0; text:root.stateModel.error; style:caption; color:LV.Theme.accentRed; wrapMode:Text.Wrap }
+            LV.Label { id:trackError; objectName:"videoTrackError"; x:8; y:trackControls.visible ? trackControls.y+trackControls.height+4 : tools.y+tools.height+6; width:parent.width-16; visible:root.stateModel.error.length>0; text:root.stateModel.error; style:caption; color:Style.Tokens.color("Theme Colors/Accent/Red/Default"); wrapMode:Text.Wrap }
             LV.Label { x:8; y:root.rulerY+10; width:root.gutter-16; text:qsTr("%1 fps · Frames").arg(Number(root.stateModel.fps.toFixed(3))); style:caption; elide:Text.ElideRight }
             LV.Label { x:8; y:root.rulerY+46; visible:root.stateModel.tracks.length===0; text:qsTr("Layers  %1").arg(root.stateModel.tracks.length); style:body }
-            LV.IconButton { objectName:"videoAddTrack"; x:root.gutter-30; y:root.rulerY+42; iconSize:16; iconSource:Qt.resolvedUrl("Assets/add.svg"); tone:LV.AbstractButton.Default; Accessible.name:qsTr("Add track"); onClicked:addTrackMenu.openFor(this,0,height) }
+            LV.IconButton { objectName:"videoAddTrack"; x:root.gutter-30; y:root.rulerY+42; iconSize:16; iconSource:LV.Theme.iconPath("generaladd"); tone:LV.AbstractButton.Default; Accessible.name:qsTr("Add track"); onClicked:addTrackMenu.openFor(this,0,height) }
             Repeater { model:root.trackLayout; delegate:TrackHeading { required property var modelData; trackData:modelData; y:root.rulerY+modelData.top; height:modelData.height } }
             Flickable {
                 id: lanes
@@ -227,16 +228,16 @@ FocusScope {
                                 readonly property int frame:frameRuler.firstFrame+index*frameRuler.minorStep
                                 objectName:"videoTimelineTick-"+frame
                                 x:frame*root.pixelsPerFrame; width:root.pixelsPerFrame; height:32
-                                LV.Label { x:3; y:2; text:root.frameLabel(parent.frame); visible:parent.frame%frameRuler.majorStep===0; style:caption; color:LV.Theme.captionColor }
-                                Rectangle { x:0; y:parent.frame%frameRuler.majorStep===0 ? 18 : 24; height:parent.frame%frameRuler.majorStep===0 ? 12 : 6; width:1; color:LV.Theme.captionColor }
+                                LV.Label { x:3; y:2; text:root.frameLabel(parent.frame); visible:parent.frame%frameRuler.majorStep===0; style:caption; color:Style.Tokens.color("Theme Colors/Text/captionColor") }
+                                Rectangle { x:0; y:parent.frame%frameRuler.majorStep===0 ? 18 : 24; height:parent.frame%frameRuler.majorStep===0 ? 12 : 6; width:1; color:Style.Tokens.color("Theme Colors/Text/captionColor") }
                             }
                         }
-                        Rectangle { objectName:"videoRulerBaseline"; y:30; width:parent.width; height:1; color:LV.Theme.accentYellow }
+                        Rectangle { objectName:"videoRulerBaseline"; y:30; width:parent.width; height:1; color:Style.Tokens.color("Theme Colors/Accent/Yellow/Default") }
 
                         MouseArea { anchors.fill:parent; onPressed:function(mouse){ root.forceActiveFocus(); root.seekFrame(mouse.x/root.pixelsPerFrame,true) }; onPositionChanged:function(mouse){ if(pressed) root.seekFrame(mouse.x/root.pixelsPerFrame,true) } }
                     }
                     Item { y:32; width:parent.width; height:164; visible:root.stateModel.tracks.length===0
-                        Repeater { model:frameRuler.gridCount; delegate:Rectangle { required property int index; x:(frameRuler.firstMajor+index*frameRuler.majorStep)*root.pixelsPerFrame; width:1; height:parent.height; color:LV.Theme.panelBackground08 } }
+                        Repeater { model:frameRuler.gridCount; delegate:Rectangle { required property int index; x:(frameRuler.firstMajor+index*frameRuler.majorStep)*root.pixelsPerFrame; width:1; height:parent.height; color:Style.Tokens.color("Theme Colors/Panel/surfacePanel") } }
                         LV.Label { objectName:"videoTimelineEmptyState"; visible:false; text:qsTr("No tracks"); style:caption }
                     }
                     Repeater {
@@ -245,15 +246,15 @@ FocusScope {
                             id:trackRow
                             required property var modelData
                             objectName:"videoTrackRow-"+modelData.id
-                            y:modelData.top; width:laneContent.width; height:modelData.height; color:LV.Theme.panelBackground02
+                            y:modelData.top; width:laneContent.width; height:modelData.height; color:Style.Tokens.color("Theme Colors/Panel/surfaceGhost")
                             MouseArea { anchors.fill:parent; onClicked:root.stateModel.selectTrack(trackRow.modelData.id) }
-                            Repeater { model:frameRuler.gridCount; delegate:Rectangle { required property int index; objectName:"videoTrackGrid-"+trackRow.modelData.id+"-"+index; x:(frameRuler.firstMajor+index*frameRuler.majorStep)*root.pixelsPerFrame; width:1; height:trackRow.height; color:LV.Theme.panelBackground08 } }
+                            Repeater { model:frameRuler.gridCount; delegate:Rectangle { required property int index; objectName:"videoTrackGrid-"+trackRow.modelData.id+"-"+index; x:(frameRuler.firstMajor+index*frameRuler.majorStep)*root.pixelsPerFrame; width:1; height:trackRow.height; color:Style.Tokens.color("Theme Colors/Panel/surfacePanel") } }
                             Item {
                                 id: shotLane
                                 objectName:"videoShotLane-"+trackRow.modelData.id
                                 width:parent.width; height:56; visible:trackRow.modelData.type==="Shots"
                                 LV.Label { objectName:"videoShotEmptyState-"+trackRow.modelData.id; x:12; anchors.verticalCenter:parent.verticalCenter; visible:{ root.stateModel.shots; return root.stateModel.trackShots(trackRow.modelData.id).length===0 }
-                                text:qsTr("No shots"); style:caption; color:LV.Theme.textSecondary }
+                                text:qsTr("No shots"); style:caption; color:Style.Tokens.color("Theme Colors/Text/bodyColor") }
                                 Repeater {
                                     model:{ root.stateModel.shots; return root.stateModel.trackShots(trackRow.modelData.id) }
                                     delegate:Rectangle {
@@ -267,7 +268,7 @@ FocusScope {
                                         width:Math.max(1,modelData.frames*root.pixelsPerFrame-4); height:50; y:3
                                         radius:12; clip:true
                                         visible:root.stateModel.filter==="All" || (root.stateModel.filter==="Out" ? modelData.excluded : !modelData.excluded)
-                                        color:LV.Theme.panelBackground01; border.width:selected ? 2 : 1; border.color:selected ? LV.Theme.accent : LV.Theme.panelBackground12
+                                        color:Style.Tokens.color("Theme Colors/Panel/canvas"); border.width:selected ? 2 : 1; border.color:selected ? LV.Theme.accent : Style.Tokens.color("Theme Colors/Panel/surfaceRaised")
                                         opacity:modelData.excluded ? .35 : 1
                                         Image { objectName:"videoShotReference-"+shot.modelData.id; anchors.fill:parent; source:displayPreviews.sourceForUrl(shot.referenceSource || ""); asynchronous:true; sourceSize:Qt.size(Math.ceil(width*Screen.devicePixelRatio),Math.ceil(height*Screen.devicePixelRatio)); fillMode:Image.PreserveAspectCrop; opacity:.18 }
                                         LV.Label { x:12; y:4; width:Math.max(0,parent.width-24); text:{ root.stateModel.shots; return String(root.stateModel.shotIndex(shot.modelData.id)+1).padStart(2,"0")+" / "+shot.modelData.name }
@@ -294,14 +295,14 @@ FocusScope {
                             }
                             Button { x:8; anchors.verticalCenter:parent.verticalCenter; visible:{ root.stateModel.keys; return trackRow.modelData.type==="Contents" && root.stateModel.trackKeys(trackRow.modelData.id).length===0 }
                                 text:qsTr("+ Image keyframe"); tone:LV.AbstractButton.Borderless; onClicked:root.chooseKeyframe(root.stateModel.playhead,trackRow.modelData.id) }
-                            LV.Label { x:12; anchors.verticalCenter:parent.verticalCenter; text:trackRow.modelData.type==="Caption" ? qsTr("No captions") : qsTr("No audio"); style:caption; color:LV.Theme.textSecondary; visible:trackRow.modelData.type==="Audio" || trackRow.modelData.type==="Caption" }
+                            LV.Label { x:12; anchors.verticalCenter:parent.verticalCenter; text:trackRow.modelData.type==="Caption" ? qsTr("No captions") : qsTr("No audio"); style:caption; color:Style.Tokens.color("Theme Colors/Text/bodyColor"); visible:trackRow.modelData.type==="Audio" || trackRow.modelData.type==="Caption" }
                             Repeater {
                                 model:{ root.stateModel.keys; return root.stateModel.trackKeys(trackRow.modelData.id) }
                                 delegate:Rectangle {
                                     id:key
                                     required property var modelData
                                     x:key.modelData.frame*root.pixelsPerFrame; y:4; height:32; width:Math.min(184,trackRow.width); radius:6
-                                    color:LV.Theme.panelBackground08; border.width:root.stateModel.selectedKeyId===modelData.id ? 1 : 0; border.color:LV.Theme.accent
+                                    color:Style.Tokens.color("Theme Colors/Panel/surfacePanel"); border.width:root.stateModel.selectedKeyId===modelData.id ? 1 : 0; border.color:LV.Theme.accent
                                     Image { objectName:"videoKeyImage"+key.modelData.id; x:4; y:2; width:32; height:28; source:displayPreviews.sourceForUrl(key.modelData.source); asynchronous:true; sourceSize:Qt.size(Math.ceil(width*Screen.devicePixelRatio),Math.ceil(height*Screen.devicePixelRatio)); fillMode:Image.PreserveAspectCrop }
                                     LV.Label { x:44; y:2; width:Math.max(0,key.width-48); text:key.modelData.name; style:body; elide:Text.ElideRight }
                                     LV.Label { x:44; y:17; width:Math.max(0,key.width-48); elide:Text.ElideRight; text:"F"+String(key.modelData.frame).padStart(3,"0")+" · weight "+key.modelData.value.toFixed(2); style:caption }
@@ -314,7 +315,7 @@ FocusScope {
                             }
                             Item {
                                 y:40; width:parent.width; height:80; visible:trackRow.modelData.type==="Contents" && root.stateModel.mode==="Curves"
-                                Rectangle { anchors.fill:parent; color:LV.Theme.panelBackground02 }
+                                Rectangle { anchors.fill:parent; color:Style.Tokens.color("Theme Colors/Panel/surfaceGhost") }
                                 Canvas {
                                     id:curve; anchors.fill:parent
                                     property real frameScale:root.pixelsPerFrame
@@ -327,11 +328,11 @@ FocusScope {
                             }
                         }
                     }
-                    Rectangle { objectName:"videoPlayheadLine"; x:root.stateModel.playhead*root.pixelsPerFrame-1; y:32; width:2; height:parent.height-32; color:LV.Theme.accentBlue }
+                    Rectangle { objectName:"videoPlayheadLine"; x:root.stateModel.playhead*root.pixelsPerFrame-1; y:32; width:2; height:parent.height-32; color:Style.Tokens.color("Theme Colors/Accent/Blue/Default") }
 
                 }
             }
-            Image { objectName:"videoPlayheadMarker"; x:root.gutter+root.stateModel.playhead*root.pixelsPerFrame-lanes.contentX-11; y:root.rulerY+6; width:22; height:26; source:Qt.resolvedUrl("Assets/playhead.svg"); fillMode:Image.PreserveAspectFit; visible:x>=root.gutter-11 && x<root.width }
+            Frames.TimelinePlayhead { objectName:"videoPlayheadMarker"; x:root.gutter+root.stateModel.playhead*root.pixelsPerFrame-lanes.contentX-11; y:root.rulerY+6; width:22; height:26; visible:x>=root.gutter-11 && x<root.width }
             LV.Label { x:4; y:selection.y+6; width:root.gutter-8; visible:root.wideControls; text:root.stateModel.mode==="Shots" ? qsTr("Shot selection") : qsTr("Key selection"); style:body }
             Item {
                 id: selection
@@ -342,7 +343,7 @@ FocusScope {
                     objectName:"videoShotSelectionControls"
                     x:root.wideControls ? root.gutter : 8; y:3; width:parent.width-x-8; spacing:4
                     visible:root.stateModel.mode==="Shots"
-                    LV.Label { objectName:"videoShotSelectionEmptyState"; visible:!root.stateModel.selectedShot.id; text:qsTr("No shot selected"); style:caption; color:LV.Theme.textSecondary }
+                    LV.Label { objectName:"videoShotSelectionEmptyState"; visible:!root.stateModel.selectedShot.id; text:qsTr("No shot selected"); style:caption; color:Style.Tokens.color("Theme Colors/Text/bodyColor") }
                     Button { visible:!!root.stateModel.selectedShot.id; height:24; text:"In F"+String(root.stateModel.selectedStart).padStart(3,"0") }
                     Button { visible:!!root.stateModel.selectedShot.id; height:24; text:"Out F"+String(root.stateModel.selectedEnd).padStart(3,"0") }
                     Button { visible:!!root.stateModel.selectedShot.id; height:24; text:(root.stateModel.selectedShot.frames || 0)+"f" }
@@ -357,7 +358,7 @@ FocusScope {
                     objectName:"videoKeySelectionControls"
                     x:root.wideControls ? root.gutter : 8; y:3; width:parent.width-x-8; spacing:4
                     visible:root.stateModel.mode!=="Shots"
-                    LV.Label { visible:!root.stateModel.selectedKey.id; text:qsTr("No keyframe selected"); style:caption; color:LV.Theme.textSecondary }
+                    LV.Label { visible:!root.stateModel.selectedKey.id; text:qsTr("No keyframe selected"); style:caption; color:Style.Tokens.color("Theme Colors/Text/bodyColor") }
                     Button { visible:!!root.stateModel.selectedKey.id; height:24; text:"Frame F"+root.stateModel.selectedKey.frame }
                     Button { visible:!!root.stateModel.selectedKey.id; height:24; text:"Value "+(root.stateModel.selectedKey.value || 0).toFixed(2); onClicked:root.stateModel.editKey("value",Math.min(1,root.stateModel.selectedKey.value+.05)) }
                     Repeater { model:root.stateModel.selectedKey.id ? [-12,-1,1,12] : []; delegate:Button { required property int modelData; height:24; text:(modelData>0 ? "+" : "")+modelData+"f"; onClicked:root.stateModel.editKey("frame",root.stateModel.selectedKey.frame+modelData) } }

@@ -1,4 +1,5 @@
 #include "App/Views/Result/GenerationReviewModel.h"
+#include "App/Views/Result/NativeReviewSession.h"
 #include <QAbstractItemModelTester>
 #include <QFile>
 #include <QTemporaryDir>
@@ -18,6 +19,44 @@ QVariantMap row(const QVariantList& rows, const QString& label) {
 class ReviewModelTests : public QObject {
     Q_OBJECT
 private slots:
+    void nativeSessionIsTheSharedReviewOwner() {
+        using dreamscapes::review::State;
+        using dreamscapes::vm::Object;
+        using dreamscapes::vm::Value;
+        GenerationReviewModel model;
+        QAbstractItemModelTester checker(&model, QAbstractItemModelTester::FailureReportingMode::QtTest);
+        const auto native = model.nativeSession();
+        QVERIFY(native);
+        auto first = entry(0), second = entry(1);
+        first["imageSource"] = QUrl("file:///review/one.png");
+        first["opaque"] = QVariantMap{{"original", QUrl("file:///reference%20one.png")}};
+        model.setEntries({first, second});
+        QCOMPARE(native->totalCount(), std::size_t(2));
+        model.selectAt(0);
+        QCOMPARE(native->selectedCount(), std::size_t(1));
+        native->setReview(State::Shortlisted);
+        QCOMPARE(model.shortlistedCount(), 1);
+        native->setFilter("shortlisted");
+        QCOMPARE(model.rowCount(), 1);
+        QCOMPARE(model.filter(), QString("shortlisted"));
+        QCOMPARE(model.selectedEntries().front().toMap().value("imageSource").metaType(), QMetaType::fromType<QUrl>());
+        QCOMPARE(model.selectedEntries().front().toMap().value("opaque").toMap().value("original").metaType(),
+                 QMetaType::fromType<QUrl>());
+        model.setFilter("all");
+        QCOMPARE(native->filter(), std::string("all"));
+        auto values = native->entries();
+        values.emplace_back(Object{{"id", Value("native")}, {"imageSource", Value("file:///review/native.png")},
+                                   {"mediaType", Value("Image")}, {"prompt", Value("Native result")}});
+        int inserted = 0;
+        connect(&model, &QAbstractItemModel::rowsInserted, &model, [&] { ++inserted; });
+        native->replaceEntries(values);
+        QCOMPARE(model.rowCount(), 3);
+        QCOMPARE(inserted, 1);
+        QCOMPARE(model.entryAt(2).value("prompt").toString(), QString("Native result"));
+        QCOMPARE(model.selectedEntries().front().toMap(), first);
+        native->clearSelection();
+        QCOMPARE(model.selectedCount(), 0);
+    }
     void focusOnlyNotifiesTheTwoAffectedRows() {
         GenerationReviewModel model;
         QVariantList entries; for (int i = 0; i < 1000; ++i) entries.append(entry(i));
@@ -44,6 +83,28 @@ private slots:
         model.setFilter("all");
         QVERIFY(model.data(model.index(502), GenerationReviewModel::FocusedRole).toBool());
         changed.clear(); model.focusAt(503); QCOMPARE(changed.size(), 2);
+    }
+    void focusNotificationsPreservePreviousThenCurrentOrder() {
+        GenerationReviewModel model;
+        model.setEntries({entry(0), entry(1), entry(2)});
+        model.selectAt(2);
+        QSignalSpy changed(&model, &QAbstractItemModel::dataChanged);
+        model.focusAt(1);
+        QCOMPARE(changed.size(), 2);
+        QCOMPARE(changed[0][0].value<QModelIndex>().row(), 2);
+        QCOMPARE(changed[1][0].value<QModelIndex>().row(), 1);
+    }
+    void reentrantChangesAreAppliedAfterNativeNotification() {
+        GenerationReviewModel model;
+        model.setEntries({entry(0), entry(1)});
+        bool requested = false;
+        connect(&model, &GenerationReviewModel::stateChanged, &model, [&] {
+            if (!requested) { requested = true; model.setFilter("rejected"); }
+        });
+        model.selectAt(0);
+        QTRY_COMPARE(model.filter(), QString("rejected"));
+        QCOMPARE(model.selectedCount(), 1);
+        QCOMPARE(model.nativeSession()->filter(), std::string("rejected"));
     }
     void selectionAndReviewOnlyNotifyRolesThatChanged() {
         GenerationReviewModel model; model.setEntries({entry(0), entry(1), entry(2), entry(3)});

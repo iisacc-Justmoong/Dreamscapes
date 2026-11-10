@@ -5,6 +5,7 @@ import ".." as Frames
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
 import ".." as Shared
+import Dreamscapes.Style 1.0 as Style
 
 Column {
     id: root
@@ -33,6 +34,7 @@ Column {
         entries: root.info.masks || []
     }
     function value(field, fallback) { return values[field] === undefined ? fallback : values[field] }
+    function viewIcon(view) { return LV.Theme.iconPath("panel-background-" + view.toLowerCase()) }
     function edit(field, next) { if(value(field) !== next) toolState.setValue(field,next) }
     function action(name) { nativeBackground.maskAction(name) }
     function propertyEdit(field, next) { nativeBackground.maskProperty(field, next) }
@@ -43,18 +45,18 @@ Column {
         options.openFor(control,Math.min(0,root.width-control.x-options.implicitWidth),control.height)
     }
     component Heading: LV.Label {
-        style: body; font.weight: Font.Normal; font.styleName: "Regular"; color: LV.Theme.bodyColor; height: 18
+        style: body; font.weight: Style.Tokens.metric("Theme Typography/Weight/Regular"); font.styleName: LV.Theme.textCaptionStyleName; color: Style.Tokens.color("Theme Colors/Text/bodyColor"); height: 18
         width: parent.width; elide: Text.ElideRight; verticalAlignment: Text.AlignVCenter
     }
     component Caption: LV.Label {
-        style: caption; color: LV.Theme.bodyColor; width: parent.width
+        style: caption; color: Style.Tokens.color("Theme Colors/Text/bodyColor"); width: parent.width
         wrapMode: Text.WordWrap; sizeToContentHeight: true
     }
     component SectionTitle: Column {
         required property string title
         width: parent.width; spacing: 8
-        Rectangle { width: parent.width; height: 1; color: LV.Theme.surfacePanel }
-        Heading { text: parent.title; color: LV.Theme.titleHeaderColor; font.weight: Font.Medium; font.styleName: "Medium" }
+        Rectangle { width: parent.width; height: 1; color: Style.Tokens.color("Theme Colors/Panel/surfacePanel") }
+        Heading { text: parent.title; color: Style.Tokens.color("Theme Colors/Text/titleHeaderColor"); font.weight: Style.Tokens.metric("Theme Typography/Weight/Medium"); font.styleName: LV.Theme.textBodyStyleName }
     }
     component NumberInput: LV.InputField {
         id: input
@@ -169,7 +171,7 @@ Column {
                     required property string modelData
                     objectName: "backgroundTab-"+modelData
                     width: 22; height: 22; iconSize: 18
-                    iconSource: Qt.resolvedUrl("Assets/Background/"+modelData.toLowerCase()+".svg")
+                    iconSource: root.viewIcon(modelData)
                     tone: LV.AbstractButton.Borderless
                     Accessible.name: modelData; Accessible.checkable: true; Accessible.checked: root.currentView===modelData
                     onClicked: { root.toolState.notice=""; root.edit("backgroundView",modelData) }
@@ -188,8 +190,8 @@ Column {
     }
     Row {
         width: parent.width; height: root.currentView==="Mask"?22:20; spacing: 8
-        Image { width: 18; height: 18; source: Qt.resolvedUrl("Assets/Background/"+root.currentView.toLowerCase()+".svg"); sourceSize: Qt.size(36,36) }
-        Heading { width: parent.width-26; text: root.currentView; height:parent.height; font.pixelSize:root.currentView==="Mask"?13:15; font.weight:root.currentView==="Mask"?Font.Normal:Font.Medium; font.styleName:root.currentView==="Mask"?"Regular":"Medium" }
+        Image { width: 18; height: 18; source: root.viewIcon(root.currentView); sourceSize: Qt.size(36,36) }
+        Heading { width: parent.width-26; text: root.currentView; height:parent.height; font.pixelSize:root.currentView==="Mask"?Style.Tokens.metric("Theme Typography/Body/textBody"):Style.Tokens.metric("Theme Typography/Subheader/textSubheader"); font.weight:root.currentView==="Mask"?Style.Tokens.metric("Theme Typography/Weight/Regular"):Style.Tokens.metric("Theme Typography/Weight/Medium"); font.styleName:root.currentView==="Mask"?LV.Theme.textCaptionStyleName:LV.Theme.textBodyStyleName }
     }
     Column {
         objectName: "backgroundMaskBody"
@@ -199,7 +201,7 @@ Column {
             width: parent.width; spacing: 8
             Row {
                 width: parent.width; height: 22; spacing: 8
-                Image { width: 18; height: 18; anchors.verticalCenter: parent.verticalCenter; source: Qt.resolvedUrl("Assets/Background/mask.svg"); sourceSize: Qt.size(36,36) }
+                Image { width: 18; height: 18; anchors.verticalCenter: parent.verticalCenter; source: root.viewIcon("Mask"); sourceSize: Qt.size(36,36) }
                 LV.ComboBox {
                     id: target
                     objectName: "maskTarget"
@@ -298,10 +300,10 @@ Column {
             width: parent.width; spacing: 8
             Column {
                 width: parent.width; spacing: 8
-                Rectangle { width: parent.width; height: 1; color: LV.Theme.surfacePanel }
+                Rectangle { width: parent.width; height: 1; color: Style.Tokens.color("Theme Colors/Panel/surfacePanel") }
                 Row {
                     width: parent.width; height: 18; spacing: 8
-                    Heading { width: parent.width-50; text: qsTr("Masks"); color: LV.Theme.titleHeaderColor; font.weight: Font.Medium; font.styleName: "Medium" }
+                    Heading { width: parent.width-50; text: qsTr("Masks"); color: Style.Tokens.color("Theme Colors/Text/titleHeaderColor"); font.weight: Style.Tokens.metric("Theme Typography/Weight/Medium"); font.styleName: LV.Theme.textBodyStyleName }
                     Caption { objectName: "maskCount"; width: 42; horizontalAlignment: Text.AlignRight; text: String((root.info.masks || []).length); Accessible.name: qsTr("%1 masks").arg((root.info.masks || []).length) }
                 }
             }
@@ -392,7 +394,7 @@ Column {
         }
         Flow {
             width: parent.width; spacing: 8
-            ActionButton { label: qsTr("Apply mask"); iconSource: Qt.resolvedUrl("Assets/Background/mask-apply.svg"); actionId: "apply"; tone: LV.AbstractButton.Default; enabled: root.hasMask && root.info.canEdit }
+            ActionButton { label: qsTr("Apply mask"); iconSource: LV.Theme.iconPath("generalcheckmark"); actionId: "apply"; tone: LV.AbstractButton.Default; enabled: root.hasMask && root.info.canEdit }
             ActionButton { label: qsTr("Invert mask"); iconName: "mask-invert"; actionId: "invert"; enabled: root.hasMask && root.info.canEdit }
             ActionButton { label: qsTr("Reset mask"); iconName: "reset"; actionId: "reset"; enabled: root.hasMask && root.info.canEdit }
         }

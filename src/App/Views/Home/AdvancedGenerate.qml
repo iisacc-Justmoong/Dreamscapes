@@ -7,6 +7,7 @@ import QtQuick.Dialogs as Dialogs
 import LVRS 1.0 as LV
 import ".." as Views
 import Dreamscapes.Storage 1.0
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -31,8 +32,8 @@ Item {
     readonly property int maximumReferenceImages: 20
     readonly property int controlNetCount: values.controlNets.length
     readonly property int nextControlNetNumber: controlNetCount + 1
-    readonly property int sectionSpacing: LV.Theme.gap12
-    readonly property int groupSpacing: LV.Theme.gap6
+    readonly property int sectionSpacing: Style.Tokens.metric("Theme Metrics/Space/12")
+    readonly property int groupSpacing: Style.Tokens.metric("Theme Metrics/Space/6")
     signal referenceImageLimitReached()
     signal presetSaved(string name)
     signal generateRequested(var parameters)
@@ -149,8 +150,8 @@ Item {
         signal activated()
         implicitWidth: LV.Theme.scaleMetric(140)
         implicitHeight: LV.Theme.scaleMetric(160)
-        radius: LV.Theme.radiusLg
-        color: LV.Theme.panelBackground10
+        radius: Style.Tokens.metric("Theme Metrics/Radius/12")
+        color: Style.Tokens.color("Theme Colors/Panel/surfaceInput")
         border.width: LV.Theme.scaleRealMetric(0.5)
         border.color: LV.Theme.accentGray
         clip: true
@@ -175,14 +176,14 @@ Item {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             height: LV.Theme.scaleMetric(42)
-            color: LV.Theme.panelBackground01
+            color: Style.Tokens.color("Theme Colors/Panel/canvas")
             opacity: 0.92
             visible: !card.empty
             LV.Label {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.margins: LV.Theme.gap6
+                anchors.margins: Style.Tokens.metric("Theme Metrics/Space/6")
                 text: card.title
                 style: body
                 elide: Text.ElideRight
@@ -191,7 +192,7 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                anchors.margins: LV.Theme.gap6
+                anchors.margins: Style.Tokens.metric("Theme Metrics/Space/6")
                 text: card.detail
                 style: caption
                 elide: Text.ElideRight
@@ -326,8 +327,8 @@ Item {
 
             LV.VStack {
                 Layout.fillWidth: true
-                Layout.leftMargin: LV.Theme.gap16
-                Layout.rightMargin: LV.Theme.gap16
+                Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/16")
+                Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/16")
                 spacing: root.groupSpacing
                 alignment: Qt.AlignLeft
                 LV.Label { text: qsTr("Prompt"); style: caption }
@@ -720,8 +721,8 @@ Item {
 
             LV.Label {
                 Layout.fillWidth: true
-                Layout.leftMargin: LV.Theme.gap16
-                Layout.rightMargin: LV.Theme.gap16
+                Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/16")
+                Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/16")
                 text: root.hasInvalidInputs ? qsTr("Correct invalid input before generating or saving a preset. %1").arg(draft.errorString) : draft.errorString
                 visible: text.length > 0
                 wrapMode: Text.Wrap
@@ -747,11 +748,11 @@ Item {
         anchors.centerIn: parent
         modal: true
         focus: true
-        padding: LV.Theme.gap16
+        padding: Style.Tokens.metric("Theme Metrics/Space/16")
         closePolicy: Controls.Popup.CloseOnEscape | Controls.Popup.CloseOnPressOutside
-        background: Rectangle { color: LV.Theme.panelBackground10; radius: LV.Theme.radiusLg }
+        background: Rectangle { color: Style.Tokens.color("Theme Colors/Panel/surfaceInput"); radius: Style.Tokens.metric("Theme Metrics/Radius/12") }
         contentItem: LV.VStack {
-            spacing: LV.Theme.gap8
+            spacing: Style.Tokens.metric("Theme Metrics/Space/8")
             LV.Label { text: qsTr("Preset name"); style: body }
             LV.InputField { id: presetName; objectName: "presetNameField"; placeholderText: qsTr("Name"); clearButtonVisible: false }
             LV.HStack {

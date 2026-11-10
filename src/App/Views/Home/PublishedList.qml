@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import Dreamscapes.Storage 1.0
 import QtQuick
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 ListView {
     id: root
@@ -13,7 +14,7 @@ ListView {
 
     implicitHeight: LV.Theme.scaleMetric(280)
     model: visibleFiles
-    spacing: LV.Theme.gap8
+    spacing: Style.Tokens.metric("Theme Metrics/Space/8")
     clip: true
     interactive: false
     boundsBehavior: Flickable.StopAtBounds
@@ -34,26 +35,26 @@ ListView {
 
         background: Rectangle {
             radius: row.resolvedCornerRadius
-            color: row.down || row.hovered ? LV.Theme.panelBackground06
-                : root.desktopStyle ? "#181a1e" : LV.Theme.panelBackground04
+            color: row.down || row.hovered ? Style.Tokens.color("Theme Colors/Panel/surfaceAlt")
+                : root.desktopStyle ? Style.Tokens.color("Theme Colors/Panel/windowAlt") : Style.Tokens.color("Theme Colors/Panel/subSurface")
         }
 
         contentItem: Item {
             Rectangle {
                 id: preview
-                x: LV.Theme.gap8
-                y: LV.Theme.gap8
+                x: Style.Tokens.metric("Theme Metrics/Space/8")
+                y: Style.Tokens.metric("Theme Metrics/Space/8")
                 width: LV.Theme.scaleMetric(48)
                 height: width
                 radius: LV.Theme.scaleMetric(10)
                 clip: true
-                color: LV.Theme.panelBackground08
+                color: Style.Tokens.color("Theme Colors/Panel/surfacePanel")
                 gradient: root.desktopStyle ? publicationGradient : null
                 Gradient {
                     id: publicationGradient
                     orientation: Gradient.Horizontal
-                    GradientStop { position: 0; color: row.modelData.iconName === "fileTypesimage" ? "#8447e8" : "#ff8533" }
-                    GradientStop { position: 1; color: "#0d0f14" }
+                    GradientStop { position: 0; color: row.modelData.iconName === "fileTypesimage" ? Style.Tokens.color("Theme Colors/Accent/Purple/Default") : Style.Tokens.color("Theme Colors/Accent/Orange/Default") }
+                    GradientStop { position: 1; color: Style.Tokens.color("Theme Colors/Panel/canvas") }
                 }
 
                 Image {
@@ -68,7 +69,7 @@ ListView {
                     anchors.centerIn: parent
                     width: LV.Theme.scaleMetric(24)
                     height: width
-                    source: root.desktopStyle ? "Assets/Desktop/spark.svg"
+                    source: root.desktopStyle ? LV.Theme.iconPath("spark")
                         : LV.Theme.iconPath(row.modelData.iconName || "fileTypesimage")
                     fillMode: Image.PreserveAspectFit
                 }
@@ -81,7 +82,7 @@ ListView {
                 height: LV.Theme.scaleMetric(20)
                 text: row.modelData.name || ""
                 style: body
-                font.pixelSize: root.desktopStyle ? 14 : LV.Theme.textBody
+                font.pixelSize: Style.Tokens.metric("Theme Typography/Body/textBody")
                 elide: Text.ElideRight
             }
 
@@ -100,7 +101,7 @@ ListView {
                 y: LV.Theme.scaleMetric(20)
                 width: LV.Theme.scaleMetric(24)
                 height: width
-                source: root.desktopStyle ? "Assets/Desktop/open.svg" : LV.Theme.iconPath("generalchevronRight")
+                source: root.desktopStyle ? LV.Theme.iconPath("generalopen") : LV.Theme.iconPath("generalchevronRight")
                 fillMode: Image.PreserveAspectFit
             }
         }

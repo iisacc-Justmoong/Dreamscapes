@@ -10,11 +10,11 @@
   },
   "source": {
     "path": "docs/EditorLayout.md",
-    "sha256": "b2c480bddb40d1e348837bf2ae172b59507099283a831dcd779f8ab8d3c4db1d",
-    "bytes": 16293,
-    "line_count": 272,
+    "sha256": "626e7b4bc05bd6bdbb09c587571d2fb0808677f814e02bdf04173e4adb6293d9",
+    "bytes": 14774,
+    "line_count": 253,
     "encoding": "utf-8",
-    "language": "ko"
+    "language": "en"
   },
   "document": {
     "title": "Desktop editor layout",
@@ -246,421 +246,358 @@
       "id": "b000031",
       "kind": "paragraph",
       "start_line": 73,
-      "end_line": 73,
-      "raw": "툴 탭은 LVRS의 필수 `iconName` 계약에 따라 도구 키를 아이콘 식별자로 전달한다. `iconSource`와 실제 이미지가 같은 기존 SVG를 참조하므로 데스크톱·모바일의 원본 도형과 배치는 유지된다.\n"
+      "end_line": 79,
+      "raw": "The application exposes 18 editor tools on a 30-pixel desktop rail and an\n84-pixel mobile rail. The desktop buttons use 22-pixel slots; mobile uses\n86 × 68-pixel tabs with a 22-pixel icon slot. Both layouts resolve their\n18-pixel artwork from the same LVRS icon library and follow LVRS button and\ntab states. The user-facing tool key remains separate from its icon name, so\nicons can change without changing commands or document data. Desktop Up/Down\nand mobile Left/Right navigation, Home/End, focus and scrolling are preserved.\n"
     },
     {
       "id": "b000032",
       "kind": "blank",
-      "start_line": 74,
-      "end_line": 74,
+      "start_line": 80,
+      "end_line": 80,
       "raw": "\n"
     },
     {
       "id": "b000033",
-      "kind": "paragraph",
-      "start_line": 75,
-      "end_line": 94,
-      "raw": "The desktop editor places a 52-pixel vertical toolbar between the canvas work\narea and the right tool panel. Its 18 LVRS tabs are 36 by 36 pixels, with a\n4-pixel gap and 8-pixel outer inset. The transparent, borderless rail has an\n18-pixel corner radius and hugs its 732-pixel content height. When the window\nis shorter, the rail clamps to that height and scrolls vertically. Selected\ntabs use the LVRS selected fill and a 1-pixel border. The 2319-by-1316 reference\nleaves 1782 pixels for the workspace, then 52 for the toolbar and 304 for the\npanel, after the 181-pixel sidebar. Mobile keeps its 84-pixel horizontal bottom\ntoolbar with captions and its existing selected-tab styling.\nTheir original SVGs occupy 22-pixel slots at (7, 8). Desktop tabs display\nicons and preserve tool names for accessibility and keyboard navigation.\nUp/Down selects the previous/next desktop tool; Home/End reaches the first/last\ntool. Selection, programmatic restoration and resizing keep the current tab\ninside the scrolling viewport. Mobile retains Left/Right navigation.\nAll 18 icons retain the original Figma path geometry, natural bounds,\nviewBoxes, dimensions, stroke widths, caps and joins. Their source files and\n22-pixel slots are reused. The toolbar now gives every tool its own fixed\nopaque stroke color; Elements keeps its existing periwinkle. Only the\nsix-digit stroke colors of the other 17 SVGs differ from their Figma exports,\nso the original byte counts and all non-color asset bytes remain unchanged.\n"
+      "kind": "table",
+      "start_line": 81,
+      "end_line": 100,
+      "raw": "| Tool | LVRS icon |\n| --- | --- |\n| Elements | `rectangle` |\n| Text | `text` |\n| Camera/Photo | `panel-camera-live` |\n| File | `document-properties` |\n| Background | `background` |\n| Audio track | `audio-track` |\n| Canvas | `canvas-size` |\n| Generative | `spark` |\n| Layers | `panel-layers-stack` |\n| Select | `direct-select` |\n| Color | `color` |\n| Effects | `effect-stack` |\n| Retouch | `panel-retouch-heal` |\n| Fill | `fill` |\n| Brush | `brush` |\n| Adjust | `auto-tone` |\n| Masking | `layer-mask` |\n| Eraser | `eraser` |\n",
+      "columns": [
+        "Tool",
+        "LVRS icon"
+      ],
+      "rows": [
+        [
+          "Elements",
+          "`rectangle`"
+        ],
+        [
+          "Text",
+          "`text`"
+        ],
+        [
+          "Camera/Photo",
+          "`panel-camera-live`"
+        ],
+        [
+          "File",
+          "`document-properties`"
+        ],
+        [
+          "Background",
+          "`background`"
+        ],
+        [
+          "Audio track",
+          "`audio-track`"
+        ],
+        [
+          "Canvas",
+          "`canvas-size`"
+        ],
+        [
+          "Generative",
+          "`spark`"
+        ],
+        [
+          "Layers",
+          "`panel-layers-stack`"
+        ],
+        [
+          "Select",
+          "`direct-select`"
+        ],
+        [
+          "Color",
+          "`color`"
+        ],
+        [
+          "Effects",
+          "`effect-stack`"
+        ],
+        [
+          "Retouch",
+          "`panel-retouch-heal`"
+        ],
+        [
+          "Fill",
+          "`fill`"
+        ],
+        [
+          "Brush",
+          "`brush`"
+        ],
+        [
+          "Adjust",
+          "`auto-tone`"
+        ],
+        [
+          "Masking",
+          "`layer-mask`"
+        ],
+        [
+          "Eraser",
+          "`eraser`"
+        ]
+      ]
     },
     {
       "id": "b000034",
       "kind": "blank",
-      "start_line": 95,
-      "end_line": 95,
+      "start_line": 101,
+      "end_line": 101,
       "raw": "\n"
     },
     {
       "id": "b000035",
-      "kind": "heading",
-      "start_line": 96,
-      "end_line": 96,
-      "raw": "## Tool icon colors\n",
-      "level": 2,
-      "title": "Tool icon colors"
+      "kind": "paragraph",
+      "start_line": 102,
+      "end_line": 111,
+      "raw": "The Figma desktop and mobile rails use those same shared components. Retired\nproduct-specific toolbar SVGs and palette manifests are removed; earlier design\nsnapshots remain available in version history.\nThe older Figma Full 19 reference also contains an Asset item, while the\napplication keeps Camera/Photo followed directly by File.\nMobile labels use LVRS caption size and line height with the shared medium\nweight. Both the Figma rails and application reference these roles, rather than\nmaintaining a 9-pixel product-specific text size. Other editor chrome takes\nits typography sizes, weights and font names from LVRS as well; editable\ndocument typography remains document data.\n"
     },
     {
       "id": "b000036",
       "kind": "blank",
-      "start_line": 97,
-      "end_line": 97,
+      "start_line": 112,
+      "end_line": 112,
       "raw": "\n"
     },
     {
       "id": "b000037",
       "kind": "paragraph",
-      "start_line": 98,
-      "end_line": 104,
-      "raw": "Desktop and mobile use the same 18 colored SVGs. Every tool keeps its own\ncolor in both selected and unselected states, including hover and press.\nSelection remains visible through the existing LVRS tab background and focus\nstyling. Icon color identifies the tool and does not indicate whether that\ntool is selected. Existing disabled behavior and tab interactions remain\nunchanged. The artwork uses flat named colors without gradients, opacity\nvariants or numeric color levels.\n"
+      "start_line": 113,
+      "end_line": 116,
+      "raw": "`Dreamscapes.EditorLayout` and the mobile toolbar GUI regression\ncheck shared icon loading, caption metrics and fit, geometry, selection,\nkeyboard and scroll behavior.\nThe visual checks do not imply installed-app or physical-device verification.\n"
     },
     {
       "id": "b000038",
       "kind": "blank",
-      "start_line": 105,
-      "end_line": 105,
+      "start_line": 117,
+      "end_line": 117,
       "raw": "\n"
     },
     {
       "id": "b000039",
-      "kind": "paragraph",
-      "start_line": 106,
-      "end_line": 110,
-      "raw": "`src/App/Views/Editor/Assets/manifest.json` records each tool's `strokeColor`\nand descriptive `colorName` alongside its original Figma node, bounds,\noffsets and byte count. The eight LVRS `accentPalette` colors already present\nin Theme remain available; the toolbar uses a separate fixed artwork palette\nso all 18 tools have distinct colors without altering shared theme tokens.\n"
-    },
-    {
-      "id": "b000040",
-      "kind": "blank",
-      "start_line": 111,
-      "end_line": 111,
-      "raw": "\n"
-    },
-    {
-      "id": "b000041",
-      "kind": "paragraph",
-      "start_line": 112,
-      "end_line": 114,
-      "raw": "Asset is removed from the application toolbar and panel catalog. Camera/Photo\nis followed directly by File in both layouts and in keyboard navigation.\nPanel headings are numbered consecutively from 01 to 18 in that order.\n"
-    },
-    {
-      "id": "b000042",
-      "kind": "blank",
-      "start_line": 115,
-      "end_line": 115,
-      "raw": "\n"
-    },
-    {
-      "id": "b000043",
-      "kind": "table",
-      "start_line": 116,
-      "end_line": 135,
-      "raw": "| Tool | Color name | Stroke color |\n| --- | --- | --- |\n| Elements | Periwinkle | `#8E8EFF` |\n| Text | Lavender | `#CBA6F7` |\n| Camera/Photo | Sky blue | `#64B5F6` |\n| File | Seafoam | `#80CBC4` |\n| Background | Green | `#62BA46` |\n| Audio track | Pink | `#F74F9E` |\n| Canvas | Yellow | `#FFC600` |\n| Generative | Purple | `#A550A7` |\n| Layers | Blue | `#007AFF` |\n| Select | Lime | `#CDDC39` |\n| Color | Orange | `#F7821B` |\n| Effects | Magenta | `#E879F9` |\n| Retouch | Peach | `#FFB4A2` |\n| Fill | Turquoise | `#2DD4BF` |\n| Brush | Red | `#FF5257` |\n| Adjust | Gold | `#F2C55C` |\n| Masking | Powder blue | `#A5C7E8` |\n| Eraser | Rose | `#F58CA8` |\n",
-      "columns": [
-        "Tool",
-        "Color name",
-        "Stroke color"
-      ],
-      "rows": [
-        [
-          "Elements",
-          "Periwinkle",
-          "`#8E8EFF`"
-        ],
-        [
-          "Text",
-          "Lavender",
-          "`#CBA6F7`"
-        ],
-        [
-          "Camera/Photo",
-          "Sky blue",
-          "`#64B5F6`"
-        ],
-        [
-          "File",
-          "Seafoam",
-          "`#80CBC4`"
-        ],
-        [
-          "Background",
-          "Green",
-          "`#62BA46`"
-        ],
-        [
-          "Audio track",
-          "Pink",
-          "`#F74F9E`"
-        ],
-        [
-          "Canvas",
-          "Yellow",
-          "`#FFC600`"
-        ],
-        [
-          "Generative",
-          "Purple",
-          "`#A550A7`"
-        ],
-        [
-          "Layers",
-          "Blue",
-          "`#007AFF`"
-        ],
-        [
-          "Select",
-          "Lime",
-          "`#CDDC39`"
-        ],
-        [
-          "Color",
-          "Orange",
-          "`#F7821B`"
-        ],
-        [
-          "Effects",
-          "Magenta",
-          "`#E879F9`"
-        ],
-        [
-          "Retouch",
-          "Peach",
-          "`#FFB4A2`"
-        ],
-        [
-          "Fill",
-          "Turquoise",
-          "`#2DD4BF`"
-        ],
-        [
-          "Brush",
-          "Red",
-          "`#FF5257`"
-        ],
-        [
-          "Adjust",
-          "Gold",
-          "`#F2C55C`"
-        ],
-        [
-          "Masking",
-          "Powder blue",
-          "`#A5C7E8`"
-        ],
-        [
-          "Eraser",
-          "Rose",
-          "`#F58CA8`"
-        ]
-      ]
-    },
-    {
-      "id": "b000044",
-      "kind": "blank",
-      "start_line": 136,
-      "end_line": 136,
-      "raw": "\n"
-    },
-    {
-      "id": "b000045",
       "kind": "heading",
-      "start_line": 137,
-      "end_line": 137,
+      "start_line": 118,
+      "end_line": 118,
       "raw": "## Canvas work area\n",
       "level": 2,
       "title": "Canvas work area"
     },
     {
+      "id": "b000040",
+      "kind": "blank",
+      "start_line": 119,
+      "end_line": 119,
+      "raw": "\n"
+    },
+    {
+      "id": "b000041",
+      "kind": "paragraph",
+      "start_line": 120,
+      "end_line": 139,
+      "raw": "The left sidebar uses the same layout as Home, Image and Video: 181 pixels wide,\nor 48 below 700 logical pixels, with 8 pixels of padding on every side. Its\n24-pixel menu rows, dividers, icon slots and label positions do not change when\nentering or leaving Editor. The shared sidebar has no Editor-specific geometry\nor Files icon override. The opaque editor backdrop is a child of the canvas\nsurface and exactly fills that viewport. The viewport clips document rendering,\ncheckerboards and overlays, including when zoomed or panned. The sidebar, view\nbar, tool rail, inspector, page strip and timeline expose the shared\nApplicationWindow material. The inspector has a 12-pixel content\ninset and a zero-width outer border. The mobile tool strip and\nprimary tool sheet also have transparent surfaces. Buttons, input fields,\nselection/hover/pressed states, dividers, document previews and transient menus\nretain their existing paints.\nThe main window keeps the same content top inset between these views, including\nfullscreen. Editor remains lazy-loaded and navigation preserves Home drafts.\nHiding the editor also retains the desktop view-bar height, so navigation does\nnot resize the hidden canvas or refit its retained zoom and pan.\nWhen the shared sidebar, 52-pixel toolbar and 280-pixel minimum panel leave\nless than 320 pixels for the canvas, the canvas uses the remaining width;\nentering Editor does not collapse navigation ahead of the shared breakpoint.\n"
+    },
+    {
+      "id": "b000042",
+      "kind": "blank",
+      "start_line": 140,
+      "end_line": 140,
+      "raw": "\n"
+    },
+    {
+      "id": "b000043",
+      "kind": "paragraph",
+      "start_line": 141,
+      "end_line": 149,
+      "raw": "`Dreamscapes.EditorSidebar` compares the actual window/frame bounds, sidebar,\nall ten menu rows, both dividers, icons and labels across Home -> Editor -> Image\n-> Video -> Home at 1374, 900, 899, 800, 700, 699 and 640 pixels. It also checks\nthe compact boundary in both directions, a 480-pixel window height, transparent\nsidebar padding and the fullscreen content inset. At 1374 pixels it compares\nempty view-bar, rail, inspector and timeline margins with an actual capture of\nthe ApplicationWindow background, while checking that the opaque backdrop\nmatches only the clipped canvas viewport. Native Cocoa verification\nuses ordinary windows so the test does not change the user's macOS Spaces.\n"
+    },
+    {
+      "id": "b000044",
+      "kind": "blank",
+      "start_line": 150,
+      "end_line": 150,
+      "raw": "\n"
+    },
+    {
+      "id": "b000045",
+      "kind": "paragraph",
+      "start_line": 151,
+      "end_line": 155,
+      "raw": "The right\ntool panel starts at 304 pixels with a 12-pixel content inset, producing\n280 pixels of content. Titles stay upper-left and parameter groups align\nright. Existing drag resizing, responsive wrapping, tool drafts and native\ntool actions follow [EditorPanelResizing.md](EditorPanelResizing.md).\n"
+    },
+    {
       "id": "b000046",
       "kind": "blank",
-      "start_line": 138,
-      "end_line": 138,
+      "start_line": 156,
+      "end_line": 156,
       "raw": "\n"
     },
     {
       "id": "b000047",
       "kind": "paragraph",
-      "start_line": 139,
-      "end_line": 158,
-      "raw": "The left sidebar uses the same layout as Home, Image and Video: 181 pixels wide,\nor 48 below 700 logical pixels, with 8 pixels of padding on every side. Its\n24-pixel menu rows, dividers, icon slots and label positions do not change when\nentering or leaving Editor. The shared sidebar has no Editor-specific geometry\nor Files icon override. The opaque editor backdrop is a child of the canvas\nsurface and exactly fills that viewport. The viewport clips document rendering,\ncheckerboards and overlays, including when zoomed or panned. The sidebar, view\nbar, tool rail, inspector, page strip and timeline expose the shared\nApplicationWindow material. The inspector has a 12-pixel content\ninset and a zero-width outer border. The mobile tool strip and\nprimary tool sheet also have transparent surfaces. Buttons, input fields,\nselection/hover/pressed states, dividers, document previews and transient menus\nretain their existing paints.\nThe main window keeps the same content top inset between these views, including\nfullscreen. Editor remains lazy-loaded and navigation preserves Home drafts.\nHiding the editor also retains the desktop view-bar height, so navigation does\nnot resize the hidden canvas or refit its retained zoom and pan.\nWhen the shared sidebar, 52-pixel toolbar and 280-pixel minimum panel leave\nless than 320 pixels for the canvas, the canvas uses the remaining width;\nentering Editor does not collapse navigation ahead of the shared breakpoint.\n"
+      "start_line": 157,
+      "end_line": 168,
+      "raw": "The native iiSharedCanvas surface fills the remaining work area to the left of\nthe toolbar and above the bottom timeline, below the desktop view-options bar.\nThe timeline uses the same horizontal extent as the canvas. Closing the panel\nmoves the rail to the right window edge; reopening or resizing the panel moves\nthe rail with its left edge. The panel's maximum width reserves the 52-pixel\nrail as well as the existing 320-pixel canvas minimum where space permits.\nFitting a document centers both axes in that surface, unlike the\nreference's bottom-aligned sample rectangle. Window resizing, panel resizing\nand panel collapse/reopen refit the current document using the SDK's existing\nviewport transform. Document dimensions and image content are dynamic.\nMultiple-canvas navigation reserves its own space when needed; neither the\ntoolbar, timeline nor tool panel overlaps the canvas surface.\n"
     },
     {
       "id": "b000048",
-      "kind": "blank",
-      "start_line": 159,
-      "end_line": 159,
-      "raw": "\n"
-    },
-    {
-      "id": "b000049",
-      "kind": "paragraph",
-      "start_line": 160,
-      "end_line": 168,
-      "raw": "`Dreamscapes.EditorSidebar` compares the actual window/frame bounds, sidebar,\nall ten menu rows, both dividers, icons and labels across Home -> Editor -> Image\n-> Video -> Home at 1374, 900, 899, 800, 700, 699 and 640 pixels. It also checks\nthe compact boundary in both directions, a 480-pixel window height, transparent\nsidebar padding and the fullscreen content inset. At 1374 pixels it compares\nempty view-bar, rail, inspector and timeline margins with an actual capture of\nthe ApplicationWindow background, while checking that the opaque backdrop\nmatches only the clipped canvas viewport. Native Cocoa verification\nuses ordinary windows so the test does not change the user's macOS Spaces.\n"
-    },
-    {
-      "id": "b000050",
       "kind": "blank",
       "start_line": 169,
       "end_line": 169,
       "raw": "\n"
     },
     {
-      "id": "b000051",
-      "kind": "paragraph",
-      "start_line": 170,
-      "end_line": 174,
-      "raw": "The right\ntool panel starts at 304 pixels with a 12-pixel content inset, producing\n280 pixels of content. Titles stay upper-left and parameter groups align\nright. Existing drag resizing, responsive wrapping, tool drafts and native\ntool actions follow [EditorPanelResizing.md](EditorPanelResizing.md).\n"
-    },
-    {
-      "id": "b000052",
-      "kind": "blank",
-      "start_line": 175,
-      "end_line": 175,
-      "raw": "\n"
-    },
-    {
-      "id": "b000053",
-      "kind": "paragraph",
-      "start_line": 176,
-      "end_line": 187,
-      "raw": "The native iiSharedCanvas surface fills the remaining work area to the left of\nthe toolbar and above the bottom timeline, below the desktop view-options bar.\nThe timeline uses the same horizontal extent as the canvas. Closing the panel\nmoves the rail to the right window edge; reopening or resizing the panel moves\nthe rail with its left edge. The panel's maximum width reserves the 52-pixel\nrail as well as the existing 320-pixel canvas minimum where space permits.\nFitting a document centers both axes in that surface, unlike the\nreference's bottom-aligned sample rectangle. Window resizing, panel resizing\nand panel collapse/reopen refit the current document using the SDK's existing\nviewport transform. Document dimensions and image content are dynamic.\nMultiple-canvas navigation reserves its own space when needed; neither the\ntoolbar, timeline nor tool panel overlaps the canvas surface.\n"
-    },
-    {
-      "id": "b000054",
-      "kind": "blank",
-      "start_line": 188,
-      "end_line": 188,
-      "raw": "\n"
-    },
-    {
-      "id": "b000055",
+      "id": "b000049",
       "kind": "heading",
-      "start_line": 189,
-      "end_line": 189,
+      "start_line": 170,
+      "end_line": 170,
       "raw": "## Bottom timeline\n",
       "level": 2,
       "title": "Bottom timeline"
     },
     {
+      "id": "b000050",
+      "kind": "blank",
+      "start_line": 171,
+      "end_line": 171,
+      "raw": "\n"
+    },
+    {
+      "id": "b000051",
+      "kind": "paragraph",
+      "start_line": 172,
+      "end_line": 176,
+      "raw": "The editor implements Figma `1065:90081` with **Layers**, Keyframes and Curves.\n`EditorTimeline.qml` uses `EditorTimelineModel`, a projection of the current\n`EditorCanvas` document. The Video workspace continues to use its own generation\nrecipe; an editor timeline edit updates native IISC data and its existing undo\nhistory, synchronization and save path.\n"
+    },
+    {
+      "id": "b000052",
+      "kind": "blank",
+      "start_line": 177,
+      "end_line": 177,
+      "raw": "\n"
+    },
+    {
+      "id": "b000053",
+      "kind": "paragraph",
+      "start_line": 178,
+      "end_line": 184,
+      "raw": "Visual rows follow the active canvas layer stack, topmost first. Audio rows\nfollow the native audio tracks. Opening an empty document creates no rows;\nopening a document with layers immediately displays those actual layers. No\nexample shots, content rows, waveforms, captions or keys are inserted. Native\nIISC currently has no caption-track schema, so there is no synthetic Caption\nrow. **Layer +** explicitly adds a static/dynamic bitmap/vector layer, imports\nan image layer, or creates an empty native audio track.\n"
+    },
+    {
+      "id": "b000054",
+      "kind": "blank",
+      "start_line": 185,
+      "end_line": 185,
+      "raw": "\n"
+    },
+    {
+      "id": "b000055",
+      "kind": "paragraph",
+      "start_line": 186,
+      "end_line": 193,
+      "raw": "Each layer occupies its own In/Out range. Ranges may overlap and do not form a\nconcatenated shot sequence. IISC uses inclusive `lastFrame`; the UI displays\nexclusive Out and `Duration = Out - In`. A layer without an explicit range spans\nthe document's frame extent. Static layers hold their native source over this\nrange. Dynamic bitmap/vector layers resolve each frame through the native\nsource keys, including held content between sparse keys. Video layers use their\nnative playback settings. The thumbnail follows the playhead; source assets,\nopacity/motion keys and actual audio samples drive the other previews.\n"
+    },
+    {
       "id": "b000056",
       "kind": "blank",
-      "start_line": 190,
-      "end_line": 190,
+      "start_line": 194,
+      "end_line": 194,
       "raw": "\n"
     },
     {
       "id": "b000057",
       "kind": "paragraph",
-      "start_line": 191,
-      "end_line": 195,
-      "raw": "The editor implements Figma `1065:90081` with **Layers**, Keyframes and Curves.\n`EditorTimeline.qml` uses `EditorTimelineModel`, a projection of the current\n`EditorCanvas` document. The Video workspace continues to use its own generation\nrecipe; an editor timeline edit updates native IISC data and its existing undo\nhistory, synchronization and save path.\n"
+      "start_line": 195,
+      "end_line": 204,
+      "raw": "The Figma header, eight editing icons, 184-pixel desktop gutter, 40-pixel visual\nrows, 48-pixel audio rows, compact precision fields and status footer use LVRS.\nSelected controls retain their fixed Default tone and show the pressed state.\nThe gutter reduces to 144 or 88 pixels below 1100 or 600 pixels. The transport,\ntools, precision fields and footer each retain one row. Each row clips controls\nthat extend beyond its available width, without wrapping or shrinking them.\nThe dock reserves at most 48% of the\nediting height with a 160-pixel minimum; vertical scrolling reaches all rows\nand controls. Only the lanes scroll horizontally when zoomed. Fit resets zoom\nand both scroll positions. Mobile retains the same dock above its toolbar.\n"
     },
     {
       "id": "b000058",
       "kind": "blank",
-      "start_line": 196,
-      "end_line": 196,
+      "start_line": 205,
+      "end_line": 205,
       "raw": "\n"
     },
     {
       "id": "b000059",
       "kind": "paragraph",
-      "start_line": 197,
-      "end_line": 203,
-      "raw": "Visual rows follow the active canvas layer stack, topmost first. Audio rows\nfollow the native audio tracks. Opening an empty document creates no rows;\nopening a document with layers immediately displays those actual layers. No\nexample shots, content rows, waveforms, captions or keys are inserted. Native\nIISC currently has no caption-track schema, so there is no synthetic Caption\nrow. **Layer +** explicitly adds a static/dynamic bitmap/vector layer, imports\nan image layer, or creates an empty native audio track.\n"
+      "start_line": 206,
+      "end_line": 212,
+      "raw": "Seeking updates `EditorCanvas.frame`, and native frame changes update the\nplayhead. Playback uses elapsed time and native timeline audio; seeking,\nhiding, disabling or switching canvases stops playback. The ruler uses the\nactual frame count and rational FPS. Layer selection, range edits, movement,\nsplitting, duplication, visibility, track names/order, frame-source replacement\nand audio edits use the document's transaction history. Locks reuse canvas\nlayer locks; selection, tools, filters, zoom and edit linking are view state.\n"
     },
     {
       "id": "b000060",
-      "kind": "blank",
-      "start_line": 204,
-      "end_line": 204,
-      "raw": "\n"
-    },
-    {
-      "id": "b000061",
-      "kind": "paragraph",
-      "start_line": 205,
-      "end_line": 212,
-      "raw": "Each layer occupies its own In/Out range. Ranges may overlap and do not form a\nconcatenated shot sequence. IISC uses inclusive `lastFrame`; the UI displays\nexclusive Out and `Duration = Out - In`. A layer without an explicit range spans\nthe document's frame extent. Static layers hold their native source over this\nrange. Dynamic bitmap/vector layers resolve each frame through the native\nsource keys, including held content between sparse keys. Video layers use their\nnative playback settings. The thumbnail follows the playhead; source assets,\nopacity/motion keys and actual audio samples drive the other previews.\n"
-    },
-    {
-      "id": "b000062",
       "kind": "blank",
       "start_line": 213,
       "end_line": 213,
       "raw": "\n"
     },
     {
-      "id": "b000063",
+      "id": "b000061",
       "kind": "paragraph",
       "start_line": 214,
-      "end_line": 223,
-      "raw": "The Figma header, eight editing icons, 184-pixel desktop gutter, 40-pixel visual\nrows, 48-pixel audio rows, compact precision fields and status footer use LVRS.\nSelected controls retain their fixed Default tone and show the pressed state.\nThe gutter reduces to 144 or 88 pixels below 1100 or 600 pixels. The transport,\ntools, precision fields and footer each retain one row. Each row clips controls\nthat extend beyond its available width, without wrapping or shrinking them.\nThe dock reserves at most 48% of the\nediting height with a 160-pixel minimum; vertical scrolling reaches all rows\nand controls. Only the lanes scroll horizontally when zoomed. Fit resets zoom\nand both scroll positions. Mobile retains the same dock above its toolbar.\n"
+      "end_line": 219,
+      "raw": "See [EditorLayerTimeline.md](EditorLayerTimeline.md) for native timing, editing\nand verification details. `Dreamscapes.EditorLayerTimeline` covers actual native\nstatic/dynamic data, every-frame previews, persisted working files, undo/redo,\ntrack management and four responsive widths. `Dreamscapes.EditorTimeline`\ncovers the mounted editor at six desktop/mobile sizes, its real Layer menu,\ncanvas selection, precision controls, keyboard playback and fixed button tones.\n"
+    },
+    {
+      "id": "b000062",
+      "kind": "blank",
+      "start_line": 220,
+      "end_line": 220,
+      "raw": "\n"
+    },
+    {
+      "id": "b000063",
+      "kind": "paragraph",
+      "start_line": 221,
+      "end_line": 227,
+      "raw": "Desktop document commands no longer consume a second toolbar row. Open,\nSave, Save As, Undo and Redo retain their standard shortcuts. A native LVRS\ncanvas context menu exposes Open, Save, Save As, Undo, Redo, Layers, Fit and\nPaint Color through the same existing document dialogs and operations.\nRight-click opens it; left-button editing and middle-button panning remain\nwith iiSharedCanvas. Multi-canvas Previous/Next buttons remain available.\nMobile retains its 84-pixel bottom toolbar, captions and document buttons.\n"
     },
     {
       "id": "b000064",
       "kind": "blank",
-      "start_line": 224,
-      "end_line": 224,
+      "start_line": 228,
+      "end_line": 228,
       "raw": "\n"
     },
     {
       "id": "b000065",
       "kind": "paragraph",
-      "start_line": 225,
-      "end_line": 231,
-      "raw": "Seeking updates `EditorCanvas.frame`, and native frame changes update the\nplayhead. Playback uses elapsed time and native timeline audio; seeking,\nhiding, disabling or switching canvases stops playback. The ruler uses the\nactual frame count and rational FPS. Layer selection, range edits, movement,\nsplitting, duplication, visibility, track names/order, frame-source replacement\nand audio edits use the document's transaction history. Locks reuse canvas\nlayer locks; selection, tools, filters, zoom and edit linking are view state.\n"
+      "start_line": 229,
+      "end_line": 243,
+      "raw": "`desktopEditorLayoutCentersCanvas` checks the reference geometry, all 18\nicon slots, tool selection, transparent rail corners, selected-tab borders,\ncentered native transforms across portrait,\nlandscape and square documents, three window sizes, three panel widths and\npanel collapse/reopen. `desktopEditorToolbarScrollsAndNavigates` verifies four\ndesktop sizes, wheel scrolling, Up/Down and Home/End navigation, visibility of\nthe last tool, the 320-pixel canvas reservation, and the rail's position across\npanel collapse/reopen. The layout test also uses the real context-menu Fit command after\npanning and the mobile layout switch. Existing native editor tests use\ntool names instead of fixed toolbar indices, standard shortcuts and real\ncontext-menu commands to verify painting,\nerasing, history, color picking, layers and document persistence. Historical\n422-pixel tool fixtures retain the original 398-pixel control area with the\nnew 12-pixel inset; the current window\nlayout checks the 304-pixel default.\n"
     },
     {
       "id": "b000066",
       "kind": "blank",
-      "start_line": 232,
-      "end_line": 232,
+      "start_line": 244,
+      "end_line": 244,
       "raw": "\n"
     },
     {
       "id": "b000067",
-      "kind": "paragraph",
-      "start_line": 233,
-      "end_line": 238,
-      "raw": "See [EditorLayerTimeline.md](EditorLayerTimeline.md) for native timing, editing\nand verification details. `Dreamscapes.EditorLayerTimeline` covers actual native\nstatic/dynamic data, every-frame previews, persisted working files, undo/redo,\ntrack management and four responsive widths. `Dreamscapes.EditorTimeline`\ncovers the mounted editor at six desktop/mobile sizes, its real Layer menu,\ncanvas selection, precision controls, keyboard playback and fixed button tones.\n"
-    },
-    {
-      "id": "b000068",
-      "kind": "blank",
-      "start_line": 239,
-      "end_line": 239,
-      "raw": "\n"
-    },
-    {
-      "id": "b000069",
-      "kind": "paragraph",
-      "start_line": 240,
-      "end_line": 246,
-      "raw": "Desktop document commands no longer consume a second toolbar row. Open,\nSave, Save As, Undo and Redo retain their standard shortcuts. A native LVRS\ncanvas context menu exposes Open, Save, Save As, Undo, Redo, Layers, Fit and\nPaint Color through the same existing document dialogs and operations.\nRight-click opens it; left-button editing and middle-button panning remain\nwith iiSharedCanvas. Multi-canvas Previous/Next buttons remain available.\nMobile retains its 84-pixel bottom toolbar, captions and document buttons.\n"
-    },
-    {
-      "id": "b000070",
-      "kind": "blank",
-      "start_line": 247,
-      "end_line": 247,
-      "raw": "\n"
-    },
-    {
-      "id": "b000071",
-      "kind": "paragraph",
-      "start_line": 248,
-      "end_line": 262,
-      "raw": "`desktopEditorLayoutCentersCanvas` checks the reference geometry, all 18\nicon slots, tool selection, transparent rail corners, selected-tab borders,\ncentered native transforms across portrait,\nlandscape and square documents, three window sizes, three panel widths and\npanel collapse/reopen. `desktopEditorToolbarScrollsAndNavigates` verifies four\ndesktop sizes, wheel scrolling, Up/Down and Home/End navigation, visibility of\nthe last tool, the 320-pixel canvas reservation, and the rail's position across\npanel collapse/reopen. The layout test also uses the real context-menu Fit command after\npanning and the mobile layout switch. Existing native editor tests use\ntool names instead of fixed toolbar indices, standard shortcuts and real\ncontext-menu commands to verify painting,\nerasing, history, color picking, layers and document persistence. Historical\n422-pixel tool fixtures retain the original 398-pixel control area with the\nnew 12-pixel inset; the current window\nlayout checks the 304-pixel default.\n"
-    },
-    {
-      "id": "b000072",
-      "kind": "blank",
-      "start_line": 263,
-      "end_line": 263,
-      "raw": "\n"
-    },
-    {
-      "id": "b000073",
       "kind": "fenced_code",
-      "start_line": 264,
-      "end_line": 267,
+      "start_line": 245,
+      "end_line": 248,
       "raw": "```sh\ncmake --build build --target Dreamscapes DreamscapesGuiTests Dreamscapes_qmllint --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(EditorLayout|EditorTimeline|EditorPanelResize|EditorToolPanels|EditorCanvasGui|MultiCanvasGui|EditorElements)$' --output-on-failure\n```\n",
       "language": "sh",
       "code": "cmake --build build --target Dreamscapes DreamscapesGuiTests Dreamscapes_qmllint --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(EditorLayout|EditorTimeline|EditorPanelResize|EditorToolPanels|EditorCanvasGui|MultiCanvasGui|EditorElements)$' --output-on-failure\n",
       "closed": true
     },
     {
-      "id": "b000074",
+      "id": "b000068",
       "kind": "blank",
-      "start_line": 268,
-      "end_line": 268,
+      "start_line": 249,
+      "end_line": 249,
       "raw": "\n"
     },
     {
-      "id": "b000075",
+      "id": "b000069",
       "kind": "paragraph",
-      "start_line": 269,
-      "end_line": 272,
+      "start_line": 250,
+      "end_line": 253,
       "raw": "Build logs, asset hashes, native layout captures and bundle verification are\nstored under `build/vertical-editor-toolbar-20261016/` for the vertical layout.\nInstalled macOS verification is recorded separately from software-rendered\nGUI tests.\n"
     }
   ],
@@ -706,49 +643,41 @@
       "start_line": 71
     },
     {
-      "block_id": "b000035",
-      "parent_id": "b000001",
-      "level": 2,
-      "title": "Tool icon colors",
-      "anchor": "tool-icon-colors",
-      "start_line": 96
-    },
-    {
-      "block_id": "b000045",
+      "block_id": "b000039",
       "parent_id": "b000001",
       "level": 2,
       "title": "Canvas work area",
       "anchor": "canvas-work-area",
-      "start_line": 137
+      "start_line": 118
     },
     {
-      "block_id": "b000055",
+      "block_id": "b000049",
       "parent_id": "b000001",
       "level": 2,
       "title": "Bottom timeline",
       "anchor": "bottom-timeline",
-      "start_line": 189
+      "start_line": 170
     }
   ],
   "indexes": {
     "directive_candidates": [
       {
-        "block_id": "b000031",
-        "line": 73,
-        "text": "툴 탭은 LVRS의 필수 `iconName` 계약에 따라 도구 키를 아이콘 식별자로 전달한다. `iconSource`와 실제 이미지가 같은 기존 SVG를 참조하므로 데스크톱·모바일의 원본 도형과 배치는 유지된다.",
+        "block_id": "b000037",
+        "line": 116,
+        "text": "The visual checks do not imply installed-app or physical-device verification.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000047",
-        "line": 141,
+        "block_id": "b000041",
+        "line": 122,
         "text": "24-pixel menu rows, dividers, icon slots and label positions do not change when",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000061",
-        "line": 205,
+        "block_id": "b000055",
+        "line": 186,
         "text": "Each layer occupies its own In/Out range. Ranges may overlap and do not form a",
         "basis": "lexical_match",
         "context": "paragraph"
@@ -756,7 +685,7 @@
     ],
     "commands": [
       {
-        "block_id": "b000073",
+        "block_id": "b000067",
         "language": "sh",
         "code": "cmake --build build --target Dreamscapes DreamscapesGuiTests Dreamscapes_qmllint --parallel 4\nctest --test-dir build -R '^Dreamscapes\\.(EditorLayout|EditorTimeline|EditorPanelResize|EditorToolPanels|EditorCanvasGui|MultiCanvasGui|EditorElements)$' --output-on-failure\n"
       }
@@ -819,118 +748,99 @@
         "line": 63
       },
       {
-        "block_id": "b000051",
+        "block_id": "b000045",
         "label": "EditorPanelResizing.md",
         "target": "EditorPanelResizing.md",
         "kind": "relative",
-        "line": 174
+        "line": 155
       },
       {
-        "block_id": "b000067",
+        "block_id": "b000061",
         "label": "EditorLayerTimeline.md",
         "target": "EditorLayerTimeline.md",
         "kind": "relative",
-        "line": 233
+        "line": 214
       }
     ],
     "tables": [
       {
-        "block_id": "b000043",
+        "block_id": "b000033",
         "columns": [
           "Tool",
-          "Color name",
-          "Stroke color"
+          "LVRS icon"
         ],
         "rows": [
           [
             "Elements",
-            "Periwinkle",
-            "`#8E8EFF`"
+            "`rectangle`"
           ],
           [
             "Text",
-            "Lavender",
-            "`#CBA6F7`"
+            "`text`"
           ],
           [
             "Camera/Photo",
-            "Sky blue",
-            "`#64B5F6`"
+            "`panel-camera-live`"
           ],
           [
             "File",
-            "Seafoam",
-            "`#80CBC4`"
+            "`document-properties`"
           ],
           [
             "Background",
-            "Green",
-            "`#62BA46`"
+            "`background`"
           ],
           [
             "Audio track",
-            "Pink",
-            "`#F74F9E`"
+            "`audio-track`"
           ],
           [
             "Canvas",
-            "Yellow",
-            "`#FFC600`"
+            "`canvas-size`"
           ],
           [
             "Generative",
-            "Purple",
-            "`#A550A7`"
+            "`spark`"
           ],
           [
             "Layers",
-            "Blue",
-            "`#007AFF`"
+            "`panel-layers-stack`"
           ],
           [
             "Select",
-            "Lime",
-            "`#CDDC39`"
+            "`direct-select`"
           ],
           [
             "Color",
-            "Orange",
-            "`#F7821B`"
+            "`color`"
           ],
           [
             "Effects",
-            "Magenta",
-            "`#E879F9`"
+            "`effect-stack`"
           ],
           [
             "Retouch",
-            "Peach",
-            "`#FFB4A2`"
+            "`panel-retouch-heal`"
           ],
           [
             "Fill",
-            "Turquoise",
-            "`#2DD4BF`"
+            "`fill`"
           ],
           [
             "Brush",
-            "Red",
-            "`#FF5257`"
+            "`brush`"
           ],
           [
             "Adjust",
-            "Gold",
-            "`#F2C55C`"
+            "`auto-tone`"
           ],
           [
             "Masking",
-            "Powder blue",
-            "`#A5C7E8`"
+            "`layer-mask`"
           ],
           [
             "Eraser",
-            "Rose",
-            "`#F58CA8`"
+            "`eraser`"
           ]
         ]
       }

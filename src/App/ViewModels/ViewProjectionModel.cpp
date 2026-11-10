@@ -2,6 +2,15 @@
 #include "ViewData.h"
 
 namespace dreamscapes {
+namespace {
+QVariant unboxVariant(QVariant value) {
+    // QML can pass QStringList and QVariantList elements as nested QVariant
+    // values. Preserve the underlying object or URL instead of serializing it.
+    while (value.metaType().id() == QMetaType::QVariant)
+        value = value.value<QVariant>();
+    return value;
+}
+}
 QVariant ViewProjectionModel::read(vm::ProjectionRead operation, std::initializer_list<QVariant> arguments) const {
     vm::ProjectionQuery query{operation, {}};
     for (const auto &argument : arguments) query.arguments.push_back(nativeValue(argument));
@@ -42,7 +51,7 @@ QVariantList ViewProjectionModel::concatenate(const QVariantList &first, const Q
     QVariantList result;
     for (const auto &index : read(vm::ProjectionRead::concatenateIndices, {first.size(), second.size()}).toList()) {
         const int i = index.toInt();
-        result.append(i < first.size() ? first.at(i) : second.at(i - first.size()));
+        result.append(unboxVariant(i < first.size() ? first.at(i) : second.at(i - first.size())));
     }
     return result;
 }

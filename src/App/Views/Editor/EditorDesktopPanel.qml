@@ -3,7 +3,7 @@ import QtQuick
 import Dreamscapes.Storage 1.0
 import ".." as Frames
 import QtQuick.Controls as Controls
-import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Rectangle {
     id: root
@@ -25,7 +25,7 @@ Rectangle {
     signal actionRequested(string toolId, string fieldId, var values)
     color: "transparent"
     radius: 0
-    readonly property real contentInset: LV.Theme.gap12
+    readonly property real contentInset: Style.Tokens.metric("Theme Metrics/Space/12")
     border.width: 0
     border.color: "transparent"
 

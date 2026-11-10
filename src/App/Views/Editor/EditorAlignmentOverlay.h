@@ -10,6 +10,8 @@ class EditorAlignmentOverlay : public QQuickItem {
     Q_PROPERTY(EditorCanvas *canvas READ canvas WRITE setCanvas NOTIFY canvasChanged)
     Q_PROPERTY(QString family READ family WRITE setFamily NOTIFY familyChanged)
     Q_PROPERTY(bool preview READ preview WRITE setPreview NOTIFY previewChanged)
+    Q_PROPERTY(QColor accentColor MEMBER m_accentColor NOTIFY paletteChanged)
+    Q_PROPERTY(QColor outlineColor MEMBER m_outlineColor NOTIFY paletteChanged)
     Q_PROPERTY(QVariantList labels READ labels NOTIFY labelsChanged)
   public:
     explicit EditorAlignmentOverlay(QQuickItem *parent = nullptr);
@@ -30,6 +32,7 @@ class EditorAlignmentOverlay : public QQuickItem {
     void canvasChanged();
     void familyChanged();
     void previewChanged();
+    void paletteChanged();
     void labelsChanged();
 
   protected:
@@ -42,6 +45,7 @@ class EditorAlignmentOverlay : public QQuickItem {
   private:
     QPointer<EditorCanvas> m_canvas;
     QString m_family = "grid";
+    QColor m_accentColor, m_outlineColor;
     bool m_preview = false;
     int m_dragGuide = -1;
     QPointF m_last;

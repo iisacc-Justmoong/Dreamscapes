@@ -45,8 +45,21 @@ source. Bitmap wrapper creation, native preview generation and explicit image
 storage select their source/target drive once through their existing commands.
 Home attachment and explicit generation runtime/resource-directory helpers use
 the same deferred selection, avoiding an unrelated default-drive scan before
-opening their requested drive. The long-lived GenerationController/Helper
-storage owner keeps discovery because it actually supplies the application mirror.
+opening their requested drive. The long-lived GenerationController now owns one
+deferred FileSystem directly. Initial selection, legacy cleanup, mirror capture
+and model inspection run on a dedicated worker; the GUI adopts the captured
+selection and displays a connecting state while that work is pending. A newer
+explicit selection invalidates the result. Closing the controller cancels
+delivery without joining a blocked initial read or background model inventory.
+The captured drive is checked again during adoption. Explicit selection and
+manual model refresh keep their existing synchronous contracts.
+
+The presence-only Helper uses `FileSystem::Initialization::Deferred`, avoiding
+a second implicit mirror scan. Dreamscapes starts and stops presence through the
+SDK's asynchronous lifecycle and retains the existing `societyHelper` context.
+Normal Quit cancels and drains generation and file work on workers before the
+application leaves its event loop. The SDK's explicit synchronous methods remain
+available to other callers; forced termination does not provide this barrier.
 
 ## Verification and scope
 

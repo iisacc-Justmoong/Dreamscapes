@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/NativeReviewSession.md",
-    "sha256": "be51342d1e2f54be98a21a8320a29773e3f078537a460b698898cc79fdcb3294",
-    "bytes": 8418,
-    "line_count": 103,
+    "sha256": "2b5e780912211c3d809dec94344b33432636b6ad8482e6cd91e96078d4daf9f6",
+    "bytes": 16154,
+    "line_count": 184,
     "encoding": "utf-8",
     "language": "ko"
   },
@@ -72,21 +72,21 @@
       "id": "b000007",
       "kind": "paragraph",
       "start_line": 11,
-      "end_line": 15,
-      "raw": "기존 Qt 화면은 아직 `GenerationReviewModel`을 사용한다. 이미지 선택·비교·편집의\n대상 판정은 기존 화면과 새 네이티브 세션이 같은 C++ 정책을 사용한다. 세션의 나머지\n상태는 기존 화면에 아직 연결되어 있지 않다. 별도 LVUI 결과 그리드와 그 모델은 빌드용\n기반이며 현재 앱에서 열리지 않는다. 작업 큐, 미리보기 디코딩, 비교·내보내기, 편집기\n연결, 디자인 검증과 앱 전체의 Qt 제거도 아직 완료되지 않았다.\n"
+      "end_line": 16,
+      "raw": "기존 Qt 화면의 `GenerationReviewModel`은 네이티브 `Session`을 소유하는 호환 어댑터이다.\n선택·필터·포커스 등 검토 상태의 단일 소유자는 세션이며, 어댑터는 Qt 모델 알림과\n기존 화면이 요구하는 원본 `QVariant` 값을 제공한다. 동일한 세션을 LVUI 결과 그리드에\n주입할 수 있지만 현재 제품 창은 여전히 QML 화면을 사용하며 LVUI 그리드를 생성하지\n않는다. 제품 창의 작업 큐와 미리보기 연결, 비교·내보내기, 편집기 연결, 디자인 검증과\n앱 전체의 Qt 및 LVRS 제거도 아직 완료되지 않았다.\n"
     },
     {
       "id": "b000008",
       "kind": "blank",
-      "start_line": 16,
-      "end_line": 16,
+      "start_line": 17,
+      "end_line": 17,
       "raw": "\n"
     },
     {
       "id": "b000009",
       "kind": "heading",
-      "start_line": 17,
-      "end_line": 17,
+      "start_line": 18,
+      "end_line": 18,
       "raw": "## 상태와 화면 연결\n",
       "level": 2,
       "title": "상태와 화면 연결"
@@ -94,16 +94,16 @@
     {
       "id": "b000010",
       "kind": "blank",
-      "start_line": 18,
-      "end_line": 18,
+      "start_line": 19,
+      "end_line": 19,
       "raw": "\n"
     },
     {
       "id": "b000011",
       "kind": "list",
-      "start_line": 19,
-      "end_line": 41,
-      "raw": "- 제공된 Society 별칭의 `containerId`와 `key`를 우선하여 결과를 식별한다. 별칭이 없으면\n  작업 ID와 원본 경로를 사용하고 미리보기의 URL 질의와 프래그먼트는 식별에서 제외한다.\n- 여러 결과, 숨겨진 선택, 현재 포커스와 후보·제외 상태를 결과 키로 보관한다. 새 결과가\n  도착하거나 필터·정렬이 바뀌어도 유지되는 결과의 검토 상태는 유지한다.\n- `rowAt`은 가시 투영의 한 결과만 읽으며, Inspector는 원본이 제공하는 정보만 표시한다.\n  값이 없으면 `Unavailable`, 복수 선택의 다른 값은 `Mixed`로 구별한다. 큰 정수 시드는\n  부동소수점으로 바꾸지 않는다.\n- 조회 포트의 변경 알림은 전체 투영 교체, 뒤에 추가된 행, 기존 행의 메타데이터·선택·\n  포커스·검토 상태 변경을 구별한다. 포커스 이동만으로 전체 투영을 다시 만들지 않는다.\n  네이티브 가상 그리드는 가시 항목만 조회하고 자체 스크롤 기준점을 보존해야 한다.\n- `ReviewNavigation`은 제품 세션과 LVUI의 컬렉션 탐색을 양방향으로 연결한다. 결과가\n  바뀔 때만 원본 키와 짧은 화면 키의 대응을 갱신하며, 포커스 이동마다 전체 키 목록을\n  새로 만들지 않는다. 긴 원본 경로도 줄이거나 파일에 기록하지 않는다. 제거된 행의\n  늦은 입력은 세션에 적용하지 않고, 같은 원본이 다시 나타나도 이전 화면 키를 재사용하지\n  않는다. 필터로 숨긴 선택과 범위 선택의 기준점을 함께 보존한다.\n- 네이티브 탐색 상태는 세션에 한 번에 적용한다. 알 수 없는 결과 키는 전체 입력을\n  거부하고 기존 선택과 포커스를 유지한다. LVUI 컬렉션의 단일 목록 제한은 65,536개이며,\n  이를 넘는 제품 화면의 페이지 처리와 실제 위젯 연결은 아직 구현하지 않았다.\n- 세션과 알림 수신자는 소유 스레드에서 조작한다. 수신 중 재진입하는 변경은 거부하며,\n  구독은 약한 참조이다. 수신자 예외가 발생해도 나머지 수신자에게 알린 뒤 예외를\n  전달한다. 예외는 이미 적용된 화면 상태를 되돌린다는 보장이 아니다.\n- 키보드 명령은 텍스트 입력에 포커스가 있을 때 실행하지 않는다. 편집·비교 명령의\n  대상은 원래 결과 값으로 반환하며, 실행 자체는 상위 화면과 기존 서비스의 책임이다.\n",
+      "start_line": 20,
+      "end_line": 45,
+      "raw": "- 제공된 Society 별칭의 `containerId`와 `key`를 우선하여 결과를 식별한다. 별칭이 없으면\n  작업 ID와 원본 경로를 사용하고 미리보기의 URL 질의와 프래그먼트는 식별에서 제외한다.\n- 여러 결과, 숨겨진 선택, 현재 포커스와 후보·제외 상태를 결과 키로 보관한다. 새 결과가\n  도착하거나 필터·정렬이 바뀌어도 유지되는 결과의 검토 상태는 유지한다.\n- `rowAt`은 가시 투영의 한 결과만 읽으며, Inspector는 원본이 제공하는 정보만 표시한다.\n  값이 없으면 `Unavailable`, 복수 선택의 다른 값은 `Mixed`로 구별한다. 큰 정수 시드는\n  부동소수점으로 바꾸지 않는다.\n- 조회 포트의 변경 알림은 전체 투영 교체, 뒤에 추가된 행, 기존 행의 메타데이터·선택·\n  포커스·검토 상태 변경을 구별한다. 포커스 이동만으로 전체 투영을 다시 만들지 않는다.\n  네이티브 가상 그리드는 가시 항목만 조회하고 자체 스크롤 기준점을 보존해야 한다.\n- `ReviewNavigation`은 제품 세션과 LVUI 값 계약을 적용한 iiGUI 컬렉션 탐색을 양방향으로 연결한다. 결과가\n  바뀔 때만 원본 키와 짧은 화면 키의 대응을 갱신하며, 포커스 이동마다 전체 키 목록을\n  새로 만들지 않는다. 긴 원본 경로도 줄이거나 파일에 기록하지 않는다. 제거된 행의\n  늦은 입력은 세션에 적용하지 않고, 같은 원본이 다시 나타나도 이전 화면 키를 재사용하지\n  않는다. 필터로 숨긴 선택과 범위 선택의 기준점을 함께 보존한다.\n- 네이티브 탐색 상태는 세션에 한 번에 적용한다. 알 수 없는 결과 키는 전체 입력을\n  거부하고 기존 선택과 포커스를 유지한다. LVUI 컬렉션의 단일 목록 제한은 65,536개이며,\n  이를 넘는 제품 화면의 페이지 처리와 실제 위젯 연결은 아직 구현하지 않았다.\n- 세션과 알림 수신자는 소유 스레드에서 조작한다. 수신 중 재진입하는 변경은 거부하며,\n  구독은 약한 참조이다. 수신자 예외가 발생해도 나머지 수신자에게 알린 뒤 예외를\n  전달한다. 예외는 이미 적용된 화면 상태를 되돌린다는 보장이 아니다.\n- Qt 어댑터의 신호 처리 중 같은 어댑터에 들어온 상태 변경은 이벤트 루프에 예약한다.\n  네이티브 세션을 직접 사용하는 수신자는 세션의 재진입 금지 계약을 따라야 한다.\n  포커스만 변경된 경우 Qt 모델도 영향받은 행만 갱신한다.\n- 키보드 명령은 텍스트 입력에 포커스가 있을 때 실행하지 않는다. 편집·비교 명령의\n  대상은 원래 결과 값으로 반환하며, 실행 자체는 상위 화면과 기존 서비스의 책임이다.\n",
       "items": [
         {
           "marker": "-",
@@ -127,7 +127,7 @@
         },
         {
           "marker": "-",
-          "text": "`ReviewNavigation`은 제품 세션과 LVUI의 컬렉션 탐색을 양방향으로 연결한다. 결과가",
+          "text": "`ReviewNavigation`은 제품 세션과 LVUI 값 계약을 적용한 iiGUI 컬렉션 탐색을 양방향으로 연결한다. 결과가",
           "checked": null
         },
         {
@@ -142,6 +142,11 @@
         },
         {
           "marker": "-",
+          "text": "Qt 어댑터의 신호 처리 중 같은 어댑터에 들어온 상태 변경은 이벤트 루프에 예약한다.",
+          "checked": null
+        },
+        {
+          "marker": "-",
           "text": "키보드 명령은 텍스트 입력에 포커스가 있을 때 실행하지 않는다. 편집·비교 명령의",
           "checked": null
         }
@@ -150,15 +155,15 @@
     {
       "id": "b000012",
       "kind": "blank",
-      "start_line": 42,
-      "end_line": 42,
+      "start_line": 46,
+      "end_line": 46,
       "raw": "\n"
     },
     {
       "id": "b000013",
       "kind": "heading",
-      "start_line": 43,
-      "end_line": 43,
+      "start_line": 47,
+      "end_line": 47,
       "raw": "## LVUI 결과 그리드 기반\n",
       "level": 2,
       "title": "LVUI 결과 그리드 기반"
@@ -166,30 +171,30 @@
     {
       "id": "b000014",
       "kind": "blank",
-      "start_line": 44,
-      "end_line": 44,
+      "start_line": 48,
+      "end_line": 48,
       "raw": "\n"
     },
     {
       "id": "b000015",
       "kind": "paragraph",
-      "start_line": 45,
-      "end_line": 49,
-      "raw": "`NativeReviewGallery.lvui`는 LVRS와 iiGUI의 가상 컬렉션을 사용한다. 제품의 세션·선택과\n탐색 스코프는 `bindNavigation`으로 연결하며, 일반 클릭은 포커스만 이동하고 Cmd/Ctrl·\nShift 클릭은 선택을 조작한다. 일반 포커스 이동은 다음 범위 선택의 기준점이 된다.\n각 행의 선택·검토 정보는 원본과 분리된 세션 상태에서 읽고, 행의 식별자는 결과가\n살아 있는 동안 유지한다. 숨겨진 결과가 바뀔 경우 오래된 미리보기 요청을 거부한다.\n"
+      "start_line": 49,
+      "end_line": 52,
+      "raw": "생성 결과 그리드는 LVUI가 소유한 버튼·이미지와 iiGUI 가상 컬렉션을\n사용하며, 생성된 화면과 독립 테스트 실행 파일은 LVRS 및 Qt를 링크하지 않는다.\n기존 세션의 선택·필터·단축키와 외부 작업 핸들러를 보존한다. 이 계약은 기존 앱\n전체가 네이티브 화면으로 전환되었다는 의미가 아니다.\n"
     },
     {
       "id": "b000016",
       "kind": "blank",
-      "start_line": 50,
-      "end_line": 50,
+      "start_line": 53,
+      "end_line": 53,
       "raw": "\n"
     },
     {
       "id": "b000017",
       "kind": "paragraph",
-      "start_line": 51,
+      "start_line": 54,
       "end_line": 59,
-      "raw": "`ReviewGalleryModel`에는 원본 결과, 비동기 미리보기 및 상세 보기·편집·비교·내보내기 핸들러를\n호출자가 공급한다. 핸들러가 없는 동작은 비활성화한다. 비동기 미리보기 수신 시 원본\n출처가 현재 결과와 다르면 적용하지 않는다. 실제 데이터 공급자·미리보기 디코더·기존\n기능 연결 및 창 구성을 포함하는 제품 화면은 아직 구현되지 않았다.\n`buildReviewGallery`는 LVUI로 생성된 뷰와 탐색을 연결한 다음 호출자의 설정 함수를\n실행하는 C++ 진입점이다. 화면의 모델을 통해 실제 결과와 작업 핸들러를 전달한다.\n결과 목록의 `F`·`X`는 후보·제외 상태를, `C`는 연결된 비교 작업을 실행한다. `Space`는\n선택을 바꾸지 않고 포커스된 결과를 상세 보기 핸들러에 전달한다. 텍스트 입력과 다른\n네이티브 컨트롤의 키 입력은 가로채지 않는다. 상세 보기 화면 자체는 아직 연결되지 않았다.\n"
+      "raw": "네이티브 미리보기 공급자는 iiVisualCodec의 Image, iiNetwork와 iiFileProviderNative를\n직접 찾는다. LVUI의 간접 의존성이 우연히 이 패키지들을 노출하는지에 의존하지 않는다.\n이미지 형식에 독립적인 LVUI `ImageResolver<ii::gui::RasterImage>`와 LVUI 배포본의\n앱 이미지 I/O 어댑터를 조합한다. 어댑터는 교체 가능한 별도 대상이다.\n이 어댑터에는 `EventLoop::Sender`의 `on_signal`과 `signal`이 포함된 iiSDKCore\nRuntime이 필요하다. 구버전과 같은 버전 번호만으로 이 API의 존재가 보장되지는 않는다.\n"
     },
     {
       "id": "b000018",
@@ -203,7 +208,7 @@
       "kind": "paragraph",
       "start_line": 61,
       "end_line": 64,
-      "raw": "기존 앱의 MCP 생성 제어는 현재 `GenerationController`, Qt 객체 및 iiMultimodalAgent의\nQt 기반 MCP 인터페이스에 결합되어 있다. 전체 전환에서는 인증·도구 스키마·생성 및 취소·\n질문 응답을 포함한 기존 계약을 네이티브 백엔드에 연결하고 별도로 검증해야 한다.\n이 결과 그리드 기반은 MCP의 이전을 수행하지 않는다.\n"
+      "raw": "기존 생성 결과 투영을 네이티브 검토 세션에 전달하는 C++ 어댑터는\n결과 추가·제거와 기존 선택 상태를 동기화한다. 편집·비교·내보내기·상세 동작은\n호출자가 주입하며, 원래 결과의 URL 및 불투명 메타데이터는 변환된 사본이 아닌\n원본 값으로 반환한다. 연결이 해제되면 해당 동작과 갱신도 해제한다.\n"
     },
     {
       "id": "b000020",
@@ -214,71 +219,169 @@
     },
     {
       "id": "b000021",
-      "kind": "heading",
+      "kind": "paragraph",
       "start_line": 66,
-      "end_line": 66,
-      "raw": "## 검증\n",
-      "level": 2,
-      "title": "검증"
+      "end_line": 70,
+      "raw": "`NativeReviewGallery.lvui`는 LVUI와 iiGUI의 가상 컬렉션을 사용한다. 제품의 세션·선택과\n탐색 스코프는 `bindNavigation`으로 연결하며, 일반 클릭은 포커스만 이동하고 Cmd/Ctrl·\nShift 클릭은 선택을 조작한다. 일반 포커스 이동은 다음 범위 선택의 기준점이 된다.\n각 행의 선택·검토 정보는 원본과 분리된 세션 상태에서 읽고, 행의 식별자는 결과가\n살아 있는 동안 유지한다. 숨겨진 결과가 바뀔 경우 오래된 미리보기 요청을 거부한다.\n"
     },
     {
       "id": "b000022",
       "kind": "blank",
-      "start_line": 67,
-      "end_line": 67,
+      "start_line": 71,
+      "end_line": 71,
       "raw": "\n"
     },
     {
       "id": "b000023",
       "kind": "paragraph",
-      "start_line": 68,
-      "end_line": 84,
-      "raw": "`Dreamscapes.NativeReview`는 선택·범위 선택·결과 추가·필터·정렬·알림 범위·\n메타데이터·단축키·스레드와 수명을 검사한다. 1,000개 결과는 메모리 내 테스트 값이며\n실제 대량 이미지의 디코딩 속도나 GUI 프레임 성능을 측정한 결과는 아니다.\n`Dreamscapes.NativeReviewParity`는 기존 Qt 모델을 테스트 전용 기준으로 사용하여 같은\n입력과 무작위 조작의 결과를 비교한다. Qt는 이 비교 실행 파일에만 필요하며 네이티브\n세션 자체의 의존성이 아니다.\n`Dreamscapes.NativeReviewNavigation`은 LVUI 탐색과 제품 선택의 왕복, 숨긴 선택, 신규·제거된\n결과, 긴 원본 키와 종료된 행의 늦은 입력을 검사한다. 이 검사는 네이티브 위젯이나\n운영체제 입력을 실행한 결과가 아니다.\n`Dreamscapes.NativeReviewGallery`는 행의 식별자와 포커스, 필터, 늦게 도착한 미리보기,\n원본 액션 대상과 연결 수명을 검사한다. `Dreamscapes.NativeReviewGalleryLink`는 생성된\nLVUI C++ 연결과 실제 래스터 미리보기가 탐색 연결 교체 후 유지되는지 검사한다.\nSDK 소스가 함께 있는 개발 작업 공간에서는 `Dreamscapes.NativeReviewGalleryWidget`이\niiGUI의 창 없는 검사 트리에서 클릭·범위 선택·키보드 명령·후보 버튼·필터·결과 추가,\n편집 대상, 스크롤 위치와 1,000개 결과의 가시 행 활성화를 검사한다. 이는 운영체제 창,\n전체 제품의 연결 또는 시각적\n디자인 동등성을 검증하는 것은 아니다.\n"
+      "start_line": 72,
+      "end_line": 79,
+      "raw": "`ReviewGalleryModel`에는 원본 결과, 이미지 공급자 및 상세 보기·편집·비교·내보내기\n핸들러를 호출자가 공급한다. 핸들러가 없는 동작은 비활성화한다. 결과 그리드는 실제\n가시 행의 이미지 주소만 공급자에 요청하고, 응답이 준비되거나 공급자가 바뀌면 LVUI\n바인딩으로 다시 그린다. 호출자가 래스터를 직접 제공하는 경우 기존 `setThumbnail`도\n유지하며, 비동기 수신 시 원본 출처가 현재 결과와 다르면 적용하지 않는다. 새로운\n출처가 들어오면 기존 래스터와 주소를 먼저 비운다. 생성 프로젝션 어댑터는 존재하지만\n실제 앱에서 이를 생성하지 않는다. 기존 기능 연결 및 창 구성을 포함하는 제품 화면도\n아직 구현되지 않았다.\n"
     },
     {
       "id": "b000024",
       "kind": "blank",
-      "start_line": 85,
-      "end_line": 85,
+      "start_line": 80,
+      "end_line": 80,
       "raw": "\n"
     },
     {
       "id": "b000025",
       "kind": "paragraph",
-      "start_line": 86,
-      "end_line": 89,
-      "raw": "Qt를 사용하지 않는 제품 뷰모델 기반과 기존 네이티브 회귀 검사도 프로젝트 루트의\n`DREAMSCAPES_NATIVE_FOUNDATION_ONLY` 구성으로 빌드할 수 있다. 이 구성은 앱을\n만들거나 설치하지 않는다. `LVUI_DIR`에는 `CollectionNavigation::set_state`가 포함된\nLVUI 패키지를 지정한다. 기존 제품 빌드가 진행 중일 때 같은 `build/`를 재구성하지 않는다.\n"
+      "start_line": 81,
+      "end_line": 86,
+      "raw": "`NativeReviewImages`는 LVUI `ImageIO` 계약·앱 이미지 I/O 어댑터와 iiSharedCanvas의 Qt 없는 네이티브 API를\n조합하는 이미지 공급자이다. 앱은 iiGUI 호스트가 구동하는 `iiSDKCore::EventLoop`와\n작업자 `Runtime`을 사용하여 `NativeReviewImages(loop, workers)`를 만들고\n`setImageResolver(loader)`로 전달할 수 있다. 루프와 작업자는 로더와 모든 진행 중인\n작업보다 오래 살아야 하며 루프가 계속 구동되어야 한다. 이미지 공급자 및 캐시 정책은\n앱이 소유하며 테스트 바인딩이 제품 런타임에 자동으로 설치되는 것은 아니다.\n"
     },
     {
       "id": "b000026",
       "kind": "blank",
-      "start_line": 90,
-      "end_line": 90,
+      "start_line": 87,
+      "end_line": 87,
       "raw": "\n"
     },
     {
       "id": "b000027",
-      "kind": "fenced_code",
-      "start_line": 91,
-      "end_line": 99,
-      "raw": "```sh\ncmake -S . -B build -G Ninja \\\n  -DDREAMSCAPES_NATIVE_FOUNDATION_ONLY=ON \\\n  -DLVUI_DIR=\"$PWD/../../SDK/LVUI/build/review-sdk/lib/cmake/LVUI\" \\\n  -DiiSDKCore_DIR=$HOME/.local/SDK/iiSDKCore/lib/cmake/iiSDKCore \\\n  -DiiJson_DIR=$HOME/.local/SDK/iiJson/lib/cmake/iiJson\ncmake --build build\nctest --test-dir build --output-on-failure\n```\n",
-      "language": "sh",
-      "code": "cmake -S . -B build -G Ninja \\\n  -DDREAMSCAPES_NATIVE_FOUNDATION_ONLY=ON \\\n  -DLVUI_DIR=\"$PWD/../../SDK/LVUI/build/review-sdk/lib/cmake/LVUI\" \\\n  -DiiSDKCore_DIR=$HOME/.local/SDK/iiSDKCore/lib/cmake/iiSDKCore \\\n  -DiiJson_DIR=$HOME/.local/SDK/iiJson/lib/cmake/iiJson\ncmake --build build\nctest --test-dir build --output-on-failure\n",
-      "closed": true
+      "kind": "paragraph",
+      "start_line": 88,
+      "end_line": 103,
+      "raw": "기존 결과의 `image://iisc-preview/...`에 담긴 URL 안전 Base64 경로를 검증하고\n로컬 `.iisc`에만 한정하여 LVUI 로더로 전달한다. 파일명과 개정 식별자가 캐시 구분에\n반영된다. 일반 파일·URL은 LVUI 로더의 기존 정책으로 처리한다. 캔버스 읽기와 합성,\n중간 PNG 인코딩 및 이미지 디코딩은 작업자에서 실행하며 중간 이미지는 메모리에만\n둔다. 캔버스의 종횡비와 직선 알파를 보존하고 긴 변을 최대 512px로 제한한다. 고해상도\n상세 보기의 원본 디코딩 경로를 대체하지 않는다. `.iisc`는 iiSharedCanvas의 읽기 전용\n스냅샷 API를 사용하므로 원본을 변경하지 않는다. 공급자의 `invalidate`와 `clear`는\n필요할 때 캐시를 명시적으로 무효화한다. 이 공급자는 아직 실제 앱 창이나 생성 결과\n프로젝션에 설치되지 않았고, 제품 편집기 연결도 남아 있다.\n`buildReviewGallery`는 LVUI로 생성된 뷰와 탐색을 연결한 다음 호출자의 설정 함수를\n실행하는 C++ 진입점이다. 기존 세션을 전달하면 새 세션을 만들지 않고 공유하며,\n생략하면 독립 세션을 만든다. Qt 화면과의 전환기에는 `GenerationReviewModel::nativeSession()`을\n전달할 수 있다. 호출자는 화면의 모델을 통해 이미지 공급자와 작업 핸들러를 연결한다.\n결과 목록의 `F`·`X`는 후보·제외 상태를, `C`는 연결된 비교 작업을 실행한다. `Space`는\n선택을 바꾸지 않고 포커스된 결과를 상세 보기 핸들러에 전달한다. 텍스트 입력과 다른\n네이티브 컨트롤의 키 입력은 가로채지 않는다. 상세 보기 화면 자체는 아직 연결되지 않았다.\n"
     },
     {
       "id": "b000028",
       "kind": "blank",
-      "start_line": 100,
-      "end_line": 100,
+      "start_line": 104,
+      "end_line": 104,
       "raw": "\n"
     },
     {
       "id": "b000029",
       "kind": "paragraph",
-      "start_line": 101,
-      "end_line": 103,
-      "raw": "기존 Qt 제품 구성의 `Dreamscapes.NativeReviewParity`는 Qt 6.8.3을 기준 모델에만\n사용하여 같은 입력에 대한 동작을 비교한다.\n독립 모델 검사는 실제 GUI, 전체 제품 빌드, 시스템 설치 또는 다른 플랫폼 검증을 대신하지 않는다.\n"
+      "start_line": 105,
+      "end_line": 110,
+      "raw": "`NativeReviewGenerationBridge`는 현재 `GenerationProjection`의 `reviewResults` 변경을\n네이티브 세션에 반영한다. 이 전환용 경계만 Qt 값을 읽으며 LVUI 화면과 세션은 Qt와\nLVRS에 의존하지 않는다. 원래의 `QVariant`를 결과 키로 보관하므로 액션은 URL과 불투명\n메타데이터의 원래 타입을 받는다. 갱신이 알림 수신자의 예외로 중단되어도 실제 세션에\n남은 결과와 일치하는 원본만 반환한다. 프로젝션 또는 어댑터가 종료되면 핸들러를\n제거한다. 앱은 이 어댑터와 네이티브 창을 아직 생성하지 않는다.\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 111,
+      "end_line": 111,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "paragraph",
+      "start_line": 112,
+      "end_line": 115,
+      "raw": "기존 앱의 MCP 생성 제어는 현재 `GenerationController`, Qt 객체 및 iiMultimodalAgent의\nQt 기반 MCP 인터페이스에 결합되어 있다. 전체 전환에서는 인증·도구 스키마·생성 및 취소·\n질문 응답을 포함한 기존 계약을 네이티브 백엔드에 연결하고 별도로 검증해야 한다.\n이 결과 그리드 기반은 MCP의 이전을 수행하지 않는다.\n"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 116,
+      "end_line": 116,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "heading",
+      "start_line": 117,
+      "end_line": 117,
+      "raw": "## 검증\n",
+      "level": 2,
+      "title": "검증"
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 118,
+      "end_line": 118,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "paragraph",
+      "start_line": 119,
+      "end_line": 158,
+      "raw": "`Dreamscapes.NativeReview`는 선택·범위 선택·결과 추가·필터·정렬·알림 범위·\n메타데이터·단축키·스레드와 수명을 검사한다. 1,000개 결과는 메모리 내 테스트 값이며\n실제 대량 이미지의 디코딩 속도나 GUI 프레임 성능을 측정한 결과는 아니다.\n`Dreamscapes.NativeReviewParity`는 현재 Qt 어댑터와 네이티브 세션을 같은 입력과 무작위\n조작으로 비교한다. `Dreamscapes.NativeReviewBaselineParity`는 전환 전 Qt 모델을 고정된\n테스트 기준으로 사용하여 회귀 여부를 독립적으로 비교한다. Qt는 이 비교 실행 파일에만\n필요하며 네이티브 세션 자체의 의존성이 아니다.\n`Dreamscapes.NativeReviewSharedSession`은 실제 제품의 Qt 모델이 소유한 세션을 창 없는\niiGUI 트리의 LVUI 그리드에 주입하여 결과 추가, 선택, 후보, 필터와 원본 URL을 보존하는\n편집 대상을 양방향으로 검사한다. 운영체제 창이나 실제 앱에서 네이티브 뷰를 표시하는\n것까지 검증하지는 않는다.\n`Dreamscapes.ReviewWorkspace`는 기존 QML 화면에서 데스크톱·좁은 창·1,000개 결과의\n검토 및 편집 경로와 이미지·비디오 제출 후 이동을 검사한다. 이 테스트는 허용된 계정\n픽스처와 임시 Society 저장소를 사용하고 저장소 및 모델 목록이 준비되기를 기다린다.\n라이선스 토큰 검증이나 실제 생성 모델 추론을 대신하지 않는다.\n`Dreamscapes.NativeReviewNavigation`은 LVUI 탐색과 제품 선택의 왕복, 숨긴 선택, 신규·제거된\n결과, 긴 원본 키와 종료된 행의 늦은 입력을 검사한다. 이 검사는 네이티브 위젯이나\n운영체제 입력을 실행한 결과가 아니다.\n`Dreamscapes.NativeReviewGallery`는 행의 식별자와 포커스, 필터, 늦게 도착한 미리보기,\n원본 액션 대상과 연결 수명을 검사한다. `Dreamscapes.NativeReviewGalleryLink`는 생성된\nLVUI C++ 연결과 실제 래스터 미리보기가 탐색 연결 교체 후 유지되는지 검사한다.\n`Dreamscapes.NativeReviewRendererBoundary`는 LVUI에서 생성한 버튼과 iiGUI 이미지 위젯을 확인하고\nmacOS 실행 파일에 Qt 동적 라이브러리나 LVRS 정적·동적 심볼이 없는지 검사한다.\n`Dreamscapes.NativeReviewGenerationBridge`는 실제 생성 프로젝션의 결과 갱신, 원본 값,\nQUrl 미리보기 주소 전달, 선택·필터, 연결 종료와 예외 후 결과를 검사한다. 이 어댑터\n검사에는 Qt가 필요하다.\n선택한 iiGUI 라이브러리와 일치하는 내부 테스트 헤더를\n`DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR`로 명시하면 `Dreamscapes.NativeReviewGalleryWidget`이\niiGUI의 창 없는 검사 트리에서 클릭·범위 선택·키보드 명령·후보 버튼·필터·결과 추가,\n편집 대상, 스크롤 위치, 1,000개 결과의 가시 행 활성화, 공급자 교체 및 늦은 이미지\n갱신을 검사한다. `Dreamscapes.NativeReviewImageIO`는 저장된 PNG를 실제 앱 이미지 I/O 어댑터\n작업자에서 읽어 네이티브 그리기 트리에 투영하고, 출처 교체 시 이전 이미지가 지워지며\n결과 메타데이터는 바뀌지 않는지 검사한다. `Dreamscapes.NativeReviewIiscPreview`는 한글\n파일명과 공백이 있는 직렬화된 `.iisc`를 작업자에서 읽어 알파가 있는 이미지를 표시하고,\n같은 파일의 개정 변경, 잘못된 주소, 원본 바이트 보존을 검사한다. 별도로 커밋된 WAL이\n있는 SQLite 작업 파일의 이미지를 읽고 데이터베이스와 WAL의 바이트가 바뀌지 않는지\n확인한다. WAL에서 변경한 필드는 개정 번호이며 그림 픽셀을 WAL에서 변경하는 경우는\n이 검사에 포함하지 않는다. 두 실행 파일의 직접 Qt 및 LVRS 의존성과 LVRS 정적 심볼도\n별도로 검사한다. 이 검사들은 운영체제 창, 제품 앱의 서비스 연결 또는 시각적 디자인\n동등성을 검증하는 것은 아니다.\n"
+    },
+    {
+      "id": "b000036",
+      "kind": "blank",
+      "start_line": 159,
+      "end_line": 159,
+      "raw": "\n"
+    },
+    {
+      "id": "b000037",
+      "kind": "paragraph",
+      "start_line": 160,
+      "end_line": 164,
+      "raw": "Qt를 사용하지 않는 제품 뷰모델 기반과 기존 네이티브 회귀 검사도 프로젝트 루트의\n`DREAMSCAPES_NATIVE_FOUNDATION_ONLY` 구성으로 빌드할 수 있다. 이 구성은 앱을\n만들거나 설치하지 않는다. `LVUI_DIR`과 `iiGUI_DIR`에는 서로 호환되는 현재 LVUI·iiGUI\n패키지를 지정한다. 위젯 검사에 쓰는 내부 헤더도 선택된 iiGUI 바이너리와 일치해야 한다.\n기존 제품 빌드가 진행 중일 때 같은 `build/`를 재구성하지 않는다.\n"
+    },
+    {
+      "id": "b000038",
+      "kind": "blank",
+      "start_line": 165,
+      "end_line": 165,
+      "raw": "\n"
+    },
+    {
+      "id": "b000039",
+      "kind": "fenced_code",
+      "start_line": 166,
+      "end_line": 175,
+      "raw": "```sh\ncmake -S . -B build -G Ninja \\\n  -DDREAMSCAPES_NATIVE_FOUNDATION_ONLY=ON \\\n  -DLVUI_DIR=\"<LVUI package>/lib/cmake/LVUI\" \\\n  -DiiGUI_DIR=\"<iiGUI package>/lib/cmake/iiGUI\" \\\n  -DiiSDKCore_DIR=$HOME/.local/SDK/iiSDKCore/lib/cmake/iiSDKCore \\\n  -DiiJson_DIR=$HOME/.local/SDK/iiJson/lib/cmake/iiJson\ncmake --build build\nctest --test-dir build --output-on-failure\n```\n",
+      "language": "sh",
+      "code": "cmake -S . -B build -G Ninja \\\n  -DDREAMSCAPES_NATIVE_FOUNDATION_ONLY=ON \\\n  -DLVUI_DIR=\"<LVUI package>/lib/cmake/LVUI\" \\\n  -DiiGUI_DIR=\"<iiGUI package>/lib/cmake/iiGUI\" \\\n  -DiiSDKCore_DIR=$HOME/.local/SDK/iiSDKCore/lib/cmake/iiSDKCore \\\n  -DiiJson_DIR=$HOME/.local/SDK/iiJson/lib/cmake/iiJson\ncmake --build build\nctest --test-dir build --output-on-failure\n",
+      "closed": true
+    },
+    {
+      "id": "b000040",
+      "kind": "blank",
+      "start_line": 176,
+      "end_line": 176,
+      "raw": "\n"
+    },
+    {
+      "id": "b000041",
+      "kind": "paragraph",
+      "start_line": 177,
+      "end_line": 181,
+      "raw": "기본적으로 `DREAMSCAPES_NATIVE_REVIEW_IMAGES=ON`은 앱 이미지 I/O 어댑터가 포함된\nLVUI 배포본, `LVUI::ImageIO`, iiGUI와 `iiSharedCanvasNative` 0.35 패키지를 요구한다. 이미지 공급자가 필요 없는 독립 모델\n검사에서는 이 옵션을 `OFF`로 둘 수 있다. 실제 제품은 아직 별도의 레거시\n`iiSharedCanvas::Quick`과 Qt 창을 사용하므로 두 경로의 바이너리나 검증 결과를 혼동하지\n않는다.\n"
+    },
+    {
+      "id": "b000042",
+      "kind": "blank",
+      "start_line": 182,
+      "end_line": 182,
+      "raw": "\n"
+    },
+    {
+      "id": "b000043",
+      "kind": "paragraph",
+      "start_line": 183,
+      "end_line": 184,
+      "raw": "기존 Qt 제품 구성의 두 비교 검사는 Qt 6.8.3을 사용하여 같은 입력에 대한 동작을 비교한다.\n독립 모델 검사는 실제 GUI, 전체 제품 빌드, 시스템 설치 또는 다른 플랫폼 검증을 대신하지 않는다.\n"
     }
   ],
   "outline": [
@@ -304,7 +407,7 @@
       "level": 2,
       "title": "상태와 화면 연결",
       "anchor": "상태와-화면-연결",
-      "start_line": 17
+      "start_line": 18
     },
     {
       "block_id": "b000013",
@@ -312,78 +415,155 @@
       "level": 2,
       "title": "LVUI 결과 그리드 기반",
       "anchor": "lvui-결과-그리드-기반",
-      "start_line": 43
+      "start_line": 47
     },
     {
-      "block_id": "b000021",
+      "block_id": "b000033",
       "parent_id": "b000001",
       "level": 2,
       "title": "검증",
       "anchor": "검증",
-      "start_line": 66
+      "start_line": 117
     }
   ],
   "indexes": {
     "directive_candidates": [
       {
         "block_id": "b000011",
-        "line": 28,
+        "line": 29,
         "text": "네이티브 가상 그리드는 가시 항목만 조회하고 자체 스크롤 기준점을 보존해야 한다.",
         "basis": "lexical_match",
         "context": "list"
       },
       {
         "block_id": "b000011",
-        "line": 31,
+        "line": 32,
         "text": "새로 만들지 않는다. 긴 원본 경로도 줄이거나 파일에 기록하지 않는다. 제거된 행의",
         "basis": "lexical_match",
         "context": "list"
       },
       {
         "block_id": "b000011",
-        "line": 40,
+        "line": 42,
+        "text": "네이티브 세션을 직접 사용하는 수신자는 세션의 재진입 금지 계약을 따라야 한다.",
+        "basis": "lexical_match",
+        "context": "list"
+      },
+      {
+        "block_id": "b000011",
+        "line": 44,
         "text": "- 키보드 명령은 텍스트 입력에 포커스가 있을 때 실행하지 않는다. 편집·비교 명령의",
         "basis": "lexical_match",
         "context": "list"
       },
       {
+        "block_id": "b000015",
+        "line": 50,
+        "text": "사용하며, 생성된 화면과 독립 테스트 실행 파일은 LVRS 및 Qt를 링크하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
         "block_id": "b000017",
-        "line": 53,
-        "text": "출처가 현재 결과와 다르면 적용하지 않는다. 실제 데이터 공급자·미리보기 디코더·기존",
+        "line": 55,
+        "text": "직접 찾는다. LVUI의 간접 의존성이 우연히 이 패키지들을 노출하는지에 의존하지 않는다.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000019",
-        "line": 63,
-        "text": "질문 응답을 포함한 기존 계약을 네이티브 백엔드에 연결하고 별도로 검증해야 한다.",
+        "block_id": "b000023",
+        "line": 76,
+        "text": "유지하며, 비동기 수신 시 원본 출처가 현재 결과와 다르면 적용하지 않는다. 새로운",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000019",
-        "line": 64,
-        "text": "이 결과 그리드 기반은 MCP의 이전을 수행하지 않는다.",
+        "block_id": "b000023",
+        "line": 78,
+        "text": "실제 앱에서 이를 생성하지 않는다. 기존 기능 연결 및 창 구성을 포함하는 제품 화면도",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000025",
-        "line": 88,
-        "text": "만들거나 설치하지 않는다. `LVUI_DIR`에는 `CollectionNavigation::set_state`가 포함된",
+        "block_id": "b000027",
+        "line": 93,
+        "text": "상세 보기의 원본 디코딩 경로를 대체하지 않는다. `.iisc`는 iiSharedCanvas의 읽기 전용",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000025",
-        "line": 89,
-        "text": "LVUI 패키지를 지정한다. 기존 제품 빌드가 진행 중일 때 같은 `build/`를 재구성하지 않는다.",
+        "block_id": "b000027",
+        "line": 94,
+        "text": "스냅샷 API를 사용하므로 원본을 변경하지 않는다. 공급자의 `invalidate`와 `clear`는",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000029",
-        "line": 103,
+        "line": 107,
+        "text": "LVRS에 의존하지 않는다. 원래의 `QVariant`를 결과 키로 보관하므로 액션은 URL과 불투명",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000029",
+        "line": 110,
+        "text": "제거한다. 앱은 이 어댑터와 네이티브 창을 아직 생성하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000031",
+        "line": 114,
+        "text": "질문 응답을 포함한 기존 계약을 네이티브 백엔드에 연결하고 별도로 검증해야 한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000031",
+        "line": 115,
+        "text": "이 결과 그리드 기반은 MCP의 이전을 수행하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000035",
+        "line": 133,
+        "text": "라이선스 토큰 검증이나 실제 생성 모델 추론을 대신하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000035",
+        "line": 156,
+        "text": "이 검사에 포함하지 않는다. 두 실행 파일의 직접 Qt 및 LVRS 의존성과 LVRS 정적 심볼도",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000037",
+        "line": 162,
+        "text": "만들거나 설치하지 않는다. `LVUI_DIR`과 `iiGUI_DIR`에는 서로 호환되는 현재 LVUI·iiGUI",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000037",
+        "line": 163,
+        "text": "패키지를 지정한다. 위젯 검사에 쓰는 내부 헤더도 선택된 iiGUI 바이너리와 일치해야 한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000037",
+        "line": 164,
+        "text": "기존 제품 빌드가 진행 중일 때 같은 `build/`를 재구성하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000043",
+        "line": 184,
         "text": "독립 모델 검사는 실제 GUI, 전체 제품 빌드, 시스템 설치 또는 다른 플랫폼 검증을 대신하지 않는다.",
         "basis": "lexical_match",
         "context": "paragraph"
@@ -391,9 +571,9 @@
     ],
     "commands": [
       {
-        "block_id": "b000027",
+        "block_id": "b000039",
         "language": "sh",
-        "code": "cmake -S . -B build -G Ninja \\\n  -DDREAMSCAPES_NATIVE_FOUNDATION_ONLY=ON \\\n  -DLVUI_DIR=\"$PWD/../../SDK/LVUI/build/review-sdk/lib/cmake/LVUI\" \\\n  -DiiSDKCore_DIR=$HOME/.local/SDK/iiSDKCore/lib/cmake/iiSDKCore \\\n  -DiiJson_DIR=$HOME/.local/SDK/iiJson/lib/cmake/iiJson\ncmake --build build\nctest --test-dir build --output-on-failure\n"
+        "code": "cmake -S . -B build -G Ninja \\\n  -DDREAMSCAPES_NATIVE_FOUNDATION_ONLY=ON \\\n  -DLVUI_DIR=\"<LVUI package>/lib/cmake/LVUI\" \\\n  -DiiGUI_DIR=\"<iiGUI package>/lib/cmake/iiGUI\" \\\n  -DiiSDKCore_DIR=$HOME/.local/SDK/iiSDKCore/lib/cmake/iiSDKCore \\\n  -DiiJson_DIR=$HOME/.local/SDK/iiJson/lib/cmake/iiJson\ncmake --build build\nctest --test-dir build --output-on-failure\n"
       }
     ],
     "links": [],

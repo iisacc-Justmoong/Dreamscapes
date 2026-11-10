@@ -3,6 +3,7 @@ import Dreamscapes.Storage 1.0
 import QtQuick
 import QtQuick.Layouts
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 LV.VStack {
     id: root
@@ -24,9 +25,9 @@ LV.VStack {
             LV.Label {
                 text: qsTr("A starting point, not a blank page")
                 style: header
-                font.pixelSize: 18
-                font.weight: Font.DemiBold
-                font.styleName: "SemiBold"
+                font.pixelSize: Style.Tokens.metric("Theme Typography/Header/textHeader")
+                font.weight: Style.Tokens.metric("Theme Typography/Weight/SemiBold")
+                font.styleName: LV.Theme.textHeaderStyleName
                 Layout.fillWidth: true
                 Layout.preferredHeight: 26
                 elide: Text.ElideRight
@@ -34,7 +35,7 @@ LV.VStack {
             LV.Label {
                 text: qsTr("Use a prompt, then make it your own.")
                 style: description
-                color: LV.Theme.descriptionColor
+                color: Style.Tokens.color("Theme Colors/Text/descriptionColor")
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
                 sizeToContentHeight: true
@@ -65,16 +66,16 @@ LV.VStack {
                 Layout.minimumWidth: 0
                 implicitHeight: Math.max(170, contents.implicitHeight + 32)
                 radius: 12
-                color: LV.Theme.panelBackground08
+                color: Style.Tokens.color("Theme Colors/Panel/surfacePanel")
                 LV.VStack {
                     id: contents
                     alignment: Qt.AlignLeft
                     anchors.fill: parent
                     anchors.margins: 16
                     spacing: 16
-                    LV.Label { text: card.modelData.tag; style: description; font.pixelSize: 11; font.weight: Font.DemiBold; color: LV.Theme.descriptionColor }
-                    LV.Label { text: card.modelData.title; style: header; font.pixelSize: 18; font.weight: Font.DemiBold; font.styleName: "SemiBold"; Layout.fillWidth: true; wrapMode: Text.Wrap; sizeToContentHeight: true }
-                    LV.Label { text: card.modelData.prompt; style: body; Layout.fillWidth: true; wrapMode: Text.Wrap; sizeToContentHeight: true; color: LV.Theme.descriptionColor }
+                    LV.Label { text: card.modelData.tag; style: caption; font.weight: Style.Tokens.metric("Theme Typography/Weight/SemiBold"); font.styleName: LV.Theme.textHeaderStyleName; color: Style.Tokens.color("Theme Colors/Text/descriptionColor") }
+                    LV.Label { text: card.modelData.title; style: header; font.pixelSize: Style.Tokens.metric("Theme Typography/Header/textHeader"); font.weight: Style.Tokens.metric("Theme Typography/Weight/SemiBold"); font.styleName: LV.Theme.textHeaderStyleName; Layout.fillWidth: true; wrapMode: Text.Wrap; sizeToContentHeight: true }
+                    LV.Label { text: card.modelData.prompt; style: body; Layout.fillWidth: true; wrapMode: Text.Wrap; sizeToContentHeight: true; color: Style.Tokens.color("Theme Colors/Text/descriptionColor") }
                     LV.LabelButton {
                         objectName: "homeUsePrompt" + card.index
                         text: qsTr("Use prompt")

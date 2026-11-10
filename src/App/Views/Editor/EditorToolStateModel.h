@@ -117,7 +117,7 @@ class EditorToolStateModel : public QObject {
     Q_INVOKABLE bool editLayerOpacity(const QString &text);
     Q_INVOKABLE bool openLayerAdjustment(const QVariantMap &entry);
     Q_INVOKABLE void layerAction(const QString &key, bool shadow, bool highlight);
-    Q_INVOKABLE QVariantList layerHierarchy(const QUrl &assetRoot, const QVariantMap &collapsed) const;
+    Q_INVOKABLE QVariantList layerHierarchy(const QVariantMap &collapsed) const;
     Q_INVOKABLE QVariantMap layerAdjustment(const QString &key, const QVariantList &entries) const;
     Q_INVOKABLE QVariantMap layerAdjustmentField(const QString &id) const;
     Q_INVOKABLE void requestElementImageFill();

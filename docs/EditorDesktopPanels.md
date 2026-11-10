@@ -31,11 +31,11 @@
 
 19개 메인 패널의 최신 디자인 컨텍스트를 요청했으며, 큰 Color·Effects 패널은 하위 행으로 나누어 읽었다. 일부 하위 조회가 Figma MCP 요금제의 호출 한도에 도달했다. 동일 노드의 저장된 고해상도 컨텍스트를 재사용하고, `figma-use`의 읽기 기능으로 해당 16개 행의 현재 라벨·값·컴포넌트 종류·크기를 다시 확인했다. 저장된 기록에도 없던 Effects 세 행은 현재 노드의 컴포넌트 속성과 이미 조회한 동일 LVRS 컨트롤 규격을 사용했다. Figma 디자인 노드는 변경하지 않았다.
 
-Navigation의 화살표는 설치된 LVRS 자산과 Figma 제공 파일이 일치하지 않아 제공 SVG를 `Assets/Panel/general-chevron-right.svg`로 저장했다. 18×18px 자연 크기와 오른쪽 슬롯 위치를 유지하며 CMake 리소스에 포함한다. 제목·컨트롤·동작·미리보기 행은 LVRS를 재사용한다. 전체 Figma 캡처는 비교 근거이며 제품의 구현 이미지로 사용하지 않는다.
+Navigation의 화살표는 공통 LVRS `generalchevronRight` 아이콘을 사용한다. 18×18px 크기와 오른쪽 슬롯 위치를 유지한다. 제목·컨트롤·동작·미리보기 행은 LVRS를 재사용한다. 전체 Figma 캡처는 비교 근거이며 제품의 구현 이미지로 사용하지 않는다.
 
 ## 검증
 
-`fixtures/FigmaPanels.json`은 Figma에서 확인한 기존 19개 패널의 좌표·크기·옵션·입력 예시를 담는 독립적인 검증 기준이다. Asset 기록은 원본 비교를 위해 보존하며 실제 앱 패널 검사에서는 제외한다. 전용 뷰 카탈로그로 교체된 도구는 각각의 렌더링·상호작용 검사로 검증한다. `desktopEditorToolPanelsMatchFigma`는 나머지 패널의 모든 필드 위치와 초기값, 선택·동작 버튼 슬롯, 미리보기 화살표의 로컬 자산과 실제 렌더링 크기, 옵션 클릭, 도구별 초안 복원·Reset·스크롤·Escape를 검사한다. Elements·수치 계약·모바일 18개 시트 검사도 함께 실행한다.
+`fixtures/FigmaPanels.json`은 Figma에서 확인한 기존 19개 패널의 좌표·크기·옵션·입력 예시를 담는 독립적인 검증 기준이다. Asset 기록은 원본 비교를 위해 보존하며 실제 앱 패널 검사에서는 제외한다. 전용 뷰 카탈로그로 교체된 도구는 각각의 렌더링·상호작용 검사로 검증한다. `desktopEditorToolPanelsMatchFigma`는 나머지 패널의 모든 필드 위치와 초기값, 선택·동작 버튼 슬롯, 미리보기 화살표의 LVRS 자산과 실제 렌더링 크기, 옵션 클릭, 도구별 초안 복원·Reset·스크롤·Escape를 검사한다. Elements·수치 계약·모바일 18개 시트 검사도 함께 실행한다.
 
 ```sh
 cmake --build build --target DreamscapesGuiTests --parallel 4

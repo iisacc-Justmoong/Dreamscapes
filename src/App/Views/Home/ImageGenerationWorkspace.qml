@@ -5,6 +5,7 @@ import ".." as Frames
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import LVRS 1.0 as LV
+import Dreamscapes.Style 1.0 as Style
 
 Item {
     id: root
@@ -78,8 +79,8 @@ Item {
                     // One fit scale preserves the document aspect ratio for an
                     // empty canvas, every streamed frame and the final image.
                     readonly property real fitScale: Math.min(
-                        Math.max(0, canvas.width - LV.Theme.gap24) / root.canvasPixelWidth,
-                        Math.max(0, canvas.height * 0.7 - LV.Theme.gap16) / root.canvasPixelHeight)
+                        Math.max(0, canvas.width - Style.Tokens.metric("Theme Metrics/Space/24")) / root.canvasPixelWidth,
+                        Math.max(0, canvas.height * 0.7 - Style.Tokens.metric("Theme Metrics/Space/16")) / root.canvasPixelHeight)
                     width: root.canvasPixelWidth * fitScale
                     height: root.canvasPixelHeight * fitScale
                     color: "white"
@@ -96,7 +97,7 @@ Item {
                 LV.Label {
                     objectName: "advancedCanvasResolution"
                     anchors.top: surface.bottom
-                    anchors.topMargin: LV.Theme.gap8
+                    anchors.topMargin: Style.Tokens.metric("Theme Metrics/Space/8")
                     anchors.horizontalCenter: surface.horizontalCenter
                     text: qsTr("%1 × %2").arg(root.canvasPixelWidth).arg(root.canvasPixelHeight)
                     style: caption
@@ -105,8 +106,8 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
-                    anchors.margins: LV.Theme.gap16
-                    spacing: LV.Theme.gap8
+                    anchors.margins: Style.Tokens.metric("Theme Metrics/Space/16")
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                     LV.Label {
                         objectName: "advancedGenerationStatus"
                         Layout.fillWidth: true
@@ -128,7 +129,7 @@ Item {
                         clip: true
                         LV.HStack {
                             id: thumbnails
-                            spacing: LV.Theme.gap6
+                            spacing: Style.Tokens.metric("Theme Metrics/Space/6")
                             Repeater {
                                 model: root.results
                                 delegate: LV.AbstractButton {
@@ -164,7 +165,7 @@ Item {
                         }
                     }
                     LV.HStack {
-                        spacing: LV.Theme.gap8
+                        spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                         ImageSelectionBar {
                             id: imageSelection
                             objectName: "advancedImageSelection"
@@ -184,7 +185,7 @@ Item {
                 objectName: "advancedParameterColumn"
                 Layout.preferredWidth: LV.Theme.scaleMetric(402)
                 Layout.fillHeight: true
-                spacing: LV.Theme.gap8
+                spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                 AdvancedGenerate {
                     generation: root.generation
                     id: panel
@@ -195,10 +196,10 @@ Item {
                 }
                 LV.HStack {
                     Layout.fillWidth: true
-                    Layout.leftMargin: LV.Theme.gap16
-                    Layout.rightMargin: LV.Theme.gap16
-                    Layout.bottomMargin: LV.Theme.gap12
-                    spacing: LV.Theme.gap8
+                    Layout.leftMargin: Style.Tokens.metric("Theme Metrics/Space/16")
+                    Layout.rightMargin: Style.Tokens.metric("Theme Metrics/Space/16")
+                    Layout.bottomMargin: Style.Tokens.metric("Theme Metrics/Space/12")
+                    spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                     LV.LabelButton {
                         objectName: "advancedReset"
                         text: qsTr("Reset")

@@ -4,6 +4,7 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
+import Dreamscapes.Style 1.0 as Style
 
 LV.VStack { alignment: Qt.AlignLeft;
     id: root
@@ -18,7 +19,7 @@ LV.VStack { alignment: Qt.AlignLeft;
     signal fileRequested(var file)
     signal viewAllRequested()
     signal openFileRequested()
-    spacing: LV.Theme.gap8
+    spacing: Style.Tokens.metric("Theme Metrics/Space/8")
     Layout.minimumWidth: 0
     CanvasPreview { id: previews }
     function selectFile(file) { selectedKey = NativeData.facts.key(file) }
@@ -29,9 +30,9 @@ LV.VStack { alignment: Qt.AlignLeft;
     Component.onCompleted: reconcileSelection()
     LV.HStack {
         Layout.fillWidth: true
-        spacing: LV.Theme.gap8
+        spacing: Style.Tokens.metric("Theme Metrics/Space/8")
         LV.Label { text: qsTr("Recent files"); style: header2 }
-        LV.Label { text: qsTr("%1 files").arg(root.files.length); style: caption; color: LV.Theme.descriptionColor }
+        LV.Label { text: qsTr("%1 files").arg(root.files.length); style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor") }
         Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
         LV.LabelMenuButton { tone: LV.AbstractButton.Default; id: filter; objectName: "homeFileTypeFilter"; text: root.typeFilter; visible: root.width > 420; onClicked: typeMenu.openFor(this, 0, height) }
         LV.LabelButton { objectName: "desktopRecentFilesViewAll"; text: qsTr("View all"); tone: LV.AbstractButton.Borderless; onClicked: root.viewAllRequested() }
@@ -39,11 +40,11 @@ LV.VStack { alignment: Qt.AlignLeft;
     LV.HStack {
         Layout.fillWidth: true
         Layout.preferredHeight: 22
-        spacing: LV.Theme.gap8
-        LV.Label { text: qsTr("FILE"); style: caption; color: LV.Theme.descriptionColor; Layout.fillWidth: true }
-        LV.Label { text: qsTr("SPECIFICATIONS"); style: caption; color: LV.Theme.descriptionColor; visible: root.width >= 550; Layout.preferredWidth: 112 }
-        LV.Label { text: qsTr("UPDATED"); style: caption; color: LV.Theme.descriptionColor; visible: root.width >= 440; Layout.preferredWidth: 82 }
-        LV.Label { text: qsTr("STATE"); style: caption; color: LV.Theme.descriptionColor; visible: root.width >= 550; Layout.preferredWidth: 70 }
+        spacing: Style.Tokens.metric("Theme Metrics/Space/8")
+        LV.Label { text: qsTr("FILE"); style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor"); Layout.fillWidth: true }
+        LV.Label { text: qsTr("SPECIFICATIONS"); style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor"); visible: root.width >= 550; Layout.preferredWidth: 112 }
+        LV.Label { text: qsTr("UPDATED"); style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor"); visible: root.width >= 440; Layout.preferredWidth: 82 }
+        LV.Label { text: qsTr("STATE"); style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor"); visible: root.width >= 550; Layout.preferredWidth: 70 }
     }
     ListView {
         id: list
@@ -85,18 +86,18 @@ LV.VStack { alignment: Qt.AlignLeft;
             radius: 0
             LV.HStack {
                 anchors.fill: parent
-                anchors.leftMargin: LV.Theme.gap8
-                anchors.rightMargin: LV.Theme.gap8
-                spacing: LV.Theme.gap8
+                anchors.leftMargin: Style.Tokens.metric("Theme Metrics/Space/8")
+                anchors.rightMargin: Style.Tokens.metric("Theme Metrics/Space/8")
+                spacing: Style.Tokens.metric("Theme Metrics/Space/8")
                 Image { id: image; source: entry.previewSource; sourceSize: Qt.size(72,72); asynchronous: true; fillMode: Image.PreserveAspectCrop; clip: true; Layout.preferredWidth: 36; Layout.preferredHeight: 36 }
                 LV.VStack { alignment: Qt.AlignLeft;
-                    Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: LV.Theme.gap4
+                    Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: Style.Tokens.metric("Theme Metrics/Space/4")
                     LV.Label { text: entry.modelData.name || ""; style: body; elide: Text.ElideRight; Layout.fillWidth: true }
-                    LV.Label { text: entry.modelData.metadata1 || entry.modelData.description || NativeData.facts.kind(entry.modelData); style: caption; color: LV.Theme.descriptionColor; elide: Text.ElideRight; Layout.fillWidth: true }
+                    LV.Label { text: entry.modelData.metadata1 || entry.modelData.description || NativeData.facts.kind(entry.modelData); style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor"); elide: Text.ElideRight; Layout.fillWidth: true }
                 }
-                LV.Label { text: NativeData.facts.dimensions(entry.modelData); style: caption; color: LV.Theme.descriptionColor; visible: root.width >= 550; Layout.preferredWidth: 112; elide: Text.ElideRight }
-                LV.Label { text: NativeData.facts.date(entry.modelData); style: caption; color: LV.Theme.descriptionColor; visible: root.width >= 440; Layout.preferredWidth: 82; elide: Text.ElideRight }
-                LV.Label { text: NativeData.facts.state(entry.modelData); style: caption; color: LV.Theme.descriptionColor; visible: root.width >= 550; Layout.preferredWidth: 70; elide: Text.ElideRight }
+                LV.Label { text: NativeData.facts.dimensions(entry.modelData); style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor"); visible: root.width >= 550; Layout.preferredWidth: 112; elide: Text.ElideRight }
+                LV.Label { text: NativeData.facts.date(entry.modelData); style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor"); visible: root.width >= 440; Layout.preferredWidth: 82; elide: Text.ElideRight }
+                LV.Label { text: NativeData.facts.state(entry.modelData); style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor"); visible: root.width >= 550; Layout.preferredWidth: 70; elide: Text.ElideRight }
             }
             MouseArea {
                 anchors.fill: parent
@@ -106,6 +107,6 @@ LV.VStack { alignment: Qt.AlignLeft;
         }
     }
     LV.Label { objectName: "desktopRecentFilesEmpty"; visible: !root.visibleFiles.length; text: root.loading ? qsTr("Reading Society…") : qsTr("No recent files"); style: body }
-    LV.Label { text: root.selectedKey ? qsTr("1 selected · %1").arg(root.selectedFile.name || "") : qsTr("No file selected"); style: caption; color: LV.Theme.descriptionColor; Layout.fillWidth: true; elide: Text.ElideRight }
+    LV.Label { text: root.selectedKey ? qsTr("1 selected · %1").arg(root.selectedFile.name || "") : qsTr("No file selected"); style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor"); Layout.fillWidth: true; elide: Text.ElideRight }
     LV.ContextMenu { id: typeMenu; showIconSlot: false; items: [qsTr("All types"), "Canvas", "Image", "Video", "Document"]; onItemTriggered: function(index, entry) { root.typeFilter = String(entry) } }
 }

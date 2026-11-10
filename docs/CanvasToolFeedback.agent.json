@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/CanvasToolFeedback.md",
-    "sha256": "8fd89976024b4ac5a1dc850f97a89ebf67511c4a22ee95512fa5dc94e7fa1366",
-    "bytes": 4150,
-    "line_count": 62,
+    "sha256": "510159f9800f1a2aff92d51a2cf554910e1e233e472b8847e9a0991cc4b7e02f",
+    "bytes": 4286,
+    "line_count": 63,
     "encoding": "utf-8",
     "language": "en"
   },
@@ -56,21 +56,21 @@
       "id": "b000005",
       "kind": "paragraph",
       "start_line": 7,
-      "end_line": 12,
-      "raw": "`EditorCanvasFeedback` is an input-transparent native painted surface above the\ndocument, existing mask tint and transform controls. It has no accepted mouse\nbuttons, touch input or hover handlers. `EditorCanvas` remains the sole input\nowner. The feedback artwork and selection/shape drafts do not modify document pixels, history,\nauthorship or a working file. Completed paint and mask operations retain their\nexisting native transactions and Undo behavior.\n"
+      "end_line": 13,
+      "raw": "`EditorCanvasFeedback` is an input-transparent native painted surface above the\ndocument, existing mask tint and transform controls. It has no accepted mouse\nbuttons, touch input or hover handlers. `EditorCanvas` remains the sole input\nowner. QML supplies the LVRS canvas, base text and blue overlay colors to the native\npainted surface, including when the shared theme changes. The feedback artwork and\nselection/shape drafts do not modify document pixels, history, authorship or a working file. Completed paint and mask operations retain their\nexisting native transactions and Undo behavior.\n"
     },
     {
       "id": "b000006",
       "kind": "blank",
-      "start_line": 13,
-      "end_line": 13,
+      "start_line": 14,
+      "end_line": 14,
       "raw": "\n"
     },
     {
       "id": "b000007",
       "kind": "list",
-      "start_line": 14,
-      "end_line": 34,
+      "start_line": 15,
+      "end_line": 35,
       "raw": "- Select Rectangle, Triangle and Lasso show a black-and-white dashed contour\n  while dragging. The preview shares the selection operation's geometry builder,\n  including smoothing, ratio, rotation, from-center and triangle rounding.\n- Accepted selections retain marching ants around their actual mask at 50%\n  coverage, including disconnected islands and subtraction holes. The contour\n  is cached when selection coverage changes; pointer moves do not scan the mask.\n- Elements show their actual rectangle, ellipse, polygon or line outline while\n  creating, alongside the existing free-transform frame. The creation preview\n  reuses the shape path builder used by the native element operation.\n- Retouch and non-pixel eraser strokes show their affected brush-width trail.\n  Local Brush masks show the same stroke-width contour; Linear/Radial masks show\n  their guide geometry. Background Mask adds dashed Rectangle/Ellipse/Lasso and\n  Gradient guides and a Polygon rubber-band line to its existing coverage tint.\n  Linear guides follow the native gradient angle and span. Semantic and range\n  selection modes do not display a rectangle that their native operation ignores.\n- Brush, Eraser, Retouch and both mask brushes display a contrasting brush tip\n  cursor. Round, Square and Diamond brush tips follow the configured shape.\n  Diameter follows zoom, screen-size locking and the selected raster layer's\n  sampled affine transform. Small tips and retouch tools add a center crosshair.\n  The system pointer is hidden only while a tip is actually displayed. Leaving\n  the canvas, hiding Editor or losing focus restores the system pointer.\n",
       "items": [
         {
@@ -103,57 +103,57 @@
     {
       "id": "b000008",
       "kind": "blank",
-      "start_line": 35,
-      "end_line": 35,
+      "start_line": 36,
+      "end_line": 36,
       "raw": "\n"
     },
     {
       "id": "b000009",
       "kind": "paragraph",
-      "start_line": 36,
-      "end_line": 40,
+      "start_line": 37,
+      "end_line": 41,
       "raw": "Escape, capture loss, a tool change, frame change or document replacement clears\nuncommitted selection, shape and mask guides. SDK brush cancellation restores\nits live stroke. Heal/Clone already apply their pixels while dragging; ending\ntheir capture retains those pixels in one existing Undo step. Unavailable Face\nRefine does not display a painting cursor or reuse another retouch mode.\n"
     },
     {
       "id": "b000010",
       "kind": "blank",
-      "start_line": 41,
-      "end_line": 41,
+      "start_line": 42,
+      "end_line": 42,
       "raw": "\n"
     },
     {
       "id": "b000011",
       "kind": "paragraph",
-      "start_line": 42,
-      "end_line": 50,
+      "start_line": 43,
+      "end_line": 51,
       "raw": "The painted child surface follows the visible feedback bounds, rounded to a\n32-pixel grid. A cursor-only frame therefore uses a small texture instead of a\nviewport-sized backing image. Nearby pointer moves reuse that allocation.\nThe 100 ms ants timer runs only while a visible canvas has a selection or guide;\nit stops when Editor is hidden or its window is minimized.\nIt repaints the separate overlay, without rendering document tiles, emitting\ndocument revisions or writing PNG selection images on each tick. Cursor-only\nfeedback updates on pointer or viewport changes and does not keep a timer alive.\nStroke widths and dash lengths stay fixed in viewport pixels across zoom.\n"
     },
     {
       "id": "b000012",
       "kind": "blank",
-      "start_line": 51,
-      "end_line": 51,
+      "start_line": 52,
+      "end_line": 52,
       "raw": "\n"
     },
     {
       "id": "b000013",
       "kind": "paragraph",
-      "start_line": 52,
-      "end_line": 56,
+      "start_line": 53,
+      "end_line": 57,
       "raw": "The local Photoshop reference is\n`Engineering/Projects/Adobe/Photoshop/docs/BrushInterface.md`, especially the\nbrush diameter/tip inventory and painting cursor identifiers at lines 195–199,\nwith its linked `Photoshop.sdef` declarations. These recovered interfaces\nestablish the reference controls, not Adobe's private painting algorithms.\n"
     },
     {
       "id": "b000014",
       "kind": "blank",
-      "start_line": 57,
-      "end_line": 57,
+      "start_line": 58,
+      "end_line": 58,
       "raw": "\n"
     },
     {
       "id": "b000015",
       "kind": "paragraph",
-      "start_line": 58,
-      "end_line": 62,
+      "start_line": 59,
+      "end_line": 63,
       "raw": "`Dreamscapes.CanvasFeedback` verifies preview geometry, actual outline pixels,\nsubtraction holes, cursor shape/size/zoom modes, cancellation with Redo, and\nworking-file immutability. `Dreamscapes.CanvasFeedbackGui` drives the real editor\ntoolbar, native pointer routing, Rectangle/Lasso previews, Escape, brush cursor\nrendering and hover exit. Captures use `DREAMSCAPES_CAPTURE_DIR`.\n"
     }
   ],
@@ -171,21 +171,21 @@
     "directive_candidates": [
       {
         "block_id": "b000005",
-        "line": 10,
-        "text": "owner. The feedback artwork and selection/shape drafts do not modify document pixels, history,",
+        "line": 12,
+        "text": "selection/shape drafts do not modify document pixels, history, authorship or a working file. Completed paint and mask operations retain their",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000007",
-        "line": 19,
+        "line": 20,
         "text": "is cached when selection coverage changes; pointer moves do not scan the mask.",
         "basis": "lexical_match",
         "context": "list"
       },
       {
         "block_id": "b000007",
-        "line": 28,
+        "line": 29,
         "text": "selection modes do not display a rectangle that their native operation ignores.",
         "basis": "lexical_match",
         "context": "list"

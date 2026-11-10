@@ -33,6 +33,13 @@ int main(int argc,char** argv) {
     NativeGenerationInput throwing; throwing.state=std::make_shared<NativeGenerationState>();
     throwing.generate=[](const auto&,const auto&,const auto&,const auto&,const auto&)->iiLocalDiffusion::NativeGenerationResult { throw std::runtime_error("provider failed"); };
     CHECK(runNativeGeneration(std::move(throwing)).error=="provider failed");
+    NativeGenerationInput interrupted; interrupted.state=std::make_shared<NativeGenerationState>();
+    auto interruptedState=interrupted.state;
+    interrupted.generate=[interruptedState](const auto&,const auto&,const auto&,const auto&,const auto&)->iiLocalDiffusion::NativeGenerationResult {
+        interruptedState->cancelled=true; throw std::runtime_error("component preparation interrupted");
+    };
+    const auto interruption=runNativeGeneration(std::move(interrupted));
+    CHECK(interruption.cancelled && interruption.error.empty());
     NativeGenerationInput noLease; noLease.state=std::make_shared<NativeGenerationState>(); noLease.previewDirectory=directory;
     noLease.preview=[&](const auto&) { CHECK(false); }; noLease.generate=[](const auto&,const auto&,const auto&,const auto&,const auto& preview) {
         preview({{11,12,13},1,1,4,1,1}); return iiLocalDiffusion::NativeGenerationResult{};

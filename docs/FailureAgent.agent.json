@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/FailureAgent.md",
-    "sha256": "2d1f8a489f0d0e61b1292b5875b883641f3cca4510cbb0883a202da55537c472",
-    "bytes": 7282,
-    "line_count": 84,
+    "sha256": "9ef107f0701925ecc23002cab649de0e4edaa1f13dc8698a4aa14e491c2c25db",
+    "bytes": 9211,
+    "line_count": 105,
     "encoding": "utf-8",
     "language": "ko"
   },
@@ -154,49 +154,77 @@
       "id": "b000019",
       "kind": "paragraph",
       "start_line": 51,
-      "end_line": 63,
-      "raw": "QML은 `latestFailure`, `failureAnalysis(jobId)`, `failureExplained(jobId, report)`를\n사용한다. `Failure details` 버튼과 스크롤 가능한 LVRS 모달은 전체 설명을 표시한다.\n보고서 본문은 읽기 전용 일반 텍스트이므로 드래그하여 부분 선택할 수 있다.\n`Copy report`는 현재 표시된 전체 설명과 분석·저장 상태, 보고서 경로를 클립보드에\n복사하며 기존 텍스트 선택을 유지한다. 분석 중 결과가 갱신되면 이후 복사는 갱신된\n내용을 사용한다. 복사는 캡처된 보고서의 내용만 포함하며 원래 로그의 캡처 한계를\n늘리거나 진단 파일을 변경하지 않는다.\n기존 짧은 오류 표시는 유지한다. MCP의 `failure_analysis`와 `jobs.failureAnalysis`도\n같은 결과를 제공한다. 보고서는 앱 데이터의 `FailureReports/.<job-id>.json`에 저장하고\n에이전트 실행 기록은 그 아래 `.sessions`에 저장한다. 이는 iiFileProvider가 문서\n미리보기를 생성하지 않는 내부 파일 경계이다. 저장 실패도 별도 필드로 알린다.\n테스트나 관리 환경은 `DREAMSCAPES_FAILURE_REPORTS_DIR`로 별도 보고서 저장소를\n지정할 수 있다. 테스트는 사용자 앱 데이터와 분리된 `build/` 하위 경로를 사용한다.\n"
+      "end_line": 60,
+      "raw": "이미지 생성 큐는 iiLocalDiffusion의 제한된 모델 헤더 검사로 엔진을 선택한다.\nMOSS Image 변환기와 INT8 Comfy 메타데이터가 감지된 파일은 별도 Diffusers 워커에서\n양자화 형식을 검증하며,\n필요한 구성 요소나 워커가 없으면 해당 오류를 보고한다. 네이티브 API를 직접 호출할 때는\n지원 한계와 필요한 구성 요소를 명시한다. 병합 메타데이터의 합성\n어댑터 매핑 개수는 기록된 출처 정보이며 품질이나 파일 손상의 증거로 단정하지 않는다.\n잘렸거나 읽을 수 없는 헤더와 검사 중 변경된 모델은 `model-input`으로 분류한다.\n기존 `get sd version from file failed` 오류는 `model-identification`으로 분류하되\n지원 범위·파일 상태 중 어느 하나를 근거 없이 확정하지 않는다. 언어 모델의 추가\n분석에 실패해도 원문과 결정론적 근거 보고서를 유지한다.\n"
     },
     {
       "id": "b000020",
       "kind": "blank",
-      "start_line": 64,
-      "end_line": 64,
+      "start_line": 61,
+      "end_line": 61,
       "raw": "\n"
     },
     {
       "id": "b000021",
       "kind": "paragraph",
-      "start_line": 65,
-      "end_line": 76,
-      "raw": "CLI 최소 예제는 제품 루트에서 `build/DreamscapesFailureAgent <\nexample/failure-context.json`으로 실행한다. `install.py`는 canonical 앱의 서명과\n파일 명세를 검사하고 ZIP 백업 및 외부 스테이지 검증 후 macOS 앱을 원자적으로\n교체한다. 기존 실행 프로세스와 버전은 유지한다. 실제 앱 실행 검증은 설치 후\n별도로 수행하며, 파일 교체만으로 열린 창이 새 코드를 사용한다고 보고하지 않는다.\n설치기의 파일 명세·버전 보존·원자 교체 검사는 `tests/test_install_app.py`이다.\n진단 완료 알림은 원래 작업에만 적용하며 현재 생성 작업의 오류·추론 상태를 바꾸지 않는다.\n진행 단계 스냅샷은 작업별 임시 진단 상태로 유지한다. 백그라운드 전환 등 화면\n상태를 작업 진행으로 기록하거나, 이전 작업의 화면 상태를 실패 원인에 섞지 않는다.\n작업 종료 후 워커가 `waiting-model`로 돌아가는 모델 상주 상태도 마지막 생성 단계로\n기록하지 않는다. `videoFailureKeepsLastWorkStageWhenWorkerBecomesIdle`은 비디오\n샘플링 실패 직전의 단계와 진행량이 보고서에 보존되는지 검증한다.\n"
+      "start_line": 62,
+      "end_line": 66,
+      "raw": "`Dreamscapes.NativeModelDiagnostics`는 격리된 Society 시험 저장소와 합성 입력으로\n생성 큐에서 원인 미확정 오류와 모델 입력 오류가 실패 상세 보고서에\n전달되는지 확인한다. macOS 검사에서는 빌드가 선택한 SDK와 파일 제공자 경로를 지정해\n이전 설치 SDK가 빌드 대상을 가리지 않게 한다. 이 검사는 사전 학습된 가중치의 실제\n생성이나 이미지 품질을 입증하지 않는다.\n"
     },
     {
       "id": "b000022",
       "kind": "blank",
-      "start_line": 77,
-      "end_line": 77,
+      "start_line": 67,
+      "end_line": 67,
       "raw": "\n"
     },
     {
       "id": "b000023",
       "kind": "paragraph",
-      "start_line": 78,
-      "end_line": 81,
-      "raw": "검증: SDK `iiMultimodalAgent.failure_report`, 앱 `Dreamscapes.FailureAgent`,\n`failedGenerationPreservesErrorAndReturnsAgentReport`, MCP 도구 계약 및\n오프스크린 GUI에서 보고서 접근과 작은 창의 스크롤을 검사한다. 실제 모델 추론의\n검증 여부는 실행 결과 보고서에 별도로 기록한다.\n"
+      "start_line": 68,
+      "end_line": 84,
+      "raw": "QML은 `latestFailure`, `failureAnalysis(jobId)`, `failureExplained(jobId, report)`를\n사용한다. `Failure details` 버튼과 스크롤 가능한 LVRS 모달은 전체 설명을 표시한다.\n보고서 본문은 읽기 전용 일반 텍스트이므로 드래그하여 부분 선택할 수 있다.\n`Copy report`는 현재 표시된 전체 설명과 분석·저장 상태, 보고서 경로를 클립보드에\n복사하며 기존 텍스트 선택을 유지한다. 분석 중 결과가 갱신되면 이후 복사는 갱신된\n내용을 사용한다. 복사는 캡처된 보고서의 내용만 포함하며 원래 로그의 캡처 한계를\n늘리거나 진단 파일을 변경하지 않는다.\n기존 짧은 오류 표시는 유지한다. MCP의 `failure_analysis`와 `jobs.failureAnalysis`도\n같은 결과를 제공한다. 보고서는 앱 데이터의 `FailureReports/.<job-id>.json`에 저장하고\n에이전트 실행 기록은 그 아래 `.sessions`에 저장한다. 이는 iiFileProvider가 문서\n미리보기를 생성하지 않는 내부 파일 경계이다. 저장 실패도 별도 필드로 알린다.\n선택적 언어 모델이 구조화된 답변의 출력 한도에 도달하면 미완성 출력을 채택하지\n않고 새 세션에서 짧은 설명을 한 번 재시도한다. 두 시도는 같은 60초 제한을 공유한다.\n다른 오류나 재시도 실패 시에는 원래 증거 보고서를 보존하고 `evidence-only`와 실제\n진단 오류를 표시한다. 이는 이미지 생성 자체를 재시도하거나 원인을 확정하지 않는다.\n테스트나 관리 환경은 `DREAMSCAPES_FAILURE_REPORTS_DIR`로 별도 보고서 저장소를\n지정할 수 있다. 테스트는 사용자 앱 데이터와 분리된 프로젝트 `resources/` 하위 임시 경로를 사용한다.\n"
     },
     {
       "id": "b000024",
       "kind": "blank",
-      "start_line": 82,
-      "end_line": 82,
+      "start_line": 85,
+      "end_line": 85,
       "raw": "\n"
     },
     {
       "id": "b000025",
       "kind": "paragraph",
-      "start_line": 83,
-      "end_line": 84,
+      "start_line": 86,
+      "end_line": 97,
+      "raw": "CLI 최소 예제는 제품 루트에서 `build/DreamscapesFailureAgent <\nexample/failure-context.json`으로 실행한다. `install.py`는 canonical 앱의 서명과\n파일 명세를 검사하고 ZIP 백업 및 외부 스테이지 검증 후 macOS 앱을 원자적으로\n교체한다. 기존 실행 프로세스와 버전은 유지한다. 실제 앱 실행 검증은 설치 후\n별도로 수행하며, 파일 교체만으로 열린 창이 새 코드를 사용한다고 보고하지 않는다.\n설치기의 파일 명세·버전 보존·원자 교체 검사는 `tests/test_install_app.py`이다.\n진단 완료 알림은 원래 작업에만 적용하며 현재 생성 작업의 오류·추론 상태를 바꾸지 않는다.\n진행 단계 스냅샷은 작업별 임시 진단 상태로 유지한다. 백그라운드 전환 등 화면\n상태를 작업 진행으로 기록하거나, 이전 작업의 화면 상태를 실패 원인에 섞지 않는다.\n작업 종료 후 워커가 `waiting-model`로 돌아가는 모델 상주 상태도 마지막 생성 단계로\n기록하지 않는다. `videoFailureKeepsLastWorkStageWhenWorkerBecomesIdle`은 비디오\n샘플링 실패 직전의 단계와 진행량이 보고서에 보존되는지 검증한다.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 98,
+      "end_line": 98,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 99,
+      "end_line": 102,
+      "raw": "검증: SDK `iiMultimodalAgent.failure_report`, 앱 `Dreamscapes.FailureAgent`,\n`failedGenerationPreservesErrorAndReturnsAgentReport`, MCP 도구 계약 및\n오프스크린 GUI에서 보고서 접근과 작은 창의 스크롤을 검사한다. 실제 모델 추론의\n검증 여부는 실행 결과 보고서에 별도로 기록한다.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 103,
+      "end_line": 103,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 104,
+      "end_line": 105,
       "raw": "시작 검사에서는 게시 플랫폼의 고정 개수 대신 필수 플랫폼 ID가 포함되어 있는지\n확인한다. 설치된 SDK가 추가 플랫폼을 제공해도 기존 필수 기능 검사는 유지한다.\n"
     }
   ],
@@ -284,35 +312,63 @@
       },
       {
         "block_id": "b000019",
-        "line": 57,
+        "line": 56,
+        "text": "어댑터 매핑 개수는 기록된 출처 정보이며 품질이나 파일 손상의 증거로 단정하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000019",
+        "line": 59,
+        "text": "지원 범위·파일 상태 중 어느 하나를 근거 없이 확정하지 않는다. 언어 모델의 추가",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000021",
+        "line": 66,
+        "text": "생성이나 이미지 품질을 입증하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000023",
+        "line": 74,
         "text": "늘리거나 진단 파일을 변경하지 않는다.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000021",
-        "line": 69,
+        "block_id": "b000023",
+        "line": 82,
+        "text": "진단 오류를 표시한다. 이는 이미지 생성 자체를 재시도하거나 원인을 확정하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000025",
+        "line": 90,
         "text": "별도로 수행하며, 파일 교체만으로 열린 창이 새 코드를 사용한다고 보고하지 않는다.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000021",
-        "line": 75,
+        "block_id": "b000025",
+        "line": 96,
         "text": "기록하지 않는다. `videoFailureKeepsLastWorkStageWhenWorkerBecomesIdle`은 비디오",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000025",
-        "line": 83,
+        "block_id": "b000029",
+        "line": 104,
         "text": "시작 검사에서는 게시 플랫폼의 고정 개수 대신 필수 플랫폼 ID가 포함되어 있는지",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000025",
-        "line": 84,
+        "block_id": "b000029",
+        "line": 105,
         "text": "확인한다. 설치된 SDK가 추가 플랫폼을 제공해도 기존 필수 기능 검사는 유지한다.",
         "basis": "lexical_match",
         "context": "paragraph"

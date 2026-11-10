@@ -5,6 +5,7 @@ import QtQuick.Controls as Controls
 import QtQuick.Dialogs
 import LVRS 1.0 as LV
 import Dreamscapes.Storage 1.0
+import Dreamscapes.Style 1.0 as Style
 
 FocusScope {
     id: root
@@ -45,9 +46,9 @@ FocusScope {
     readonly property int firstVisibleFrame: timelineView.firstVisibleFrame
     readonly property int lastVisibleFrame: timelineView.lastVisibleFrame
     readonly property int rulerHeight: compactLayout ? 32 : 44
-    readonly property color rulerTickColor: compactLayout ? LV.Theme.descriptionColor : "#8d8d8d"
-    readonly property color rulerBaselineColor: compactLayout ? LV.Theme.accentYellow : "#f0f000"
-    readonly property color rulerPlayheadColor: "#548af7"
+    readonly property color rulerTickColor: Style.Tokens.color("Theme Colors/Text/descriptionColor")
+    readonly property color rulerBaselineColor: Style.Tokens.color("Theme Colors/Accent/Yellow/Default")
+    readonly property color rulerPlayheadColor: Style.Tokens.color("Theme Colors/Accent/Blue/Default")
     // Resolve the stable window surface before option rows enter the popup.
     readonly property Item inputBackdropSource: Controls.ApplicationWindow.window
         ? Controls.ApplicationWindow.window.background : null
@@ -253,32 +254,32 @@ FocusScope {
             spacing: 8; clip: true
             Row {
                 spacing: 4
-                ToolButton { iconSource: Qt.resolvedUrl("Assets/timeline-previous.svg"); Accessible.name: qsTr("Previous frame"); onClicked: root.seekFrame(root.stateModel.playhead - 1) }
+                ToolButton { iconSource: LV.Theme.iconPath("previous-frame"); Accessible.name: qsTr("Previous frame"); onClicked: root.seekFrame(root.stateModel.playhead - 1) }
                 ToolButton {
                     objectName: root.compactLayout ? "editorTimelinePlay" : "editorTimelinePlayCompactInactive"
-                    iconSource: root.playing ? LV.Theme.iconPath("pause") : Qt.resolvedUrl("Assets/timeline-play.svg")
+                    iconSource: root.playing ? LV.Theme.iconPath("pause") : LV.Theme.iconPath("play")
                     enabled: root.stateModel.totalFrames > 1
                     selectable: true; selected: root.playing
                     Accessible.name: root.stateModel.preparing ? qsTr("Cancel audio preparation") : root.playing ? qsTr("Pause timeline") : qsTr("Play timeline")
                     onClicked: root.playing = !root.playing
                 }
-                ToolButton { iconSource: Qt.resolvedUrl("Assets/timeline-next.svg"); Accessible.name: qsTr("Next frame"); onClicked: root.seekFrame(root.stateModel.playhead + 1) }
+                ToolButton { iconSource: LV.Theme.iconPath("next-frame"); Accessible.name: qsTr("Next frame"); onClicked: root.seekFrame(root.stateModel.playhead + 1) }
             }
-            Rectangle { y: 4; width: 1; height: 14; color: LV.Theme.descriptionColor; opacity: 0.22 }
+            Rectangle { y: 4; width: 1; height: 14; color: Style.Tokens.color("Theme Colors/Text/descriptionColor"); opacity: 0.22 }
             Row {
                 spacing: 4
                 ToolButton {
-                    iconSource: Qt.resolvedUrl("Assets/timeline-split.svg"); Accessible.name: qsTr("Split at head")
+                    iconSource: LV.Theme.iconPath("split-clip"); Accessible.name: qsTr("Split at head")
                     enabled: !!root.selected.id && root.stateModel.playhead > root.selected.in && root.stateModel.playhead < root.selected.out && !root.selected.locked
                     onClicked: root.stateModel.split()
                 }
                 ToolButton {
-                    iconSource: Qt.resolvedUrl("Assets/timeline-delete.svg"); Accessible.name: qsTr("Delete selection")
+                    iconSource: LV.Theme.iconPath("delete-layer"); Accessible.name: qsTr("Delete selection")
                     enabled: !!root.selectedKey.id || (!!root.selected.id && !root.selected.locked)
                     onClicked: root.selectedKey.id ? root.stateModel.removeKey(root.selectedKey.id) : root.stateModel.removeSelected()
                 }
             }
-            LV.Label { text: Number(root.stateModel.fps.toFixed(3)) + " fps"; style: caption; color: LV.Theme.descriptionColor; height: 22; verticalAlignment: Text.AlignVCenter }
+            LV.Label { text: Number(root.stateModel.fps.toFixed(3)) + " fps"; style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor"); height: 22; verticalAlignment: Text.AlignVCenter }
             Item { id: compactSpacer; width: root.rowSpacer(compactControls, compactSpacer, true); height: 22 }
             ToolButton {
                 visible: root.stateModel.error.length > 0; iconName: "statuswarning"
@@ -286,9 +287,9 @@ FocusScope {
             }
             ToolButton {
                 objectName: root.compactLayout ? "editorTimelineFit" : "editorTimelineFitCompactInactive"
-                iconSource: Qt.resolvedUrl("Assets/timeline-fit.svg"); Accessible.name: qsTr("Fit timeline"); onClicked: root.fitTimeline()
+                iconSource: LV.Theme.iconPath("fit-canvas"); Accessible.name: qsTr("Fit timeline"); onClicked: root.fitTimeline()
             }
-            ToolButton { objectName: "editorTimelineMore"; iconSource: Qt.resolvedUrl("Assets/timeline-more.svg"); Accessible.name: qsTr("Timeline options"); onClicked: root.openOptions() }
+            ToolButton { objectName: "editorTimelineMore"; iconSource: LV.Theme.iconPath("generalmoreHorizontal"); Accessible.name: qsTr("Timeline options"); onClicked: root.openOptions() }
         }
         readonly property Item divider: Frames.PanelFrame {
             parent: compactHeader; panelId: "timeline-header"
@@ -627,11 +628,11 @@ FocusScope {
                 x: 0; y: panel.rulerY + root.rulerHeight
                 width: root.gutter; height: 40
                 LV.Label { x: 8; y: 12; visible: root.stateModel.tracks.length === 0; text: qsTr("Layers"); style: body }
-                LV.Label { x: 56; y: 13; visible: root.stateModel.tracks.length === 0; text: "0"; style: caption; color: LV.Theme.descriptionColor }
+                LV.Label { x: 56; y: 13; visible: root.stateModel.tracks.length === 0; text: "0"; style: caption; color: Style.Tokens.color("Theme Colors/Text/descriptionColor") }
                 ToolButton {
                     objectName: root.compactLayout ? "editorTimelineAddLayer" : "editorTimelineAddLayerCompactInactive"
                     x: parent.width - 30; y: root.stateModel.tracks.length === 0 ? 8 : -root.rulerHeight + 5
-                    iconSource: Qt.resolvedUrl("Assets/timeline-add-layer.svg")
+                    iconSource: LV.Theme.iconPath("new-layer")
                     Accessible.name: qsTr("Add layer")
                     enabled: root.canvas && root.canvas.documentReady
                     onClicked: addMenu.openFor(this, 0, height)
@@ -654,11 +655,11 @@ FocusScope {
                             width: root.gutter - 66
                             height: Math.min(40, heading.height)
                             text: heading.modelData.type
-                            textColor: LV.Theme.textPrimary
+                            textColor: Style.Tokens.color("Theme Colors/Text/titleHeaderColor")
                             horizontalPadding: 4
                             contentItem: LV.Label {
                                 text: heading.modelData.type
-                                color: LV.Theme.textPrimary
+                                color: Style.Tokens.color("Theme Colors/Text/titleHeaderColor")
                                 style: body
                                 verticalAlignment: Text.AlignVCenter
                                 elide: Text.ElideRight
@@ -746,7 +747,7 @@ FocusScope {
                                 y: root.rulerHeight
                                 width: 1
                                 height: parent.height - y
-                                color: LV.Theme.surfaceInput
+                                color: Style.Tokens.color("Theme Colors/Panel/surfaceInput")
                             }
                             LV.Label {
                                 objectName: "editorTimelineRulerLabel-" + parent.modelData.frame
@@ -754,7 +755,7 @@ FocusScope {
                                 y: root.compactLayout ? 2 : 1
                                 text: root.frameLabel(parent.modelData.frame)
                                 style: caption
-                                color: LV.Theme.textSecondary
+                                color: Style.Tokens.color("Theme Colors/Text/bodyColor")
                             }
                         }
                     }
@@ -789,7 +790,7 @@ FocusScope {
                         verticalAlignment: Text.AlignVCenter
                         text: root.compactLayout ? qsTr("Empty timeline") : qsTr("No layers")
                         style: body
-                        color: LV.Theme.textSecondary
+                        color: Style.Tokens.color("Theme Colors/Text/bodyColor")
                     }
                     Repeater {
                         model: timelineView.visibleTracks
@@ -816,7 +817,7 @@ FocusScope {
                                     height: modelData.type === "Audio" ? 40 : 32
                                     radius: 8
                                     clip: true
-                                    color: LV.Theme.surfaceControl
+                                    color: Style.Tokens.color("Theme Colors/Panel/surfaceControl")
                                     opacity: modelData.excluded || displayData.valid === false ? 0.4 : 1
                                     border.width: NativeData.presentation.indexOf(root.stateModel.selectedIds, modelData.id) >= 0 ? 1 : 0
                                     border.color: LV.Theme.accent
@@ -858,7 +859,7 @@ FocusScope {
                                         visible: card.modelData.type === "Layer"
                                         text: root.frameLabel(card.displayData.in) + " · " + card.modelData.timing + " · " + card.displayData.frames + "f"
                                         style: caption
-                                        color: LV.Theme.textSecondary
+                                        color: Style.Tokens.color("Theme Colors/Text/bodyColor")
                                         elide: Text.ElideRight
                                     }
                                     Canvas {
@@ -874,7 +875,7 @@ FocusScope {
                                         onPaint: {
                                             const values = card.modelData.waveform || [], c = getContext("2d");
                                             c.clearRect(0, 0, width, height);
-                                            c.strokeStyle = LV.Theme.accentGreen;
+                                            c.strokeStyle = Style.Tokens.color("Theme Colors/Accent/Green/Default");
                                             c.lineWidth = 1;
                                             c.beginPath();
                                             values.forEach((value, index) => {
@@ -910,7 +911,7 @@ FocusScope {
                                     width: 6
                                     height: 6
                                     rotation: 45
-                                    color: displayData.valid === false ? LV.Theme.accentRed : root.selectedKey.id === modelData.id ? LV.Theme.accent : LV.Theme.titleHeaderColor
+                                    color: displayData.valid === false ? Style.Tokens.color("Theme Colors/Accent/Red/Default") : root.selectedKey.id === modelData.id ? LV.Theme.accent : Style.Tokens.color("Theme Colors/Text/titleHeaderColor")
                                 }
                             }
                             Canvas {
@@ -1100,14 +1101,13 @@ FocusScope {
                         height: lanes.y + lanes.height - y
                         color: root.rulerPlayheadColor
                     }
-                    Image {
+                    Frames.TimelinePlayhead {
                         parent: panel
                         objectName: "editorTimelinePlayheadBadge"
                         x: lanes.x + root.stateModel.playhead / root.viewFrameCount * laneContent.width - lanes.contentX - width / 2
                         y: lanes.y + (root.compactLayout ? 5 : 16)
                         z: 10; width: 22; height: 26
-                        source: Qt.resolvedUrl("Assets/timeline-playhead.svg")
-                        fillMode: Image.PreserveAspectFit
+                        fillColor: root.rulerPlayheadColor
                         Accessible.name: qsTr("Playhead at %1").arg(root.frameLabel(root.stateModel.playhead))
                         MouseArea {
                             anchors.fill: parent
@@ -1214,7 +1214,7 @@ FocusScope {
                     verticalAlignment: Text.AlignVCenter
                     text: qsTr("Out exclusive")
                     style: caption
-                    color: LV.Theme.textSecondary
+                    color: Style.Tokens.color("Theme Colors/Text/bodyColor")
                 }
                 Button {
                     height: 24
@@ -1284,7 +1284,7 @@ FocusScope {
                 text: root.stateModel.error
                 style: caption
                 wrapMode: Text.Wrap
-                color: LV.Theme.accentRed
+                color: Style.Tokens.color("Theme Colors/Accent/Red/Default")
             }
             Row {
                 id: footer

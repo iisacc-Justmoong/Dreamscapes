@@ -49,6 +49,7 @@ bool ColorManagerModel::editSurface(int field,double x,double y,int c) { if(!pic
 
 ColorManagerSurface::ColorManagerSurface(QQuickItem* parent):QQuickPaintedItem(parent) {
     setAcceptedMouseButtons(Qt::LeftButton);setActiveFocusOnTab(true);setAntialiasing(true);
+    connect(this,&ColorManagerSurface::paletteChanged,this,[this]{update();});
 }
 void ColorManagerSurface::setModel(ColorManagerModel* model) {
     if(model_==model)return;if(model_)disconnect(model_,nullptr,this,nullptr);model_=model;
@@ -66,13 +67,13 @@ void ColorManagerSurface::paint(QPainter* p) {
     const auto w=std::uint32_t(std::clamp(std::ceil(width()*scale),1.,4096.));
     const auto h=std::uint32_t(std::clamp(std::ceil(height()*scale),1.,4096.));
     const auto raster=CM::renderSurface(model_->picker(),CM::Surface(field_),w,h,CM::Channel(channel_));if(!raster)return;
-    if(checkerboard_&&field_==ChannelRamp&&channel_==int(CM::Channel::Alpha))for(int y=0;y<int(height());y+=6)for(int x=0;x<int(width());x+=6)p->fillRect(x,y,6,6,((x/6+y/6)&1)?QColor("#707070"):QColor("#B0B0B0"));
+    if(checkerboard_&&field_==ChannelRamp&&channel_==int(CM::Channel::Alpha))for(int y=0;y<int(height());y+=6)for(int x=0;x<int(width());x+=6)p->fillRect(x,y,6,6,((x/6+y/6)&1)?checkerDark_:checkerLight_);
     const QImage image(raster->rgba.data(),int(w),int(h),int(w)*4,QImage::Format_RGBA8888);p->drawImage(boundingRect(),image);
     if(!showMarker_)return;
     const auto marker=model_->picker().position(CM::Surface(field_),CM::Channel(channel_));
     const double insetX=std::min(5.,width()/2),insetY=std::min(5.,height()/2);
     const QPointF point(std::clamp(marker.x*std::max(1.,width()-1),insetX,width()-insetX),std::clamp(marker.y*std::max(1.,height()-1),insetY,height()-insetY));
-    p->setBrush(Qt::NoBrush);p->setPen(QPen(QColor("#111111"),3));p->drawEllipse(point,5,5);p->setPen(QPen(Qt::white,1.5));p->drawEllipse(point,5,5);
+    p->setBrush(Qt::NoBrush);p->setPen(QPen(markerDark_,3));p->drawEllipse(point,5,5);p->setPen(QPen(markerLight_,1.5));p->drawEllipse(point,5,5);
 }
 void ColorManagerSurface::select(const QPointF& point) { if(model_)model_->editSurface(field_,point.x()/std::max(1.,width()-1),point.y()/std::max(1.,height()-1),channel_); }
 void ColorManagerSurface::mousePressEvent(QMouseEvent* event) {

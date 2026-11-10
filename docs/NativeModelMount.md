@@ -10,6 +10,19 @@ For Krea2, the native SDK recognizes bare original/ComfyUI denoiser keys and the
 The native context mounts the same tensor bytes under its canonical namespace.
 Embedded text encoders and VAEs keep their component namespaces.
 
+An Anima Safetensors package may contain a Qwen text encoder and Qwen Image VAE
+under package-specific keys. Before native image generation, iiLocalDiffusion
+identifies the components from their tensor names and prepares checksum-verified
+copies in the generation's temporary workspace. The original package is left
+unchanged. Explicit component selections take precedence; an embedded primary
+transformer is reconstructed only when its keys are not at the package root.
+Preparation reports progress, observes cancellation and runs away from the UI
+thread. Both quick and advanced image generation pass the prepared components to
+the native engine while retaining their existing sampling settings. Temporary
+copies require enough local storage and last only as long as the generation
+workspace. Metadata inspection and fixture tests do not prove real inference or
+the visual quality of an output.
+
 A split Krea2 model needs Qwen3-VL-4B and Wan2.1 VAE components. Missing components
 are mounted from `Models/.generation-resources/iiLocalDiffusion/` in Society,
 using the SDK generation resource catalog. The SDK validates the full external
