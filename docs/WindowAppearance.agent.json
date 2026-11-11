@@ -10,14 +10,14 @@
   },
   "source": {
     "path": "docs/WindowAppearance.md",
-    "sha256": "49ce9a36e058ddb0dfa365a3b9ae29d57d48bcab4f202c985a42d04ce9a10ba1",
-    "bytes": 1814,
-    "line_count": 29,
+    "sha256": "087544ac914cf3166d87e735f8498921c2965922274fe6869fd03379f64dd8a7",
+    "bytes": 1132,
+    "line_count": 15,
     "encoding": "utf-8",
-    "language": "en"
+    "language": "ko"
   },
   "document": {
-    "title": "Window appearance",
+    "title": "창 배경과 재질",
     "role": "guide",
     "authority": "markdown_source"
   },
@@ -27,9 +27,9 @@
       "kind": "heading",
       "start_line": 1,
       "end_line": 1,
-      "raw": "# Window appearance\n",
+      "raw": "# 창 배경과 재질\n",
       "level": 1,
-      "title": "Window appearance"
+      "title": "창 배경과 재질"
     },
     {
       "id": "b000002",
@@ -42,50 +42,36 @@
       "id": "b000003",
       "kind": "paragraph",
       "start_line": 3,
-      "end_line": 8,
-      "raw": "Dreamscapes uses the default `LV.ApplicationWindow` material from\n[Figma 997:3](https://www.figma.com/design/0GkItQYSNIR0lZ3iJhfJzc?node-id=997-3).\nIt draws a neutral `#141414` background at 66% opacity, followed by a uniform\n4% application accent overlay. Its `primaryColor` is `LV.Theme.defaultPrimary`\n(`#0A84FF`), so the overlay is blue. Society uses the same contract with green\n`#57965C`. There are no product-name color switches in LVRS.\n"
+      "end_line": 6,
+      "raw": "Dreamscapes의 메인 창과 설정 창은 [공통 ApplicationWindow](https://www.figma.com/design/0GkItQYSNIR0lZ3iJhfJzc?node-id=997-3)의\n`Panel/window`를 창 바탕으로 사용한다. 창의 악센트가 바뀌어도 배경색은 바뀌지\n않으며, 버튼·선택·포커스의 악센트는 기존처럼 유지한다. 레거시 LVRS 창의 배경색\n입력만 앱에서 공통 토큰에 연결하며 LVRS 모듈 자체는 변경하지 않는다.\n"
     },
     {
       "id": "b000004",
       "kind": "blank",
-      "start_line": 9,
-      "end_line": 9,
+      "start_line": 7,
+      "end_line": 7,
       "raw": "\n"
     },
     {
       "id": "b000005",
       "kind": "paragraph",
-      "start_line": 10,
-      "end_line": 13,
-      "raw": "A live `primaryColor` change updates the overlay through the framework color\ntransition. Auxiliary windows follow the app theme unless explicitly colored.\nThe default ApplicationWindow disables radial gradients. Standalone\nWindowMaterial and PanelMaterial retain their separate radial treatment.\n"
+      "start_line": 8,
+      "end_line": 11,
+      "raw": "공통 창 재질의 Dense 75와 Glass 25는 각각 75%·25% 채색과 64·16 논리 px\n블러를 유지한다. 현재 Dreamscapes의 레거시 LVRS 창은 불투명 경로이며, 이 재질\n계약은 해당 창에서 운영체제 배경 블러가 작동한다는 뜻이 아니다. LVUI로 작성된\n독립 결과 창은 공통 `Panel/window` 기본값을 사용한다.\n"
     },
     {
       "id": "b000006",
       "kind": "blank",
-      "start_line": 14,
-      "end_line": 14,
+      "start_line": 12,
+      "end_line": 12,
       "raw": "\n"
     },
     {
       "id": "b000007",
       "kind": "paragraph",
-      "start_line": 15,
-      "end_line": 22,
-      "raw": "Desktop Home exposes this shared material directly. It must not paint an\nopaque full-window surface above the background. Controls, cards, and\nselection feedback retain their own component surfaces. Material diffusion\nremains 64 logical pixels, native background blur stays active on supported\nmacOS windows, and foreground/window opacity remains 1.0. Editor exposes the\nsame material behind its shared sidebar; its opaque work-area surface starts\nat the sidebar's right edge. Switching between Home, Image, Video and Editor\nkeeps sidebar geometry and the content top inset stable, including fullscreen.\n"
-    },
-    {
-      "id": "b000008",
-      "kind": "blank",
-      "start_line": 23,
-      "end_line": 23,
-      "raw": "\n"
-    },
-    {
-      "id": "b000009",
-      "kind": "paragraph",
-      "start_line": 24,
-      "end_line": 29,
-      "raw": "`DreamscapesGuiTests mainCreatesOneSharedWindow` checks the production main\nwindow's 66% neutral tint, 4% blue overlay, disabled radial gradients, and a\nlive green-to-blue accent transition. A Cocoa run also samples the final Home\nimage to reject an opaque content layer or missing accent. LVRS tests compare\nuniform composited pixels against the Figma opacities across sizes and accent\nchanges, and ensure that foreground content stays opaque.\n"
+      "start_line": 13,
+      "end_line": 15,
+      "raw": "메인 창 회귀 검사는 악센트를 바꾸어도 창 바탕이 `Panel/window`로 유지되는지와\n컨트롤 악센트가 계속 바뀌는지를 별도로 확인한다. 테스트에서 운영체제 창을 실제로\n표시한 결과와 창 없는 계약 검사는 구분한다.\n"
     }
   ],
   "outline": [
@@ -93,17 +79,17 @@
       "block_id": "b000001",
       "parent_id": null,
       "level": 1,
-      "title": "Window appearance",
-      "anchor": "window-appearance",
+      "title": "창 배경과 재질",
+      "anchor": "창-배경과-재질",
       "start_line": 1
     }
   ],
   "indexes": {
     "directive_candidates": [
       {
-        "block_id": "b000007",
-        "line": 15,
-        "text": "Desktop Home exposes this shared material directly. It must not paint an",
+        "block_id": "b000003",
+        "line": 6,
+        "text": "입력만 앱에서 공통 토큰에 연결하며 LVRS 모듈 자체는 변경하지 않는다.",
         "basis": "lexical_match",
         "context": "paragraph"
       }
@@ -112,10 +98,10 @@
     "links": [
       {
         "block_id": "b000003",
-        "label": "Figma 997:3",
+        "label": "공통 ApplicationWindow",
         "target": "https://www.figma.com/design/0GkItQYSNIR0lZ3iJhfJzc?node-id=997-3",
         "kind": "external",
-        "line": 4
+        "line": 3
       }
     ],
     "tables": []

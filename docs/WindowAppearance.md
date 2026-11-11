@@ -1,29 +1,15 @@
-# Window appearance
+# 창 배경과 재질
 
-Dreamscapes uses the default `LV.ApplicationWindow` material from
-[Figma 997:3](https://www.figma.com/design/0GkItQYSNIR0lZ3iJhfJzc?node-id=997-3).
-It draws a neutral `#141414` background at 66% opacity, followed by a uniform
-4% application accent overlay. Its `primaryColor` is `LV.Theme.defaultPrimary`
-(`#0A84FF`), so the overlay is blue. Society uses the same contract with green
-`#57965C`. There are no product-name color switches in LVRS.
+Dreamscapes의 메인 창과 설정 창은 [공통 ApplicationWindow](https://www.figma.com/design/0GkItQYSNIR0lZ3iJhfJzc?node-id=997-3)의
+`Panel/window`를 창 바탕으로 사용한다. 창의 악센트가 바뀌어도 배경색은 바뀌지
+않으며, 버튼·선택·포커스의 악센트는 기존처럼 유지한다. 레거시 LVRS 창의 배경색
+입력만 앱에서 공통 토큰에 연결하며 LVRS 모듈 자체는 변경하지 않는다.
 
-A live `primaryColor` change updates the overlay through the framework color
-transition. Auxiliary windows follow the app theme unless explicitly colored.
-The default ApplicationWindow disables radial gradients. Standalone
-WindowMaterial and PanelMaterial retain their separate radial treatment.
+공통 창 재질의 Dense 75와 Glass 25는 각각 75%·25% 채색과 64·16 논리 px
+블러를 유지한다. 현재 Dreamscapes의 레거시 LVRS 창은 불투명 경로이며, 이 재질
+계약은 해당 창에서 운영체제 배경 블러가 작동한다는 뜻이 아니다. LVUI로 작성된
+독립 결과 창은 공통 `Panel/window` 기본값을 사용한다.
 
-Desktop Home exposes this shared material directly. It must not paint an
-opaque full-window surface above the background. Controls, cards, and
-selection feedback retain their own component surfaces. Material diffusion
-remains 64 logical pixels, native background blur stays active on supported
-macOS windows, and foreground/window opacity remains 1.0. Editor exposes the
-same material behind its shared sidebar; its opaque work-area surface starts
-at the sidebar's right edge. Switching between Home, Image, Video and Editor
-keeps sidebar geometry and the content top inset stable, including fullscreen.
-
-`DreamscapesGuiTests mainCreatesOneSharedWindow` checks the production main
-window's 66% neutral tint, 4% blue overlay, disabled radial gradients, and a
-live green-to-blue accent transition. A Cocoa run also samples the final Home
-image to reject an opaque content layer or missing accent. LVRS tests compare
-uniform composited pixels against the Figma opacities across sizes and accent
-changes, and ensure that foreground content stays opaque.
+메인 창 회귀 검사는 악센트를 바꾸어도 창 바탕이 `Panel/window`로 유지되는지와
+컨트롤 악센트가 계속 바뀌는지를 별도로 확인한다. 테스트에서 운영체제 창을 실제로
+표시한 결과와 창 없는 계약 검사는 구분한다.

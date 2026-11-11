@@ -11139,8 +11139,9 @@ void GuiTests::mainCreatesOneSharedWindow()
         auto *material = item(window, "applicationWindowMaterial");
         auto *stockMaterial = item(stock.data(), "applicationWindowMaterial");
         QVERIFY(material && stockMaterial);
-        for (const auto *property : {"primaryColor", "color", "accentMix"})
+        for (const auto *property : {"primaryColor", "accentMix"})
             QCOMPARE(material->property(property), stockMaterial->property(property));
+        QCOMPARE(material->property("color"), theme->property("window"));
         auto *noise = item(material, "applicationWindowNoiseTexture");
         auto *stockNoise = item(stockMaterial, "applicationWindowNoiseTexture");
         QVERIFY(noise && stockNoise);
@@ -11150,7 +11151,7 @@ void GuiTests::mainCreatesOneSharedWindow()
             QVERIFY(window->setProperty("primaryColor", accent));
             QVERIFY(stock->setProperty("primaryColor", accent));
             QTRY_COMPARE(material->property("primaryColor").value<QColor>(), accent);
-            QTRY_COMPARE(material->property("color"), stockMaterial->property("color"));
+            QTRY_COMPARE(material->property("color"), theme->property("window"));
             QTRY_COMPARE(noise->property("primaryColor").value<QColor>(), accent);
         }
         stock.reset();
@@ -11182,6 +11183,9 @@ void GuiTests::mainCreatesOneSharedWindow()
         auto *preferences = window->findChild<QQuickWindow *>("preferencesWindow");
         QVERIFY(preferences);
         QTRY_VERIFY(preferences->isVisible());
+        auto *preferencesMaterial = item(preferences, "applicationWindowMaterial");
+        QVERIFY(preferencesMaterial);
+        QCOMPARE(preferencesMaterial->property("color"), theme->property("window"));
         QVERIFY(visualItem(preferences->contentItem(), "preferencesCategoryGeneral"));
         QVERIFY(visualItem(preferences->contentItem(), "preferencesDriveDetails"));
         QVERIFY(QTest::qWaitForWindowExposed(preferences));

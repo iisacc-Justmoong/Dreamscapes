@@ -9,6 +9,8 @@ import Dreamscapes.Style 1.0 as Style
 
 LV.ApplicationWindow {
     id: preferences
+    windowColor: Style.Tokens.color("Theme Colors/Panel/window")
+    Binding { target: preferences.background; property: "color"; value: Style.Tokens.color("Theme Colors/Panel/window") }
     objectName: "preferencesWindow"
     required property var generation
     property var account: null

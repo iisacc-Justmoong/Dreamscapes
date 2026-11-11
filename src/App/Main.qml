@@ -17,6 +17,8 @@ import Dreamscapes.Style 1.0 as Style
 
 LV.ApplicationWindow {
     id: window
+    windowColor: Style.Tokens.color("Theme Colors/Panel/window")
+    Binding { target: window.background; property: "color"; value: Style.Tokens.color("Theme Colors/Panel/window") }
     objectName: "mainWindow"
     // Showing the workspace during verification does not grant a license.
     property var licenseAccount: generation.account
