@@ -1,0 +1,128 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:5de369cb7d9c68a672bb90d495d3804bd5ef7f6a9782bff7710235463239a00e",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/NativeGenerationProjectionBinding.md",
+    "sha256": "44ea624b454e2c52b41e0fa48608fbfff139b8866d11af59f9103c5dfb056137",
+    "bytes": 2194,
+    "line_count": 34,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Native generation projection binding",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Native generation projection binding\n",
+      "level": 1,
+      "title": "Native generation projection binding"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 5,
+      "raw": "This transition boundary supplies the existing generation presentation to an\nLVUI host without QML property bindings. It does not create a window, run a\ngeneration request, or replace the current QML application entry point.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 6,
+      "end_line": 6,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 7,
+      "end_line": 19,
+      "raw": "The host owns a `WorkspaceSession`, a `GenerationProjection`, and the binding.\nThe session identifies the active `GenerationController`; controller jobs,\nresults, storage availability, inference state, preview progress, preview URL,\nand preview job identity are\ncopied to the projection. The session supplies the current result and request\nidentifiers. Changes to selection made by a native view remain owned by that\nview. Initial and replacement snapshots are applied atomically so observers\ncannot see a mixture of two controllers. Subsequent notifications update only\ntheir relevant fields, avoiding repeated job-list construction during previews.\nPreview URL or identity changes notify interested views without recomputing\nthe generation presentation, which depends on preview progress rather than\nthe image address. A separate job-change notification lets the Home queue\navoid rebuilding its job summary for image-only updates.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 20,
+      "end_line": 20,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 21,
+      "end_line": 26,
+      "raw": "Binding, source, and target must be created and used on the same Qt owner\nthread. Replacing a controller disconnects its signals. Destruction or removal\nof a controller clears its projected fields without erasing the session's\ncurrent result and request identifiers; destruction of the session clears all\nsource-owned fields. A destroyed target cannot be updated. This bridge is a\ntemporary backend transport: the LVUI view and its model remain Qt-free.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 27,
+      "end_line": 27,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 28,
+      "end_line": 34,
+      "raw": "The native application host and remaining screens still need to be implemented\nand connected before Dreamscapes can stop loading its QML interface. Automated\ntests exercise the boundary using isolated resources and a stopped fake\ngeneration queue; they do not launch the application or perform inference.\nThe test also connects the real review-session adapter and native queue model,\nthen selects and cancels queued jobs through the existing controller. It checks\nthat a controller switch clears the previous preview in the same snapshot.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Native generation projection binding",
+      "anchor": "native-generation-projection-binding",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000007",
+        "line": 21,
+        "text": "Binding, source, and target must be created and used on the same Qt owner",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000009",
+        "line": 31,
+        "text": "generation queue; they do not launch the application or perform inference.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

@@ -3,9 +3,10 @@
 Home file cards obtain native canvas previews from iiSharedCanvas's public
 `readIiscPreview` API. They display the composed document rather than feeding an
 IISC path into Qt's ordinary image decoder or showing only the first raster asset.
-Both `HomeContentRow` (desktop) and `FileCarousel` (mobile and the file grid) share
-the `CanvasPreview` adapter. Raster files keep their existing preview URLs and
-unavailable remote files retain any provider-supplied preview.
+The desktop recent-files, selected-file and recent-generations views, and
+`FileCarousel` on mobile and in the file grid, share the `CanvasPreview`
+adapter. Raster files keep their existing preview URLs and unavailable remote
+files retain any provider-supplied preview.
 
 `CanvasPreview::sourceForFile` returns an `image://iisc-preview/` URL for a local
 native document. Its engine-owned image provider forces asynchronous loading,

@@ -1,0 +1,36 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Editor Background Replace Panel", style: .header2)
+            Label(id: "migratedText0", text: "Source", style: .body)
+            Label(id: "migratedText1", text: "Target", style: .body)
+            Label(id: "migratedText2", text: "Generate", style: .body)
+            Label(id: "migratedText3", text: "Prompt", style: .body)
+            Label(id: "migratedText4", text: "Model", style: .body)
+            Label(id: "migratedText5", text: "Variations", style: .body)
+            Label(id: "migratedText6", text: "Strength", style: .body)
+            Label(id: "migratedText7", text: "Image", style: .body)
+            Label(id: "migratedText8", text: "Drop image", style: .body)
+            Label(id: "migratedText9", text: "Selected image", style: .body)
+            Label(id: "migratedText10", text: "File", style: .body)
+            Label(id: "migratedText11", text: "Drop image or canvas", style: .body)
+            Label(id: "migratedText12", text: "Selected file", style: .body)
+            Label(id: "migratedText13", text: "Transform & blend", style: .body)
+            Label(id: "migratedText14", text: "Image fit", style: .body)
+            Label(id: "migratedText15", text: "Scale", style: .body)
+            Label(id: "migratedText16", text: "Angle", style: .body)
+            Label(id: "migratedText17", text: "X", style: .body)
+            Label(id: "migratedText18", text: "Y", style: .body)
+            Label(id: "migratedText19", text: "Blend mode", style: .body)
+            Label(id: "migratedText20", text: "Opacity", style: .body)
+            Label(id: "migratedText21", text: "Subject match", style: .body)
+            Label(id: "migratedText22", text: "Preserve subject", style: .body)
+            Label(id: "migratedText23", text: "Match lighting", style: .body)
+            Label(id: "migratedText24", text: "Output", style: .body)
+            Label(id: "migratedText25", text: "Result", style: .body)
+        }
+    }
+}

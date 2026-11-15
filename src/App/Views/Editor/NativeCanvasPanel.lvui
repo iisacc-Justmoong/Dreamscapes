@@ -1,0 +1,98 @@
+import vm NativeCanvasPanelBackend
+@Static let resizeCanvasPanel: (Double, Double) -> Void = vm.sizeHandler(Metric.space16)
+EventListener(id: "canvasPanelSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizeCanvasPanel) {
+    VStack(id: "canvasPanel", width: vm.width, height: vm.height, spacing: Metric.space8,
+           padding: Metric.space8, alignment: .stretch) {
+        HStack(spacing: Metric.space8, alignment: .center) {
+            IconButton(iconName: "canvas-size", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, enabled: false, accessibilityName: "Canvas")
+            Label(text: "Canvas", style: .body, flex: 1)
+            IconButton(id: "canvasReset", iconName: "reset", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, enabled: vm.editable, accessibilityName: "Reset canvas settings", onClick: vm.reset)
+        }
+        HStack(spacing: Metric.space2, alignment: .center) {
+            IconButton(id: "canvasSizeTab", iconName: "panel-canvas-dimensions", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, checked: vm.sizeMode, checkable: false, selectionStyle: .segmented,
+                       accessibilityName: "Size and resolution", onClick: vm.showSize)
+            IconButton(iconName: "panel-canvas-profile", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, enabled: false, accessibilityName: "Color profile unavailable")
+            IconButton(id: "canvasRotateTab", iconName: "panel-canvas-rotate", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, checked: vm.rotateMode, checkable: false, selectionStyle: .segmented,
+                       accessibilityName: "Rotate", onClick: vm.showRotate)
+            IconButton(id: "canvasMirrorTab", iconName: "panel-canvas-mirror", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, checked: vm.mirrorMode, checkable: false, selectionStyle: .segmented,
+                       accessibilityName: "Mirror", onClick: vm.showMirror)
+            IconButton(iconName: "panel-canvas-guides", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, enabled: false, accessibilityName: "Crop and guides unavailable")
+        }
+        VStack(width: vm.contentWidth, spacing: Metric.space8, alignment: .stretch, visible: vm.sizeMode) {
+            Label(text: "Size & Resolution", style: .body)
+            Label(text: "Dimensions", style: .caption)
+            HStack(width: vm.contentWidth, spacing: Metric.space8, alignment: .center) {
+                InputField(id: "canvasWidthInput", text: vm.widthText, width: vm.fieldWidth, enabled: vm.editable,
+                           accessibilityName: "Canvas width in pixels", onEdited: vm.editWidth, onSubmit: vm.apply)
+                InputField(id: "canvasHeightInput", text: vm.heightText, width: vm.fieldWidth, enabled: vm.editable,
+                           accessibilityName: "Canvas height in pixels", onEdited: vm.editHeight, onSubmit: vm.apply)
+            }
+            HStack(spacing: Metric.space8, alignment: .center) {
+                Label(text: "Resolution", style: .body, flex: 1)
+                Label(text: "Unavailable", style: .caption)
+            }
+            HStack(spacing: Metric.space8, alignment: .center) {
+                Label(text: "Resample", style: .body, flex: 1)
+                ToggleSwitch(enabled: false, checked: false, accessibilityName: "Resampling unavailable")
+            }
+            HStack(spacing: Metric.space8, alignment: .center) {
+                Label(text: "Anchor", style: .body, flex: 1)
+                Label(text: "Center", style: .caption)
+            }
+        }
+        VStack(width: vm.contentWidth, spacing: Metric.space8, alignment: .stretch, visible: vm.rotateMode) {
+            Label(text: "Rotate", style: .body)
+            Label(text: "Angle", style: .caption)
+            HStack(spacing: Metric.space8, alignment: .center) {
+                LabelButton(id: "canvasRotateLeft", text: "90° L", tone: .default, flex: 1,
+                            checkable: false, checked: vm.left, selectionStyle: .segmented, onClick: vm.chooseLeft)
+                LabelButton(id: "canvasRotateHalf", text: "180°", tone: .default, flex: 1,
+                            checkable: false, checked: vm.half, selectionStyle: .segmented, onClick: vm.chooseHalf)
+                LabelButton(id: "canvasRotateRight", text: "90° R", tone: .default, flex: 1,
+                            checkable: false, checked: vm.right, selectionStyle: .segmented, onClick: vm.chooseRight)
+            }
+            HStack(spacing: Metric.space8, alignment: .center) {
+                Label(text: "Custom angle", style: .body, flex: 1)
+                InputField(id: "canvasRotateAngle", text: vm.angleText, width: vm.fieldWidth, enabled: vm.editable,
+                           accessibilityName: "Custom rotation angle in degrees", onEdited: vm.editAngle, onSubmit: vm.commitAngle)
+            }
+            Slider(id: "canvasRotateSlider", from: -180, to: 180, value: vm.angle, stepSize: 1,
+                   width: vm.contentWidth, size: .mini, enabled: vm.editable,
+                   accessibilityName: "Custom rotation angle", onMoved: vm.moveAngle)
+            HStack(spacing: Metric.space8, alignment: .center) {
+                Label(text: "Rotate layers", style: .body, flex: 1)
+                ToggleSwitch(enabled: false, checked: true, accessibilityName: "Layer rotation is always applied")
+            }
+            LabelButton(id: "canvasRotateApply", text: "Rotate canvas", tone: .default,
+                        enabled: vm.editable, onClick: vm.applyRotate)
+        }
+        VStack(width: vm.contentWidth, spacing: Metric.space8, alignment: .stretch, visible: vm.mirrorMode) {
+            Label(text: "Mirror", style: .body)
+            Label(text: "Axis", style: .caption)
+            HStack(spacing: Metric.space8, alignment: .center) {
+                LabelButton(id: "canvasMirrorHorizontal", text: "Horizontal", tone: .default, flex: 1,
+                            checkable: false, checked: vm.horizontal, selectionStyle: .segmented, onClick: vm.chooseHorizontal)
+                LabelButton(id: "canvasMirrorVertical", text: "Vertical", tone: .default, flex: 1,
+                            checkable: false, checked: vm.vertical, selectionStyle: .segmented, onClick: vm.chooseVertical)
+            }
+            HStack(spacing: Metric.space8, alignment: .center) {
+                Label(text: "Mirror canvas only", style: .body, flex: 1)
+                ToggleSwitch(enabled: false, checked: false, accessibilityName: "View-only mirror unavailable")
+            }
+            HStack(spacing: Metric.space8, alignment: .center) {
+                Label(text: "Keep text readable", style: .body, flex: 1)
+                ToggleSwitch(enabled: false, checked: false, accessibilityName: "Text preservation unavailable")
+            }
+            LabelButton(id: "canvasMirrorApply", text: "Mirror canvas", tone: .default,
+                        enabled: vm.editable, onClick: vm.applyMirror)
+        }
+        if (vm.status != "") { Label(id: "canvasPanelStatus", text: vm.status, style: .caption) }
+    }
+}

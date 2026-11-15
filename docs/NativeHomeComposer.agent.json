@@ -1,0 +1,429 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:e7aacfa99ebe4494bc2e9aa7f2ddf9cd212a2f40ea5a14651f0c702cd08c91e8",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/NativeHomeComposer.md",
+    "sha256": "f8c95bb85e305345b4e4aa980db894826c69cd0f148fcd8a83762dd9566a46fb",
+    "bytes": 12309,
+    "line_count": 186,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Native Home generation composer contract",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Native Home generation composer contract\n",
+      "level": 1,
+      "title": "Native Home generation composer contract"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 10,
+      "raw": "The native Home composer is based on the existing Dreamscapes Home Figma\ncomposer `1467:4971` and `DesktopGenerationComposer.qml`. It must retain the\nprompt and negative prompt, Image/Video/Audio/Board navigation, reference\nattachments and paint canvas, model selection, aspect ratio, resolution,\noutput count, seed, preset load and save, advanced parameters, video duration\nand frame rate, generation submission, validation and errors. The actual\noptions, model IDs, file references, values and localized labels come from\napplication services, not from Figma examples.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 11,
+      "end_line": 11,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 12,
+      "end_line": 20,
+      "raw": "The native presentation model is a snapshot and command boundary. It does not\nedit files, select a model on its own, start generation during a view update,\nor replace the authoritative generation draft. The product controller supplies\nthe current snapshot and handles typed commands; callbacks may synchronously\npublish an updated snapshot. A command referencing a removed menu option or\nattachment must be rejected instead of acting on a different item after a\nreorder. Submitting while generation submission is busy is rejected; empty\nprompt behavior remains the existing controller's responsibility. Closing the\nview stops commands without closing or mutating the generation job.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 21,
+      "end_line": 21,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 22,
+      "end_line": 30,
+      "raw": "`HomeComposerModel` implements this boundary without Qt. The transitional\n`NativeHomeComposerSession` observes the existing `GenerationComposerModel`\nand parameter store without a QML engine. It routes edits, model selection,\npresets and submission through those controllers and receives attachment,\npaint and advanced-panel commands from its host. It supplies no invented\nmodels or choice lists. A controller or session that retires during a command\nor snapshot update cannot leave an enabled command behind.\nModel and preset choices are refreshed on their respective controller\nnotifications rather than being fetched again for each prompt keystroke.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 32,
+      "end_line": 38,
+      "raw": "The model and session tests cover stable choice and attachment IDs, draft\nupdates, video controls, invalid seed, a temporary preset round trip, busy\nsubmission, the existing submission signal and retirement. They do not run\ninference or alter the user's files. An isolated Society fixture with two\nsmall dummy files verifies that the existing model inventory, model selection,\nand image/video reclassification reach the native snapshot. The tests do not\nyet exercise the complete native composer or its connection to the running app.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 39,
+      "end_line": 39,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 40,
+      "end_line": 43,
+      "raw": "This is a migration step. The current composer and its paint canvas remain\nQML/Qt views until the complete LVUI composer, native attachment and canvas\ninterfaces, dialogs, shortcuts and generation/navigation path are connected\nand tested. A snapshot model and session alone do not provide the UI.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 44,
+      "end_line": 44,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 45,
+      "end_line": 55,
+      "raw": "The first composer subview is the plain-text prompt field. It reads the shared\ndraft, forwards only user edits, exposes an accessible clear action for a\nnonempty prompt and reports its measured height to the containing layout. It\nmust preserve UTF-8 and line breaks, and external draft refreshes must not\nsubmit a job. The prompt's Ctrl/Command-Return submits via the existing draft\ncontroller; ordinary Return edits a new line and the negative-prompt field does\nnot submit. Headless widget and controller-integration tests exercise these\nbehaviors and verify retirement disables the field. The LVUI text editor\ncurrently has a documented 64 KiB input limit; that limit and real-platform\ninput methods must be resolved or otherwise preserved before this field\nreplaces the application's current prompt.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 56,
+      "end_line": 56,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 57,
+      "end_line": 69,
+      "raw": "Model, media, aspect ratio, resolution, count, duration, frame rate and preset\nmenus share one LVUI choice view. The host supplies localized labels and menu\noptions; the view projects the authoritative selection and dispatches a stable\noption key. A popup action whose option was removed or disabled before the\nclick must be rejected. Menu interaction must not load a model or begin\ngeneration except through the existing controller's explicit selection path.\nThe Qt-free model and LVUI/iiGUI menu are implemented. Headless tests cover\nkeyed menu reordering, disabled and removed options, responsive controller\nupdates and the existing image/video model selection using an isolated Society\nfixture. The complete composer layout and platform popup behavior remain to be\nconnected and verified. LVUI's current keyed menu has a 4,096-item limit and\ndoes not virtualize; inventories larger than that need an accessible search or\npaging path before the native composer can replace the existing one.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 70,
+      "end_line": 70,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 71,
+      "end_line": 82,
+      "raw": "The Seed setting is an editable draft, separate from the applied generation\nseed. Opening the editor copies the current seed, using an empty field for\nRandom. Editing or canceling it must not modify the generation request.\nApply and Random use the existing controller commands, close the editor only\nafter success, and leave the draft intact if validation fails. A later\nexternal seed update must be shown on the setting and on the next opening;\nit must not overwrite a draft while the user is editing it.\nThe LVUI seed control and Qt-free model implement that contract. Headless\ntests cover the native popover, rejected input and Random, as well as the\nexisting generation controller's validation and seed state through the\ntransitional session. The popover's sizing and platform input still need\nverification when the whole composer is connected to a native window.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 83,
+      "end_line": 83,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 84,
+      "end_line": 93,
+      "raw": "Saving a preset uses a separate editable name. The Save action is disabled\nfor a blank name. Cancel closes the popover without changing the draft or the\nstored presets; a successful save uses the existing parameter store, clears\nthe draft and closes. A rejected save preserves the draft and keeps the editor\nopen so that the user can correct the problem.\nThe LVUI popup and native view model implement that behavior. Widget tests\ncover retry and cancel, and a controller integration test saves to an\nisolated temporary preset store while checking an overlong-name rejection.\nNo user preset is modified by those tests. Platform popup sizing remains to\nbe checked with the containing native composer.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 94,
+      "end_line": 94,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 95,
+      "end_line": 108,
+      "raw": "Reference cards reflect the generation canvas's current attachment snapshot,\nusing each attachment's stable key rather than a row index for removal. Their\nimage preview, file name, size description and accessible remove label are\nprovided by the host. Updating or reordering the snapshot must not remove an\nattachment or cause a stale remove action to target a different file. The\nhorizontal list and native image resolver belong to the view; the generation\ncanvas and native file picker remain the host's responsibility.\nThe LVUI card list and C++ model are implemented and tested with keyed\nreordering, stale actions, horizontal scrolling and a supplied image resolver.\nThe remove action is currently always visible, while the existing QML card\nreveals it on hover or focus; that visual difference remains to be reconciled.\nThe session integration test uses injected attachment data and callbacks; it\ndoes not claim that the native list is connected to the actual Home canvas or\nthat image decoding and platform rendering were verified.\n"
+    },
+    {
+      "id": "b000022",
+      "kind": "blank",
+      "start_line": 109,
+      "end_line": 109,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 110,
+      "end_line": 119,
+      "raw": "Attach, Paint canvas, Advanced parameters and Generate use the existing\ncomposer commands. Generate's label reflects the current media type and\noutput count, and is disabled while submission or generation is pending.\nNeither layout nor a controller state refresh may start a generation. The\nattachment picker, painting surface and advanced settings are provided by the\nhost and are not replaced by placeholder actions.\nThe shared action view uses LVUI button variants and a Qt-free action model.\nIts widget tests exercise all four commands and the pending state. A\ncontroller integration test verifies the existing submission signal and\nhost callbacks without starting an inference job or opening a file picker.\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "blank",
+      "start_line": 120,
+      "end_line": 120,
+      "raw": "\n"
+    },
+    {
+      "id": "b000025",
+      "kind": "paragraph",
+      "start_line": 121,
+      "end_line": 127,
+      "raw": "The negative-prompt button opens the same native plain-text editing boundary\nwith its own draft and Done action. Closing the popover preserves the edited\nnegative prompt and does not submit a generation. The popover must remain\nwithin the window on narrow layouts.\nThe native popup is composed from the shared prompt editor and tested at a\nnarrow viewport; a controller integration test confirms that it only edits\nthe negative prompt and never submits a generation.\n"
+    },
+    {
+      "id": "b000026",
+      "kind": "blank",
+      "start_line": 128,
+      "end_line": 128,
+      "raw": "\n"
+    },
+    {
+      "id": "b000027",
+      "kind": "paragraph",
+      "start_line": 129,
+      "end_line": 146,
+      "raw": "The complete composer uses two responsive control grids. At the existing\ndesktop breakpoint the first grid shows its six controls on one row and the\nsettings grid shows seven columns. Smaller widths use the existing one/two\nand two/three-column arrangements. Video adds duration and frame-rate\nsettings; preset and advanced controls span two narrow columns. Moving between\nlayouts must retain the mounted editors, popovers and their local state. The\nlayout receives breakpoints and preferred widths from the composition boundary.\nThe LVUI view supplies spacing, padding, control height, caption line height\nand attachment height from the shared LVUI metrics; it does not change\ngeneration or file state.\nThe responsive grid and LVUI parent now mount supplied controls without\nrebuilding them. Headless tests exercise wide and narrow layouts, prompt focus,\nand visibility of video-only settings. Some tests still use fixture controls;\nthe running Home connection is not complete. A source factory assembles the\nactual LVUI controls and checks that they belong to one generation draft and\nare assigned to their matching roles. The panel renders the controller error\nas wrapped LVUI text and measures its height; the current iiGUI label limit of\n64 KiB remains a limitation for an unusually long error message.\n"
+    },
+    {
+      "id": "b000028",
+      "kind": "blank",
+      "start_line": 147,
+      "end_line": 147,
+      "raw": "\n"
+    },
+    {
+      "id": "b000029",
+      "kind": "paragraph",
+      "start_line": 148,
+      "end_line": 155,
+      "raw": "A construction boundary receives translated labels, formatting callbacks,\nlayout requirements and the application's image resolver. It creates the\nnative control models and a reusable panel source for the Home workspace.\nIt does not create a generation controller, start work, open dialogs, or own\nthe session's lifetime. Closing the panel must not cancel a job or alter the\ngeneration draft. A headless integration test constructs this panel with the\nexisting generation draft and a temporary preset store, then checks input,\nsubmission signals, error display and busy-state handling without inference.\n"
+    },
+    {
+      "id": "b000030",
+      "kind": "blank",
+      "start_line": 156,
+      "end_line": 156,
+      "raw": "\n"
+    },
+    {
+      "id": "b000031",
+      "kind": "paragraph",
+      "start_line": 157,
+      "end_line": 160,
+      "raw": "The Preset setting contains the existing load menu and Save action in one row.\nIts heading and actions follow the existing Figma Home composer; the Save\nbutton occupies the design's 52-point width and the load control fills the\nremaining row.\n"
+    },
+    {
+      "id": "b000032",
+      "kind": "blank",
+      "start_line": 161,
+      "end_line": 161,
+      "raw": "\n"
+    },
+    {
+      "id": "b000033",
+      "kind": "paragraph",
+      "start_line": 162,
+      "end_line": 168,
+      "raw": "The existing generation draft obtains reference-image and painted-canvas\ninputs through a replaceable backend interface rather than depending on a\nQt Quick view type. The adapter must preserve the original input parameters\nand errors, reject objects without the interface, and stop using an input\nprovider when its owner is destroyed. A non-view provider can therefore be\nconnected to a native composer without creating a QQuickItem. The legacy\ncanvas continues to implement the same interface while it is in use.\n"
+    },
+    {
+      "id": "b000034",
+      "kind": "blank",
+      "start_line": 169,
+      "end_line": 169,
+      "raw": "\n"
+    },
+    {
+      "id": "b000035",
+      "kind": "paragraph",
+      "start_line": 170,
+      "end_line": 186,
+      "raw": "A native Home reference provider uses the same attachment import and preview\nrules as the legacy canvas. It preserves source images, rejects unsupported\nor over-limit inputs, and removes an attachment by its stable source identity.\nIt produces the existing generation parameters without creating a graphical\ncanvas. The Paint command still follows the application's new-canvas path;\nthis reference provider does not claim to implement canvas painting.\nThe native attachment binding projects the provider's canonical source,\nfilename, preview and caller-localized size description into the composer.\nAdding or removing a reference updates the live card model, and replacing or\ndestroying the provider clears its cards instead of retaining stale commands.\nInput errors follow the existing precedence: a draft validation error takes\npriority, otherwise the attachment provider's current error is shown.\nThe native picker requests the same multiple-image and IISC file types as the\nexisting Home dialog. Cancellation and late callbacks do not change inputs;\nan unavailable file is reported while other selected files remain usable.\nThe operating-system dialog is supplied by the iiGUI host. Headless tests use\nan injected chooser and do not open a platform dialog.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Native Home generation composer contract",
+      "anchor": "native-home-generation-composer-contract",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 4,
+        "text": "composer `1467:4971` and `DesktopGenerationComposer.qml`. It must retain the",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000005",
+        "line": 17,
+        "text": "attachment must be rejected instead of acting on a different item after a",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000009",
+        "line": 34,
+        "text": "submission, the existing submission signal and retirement. They do not run",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000009",
+        "line": 37,
+        "text": "and image/video reclassification reach the native snapshot. The tests do not",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000011",
+        "line": 43,
+        "text": "and tested. A snapshot model and session alone do not provide the UI.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 48,
+        "text": "must preserve UTF-8 and line breaks, and external draft refreshes must not",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 54,
+        "text": "input methods must be resolved or otherwise preserved before this field",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 61,
+        "text": "click must be rejected. Menu interaction must not load a model or begin",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000017",
+        "line": 73,
+        "text": "Random. Editing or canceling it must not modify the generation request.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000017",
+        "line": 76,
+        "text": "external seed update must be shown on the setting and on the next opening;",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000017",
+        "line": 77,
+        "text": "it must not overwrite a draft while the user is editing it.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000021",
+        "line": 98,
+        "text": "provided by the host. Updating or reordering the snapshot must not remove an",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000025",
+        "line": 123,
+        "text": "negative prompt and does not submit a generation. The popover must remain",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000025",
+        "line": 127,
+        "text": "the negative prompt and never submits a generation.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000027",
+        "line": 134,
+        "text": "layouts must retain the mounted editors, popovers and their local state. The",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000029",
+        "line": 152,
+        "text": "the session's lifetime. Closing the panel must not cancel a job or alter the",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000033",
+        "line": 164,
+        "text": "Qt Quick view type. The adapter must preserve the original input parameters",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000035",
+        "line": 183,
+        "text": "existing Home dialog. Cancellation and late callbacks do not change inputs;",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000035",
+        "line": 186,
+        "text": "an injected chooser and do not open a platform dialog.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

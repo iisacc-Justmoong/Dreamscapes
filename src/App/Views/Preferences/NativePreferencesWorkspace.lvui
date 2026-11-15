@@ -1,0 +1,34 @@
+import vm NativePreferencesWorkspaceBackend
+@Static let resizePreferences: (Double, Double) -> Void = vm.sizeHandler(Metric.size280)
+EventListener(id: "preferencesSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizePreferences) {
+    HStack(width: vm.width, height: vm.height, spacing: Metric.space8, alignment: .stretch) {
+        VStack(width: vm.sidebarWidth, padding: Metric.space8, spacing: Metric.space4, alignment: .stretch) {
+            Label(text: "Preferences", style: .header2)
+            for (item in vm.categories, key: item.id, id: "preferenceCategories", itemHeight: Metric.size44,
+                 width: vm.sidebarWidth, height: 0, flex: 1, overscan: 1) {
+                HStack(spacing: Metric.space4, alignment: .center) {
+                    LabelButton(id: "preferenceCategory", text: item.label, tone: .default, flex: 1, onClick: item.choose)
+                    if (item.selected) { Label(text: "Selected", style: .caption) }
+                }
+            }
+        }
+        VStack(width: vm.detailWidth, padding: Metric.space8, spacing: Metric.space8, alignment: .stretch) {
+            Label(id: "preferenceHeading", text: vm.category, style: .header2)
+            Label(id: "preferenceStatus", text: vm.status, style: .caption)
+            for (item in vm.fields, key: item.id, id: "preferenceFields", itemHeight: Metric.size44,
+                 width: vm.detailWidth, height: 0, flex: 1, overscan: 1) {
+                HStack(spacing: Metric.space8, alignment: .center) {
+                    Label(text: item.label, style: .body)
+                    if (item.isChoice) {
+                        ListItemSelector(id: "preferenceChoice", options: item.options, currentIndex: item.index,
+                                         enabled: item.editable, accessibilityName: item.label,
+                                         onCurrentIndexChanged: item.selected, flex: 1)
+                    } else {
+                        InputField(id: "preferenceValue", text: item.value, enabled: item.editable, accessibilityName: item.label,
+                                   onEdited: item.edited, flex: 1)
+                    }
+                }
+            }
+        }
+    }
+}

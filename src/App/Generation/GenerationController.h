@@ -148,6 +148,7 @@ public:
     Q_INVOKABLE bool setDefaultGenerationPrompt(const QString &category, const QString &text, bool negative);
     QString modelPreferencesError() const;
     QStringList videoPresetNames() const;
+    QString lowVramVideoPresetName() const;
     QString videoPresetError() const { return m_videoPresetError; }
     Q_INVOKABLE QVariantMap videoPreset(const QString &name);
     Q_INVOKABLE bool saveVideoPreset(const QString &name, const QVariantMap &parameters);

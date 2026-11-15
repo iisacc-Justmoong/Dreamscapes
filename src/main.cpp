@@ -4,6 +4,30 @@
 #include "App/ApplicationShutdownCoordinator.h"
 #include <backend/runtime/appentry.h>
 #include "App/Generation/GenerationController.h"
+#ifdef DREAMSCAPES_NATIVE_REVIEW_QUEUE_PRESENTER
+#include "App/Views/Result/NativeReviewQueuePresenterMac.h"
+#endif
+#ifdef DREAMSCAPES_NATIVE_REVIEW_INSPECTOR_PRESENTER
+#include "App/Views/Result/NativeReviewInspectorPresenterMac.h"
+#endif
+#ifdef DREAMSCAPES_NATIVE_REVIEW_GRID_PRESENTER
+#include "App/Views/Result/NativeReviewGridPresenterMac.h"
+#endif
+#ifdef DREAMSCAPES_NATIVE_HOME_QUEUE_PRESENTER
+#include "App/Views/Home/NativeHomeQueuePresenterMac.h"
+#endif
+#ifdef DREAMSCAPES_NATIVE_HOME_SELECTED_FILE_PRESENTER
+#include "App/Views/Home/NativeHomeSelectedFilePresenterMac.h"
+#endif
+#ifdef DREAMSCAPES_NATIVE_HOME_RECENT_FILES_PRESENTER
+#include "App/Views/Home/NativeHomeRecentFilesPresenterMac.h"
+#endif
+#ifdef DREAMSCAPES_NATIVE_HOME_RECENT_GENERATIONS_PRESENTER
+#include "App/Views/Home/NativeHomeRecentGenerationsPresenterMac.h"
+#endif
+#ifdef DREAMSCAPES_NATIVE_LICENSE_PRESENTER
+#include "App/Native/NativeLicensePresenter.h"
+#endif
 #include "App/Generation/AdvancedImageParameters.h"
 #include <QtQml/qqml.h>
 #include <iiSocietyHelper.h>
@@ -37,9 +61,61 @@ int main(int argc, char *argv[])
         registerStorageViewTypes();
         dreamscapes::installCanvasPreviewProvider(engine);
         configureApplicationLifetime(engine);
+        auto *shutdown = new ApplicationShutdownCoordinator(&engine);
+#ifdef DREAMSCAPES_NATIVE_HOME_QUEUE_PRESENTER
+        QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
+            [&engine, shutdown](QObject *root, const QUrl &) {
+                if (root) (void)dreamscapes::home::installNativeHomeQueuePresenter(root, &engine, shutdown);
+            });
+#endif
+#ifdef DREAMSCAPES_NATIVE_HOME_SELECTED_FILE_PRESENTER
+        QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
+            [&engine, shutdown](QObject *root, const QUrl &) {
+                if (root) (void)dreamscapes::home::installNativeHomeSelectedFilePresenter(root, &engine, shutdown);
+            });
+#endif
+#ifdef DREAMSCAPES_NATIVE_HOME_RECENT_FILES_PRESENTER
+        QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
+            [&engine, shutdown](QObject *root, const QUrl &) {
+                if (root) (void)dreamscapes::home::installNativeHomeRecentFilesPresenter(root, &engine, shutdown);
+            });
+#endif
+#ifdef DREAMSCAPES_NATIVE_HOME_RECENT_GENERATIONS_PRESENTER
+        QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
+            [&engine, shutdown](QObject *root, const QUrl &) {
+                if (root) (void)dreamscapes::home::installNativeHomeRecentGenerationsPresenter(root, &engine, shutdown);
+            });
+#endif
+#ifdef DREAMSCAPES_NATIVE_REVIEW_QUEUE_PRESENTER
+        QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
+            [&engine, shutdown](QObject *root, const QUrl &) {
+                if (root) (void)dreamscapes::review::installNativeReviewQueuePresenter(root, &engine, shutdown);
+            });
+#endif
+#ifdef DREAMSCAPES_NATIVE_REVIEW_INSPECTOR_PRESENTER
+        QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
+            [&engine, shutdown](QObject *root, const QUrl &) {
+                if (root) (void)dreamscapes::review::installNativeReviewInspectorPresenter(root, &engine, shutdown);
+            });
+#endif
+#ifdef DREAMSCAPES_NATIVE_REVIEW_GRID_PRESENTER
+        QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
+            [&engine, shutdown](QObject *root, const QUrl &) {
+                if (root) (void)dreamscapes::review::installNativeReviewGridPresenter(root, &engine, shutdown);
+            });
+#endif
+#ifdef DREAMSCAPES_NATIVE_LICENSE_PRESENTER
+        QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
+            [&engine, shutdown](QObject* root, const QUrl&) {
+                if (!root) return;
+                auto* generation = root->findChild<GenerationController*>(QStringLiteral("generationController"));
+                if (generation)
+                    (void)dreamscapes::native::installNativeLicensePresenter(root, generation->account(), &engine, shutdown);
+            });
+#endif
 #ifdef DREAMSCAPES_WITH_LOCAL_MCP
         QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &engine,
-            [&engine](QObject* root, const QUrl&) { if (root) installDreamscapesMcp(root, &engine); });
+            [&engine, shutdown](QObject* root, const QUrl&) { if (root) installDreamscapesMcp(root, &engine, shutdown); });
 #endif
         QGuiApplication::setWindowIcon(QIcon(QStringLiteral(":/branding/Dreamscapes.png")));
         QGuiApplication::setDesktopFileName(QStringLiteral("com.iisacc.dreamscapes"));
@@ -53,7 +129,6 @@ int main(int argc, char *argv[])
         auto *helper = new iiSocietyHelper::Helper(iiSocietyHelper::FileSystem::Initialization::Deferred, &engine);
         helper->setObjectName(QStringLiteral("societyHelper"));
         engine.rootContext()->setContextProperty(QStringLiteral("societyHelper"), helper);
-        auto *shutdown = new ApplicationShutdownCoordinator(&engine);
 #ifdef DREAMSCAPES_NATIVE_FAILURE_PRESENTER
         auto *failurePresenter = new dreamscapes::failure::NativeFailurePresenter(&engine);
         engine.rootContext()->setContextProperty(QStringLiteral("nativeFailurePresenter"), failurePresenter);

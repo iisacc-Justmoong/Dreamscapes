@@ -1,0 +1,23 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Editor View Bar", style: .header2)
+            Label(id: "migratedText0", text: "View", style: .body)
+            Label(id: "migratedText1", text: "Channel", style: .body)
+            Label(id: "migratedText2", text: "Rulers", style: .body)
+            Label(id: "migratedText3", text: "Grid", style: .body)
+            Label(id: "migratedText4", text: "Guides", style: .body)
+            Label(id: "migratedText5", text: "Snap", style: .body)
+            Label(id: "migratedText6", text: "Outlines", style: .body)
+            Label(id: "migratedText7", text: "Transparency", style: .body)
+            Label(id: "migratedText8", text: "Pixel preview", style: .body)
+            Label(id: "migratedText9", text: "Constrain", style: .body)
+            Label(id: "migratedText10", text: "Preset", style: .body)
+            Label(id: "migratedText11", text: "Publish", style: .body)
+            Label(id: "migratedText12", text: "Composite", style: .body)
+        }
+    }
+}

@@ -1,0 +1,22 @@
+import vm NativeReviewMediaBackend
+@Static let resizeMedia: (Double, Double) -> Void = vm.sizeHandler(Metric.size22, Metric.space4)
+EventListener(id: "reviewMediaSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizeMedia) {
+    VStack(id: "reviewMedia", width: vm.viewportWidth, height: vm.viewportHeight,
+           spacing: Metric.space4, alignment: .stretch) {
+        ZStack(id: "reviewMediaPreview", width: vm.viewportWidth, height: vm.previewHeight, alignment: .center) {
+            if (vm.showFrame) {
+                Image(id: "reviewMediaFrame", source: vm.frame, width: vm.viewportWidth, height: vm.previewHeight, fit: .Contain)
+            } else {
+                Image(id: "reviewMediaPoster", source: vm.previewSource, width: vm.viewportWidth, height: vm.previewHeight, fit: .Contain)
+            }
+            Label(id: "reviewMediaStatus", text: vm.previewMessage(), visible: vm.previewMessage() != "", style: .caption)
+        }
+        if (vm.controlsVisible) {
+            HStack(id: "reviewMediaControls", spacing: Metric.space4) {
+                LabelButton(id: "reviewMediaPlay", text: vm.playLabel, tone: .default, enabled: vm.canControl, onClick: vm.toggle)
+                LabelButton(id: "reviewMediaReplay", text: vm.replayLabel, tone: .default, enabled: vm.canControl, onClick: vm.replay)
+                Label(id: "reviewMediaTime", text: vm.timeText, style: .caption, elideRight: true, flex: 1)
+            }
+        }
+    }
+}

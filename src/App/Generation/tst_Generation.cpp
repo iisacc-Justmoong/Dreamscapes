@@ -3,6 +3,7 @@
 #include "ModelPreferences.h"
 #include "ImageCanvas.h"
 #include "VideoGeneration.h"
+#include "VideoDraftModel.h"
 #include "AdvancedImageParameters.h"
 #include "AdvancedImageOutput.h"
 #include "SocietyGenerationStorage.h"
@@ -1238,7 +1239,7 @@ private slots:
             {"keys",QVariantList{"file:///private-reference.png"}}};
         GenerationController first(runtime);
         QVERIFY2(first.saveVideoPreset("Portrait",values),qPrintable(first.videoPresetError()));
-        QCOMPARE(first.videoPresetNames(),QStringList{"Portrait"});
+        QCOMPARE(first.videoPresetNames(),QStringList({"Low VRAM", "Portrait"}));
         GenerationController restored(runtime);
         const auto preset=restored.videoPreset("Portrait");
         QCOMPARE(preset.value("width").toInt(),576);
@@ -1256,6 +1257,78 @@ private slots:
         QVERIFY(restored.videoPreset("Portrait").isEmpty());
         QVERIFY(!restored.videoPresetError().isEmpty());
         QVERIFY(restored.jobs().isEmpty());
+    }
+    void videoLowVramPresetPreservesDraftAndUserPresets()
+    {
+        GenerationController controller(GenerationRuntime{});
+        VideoDraftModel draft;
+        draft.setGeneration(&controller);
+        auto before = draft.values();
+        before["prompt"] = "Keep this prompt";
+        before["width"] = 576; before["height"] = 1024;
+        before["device"] = "auto"; before["offload"] = "auto";
+        before["cpuTextEncoding"] = false; before["vaeTiling"] = false;
+        draft.setValues(before);
+        QVERIFY(controller.videoPresetNames().contains("Low VRAM"));
+        QVERIFY(draft.loadPreset("Low VRAM"));
+        auto after = draft.values();
+        QCOMPARE(after.value("prompt"), before.value("prompt"));
+        QCOMPARE(after.value("width"), before.value("width"));
+        QCOMPARE(after.value("height"), before.value("height"));
+        QCOMPARE(after.value("offload").toString(), QString("sequential"));
+        QVERIFY(after.value("cpuTextEncoding").toBool());
+        QVERIFY(after.value("vaeTiling").toBool());
+        QVERIFY(!controller.saveVideoPreset("Low VRAM", after));
+        QVERIFY(draft.edit("vaeTiling", false));
+        QCOMPARE(draft.values().value("offload").toString(), QString("auto"));
+        QCOMPARE(draft.selectedPreset(), QString("Default"));
+        QCOMPARE(draft.values().value("prompt"), before.value("prompt"));
+        QVERIFY(draft.edit("offload", "sequential"));
+        QVERIFY(draft.values().value("cpuTextEncoding").toBool());
+        QVERIFY(draft.values().value("vaeTiling").toBool());
+        QVERIFY(draft.edit("device", "cpu"));
+        QCOMPARE(draft.values().value("offload").toString(), QString("auto"));
+        before["device"] = "cpu";
+        draft.setValues(before);
+        QVERIFY(!draft.loadPreset("Low VRAM"));
+        QCOMPARE(draft.values(), before);
+        QVERIFY(!draft.presetFeedback().isEmpty());
+
+        const auto resourceRoot = QFileInfo(QStringLiteral(DREAMSCAPES_FAKE_GENERATOR)).dir().absoluteFilePath("../../../../resources");
+        QTemporaryDir dir(QDir(resourceRoot).filePath("low-vram-preset-XXXXXX"));
+        QVERIFY(dir.isValid());
+        GenerationRuntime runtime;
+        runtime.modelPreferencesFile = dir.filePath("preferences");
+        const auto catalog = QJsonObject{{"schema", "dreamscapes.video-presets/1"},
+            {"presets", QJsonObject{{"Low VRAM", QJsonObject{{"width", 576}}}}}};
+        QVERIFY(write(runtime.modelPreferencesFile + ".video-presets.json", QJsonDocument(catalog).toJson()));
+        GenerationController collision(runtime);
+        QVERIFY(collision.videoPresetNames().contains("Low VRAM"));
+        QVERIFY(collision.videoPresetNames().contains("Low VRAM (built-in 1)"));
+        QCOMPARE(collision.videoPreset("Low VRAM").value("width").toInt(), 576);
+        QCOMPARE(collision.videoPreset("Low VRAM (built-in 1)").value("offload").toString(), QString("sequential"));
+    }
+    void videoLowVramReachesWorker()
+    {
+        const auto resources = QFileInfo(QStringLiteral(DREAMSCAPES_FAKE_GENERATOR)).dir().absoluteFilePath("../../../../resources");
+        QTemporaryDir root(QDir(resources).filePath("low-vram-queue-XXXXXX.societycontainer"));
+        QVERIFY(prepare(root));
+        QVERIFY(QDir().mkpath(root.filePath("Models/Checkpoint/ltx")));
+        QVERIFY(write(root.filePath("Models/Checkpoint/ltx/model_index.json"), R"({"_class_name":"LTXPipeline"})"));
+        auto runtime = fakeRuntime(); runtime.nativeInference = true;
+        GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
+        QVariantMap parameters{{"model", controller.selectedVideoModel()}, {"prompt", "Low VRAM fixture"},
+            {"device", "auto"}, {"offload", "sequential"}, {"cpuTextEncoding", true}, {"vaeTiling", true},
+            {"width", 512}, {"height", 512}, {"duration", 1}, {"fps", 12}, {"outputCount", 1}};
+        const auto id = controller.enqueueVideoRecipe(parameters);
+        QVERIFY2(!id.isEmpty(), qPrintable(controller.errorString()));
+        controller.setForeground(true);
+        QTRY_VERIFY2_WITH_TIMEOUT(!controller.completedResults().isEmpty(), qPrintable(controller.errorString()), 60000);
+        const auto config = controller.completedResults().first().toMap().value("generation").toMap().value("configuration").toMap();
+        QVERIFY(config.value("low_vram").toBool());
+        QCOMPARE(config.value("offload").toString(), QString("sequential"));
+        QVERIFY(config.value("cpu_text_encoding").toBool());
+        QVERIFY(config.value("vae_tiling").toBool());
     }
     void ltx2CheckpointClassificationAndUserOverrides()
     {

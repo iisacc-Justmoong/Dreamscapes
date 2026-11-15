@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/README.md",
-    "sha256": "2380edfc175a40ed65bb633c4457d0718d227489859b4ef2e14a08f959009ce8",
-    "bytes": 8409,
-    "line_count": 97,
+    "sha256": "80007e5f3d1e986592a6091951528fe383b35c3f5001f65022dcd258c5f2f969",
+    "bytes": 10436,
+    "line_count": 116,
     "encoding": "utf-8",
     "language": "en"
   },
@@ -79,8 +79,8 @@
       "id": "b000008",
       "kind": "table",
       "start_line": 8,
-      "end_line": 96,
-      "raw": "| Document | Agent JSON |\n| --- | --- |\n| [`AGENT.md`](../AGENT.md) | [JSON](entrypoints/AGENT.agent.json) |\n| [`LICENSING.md`](../LICENSING.md) | [JSON](entrypoints/LICENSING.agent.json) |\n| [`README.md`](../README.md) | [JSON](entrypoints/README.agent.json) |\n| [`docs/AdvancedImageParameters.md`](AdvancedImageParameters.md) | [JSON](AdvancedImageParameters.agent.json) |\n| [`docs/ApplicationLifetime.md`](ApplicationLifetime.md) | [JSON](ApplicationLifetime.agent.json) |\n| [`docs/CanvasFramePresentation.md`](CanvasFramePresentation.md) | [JSON](CanvasFramePresentation.agent.json) |\n| [`docs/CanvasPreviews.md`](CanvasPreviews.md) | [JSON](CanvasPreviews.agent.json) |\n| [`docs/CanvasToolFeedback.md`](CanvasToolFeedback.md) | [JSON](CanvasToolFeedback.agent.json) |\n| [`docs/ColorPicker.md`](ColorPicker.md) | [JSON](ColorPicker.agent.json) |\n| [`docs/DesktopHome.md`](DesktopHome.md) | [JSON](DesktopHome.agent.json) |\n| [`docs/DynamicRasterEditing.md`](DynamicRasterEditing.md) | [JSON](DynamicRasterEditing.agent.json) |\n| [`docs/EditorBackgroundMask.md`](EditorBackgroundMask.md) | [JSON](EditorBackgroundMask.agent.json) |\n| [`docs/EditorBackgroundPanel.md`](EditorBackgroundPanel.md) | [JSON](EditorBackgroundPanel.agent.json) |\n| [`docs/EditorButtonStates.md`](EditorButtonStates.md) | [JSON](EditorButtonStates.agent.json) |\n| [`docs/EditorCameraPhoto.md`](EditorCameraPhoto.md) | [JSON](EditorCameraPhoto.agent.json) |\n| [`docs/EditorColorSampling.md`](EditorColorSampling.md) | [JSON](EditorColorSampling.agent.json) |\n| [`docs/EditorCompactLayout.md`](EditorCompactLayout.md) | [JSON](EditorCompactLayout.agent.json) |\n| [`docs/EditorCompactPanels.md`](EditorCompactPanels.md) | [JSON](EditorCompactPanels.agent.json) |\n| [`docs/EditorDesktopPanels.md`](EditorDesktopPanels.md) | [JSON](EditorDesktopPanels.agent.json) |\n| [`docs/EditorElements.md`](EditorElements.md) | [JSON](EditorElements.agent.json) |\n| [`docs/EditorFilePanel.md`](EditorFilePanel.md) | [JSON](EditorFilePanel.agent.json) |\n| [`docs/EditorGraphicAdjust.md`](EditorGraphicAdjust.md) | [JSON](EditorGraphicAdjust.agent.json) |\n| [`docs/EditorGraphicPanels.md`](EditorGraphicPanels.md) | [JSON](EditorGraphicPanels.agent.json) |\n| [`docs/EditorImageImport.md`](EditorImageImport.md) | [JSON](EditorImageImport.agent.json) |\n| [`docs/EditorLayerTimeline.md`](EditorLayerTimeline.md) | [JSON](EditorLayerTimeline.agent.json) |\n| [`docs/EditorLayers.md`](EditorLayers.md) | [JSON](EditorLayers.agent.json) |\n| [`docs/EditorLayout.md`](EditorLayout.md) | [JSON](EditorLayout.agent.json) |\n| [`docs/EditorNativeCanvas.md`](EditorNativeCanvas.md) | [JSON](EditorNativeCanvas.agent.json) |\n| [`docs/EditorPanelResizing.md`](EditorPanelResizing.md) | [JSON](EditorPanelResizing.agent.json) |\n| [`docs/EditorTextPanel.md`](EditorTextPanel.md) | [JSON](EditorTextPanel.agent.json) |\n| [`docs/EditorToolBehavior.md`](EditorToolBehavior.md) | [JSON](EditorToolBehavior.agent.json) |\n| [`docs/EditorToolPanels.md`](EditorToolPanels.md) | [JSON](EditorToolPanels.agent.json) |\n| [`docs/EditorViewOptions.md`](EditorViewOptions.md) | [JSON](EditorViewOptions.agent.json) |\n| [`docs/EditorViewport.md`](EditorViewport.md) | [JSON](EditorViewport.agent.json) |\n| [`docs/ElementTransform.md`](ElementTransform.md) | [JSON](ElementTransform.agent.json) |\n| [`docs/ElementsSelection.md`](ElementsSelection.md) | [JSON](ElementsSelection.agent.json) |\n| [`docs/FILE_PROVIDER.md`](FILE_PROVIDER.md) | [JSON](FILE_PROVIDER.agent.json) |\n| [`docs/FailureAgent.md`](FailureAgent.md) | [JSON](FailureAgent.agent.json) |\n| [`docs/FileCreationBoundary.md`](FileCreationBoundary.md) | [JSON](FileCreationBoundary.agent.json) |\n| [`docs/GenerationProcess.md`](GenerationProcess.md) | [JSON](GenerationProcess.agent.json) |\n| [`docs/GenerationPublication.md`](GenerationPublication.md) | [JSON](GenerationPublication.agent.json) |\n| [`docs/GenerationReview.md`](GenerationReview.md) | [JSON](GenerationReview.agent.json) |\n| [`docs/GraphicImageCommands.md`](GraphicImageCommands.md) | [JSON](GraphicImageCommands.agent.json) |\n| [`docs/GraphicParameterHelpers.md`](GraphicParameterHelpers.md) | [JSON](GraphicParameterHelpers.agent.json) |\n| [`docs/HomeEditorRoutes.md`](HomeEditorRoutes.md) | [JSON](HomeEditorRoutes.agent.json) |\n| [`docs/HomePaintCanvas.md`](HomePaintCanvas.md) | [JSON](HomePaintCanvas.agent.json) |\n| [`docs/ImageCanvasStorage.md`](ImageCanvasStorage.md) | [JSON](ImageCanvasStorage.agent.json) |\n| [`docs/InteractionAudit.md`](InteractionAudit.md) | [JSON](InteractionAudit.agent.json) |\n| [`docs/LVUIStyleMigration.md`](LVUIStyleMigration.md) | [JSON](LVUIStyleMigration.agent.json) |\n| [`docs/LayerHistogram.md`](LayerHistogram.md) | [JSON](LayerHistogram.agent.json) |\n| [`docs/Mcp.md`](Mcp.md) | [JSON](Mcp.agent.json) |\n| [`docs/MobileNavigationIcons.md`](MobileNavigationIcons.md) | [JSON](MobileNavigationIcons.agent.json) |\n| [`docs/ModelDiscovery.md`](ModelDiscovery.md) | [JSON](ModelDiscovery.agent.json) |\n| [`docs/MultiCanvasProject.md`](MultiCanvasProject.md) | [JSON](MultiCanvasProject.agent.json) |\n| [`docs/NativeGenerationLifetime.md`](NativeGenerationLifetime.md) | [JSON](NativeGenerationLifetime.agent.json) |\n| [`docs/NativeModelMount.md`](NativeModelMount.md) | [JSON](NativeModelMount.agent.json) |\n| [`docs/NativeReviewSession.md`](NativeReviewSession.md) | [JSON](NativeReviewSession.agent.json) |\n| [`docs/NativeViewModels.md`](NativeViewModels.md) | [JSON](NativeViewModels.agent.json) |\n| [`docs/NewCanvas.md`](NewCanvas.md) | [JSON](NewCanvas.agent.json) |\n| [`docs/PanelFrames.md`](PanelFrames.md) | [JSON](PanelFrames.agent.json) |\n| [`docs/PanelRows.md`](PanelRows.md) | [JSON](PanelRows.agent.json) |\n| [`docs/Performance.md`](Performance.md) | [JSON](Performance.agent.json) |\n| [`docs/PhotoImportCommands.md`](PhotoImportCommands.md) | [JSON](PhotoImportCommands.agent.json) |\n| [`docs/PhotoLibraryExport.md`](PhotoLibraryExport.md) | [JSON](PhotoLibraryExport.agent.json) |\n| [`docs/Preferences.md`](Preferences.md) | [JSON](Preferences.agent.json) |\n| [`docs/PromptFields.md`](PromptFields.md) | [JSON](PromptFields.agent.json) |\n| [`docs/PublishDestinationReview.md`](PublishDestinationReview.md) | [JSON](PublishDestinationReview.agent.json) |\n| [`docs/PublishingWorkspace.md`](PublishingWorkspace.md) | [JSON](PublishingWorkspace.agent.json) |\n| [`docs/QtIndependence.md`](QtIndependence.md) | [JSON](QtIndependence.agent.json) |\n| [`docs/Refactoring.md`](Refactoring.md) | [JSON](Refactoring.agent.json) |\n| [`docs/ReviewModelPerformance.md`](ReviewModelPerformance.md) | [JSON](ReviewModelPerformance.agent.json) |\n| [`docs/RuntimeRetirement.md`](RuntimeRetirement.md) | [JSON](RuntimeRetirement.agent.json) |\n| [`docs/SharedLogicalStorage.md`](SharedLogicalStorage.md) | [JSON](SharedLogicalStorage.agent.json) |\n| [`docs/SingleAppBuild.md`](SingleAppBuild.md) | [JSON](SingleAppBuild.agent.json) |\n| [`docs/SocialPublishing.md`](SocialPublishing.md) | [JSON](SocialPublishing.agent.json) |\n| [`docs/SocietyAccount.md`](SocietyAccount.md) | [JSON](SocietyAccount.agent.json) |\n| [`docs/SocietyAliases.md`](SocietyAliases.md) | [JSON](SocietyAliases.agent.json) |\n| [`docs/StorageBrowser.md`](StorageBrowser.md) | [JSON](StorageBrowser.agent.json) |\n| [`docs/StorageInitialization.md`](StorageInitialization.md) | [JSON](StorageInitialization.agent.json) |\n| [`docs/Tooltips.md`](Tooltips.md) | [JSON](Tooltips.agent.json) |\n| [`docs/VideoGeneration.md`](VideoGeneration.md) | [JSON](VideoGeneration.agent.json) |\n| [`docs/VideoGenerationWorkspace.md`](VideoGenerationWorkspace.md) | [JSON](VideoGenerationWorkspace.agent.json) |\n| [`docs/WindowAppearance.md`](WindowAppearance.md) | [JSON](WindowAppearance.agent.json) |\n| [`docs/WindowsValidation.md`](WindowsValidation.md) | [JSON](WindowsValidation.agent.json) |\n| [`docs/WorkingFileOpen.md`](WorkingFileOpen.md) | [JSON](WorkingFileOpen.agent.json) |\n| [`docs/documentation-structure.md`](documentation-structure.md) | [JSON](documentation-structure.agent.json) |\n| [`resources/Appicon/README.md`](../resources/Appicon/README.md) | [JSON](mirrors/resources/Appicon/README.agent.json) |\n",
+      "end_line": 115,
+      "raw": "| Document | Agent JSON |\n| --- | --- |\n| [`AGENT.md`](../AGENT.md) | [JSON](entrypoints/AGENT.agent.json) |\n| [`LICENSING.md`](../LICENSING.md) | [JSON](entrypoints/LICENSING.agent.json) |\n| [`README.md`](../README.md) | [JSON](entrypoints/README.agent.json) |\n| [`docs/AdvancedImageParameters.md`](AdvancedImageParameters.md) | [JSON](AdvancedImageParameters.agent.json) |\n| [`docs/ApplicationLifetime.md`](ApplicationLifetime.md) | [JSON](ApplicationLifetime.agent.json) |\n| [`docs/CanvasFramePresentation.md`](CanvasFramePresentation.md) | [JSON](CanvasFramePresentation.agent.json) |\n| [`docs/CanvasPreviews.md`](CanvasPreviews.md) | [JSON](CanvasPreviews.agent.json) |\n| [`docs/CanvasToolFeedback.md`](CanvasToolFeedback.md) | [JSON](CanvasToolFeedback.agent.json) |\n| [`docs/ColorPicker.md`](ColorPicker.md) | [JSON](ColorPicker.agent.json) |\n| [`docs/DesktopHome.md`](DesktopHome.md) | [JSON](DesktopHome.agent.json) |\n| [`docs/DynamicRasterEditing.md`](DynamicRasterEditing.md) | [JSON](DynamicRasterEditing.agent.json) |\n| [`docs/EditorBackgroundMask.md`](EditorBackgroundMask.md) | [JSON](EditorBackgroundMask.agent.json) |\n| [`docs/EditorBackgroundPanel.md`](EditorBackgroundPanel.md) | [JSON](EditorBackgroundPanel.agent.json) |\n| [`docs/EditorButtonStates.md`](EditorButtonStates.md) | [JSON](EditorButtonStates.agent.json) |\n| [`docs/EditorCameraPhoto.md`](EditorCameraPhoto.md) | [JSON](EditorCameraPhoto.agent.json) |\n| [`docs/EditorColorSampling.md`](EditorColorSampling.md) | [JSON](EditorColorSampling.agent.json) |\n| [`docs/EditorCompactLayout.md`](EditorCompactLayout.md) | [JSON](EditorCompactLayout.agent.json) |\n| [`docs/EditorCompactPanels.md`](EditorCompactPanels.md) | [JSON](EditorCompactPanels.agent.json) |\n| [`docs/EditorDesktopPanels.md`](EditorDesktopPanels.md) | [JSON](EditorDesktopPanels.agent.json) |\n| [`docs/EditorElements.md`](EditorElements.md) | [JSON](EditorElements.agent.json) |\n| [`docs/EditorFilePanel.md`](EditorFilePanel.md) | [JSON](EditorFilePanel.agent.json) |\n| [`docs/EditorGraphicAdjust.md`](EditorGraphicAdjust.md) | [JSON](EditorGraphicAdjust.agent.json) |\n| [`docs/EditorGraphicPanels.md`](EditorGraphicPanels.md) | [JSON](EditorGraphicPanels.agent.json) |\n| [`docs/EditorImageImport.md`](EditorImageImport.md) | [JSON](EditorImageImport.agent.json) |\n| [`docs/EditorLayerTimeline.md`](EditorLayerTimeline.md) | [JSON](EditorLayerTimeline.agent.json) |\n| [`docs/EditorLayers.md`](EditorLayers.md) | [JSON](EditorLayers.agent.json) |\n| [`docs/EditorLayout.md`](EditorLayout.md) | [JSON](EditorLayout.agent.json) |\n| [`docs/EditorNativeCanvas.md`](EditorNativeCanvas.md) | [JSON](EditorNativeCanvas.agent.json) |\n| [`docs/EditorPanelResizing.md`](EditorPanelResizing.md) | [JSON](EditorPanelResizing.agent.json) |\n| [`docs/EditorTextPanel.md`](EditorTextPanel.md) | [JSON](EditorTextPanel.agent.json) |\n| [`docs/EditorToolBehavior.md`](EditorToolBehavior.md) | [JSON](EditorToolBehavior.agent.json) |\n| [`docs/EditorToolPanels.md`](EditorToolPanels.md) | [JSON](EditorToolPanels.agent.json) |\n| [`docs/EditorViewOptions.md`](EditorViewOptions.md) | [JSON](EditorViewOptions.agent.json) |\n| [`docs/EditorViewport.md`](EditorViewport.md) | [JSON](EditorViewport.agent.json) |\n| [`docs/ElementTransform.md`](ElementTransform.md) | [JSON](ElementTransform.agent.json) |\n| [`docs/ElementsSelection.md`](ElementsSelection.md) | [JSON](ElementsSelection.agent.json) |\n| [`docs/FILE_PROVIDER.md`](FILE_PROVIDER.md) | [JSON](FILE_PROVIDER.agent.json) |\n| [`docs/FailureAgent.md`](FailureAgent.md) | [JSON](FailureAgent.agent.json) |\n| [`docs/FileCreationBoundary.md`](FileCreationBoundary.md) | [JSON](FileCreationBoundary.agent.json) |\n| [`docs/GenerationProcess.md`](GenerationProcess.md) | [JSON](GenerationProcess.agent.json) |\n| [`docs/GenerationPublication.md`](GenerationPublication.md) | [JSON](GenerationPublication.agent.json) |\n| [`docs/GenerationReview.md`](GenerationReview.md) | [JSON](GenerationReview.agent.json) |\n| [`docs/GraphicImageCommands.md`](GraphicImageCommands.md) | [JSON](GraphicImageCommands.agent.json) |\n| [`docs/GraphicParameterHelpers.md`](GraphicParameterHelpers.md) | [JSON](GraphicParameterHelpers.agent.json) |\n| [`docs/HomeEditorRoutes.md`](HomeEditorRoutes.md) | [JSON](HomeEditorRoutes.agent.json) |\n| [`docs/HomePaintCanvas.md`](HomePaintCanvas.md) | [JSON](HomePaintCanvas.agent.json) |\n| [`docs/ImageCanvasStorage.md`](ImageCanvasStorage.md) | [JSON](ImageCanvasStorage.agent.json) |\n| [`docs/InteractionAudit.md`](InteractionAudit.md) | [JSON](InteractionAudit.agent.json) |\n| [`docs/LVUIStyleMigration.md`](LVUIStyleMigration.md) | [JSON](LVUIStyleMigration.agent.json) |\n| [`docs/LayerHistogram.md`](LayerHistogram.md) | [JSON](LayerHistogram.agent.json) |\n| [`docs/Mcp.md`](Mcp.md) | [JSON](Mcp.agent.json) |\n| [`docs/MobileNavigationIcons.md`](MobileNavigationIcons.md) | [JSON](MobileNavigationIcons.agent.json) |\n| [`docs/ModelDiscovery.md`](ModelDiscovery.md) | [JSON](ModelDiscovery.agent.json) |\n| [`docs/MultiCanvasProject.md`](MultiCanvasProject.md) | [JSON](MultiCanvasProject.agent.json) |\n| [`docs/NativeApplicationWindow.md`](NativeApplicationWindow.md) | [JSON](NativeApplicationWindow.agent.json) |\n| [`docs/NativeDynamicGeneration.md`](NativeDynamicGeneration.md) | [JSON](NativeDynamicGeneration.agent.json) |\n| [`docs/NativeDynamicWorkspaces.md`](NativeDynamicWorkspaces.md) | [JSON](NativeDynamicWorkspaces.agent.json) |\n| [`docs/NativeEmbeddedSurface.md`](NativeEmbeddedSurface.md) | [JSON](NativeEmbeddedSurface.agent.json) |\n| [`docs/NativeFailureDetails.md`](NativeFailureDetails.md) | [JSON](NativeFailureDetails.agent.json) |\n| [`docs/NativeFileInspector.md`](NativeFileInspector.md) | [JSON](NativeFileInspector.agent.json) |\n| [`docs/NativeGenerationLifetime.md`](NativeGenerationLifetime.md) | [JSON](NativeGenerationLifetime.agent.json) |\n| [`docs/NativeGenerationProjectionBinding.md`](NativeGenerationProjectionBinding.md) | [JSON](NativeGenerationProjectionBinding.agent.json) |\n| [`docs/NativeHomeComposer.md`](NativeHomeComposer.md) | [JSON](NativeHomeComposer.agent.json) |\n| [`docs/NativeHomeQueue.md`](NativeHomeQueue.md) | [JSON](NativeHomeQueue.agent.json) |\n| [`docs/NativeHomeRecentFiles.md`](NativeHomeRecentFiles.md) | [JSON](NativeHomeRecentFiles.agent.json) |\n| [`docs/NativeHomeRecentGenerations.md`](NativeHomeRecentGenerations.md) | [JSON](NativeHomeRecentGenerations.agent.json) |\n| [`docs/NativeHomeSelectedFile.md`](NativeHomeSelectedFile.md) | [JSON](NativeHomeSelectedFile.agent.json) |\n| [`docs/NativeHomeSidebar.md`](NativeHomeSidebar.md) | [JSON](NativeHomeSidebar.agent.json) |\n| [`docs/NativeHomeWorkspace.md`](NativeHomeWorkspace.md) | [JSON](NativeHomeWorkspace.agent.json) |\n| [`docs/NativeLicenseOverlay.md`](NativeLicenseOverlay.md) | [JSON](NativeLicenseOverlay.agent.json) |\n| [`docs/NativeModelMount.md`](NativeModelMount.md) | [JSON](NativeModelMount.agent.json) |\n| [`docs/NativeQuestionOverlay.md`](NativeQuestionOverlay.md) | [JSON](NativeQuestionOverlay.agent.json) |\n| [`docs/NativeReviewInspector.md`](NativeReviewInspector.md) | [JSON](NativeReviewInspector.agent.json) |\n| [`docs/NativeReviewQueue.md`](NativeReviewQueue.md) | [JSON](NativeReviewQueue.agent.json) |\n| [`docs/NativeReviewSession.md`](NativeReviewSession.md) | [JSON](NativeReviewSession.agent.json) |\n| [`docs/NativeViewCutover.md`](NativeViewCutover.md) | [JSON](NativeViewCutover.agent.json) |\n| [`docs/NativeViewModels.md`](NativeViewModels.md) | [JSON](NativeViewModels.agent.json) |\n| [`docs/NewCanvas.md`](NewCanvas.md) | [JSON](NewCanvas.agent.json) |\n| [`docs/PanelFrames.md`](PanelFrames.md) | [JSON](PanelFrames.agent.json) |\n| [`docs/PanelRows.md`](PanelRows.md) | [JSON](PanelRows.agent.json) |\n| [`docs/Performance.md`](Performance.md) | [JSON](Performance.agent.json) |\n| [`docs/PhotoImportCommands.md`](PhotoImportCommands.md) | [JSON](PhotoImportCommands.agent.json) |\n| [`docs/PhotoLibraryExport.md`](PhotoLibraryExport.md) | [JSON](PhotoLibraryExport.agent.json) |\n| [`docs/Preferences.md`](Preferences.md) | [JSON](Preferences.agent.json) |\n| [`docs/PromptFields.md`](PromptFields.md) | [JSON](PromptFields.agent.json) |\n| [`docs/PublishDestinationReview.md`](PublishDestinationReview.md) | [JSON](PublishDestinationReview.agent.json) |\n| [`docs/PublishingWorkspace.md`](PublishingWorkspace.md) | [JSON](PublishingWorkspace.agent.json) |\n| [`docs/QtIndependence.md`](QtIndependence.md) | [JSON](QtIndependence.agent.json) |\n| [`docs/Refactoring.md`](Refactoring.md) | [JSON](Refactoring.agent.json) |\n| [`docs/ReviewModelPerformance.md`](ReviewModelPerformance.md) | [JSON](ReviewModelPerformance.agent.json) |\n| [`docs/RuntimeRetirement.md`](RuntimeRetirement.md) | [JSON](RuntimeRetirement.agent.json) |\n| [`docs/SharedLogicalStorage.md`](SharedLogicalStorage.md) | [JSON](SharedLogicalStorage.agent.json) |\n| [`docs/SingleAppBuild.md`](SingleAppBuild.md) | [JSON](SingleAppBuild.agent.json) |\n| [`docs/SocialPublishing.md`](SocialPublishing.md) | [JSON](SocialPublishing.agent.json) |\n| [`docs/SocietyAccount.md`](SocietyAccount.md) | [JSON](SocietyAccount.agent.json) |\n| [`docs/SocietyAliases.md`](SocietyAliases.md) | [JSON](SocietyAliases.agent.json) |\n| [`docs/StorageBrowser.md`](StorageBrowser.md) | [JSON](StorageBrowser.agent.json) |\n| [`docs/StorageInitialization.md`](StorageInitialization.md) | [JSON](StorageInitialization.agent.json) |\n| [`docs/Tooltips.md`](Tooltips.md) | [JSON](Tooltips.agent.json) |\n| [`docs/VideoGeneration.md`](VideoGeneration.md) | [JSON](VideoGeneration.agent.json) |\n| [`docs/VideoGenerationWorkspace.md`](VideoGenerationWorkspace.md) | [JSON](VideoGenerationWorkspace.agent.json) |\n| [`docs/WindowAppearance.md`](WindowAppearance.md) | [JSON](WindowAppearance.agent.json) |\n| [`docs/WindowsValidation.md`](WindowsValidation.md) | [JSON](WindowsValidation.agent.json) |\n| [`docs/WorkingFileOpen.md`](WorkingFileOpen.md) | [JSON](WorkingFileOpen.agent.json) |\n| [`docs/documentation-structure.md`](documentation-structure.md) | [JSON](documentation-structure.agent.json) |\n| [`resources/Appicon/README.md`](../resources/Appicon/README.md) | [JSON](mirrors/resources/Appicon/README.agent.json) |\n",
       "columns": [
         "Document",
         "Agent JSON"
@@ -303,16 +303,92 @@
           "[JSON](MultiCanvasProject.agent.json)"
         ],
         [
+          "[`docs/NativeApplicationWindow.md`](NativeApplicationWindow.md)",
+          "[JSON](NativeApplicationWindow.agent.json)"
+        ],
+        [
+          "[`docs/NativeDynamicGeneration.md`](NativeDynamicGeneration.md)",
+          "[JSON](NativeDynamicGeneration.agent.json)"
+        ],
+        [
+          "[`docs/NativeDynamicWorkspaces.md`](NativeDynamicWorkspaces.md)",
+          "[JSON](NativeDynamicWorkspaces.agent.json)"
+        ],
+        [
+          "[`docs/NativeEmbeddedSurface.md`](NativeEmbeddedSurface.md)",
+          "[JSON](NativeEmbeddedSurface.agent.json)"
+        ],
+        [
+          "[`docs/NativeFailureDetails.md`](NativeFailureDetails.md)",
+          "[JSON](NativeFailureDetails.agent.json)"
+        ],
+        [
+          "[`docs/NativeFileInspector.md`](NativeFileInspector.md)",
+          "[JSON](NativeFileInspector.agent.json)"
+        ],
+        [
           "[`docs/NativeGenerationLifetime.md`](NativeGenerationLifetime.md)",
           "[JSON](NativeGenerationLifetime.agent.json)"
+        ],
+        [
+          "[`docs/NativeGenerationProjectionBinding.md`](NativeGenerationProjectionBinding.md)",
+          "[JSON](NativeGenerationProjectionBinding.agent.json)"
+        ],
+        [
+          "[`docs/NativeHomeComposer.md`](NativeHomeComposer.md)",
+          "[JSON](NativeHomeComposer.agent.json)"
+        ],
+        [
+          "[`docs/NativeHomeQueue.md`](NativeHomeQueue.md)",
+          "[JSON](NativeHomeQueue.agent.json)"
+        ],
+        [
+          "[`docs/NativeHomeRecentFiles.md`](NativeHomeRecentFiles.md)",
+          "[JSON](NativeHomeRecentFiles.agent.json)"
+        ],
+        [
+          "[`docs/NativeHomeRecentGenerations.md`](NativeHomeRecentGenerations.md)",
+          "[JSON](NativeHomeRecentGenerations.agent.json)"
+        ],
+        [
+          "[`docs/NativeHomeSelectedFile.md`](NativeHomeSelectedFile.md)",
+          "[JSON](NativeHomeSelectedFile.agent.json)"
+        ],
+        [
+          "[`docs/NativeHomeSidebar.md`](NativeHomeSidebar.md)",
+          "[JSON](NativeHomeSidebar.agent.json)"
+        ],
+        [
+          "[`docs/NativeHomeWorkspace.md`](NativeHomeWorkspace.md)",
+          "[JSON](NativeHomeWorkspace.agent.json)"
+        ],
+        [
+          "[`docs/NativeLicenseOverlay.md`](NativeLicenseOverlay.md)",
+          "[JSON](NativeLicenseOverlay.agent.json)"
         ],
         [
           "[`docs/NativeModelMount.md`](NativeModelMount.md)",
           "[JSON](NativeModelMount.agent.json)"
         ],
         [
+          "[`docs/NativeQuestionOverlay.md`](NativeQuestionOverlay.md)",
+          "[JSON](NativeQuestionOverlay.agent.json)"
+        ],
+        [
+          "[`docs/NativeReviewInspector.md`](NativeReviewInspector.md)",
+          "[JSON](NativeReviewInspector.agent.json)"
+        ],
+        [
+          "[`docs/NativeReviewQueue.md`](NativeReviewQueue.md)",
+          "[JSON](NativeReviewQueue.agent.json)"
+        ],
+        [
           "[`docs/NativeReviewSession.md`](NativeReviewSession.md)",
           "[JSON](NativeReviewSession.agent.json)"
+        ],
+        [
+          "[`docs/NativeViewCutover.md`](NativeViewCutover.md)",
+          "[JSON](NativeViewCutover.agent.json)"
         ],
         [
           "[`docs/NativeViewModels.md`](NativeViewModels.md)",
@@ -439,8 +515,8 @@
     {
       "id": "b000009",
       "kind": "html",
-      "start_line": 97,
-      "end_line": 97,
+      "start_line": 116,
+      "end_line": 116,
       "raw": "<!-- workspace-docs:document-map:end -->\n"
     }
   ],
@@ -1224,465 +1300,731 @@
       },
       {
         "block_id": "b000008",
+        "label": "`docs/NativeApplicationWindow.md`",
+        "target": "NativeApplicationWindow.md",
+        "kind": "relative",
+        "line": 64
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeApplicationWindow.agent.json",
+        "kind": "relative",
+        "line": 64
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeDynamicGeneration.md`",
+        "target": "NativeDynamicGeneration.md",
+        "kind": "relative",
+        "line": 65
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeDynamicGeneration.agent.json",
+        "kind": "relative",
+        "line": 65
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeDynamicWorkspaces.md`",
+        "target": "NativeDynamicWorkspaces.md",
+        "kind": "relative",
+        "line": 66
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeDynamicWorkspaces.agent.json",
+        "kind": "relative",
+        "line": 66
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeEmbeddedSurface.md`",
+        "target": "NativeEmbeddedSurface.md",
+        "kind": "relative",
+        "line": 67
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeEmbeddedSurface.agent.json",
+        "kind": "relative",
+        "line": 67
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeFailureDetails.md`",
+        "target": "NativeFailureDetails.md",
+        "kind": "relative",
+        "line": 68
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeFailureDetails.agent.json",
+        "kind": "relative",
+        "line": 68
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeFileInspector.md`",
+        "target": "NativeFileInspector.md",
+        "kind": "relative",
+        "line": 69
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeFileInspector.agent.json",
+        "kind": "relative",
+        "line": 69
+      },
+      {
+        "block_id": "b000008",
         "label": "`docs/NativeGenerationLifetime.md`",
         "target": "NativeGenerationLifetime.md",
         "kind": "relative",
-        "line": 64
+        "line": 70
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "NativeGenerationLifetime.agent.json",
         "kind": "relative",
-        "line": 64
+        "line": 70
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeGenerationProjectionBinding.md`",
+        "target": "NativeGenerationProjectionBinding.md",
+        "kind": "relative",
+        "line": 71
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeGenerationProjectionBinding.agent.json",
+        "kind": "relative",
+        "line": 71
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeHomeComposer.md`",
+        "target": "NativeHomeComposer.md",
+        "kind": "relative",
+        "line": 72
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeHomeComposer.agent.json",
+        "kind": "relative",
+        "line": 72
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeHomeQueue.md`",
+        "target": "NativeHomeQueue.md",
+        "kind": "relative",
+        "line": 73
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeHomeQueue.agent.json",
+        "kind": "relative",
+        "line": 73
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeHomeRecentFiles.md`",
+        "target": "NativeHomeRecentFiles.md",
+        "kind": "relative",
+        "line": 74
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeHomeRecentFiles.agent.json",
+        "kind": "relative",
+        "line": 74
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeHomeRecentGenerations.md`",
+        "target": "NativeHomeRecentGenerations.md",
+        "kind": "relative",
+        "line": 75
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeHomeRecentGenerations.agent.json",
+        "kind": "relative",
+        "line": 75
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeHomeSelectedFile.md`",
+        "target": "NativeHomeSelectedFile.md",
+        "kind": "relative",
+        "line": 76
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeHomeSelectedFile.agent.json",
+        "kind": "relative",
+        "line": 76
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeHomeSidebar.md`",
+        "target": "NativeHomeSidebar.md",
+        "kind": "relative",
+        "line": 77
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeHomeSidebar.agent.json",
+        "kind": "relative",
+        "line": 77
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeHomeWorkspace.md`",
+        "target": "NativeHomeWorkspace.md",
+        "kind": "relative",
+        "line": 78
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeHomeWorkspace.agent.json",
+        "kind": "relative",
+        "line": 78
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeLicenseOverlay.md`",
+        "target": "NativeLicenseOverlay.md",
+        "kind": "relative",
+        "line": 79
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeLicenseOverlay.agent.json",
+        "kind": "relative",
+        "line": 79
       },
       {
         "block_id": "b000008",
         "label": "`docs/NativeModelMount.md`",
         "target": "NativeModelMount.md",
         "kind": "relative",
-        "line": 65
+        "line": 80
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "NativeModelMount.agent.json",
         "kind": "relative",
-        "line": 65
+        "line": 80
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeQuestionOverlay.md`",
+        "target": "NativeQuestionOverlay.md",
+        "kind": "relative",
+        "line": 81
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeQuestionOverlay.agent.json",
+        "kind": "relative",
+        "line": 81
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeReviewInspector.md`",
+        "target": "NativeReviewInspector.md",
+        "kind": "relative",
+        "line": 82
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeReviewInspector.agent.json",
+        "kind": "relative",
+        "line": 82
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeReviewQueue.md`",
+        "target": "NativeReviewQueue.md",
+        "kind": "relative",
+        "line": 83
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeReviewQueue.agent.json",
+        "kind": "relative",
+        "line": 83
       },
       {
         "block_id": "b000008",
         "label": "`docs/NativeReviewSession.md`",
         "target": "NativeReviewSession.md",
         "kind": "relative",
-        "line": 66
+        "line": 84
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "NativeReviewSession.agent.json",
         "kind": "relative",
-        "line": 66
+        "line": 84
+      },
+      {
+        "block_id": "b000008",
+        "label": "`docs/NativeViewCutover.md`",
+        "target": "NativeViewCutover.md",
+        "kind": "relative",
+        "line": 85
+      },
+      {
+        "block_id": "b000008",
+        "label": "JSON",
+        "target": "NativeViewCutover.agent.json",
+        "kind": "relative",
+        "line": 85
       },
       {
         "block_id": "b000008",
         "label": "`docs/NativeViewModels.md`",
         "target": "NativeViewModels.md",
         "kind": "relative",
-        "line": 67
+        "line": 86
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "NativeViewModels.agent.json",
         "kind": "relative",
-        "line": 67
+        "line": 86
       },
       {
         "block_id": "b000008",
         "label": "`docs/NewCanvas.md`",
         "target": "NewCanvas.md",
         "kind": "relative",
-        "line": 68
+        "line": 87
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "NewCanvas.agent.json",
         "kind": "relative",
-        "line": 68
+        "line": 87
       },
       {
         "block_id": "b000008",
         "label": "`docs/PanelFrames.md`",
         "target": "PanelFrames.md",
         "kind": "relative",
-        "line": 69
+        "line": 88
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "PanelFrames.agent.json",
         "kind": "relative",
-        "line": 69
+        "line": 88
       },
       {
         "block_id": "b000008",
         "label": "`docs/PanelRows.md`",
         "target": "PanelRows.md",
         "kind": "relative",
-        "line": 70
+        "line": 89
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "PanelRows.agent.json",
         "kind": "relative",
-        "line": 70
+        "line": 89
       },
       {
         "block_id": "b000008",
         "label": "`docs/Performance.md`",
         "target": "Performance.md",
         "kind": "relative",
-        "line": 71
+        "line": 90
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "Performance.agent.json",
         "kind": "relative",
-        "line": 71
+        "line": 90
       },
       {
         "block_id": "b000008",
         "label": "`docs/PhotoImportCommands.md`",
         "target": "PhotoImportCommands.md",
         "kind": "relative",
-        "line": 72
+        "line": 91
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "PhotoImportCommands.agent.json",
         "kind": "relative",
-        "line": 72
+        "line": 91
       },
       {
         "block_id": "b000008",
         "label": "`docs/PhotoLibraryExport.md`",
         "target": "PhotoLibraryExport.md",
         "kind": "relative",
-        "line": 73
+        "line": 92
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "PhotoLibraryExport.agent.json",
         "kind": "relative",
-        "line": 73
+        "line": 92
       },
       {
         "block_id": "b000008",
         "label": "`docs/Preferences.md`",
         "target": "Preferences.md",
         "kind": "relative",
-        "line": 74
+        "line": 93
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "Preferences.agent.json",
         "kind": "relative",
-        "line": 74
+        "line": 93
       },
       {
         "block_id": "b000008",
         "label": "`docs/PromptFields.md`",
         "target": "PromptFields.md",
         "kind": "relative",
-        "line": 75
+        "line": 94
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "PromptFields.agent.json",
         "kind": "relative",
-        "line": 75
+        "line": 94
       },
       {
         "block_id": "b000008",
         "label": "`docs/PublishDestinationReview.md`",
         "target": "PublishDestinationReview.md",
         "kind": "relative",
-        "line": 76
+        "line": 95
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "PublishDestinationReview.agent.json",
         "kind": "relative",
-        "line": 76
+        "line": 95
       },
       {
         "block_id": "b000008",
         "label": "`docs/PublishingWorkspace.md`",
         "target": "PublishingWorkspace.md",
         "kind": "relative",
-        "line": 77
+        "line": 96
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "PublishingWorkspace.agent.json",
         "kind": "relative",
-        "line": 77
+        "line": 96
       },
       {
         "block_id": "b000008",
         "label": "`docs/QtIndependence.md`",
         "target": "QtIndependence.md",
         "kind": "relative",
-        "line": 78
+        "line": 97
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "QtIndependence.agent.json",
         "kind": "relative",
-        "line": 78
+        "line": 97
       },
       {
         "block_id": "b000008",
         "label": "`docs/Refactoring.md`",
         "target": "Refactoring.md",
         "kind": "relative",
-        "line": 79
+        "line": 98
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "Refactoring.agent.json",
         "kind": "relative",
-        "line": 79
+        "line": 98
       },
       {
         "block_id": "b000008",
         "label": "`docs/ReviewModelPerformance.md`",
         "target": "ReviewModelPerformance.md",
         "kind": "relative",
-        "line": 80
+        "line": 99
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "ReviewModelPerformance.agent.json",
         "kind": "relative",
-        "line": 80
+        "line": 99
       },
       {
         "block_id": "b000008",
         "label": "`docs/RuntimeRetirement.md`",
         "target": "RuntimeRetirement.md",
         "kind": "relative",
-        "line": 81
+        "line": 100
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "RuntimeRetirement.agent.json",
         "kind": "relative",
-        "line": 81
+        "line": 100
       },
       {
         "block_id": "b000008",
         "label": "`docs/SharedLogicalStorage.md`",
         "target": "SharedLogicalStorage.md",
         "kind": "relative",
-        "line": 82
+        "line": 101
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "SharedLogicalStorage.agent.json",
         "kind": "relative",
-        "line": 82
+        "line": 101
       },
       {
         "block_id": "b000008",
         "label": "`docs/SingleAppBuild.md`",
         "target": "SingleAppBuild.md",
         "kind": "relative",
-        "line": 83
+        "line": 102
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "SingleAppBuild.agent.json",
         "kind": "relative",
-        "line": 83
+        "line": 102
       },
       {
         "block_id": "b000008",
         "label": "`docs/SocialPublishing.md`",
         "target": "SocialPublishing.md",
         "kind": "relative",
-        "line": 84
+        "line": 103
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "SocialPublishing.agent.json",
         "kind": "relative",
-        "line": 84
+        "line": 103
       },
       {
         "block_id": "b000008",
         "label": "`docs/SocietyAccount.md`",
         "target": "SocietyAccount.md",
         "kind": "relative",
-        "line": 85
+        "line": 104
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "SocietyAccount.agent.json",
         "kind": "relative",
-        "line": 85
+        "line": 104
       },
       {
         "block_id": "b000008",
         "label": "`docs/SocietyAliases.md`",
         "target": "SocietyAliases.md",
         "kind": "relative",
-        "line": 86
+        "line": 105
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "SocietyAliases.agent.json",
         "kind": "relative",
-        "line": 86
+        "line": 105
       },
       {
         "block_id": "b000008",
         "label": "`docs/StorageBrowser.md`",
         "target": "StorageBrowser.md",
         "kind": "relative",
-        "line": 87
+        "line": 106
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "StorageBrowser.agent.json",
         "kind": "relative",
-        "line": 87
+        "line": 106
       },
       {
         "block_id": "b000008",
         "label": "`docs/StorageInitialization.md`",
         "target": "StorageInitialization.md",
         "kind": "relative",
-        "line": 88
+        "line": 107
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "StorageInitialization.agent.json",
         "kind": "relative",
-        "line": 88
+        "line": 107
       },
       {
         "block_id": "b000008",
         "label": "`docs/Tooltips.md`",
         "target": "Tooltips.md",
         "kind": "relative",
-        "line": 89
+        "line": 108
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "Tooltips.agent.json",
         "kind": "relative",
-        "line": 89
+        "line": 108
       },
       {
         "block_id": "b000008",
         "label": "`docs/VideoGeneration.md`",
         "target": "VideoGeneration.md",
         "kind": "relative",
-        "line": 90
+        "line": 109
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "VideoGeneration.agent.json",
         "kind": "relative",
-        "line": 90
+        "line": 109
       },
       {
         "block_id": "b000008",
         "label": "`docs/VideoGenerationWorkspace.md`",
         "target": "VideoGenerationWorkspace.md",
         "kind": "relative",
-        "line": 91
+        "line": 110
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "VideoGenerationWorkspace.agent.json",
         "kind": "relative",
-        "line": 91
+        "line": 110
       },
       {
         "block_id": "b000008",
         "label": "`docs/WindowAppearance.md`",
         "target": "WindowAppearance.md",
         "kind": "relative",
-        "line": 92
+        "line": 111
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "WindowAppearance.agent.json",
         "kind": "relative",
-        "line": 92
+        "line": 111
       },
       {
         "block_id": "b000008",
         "label": "`docs/WindowsValidation.md`",
         "target": "WindowsValidation.md",
         "kind": "relative",
-        "line": 93
+        "line": 112
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "WindowsValidation.agent.json",
         "kind": "relative",
-        "line": 93
+        "line": 112
       },
       {
         "block_id": "b000008",
         "label": "`docs/WorkingFileOpen.md`",
         "target": "WorkingFileOpen.md",
         "kind": "relative",
-        "line": 94
+        "line": 113
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "WorkingFileOpen.agent.json",
         "kind": "relative",
-        "line": 94
+        "line": 113
       },
       {
         "block_id": "b000008",
         "label": "`docs/documentation-structure.md`",
         "target": "documentation-structure.md",
         "kind": "relative",
-        "line": 95
+        "line": 114
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "documentation-structure.agent.json",
         "kind": "relative",
-        "line": 95
+        "line": 114
       },
       {
         "block_id": "b000008",
         "label": "`resources/Appicon/README.md`",
         "target": "../resources/Appicon/README.md",
         "kind": "relative",
-        "line": 96
+        "line": 115
       },
       {
         "block_id": "b000008",
         "label": "JSON",
         "target": "mirrors/resources/Appicon/README.agent.json",
         "kind": "relative",
-        "line": 96
+        "line": 115
       }
     ],
     "tables": [
@@ -1910,16 +2252,92 @@
             "[JSON](MultiCanvasProject.agent.json)"
           ],
           [
+            "[`docs/NativeApplicationWindow.md`](NativeApplicationWindow.md)",
+            "[JSON](NativeApplicationWindow.agent.json)"
+          ],
+          [
+            "[`docs/NativeDynamicGeneration.md`](NativeDynamicGeneration.md)",
+            "[JSON](NativeDynamicGeneration.agent.json)"
+          ],
+          [
+            "[`docs/NativeDynamicWorkspaces.md`](NativeDynamicWorkspaces.md)",
+            "[JSON](NativeDynamicWorkspaces.agent.json)"
+          ],
+          [
+            "[`docs/NativeEmbeddedSurface.md`](NativeEmbeddedSurface.md)",
+            "[JSON](NativeEmbeddedSurface.agent.json)"
+          ],
+          [
+            "[`docs/NativeFailureDetails.md`](NativeFailureDetails.md)",
+            "[JSON](NativeFailureDetails.agent.json)"
+          ],
+          [
+            "[`docs/NativeFileInspector.md`](NativeFileInspector.md)",
+            "[JSON](NativeFileInspector.agent.json)"
+          ],
+          [
             "[`docs/NativeGenerationLifetime.md`](NativeGenerationLifetime.md)",
             "[JSON](NativeGenerationLifetime.agent.json)"
+          ],
+          [
+            "[`docs/NativeGenerationProjectionBinding.md`](NativeGenerationProjectionBinding.md)",
+            "[JSON](NativeGenerationProjectionBinding.agent.json)"
+          ],
+          [
+            "[`docs/NativeHomeComposer.md`](NativeHomeComposer.md)",
+            "[JSON](NativeHomeComposer.agent.json)"
+          ],
+          [
+            "[`docs/NativeHomeQueue.md`](NativeHomeQueue.md)",
+            "[JSON](NativeHomeQueue.agent.json)"
+          ],
+          [
+            "[`docs/NativeHomeRecentFiles.md`](NativeHomeRecentFiles.md)",
+            "[JSON](NativeHomeRecentFiles.agent.json)"
+          ],
+          [
+            "[`docs/NativeHomeRecentGenerations.md`](NativeHomeRecentGenerations.md)",
+            "[JSON](NativeHomeRecentGenerations.agent.json)"
+          ],
+          [
+            "[`docs/NativeHomeSelectedFile.md`](NativeHomeSelectedFile.md)",
+            "[JSON](NativeHomeSelectedFile.agent.json)"
+          ],
+          [
+            "[`docs/NativeHomeSidebar.md`](NativeHomeSidebar.md)",
+            "[JSON](NativeHomeSidebar.agent.json)"
+          ],
+          [
+            "[`docs/NativeHomeWorkspace.md`](NativeHomeWorkspace.md)",
+            "[JSON](NativeHomeWorkspace.agent.json)"
+          ],
+          [
+            "[`docs/NativeLicenseOverlay.md`](NativeLicenseOverlay.md)",
+            "[JSON](NativeLicenseOverlay.agent.json)"
           ],
           [
             "[`docs/NativeModelMount.md`](NativeModelMount.md)",
             "[JSON](NativeModelMount.agent.json)"
           ],
           [
+            "[`docs/NativeQuestionOverlay.md`](NativeQuestionOverlay.md)",
+            "[JSON](NativeQuestionOverlay.agent.json)"
+          ],
+          [
+            "[`docs/NativeReviewInspector.md`](NativeReviewInspector.md)",
+            "[JSON](NativeReviewInspector.agent.json)"
+          ],
+          [
+            "[`docs/NativeReviewQueue.md`](NativeReviewQueue.md)",
+            "[JSON](NativeReviewQueue.agent.json)"
+          ],
+          [
             "[`docs/NativeReviewSession.md`](NativeReviewSession.md)",
             "[JSON](NativeReviewSession.agent.json)"
+          ],
+          [
+            "[`docs/NativeViewCutover.md`](NativeViewCutover.md)",
+            "[JSON](NativeViewCutover.agent.json)"
           ],
           [
             "[`docs/NativeViewModels.md`](NativeViewModels.md)",

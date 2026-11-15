@@ -6,7 +6,7 @@
 #include <QVariant>
 class GenerationController;
 class AdvancedImageParameters;
-class HomeCanvas;
+namespace dreamscapes { class HomeGenerationInputs; }
 class GenerationComposerModel : public QObject {
     Q_OBJECT
     Q_PROPERTY(GenerationComposerModel *sharedModel READ sharedModel WRITE setSharedModel NOTIFY bindingsChanged)
@@ -184,13 +184,15 @@ class GenerationComposerModel : public QObject {
     void usesExplicitParametersChanged();
 
   private:
+    dreamscapes::HomeGenerationInputs *inputProvider() const;
     void edit(std::string key, const QVariant &);
     void acceptSnapshot(const QVariantMap &);
     QPointer<GenerationComposerModel> sharedModel_;
     dreamscapes::vm::ComposerState model_;
     QVariantMap state_;
     QPointer<GenerationController> generation_;
-    QPointer<HomeCanvas> canvas_;
+    QPointer<QObject> canvas_;
+    QMetaObject::Connection canvasDestroyed_;
     QPointer<AdvancedImageParameters> parameterStore_;
     QString requestError_;
 };

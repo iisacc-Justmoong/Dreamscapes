@@ -1,0 +1,22 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Editor Graphic Panel", style: .header2)
+            Label(id: "migratedText0", text: "+", style: .body)
+            Label(id: "migratedText1", text: "Choose a source image", style: .body)
+            Label(id: "migratedText2", text: "Color", style: .body)
+            Label(id: "migratedText3", text: "Items", style: .body)
+            Label(id: "migratedText4", text: "Item", style: .body)
+            Label(id: "migratedText5", text: "Previous", style: .body)
+            Label(id: "migratedText6", text: "Next", style: .body)
+            Label(id: "migratedText7", text: "Add", style: .body)
+            Label(id: "migratedText8", text: "Remove", style: .body)
+            Label(id: "migratedText9", text: "Preview", style: .body)
+            Label(id: "migratedText10", text: "Before", style: .body)
+            Label(id: "migratedText11", text: "After", style: .body)
+        }
+    }
+}

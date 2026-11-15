@@ -1,0 +1,30 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Desktop Generation Composer", style: .header2)
+            Label(id: "migratedText0", text: "Describe what to create…", style: .body)
+            Label(id: "migratedText1", text: "Paint canvas", style: .body)
+            Label(id: "migratedText2", text: "Negative prompt", style: .body)
+            Label(id: "migratedText3", text: "Model", style: .body)
+            Label(id: "migratedText4", text: "Aspect ratio", style: .body)
+            Label(id: "migratedText5", text: "Resolution", style: .body)
+            Label(id: "migratedText6", text: "Batch size", style: .body)
+            Label(id: "migratedText7", text: "Seed", style: .body)
+            Label(id: "migratedText8", text: "Preset", style: .body)
+            Label(id: "migratedText9", text: "Save", style: .body)
+            Label(id: "migratedText10", text: "More controls", style: .body)
+            Label(id: "migratedText11", text: "Advanced parameters", style: .body)
+            Label(id: "migratedText12", text: "Duration", style: .body)
+            Label(id: "migratedText13", text: "Frame rate", style: .body)
+            Label(id: "migratedText14", text: "Done", style: .body)
+            Label(id: "migratedText15", text: "Random", style: .body)
+            Label(id: "migratedText16", text: "Apply", style: .body)
+            Label(id: "migratedText17", text: "Save preset", style: .body)
+            Label(id: "migratedText18", text: "Name", style: .body)
+            Label(id: "migratedText19", text: "Cancel", style: .body)
+        }
+    }
+}

@@ -1,0 +1,46 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Video Timeline", style: .header2)
+            Label(id: "migratedText0", text: "Timeline", style: .body)
+            Label(id: "migratedText1", text: "+ Layer", style: .body)
+            Label(id: "migratedText2", text: "In", style: .body)
+            Label(id: "migratedText3", text: "Out", style: .body)
+            Label(id: "migratedText4", text: "Duration", style: .body)
+            Label(id: "migratedText5", text: "Zoom", style: .body)
+            Label(id: "migratedText6", text: "Fit", style: .body)
+            Label(id: "migratedText7", text: "Undo", style: .body)
+            Label(id: "migratedText8", text: "Redo", style: .body)
+            Label(id: "migratedText9", text: "Split at head", style: .body)
+            Label(id: "migratedText10", text: "Exclude", style: .body)
+            Label(id: "migratedText11", text: "Ripple delete", style: .body)
+            Label(id: "migratedText12", text: "I In", style: .body)
+            Label(id: "migratedText13", text: "O Out", style: .body)
+            Label(id: "migratedText14", text: "Rename", style: .body)
+            Label(id: "migratedText15", text: "↑", style: .body)
+            Label(id: "migratedText16", text: "↓", style: .body)
+            Label(id: "migratedText17", text: "− Track", style: .body)
+            Label(id: "migratedText18", text: "No tracks", style: .body)
+            Label(id: "migratedText19", text: "No shots", style: .body)
+            Label(id: "migratedText20", text: "F", style: .body)
+            Label(id: "migratedText21", text: "+ Image keyframe", style: .body)
+            Label(id: "migratedText22", text: "Image condition weight", style: .body)
+            Label(id: "migratedText23", text: "No shot selected", style: .body)
+            Label(id: "migratedText24", text: "In F", style: .body)
+            Label(id: "migratedText25", text: "Out F", style: .body)
+            Label(id: "migratedText26", text: "Keep", style: .body)
+            Label(id: "migratedText27", text: "Duplicate", style: .body)
+            Label(id: "migratedText28", text: "No keyframe selected", style: .body)
+            Label(id: "migratedText29", text: "Frame F", style: .body)
+            Label(id: "migratedText30", text: "Value", style: .body)
+            Label(id: "migratedText31", text: "− Weight", style: .body)
+            Label(id: "migratedText32", text: "Copy", style: .body)
+            Label(id: "migratedText33", text: "Paste", style: .body)
+            Label(id: "migratedText34", text: "Delete", style: .body)
+            Label(id: "migratedText35", text: "V select · B blade · I/O · Space", style: .body)
+        }
+    }
+}

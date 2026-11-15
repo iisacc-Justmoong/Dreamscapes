@@ -1,0 +1,171 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:2edc801f7e823a7e5cb5985ca5afdc860794d6bf5717819982f6dea8474dcc39",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/NativeReviewInspector.md",
+    "sha256": "d88534cc20659667001261933df72cd98e8e51216bb0030a95f4033178e1d2f0",
+    "bytes": 4339,
+    "line_count": 63,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Native generation review inspector",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Native generation review inspector\n",
+      "level": 1,
+      "title": "Native generation review inspector"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 9,
+      "raw": "The LVUI inspector follows the existing Dreamscapes Image page's review\ninspector (`1699:6417`): a selection heading, media preview, preview actions\nand scrollable result metadata. It uses the existing review session as the\nonly owner of focus and selection. A field shows only the values supplied by\nthe result; mixed values and the source job remain distinct. Preview, expand,\nsave and video playback are host-supplied services, so changing the view must\nnot alter generated files or initiate a generation job.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 11,
+      "end_line": 23,
+      "raw": "Metadata remains selectable. Text too large for the native plain-text editor\nuses a document-backed reader instead of being truncated. The latter currently\ndoes not soft-wrap; this is a remaining iiGUI/LVUI limitation, not equivalent\nto the old inspector. An injected media view is required for video playback.\nThe retained macOS Qt-window transitional presenter mounts the LVUI inspector for image\nand video results using the existing review session and routes expand and save\nthrough the existing actions. It restores the existing inspector if the video\nbackend is unavailable or fails, text cannot be wrapped by the native editor,\nsurface geometry is unsupported, a modal overlays the panel, or a native host\nfails. It observes the live wrapping fallback as well as the initial text\nlength. This describes the retired Qt window's behavior. The simplified native\napplication now built by default does not connect this presenter or its\nunderlying services on any platform; see [Native view cutover](NativeViewCutover.md).\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 24,
+      "end_line": 24,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 25,
+      "end_line": 31,
+      "raw": "`ReviewInspectorModel` exposes the focused job identifier and selection\ncount independently of the original result. `InspectorViewModel` keeps\nstable field identities when focus or selection changes, formats mixed values\nwithout discarding them, and forwards expand and save to injected handlers.\nThe caller supplies strings, layout bounds, an image resolver and optionally a\nnative media view. Changing the viewport is presentation state only. A\nsession or field retired during a notification must not be reactivated.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 32,
+      "end_line": 32,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 33,
+      "end_line": 44,
+      "raw": "`Dreamscapes.NativeReviewInspectorView` checks the generated LVUI widget tree\nwithout opening an operating-system window. It exercises focused and mixed\nmetadata, the original result passed to actions, injected media controls,\ndrag selection of ordinary text and a 100,000-character document, as well as\nsize and lifetime handling. This does not verify actual video playback,\nplatform clipboard behavior or visual parity in the product.\n`Dreamscapes.NativeReviewInspectorPresenter` uses offscreen test panels and a\nfake host to verify both panel sizes, preview and save signals, modal and\nlanguage changes, fallback and asynchronous retirement. The generated UI and\nthe product's macOS native-surface connection are separate build evidence;\nthe installed application was not launched or tested. The video tests use an\ninjected playback port and synthetic frames, not an actual video decoder.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 45,
+      "end_line": 45,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 46,
+      "end_line": 63,
+      "raw": "The native video-preview migration keeps decoding and audio playback behind a\nreplaceable nonvisual backend. The LVUI view owns only the displayed frame,\nplay/pause/replay controls and elapsed-time presentation. It must stop when\nhidden, clear frames when the result changes, retain the original media URL,\nand report decoder failures to the existing failure path. The current macOS\ntransition adapter uses Qt Multimedia as a nonvisual backend; the LVUI view\nand its model do not link to Qt or LVRS. Frame conversion runs away from the\nUI thread with one active and at most one newest waiting frame. Source changes\ndiscard queued and completed stale frames. Display rotation and mirroring are\napplied before the result is fitted to the viewport. A real source frame\nmay replace the poster only after it arrives; viewport or selection changes do\nnot create or modify a video file. Backend and frame callbacks are accepted on\nthe owning UI thread and stale results from a previous source are discarded.\nThe image service exposes loading, ready and failed state separately from the\nimmutable pixels. Until a preview is ready, the native view displays the same\nloading or unavailable text as the previous inspector; an absent result is\ndistinct from an image that failed to load. A resolver without a status port\nis supported without guessing a failure.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Native generation review inspector",
+      "anchor": "native-generation-review-inspector",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 8,
+        "text": "save and video playback are host-supplied services, so changing the view must",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000005",
+        "line": 14,
+        "text": "to the old inspector. An injected media view is required for video playback.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000007",
+        "line": 31,
+        "text": "session or field retired during a notification must not be reactivated.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000011",
+        "line": 48,
+        "text": "play/pause/replay controls and elapsed-time presentation. It must stop when",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000011",
+        "line": 52,
+        "text": "and its model do not link to Qt or LVRS. Frame conversion runs away from the",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000005",
+        "label": "Native view cutover",
+        "target": "NativeViewCutover.md",
+        "kind": "relative",
+        "line": 23
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

@@ -1,0 +1,19 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Canvas Editor", style: .header2)
+            Label(id: "migratedText0", text: "Back", style: .body)
+            Label(id: "migratedText1", text: "Editor", style: .body)
+            Label(id: "migratedText2", text: "0", style: .body)
+            Label(id: "migratedText3", text: "X offset", style: .body)
+            Label(id: "migratedText4", text: "Y offset", style: .body)
+            Label(id: "migratedText5", text: "Move path", style: .body)
+            Label(id: "migratedText6", text: "Close", style: .body)
+            Label(id: "migratedText7", text: "Generation results", style: .body)
+            Label(id: "migratedText8", text: "Advanced generation", style: .body)
+        }
+    }
+}

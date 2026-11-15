@@ -64,13 +64,14 @@ class NativeViewBoundary(unittest.TestCase):
     def test_domain_stores_are_native_forwards(self):
         files = ["Main.qml", "Views/Editor/EditorToolSheet.qml", "Views/Editor/EditorGraphicPanel.qml",
                  "Views/Home/NewCanvasDialog.qml", "Views/Home/StorageBrowser.qml", "Views/Home/ImageSelectionBar.qml",
-                 "Views/Home/QuickGenerate.qml", "Views/Home/DesktopGenerationComposer.qml", "Views/Video/VideoTimelineState.qml"]
+                 "Views/Home/QuickGenerate.qml", "Views/Home/DesktopGenerationComposer.qml"]
         for name in files:
             source = self.sources.qml[APP / name]
             self.assertNotIn("Object.assign", source, name)
             self.assertNotIn("JSON.parse", source, name)
             self.assertNotIn("JSON.stringify", source, name)
-        self.assertIn("NativeVideoTimeline", self.sources.qml[APP / files[-1]])
+        self.assertNotIn(APP / "Views/Video/VideoTimelineState.qml", self.sources.qml)
+        self.assertIn('"VideoTimelineState"', self.sources.cpp[APP / "ViewModels/ViewData.cpp"])
         for name in ["Views/Home/HomeRecentFiles.qml", "Views/Home/HomeQueueBar.qml", "Views/Home/HomeSelectedFile.qml"]:
             source = self.sources.qml[APP / name]
             for reducer in (".filter(", ".find(", ".some(", "Object.assign"):

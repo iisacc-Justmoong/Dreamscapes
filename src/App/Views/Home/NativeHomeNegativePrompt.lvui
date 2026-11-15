@@ -1,0 +1,14 @@
+import vm NativeHomeNegativePromptBackend
+EventListener(id: "homeNegativeSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    VStack(width: vm.viewportWidth, alignment: .stretch) {
+        LabelMenuButton(id: "homeNegativeButton", text: vm.heading, width: vm.viewportWidth,
+                        tone: .default, enabled: vm.enabled, accessibilityName: vm.heading, onClick: vm.open)
+        Popover(id: "homeNegativePopover", width: 500, accessibilityName: vm.heading) {
+            VStack(width: 476, spacing: Metric.space8, alignment: .stretch) {
+                Label(text: vm.heading, style: .header2)
+                NativeView(id: "homeNegativeEditor", source: vm.promptSource, height: 88)
+                LabelButton(id: "homeNegativeDone", text: vm.doneLabel, tone: .default, onClick: vm.done)
+            }
+        }
+    }
+}

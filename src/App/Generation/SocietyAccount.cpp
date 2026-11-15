@@ -22,12 +22,16 @@ void SocietyAccount::initialize(SocietySessionOptions options) {
     try { session_ = std::make_unique<SocietySession>(loop_, std::move(options)); }
     catch (const std::exception &) { error_ = QStringLiteral("society_unavailable"); return; }
     session_->changed = [this](auto snapshot) {
-        if (launchGranted_) return;
+        if (decisionMade_) return;
         snapshot_ = std::move(snapshot);
-        if (snapshot_.licensed) {
-            launchGranted_ = true;
+        if (!snapshot_.checking) {
+            // The first completed, verified decision is immutable for this run.
+            launchGranted_ = snapshot_.licensed;
+            decisionMade_ = true;
+            // Destroy the session after its callback returns. This also cancels
+            // SocietySession's periodic refresh on denial or unavailability.
             QTimer::singleShot(0, this, [this] {
-                if (launchGranted_) { pump_.stop(); session_.reset(); }
+                if (decisionMade_) { pump_.stop(); session_.reset(); }
             });
         }
         emit changed();
@@ -38,14 +42,18 @@ void SocietyAccount::initialize(SocietySessionOptions options) {
     // Begin the asynchronous request after construction, when the application
     // event loop can present its workspace. An earlier explicit refresh is safe.
     QTimer::singleShot(0, this, [this] {
-        if (session_ && !launchGranted_) session_->refresh();
+        refresh();
     });
 }
 SocietyAccount::~SocietyAccount() { pump_.stop(); session_.reset(); }
-bool SocietyAccount::signedIn() const { return launchGranted_ ? snapshot_.connected : session_ && session_->snapshot().connected; }
-bool SocietyAccount::licensed() const { return !enforced_ || launchGranted_ || (session_ && session_->snapshot().licensed); }
-QString SocietyAccount::subject() const { return signedIn() ? QString::fromStdString(launchGranted_ ? snapshot_.subject : session_->snapshot().subject) : QString{}; }
-QString SocietyAccount::code() const { return !error_.isEmpty() ? error_ : launchGranted_ ? QString::fromStdString(snapshot_.code) : session_ ? QString::fromStdString(session_->snapshot().code) : QString{}; }
-void SocietyAccount::refresh() { if (!launchGranted_ && session_) session_->refresh(true); }
+bool SocietyAccount::signedIn() const { return snapshot_.connected; }
+bool SocietyAccount::licensed() const { return !enforced_ || launchGranted_; }
+QString SocietyAccount::subject() const { return signedIn() ? QString::fromStdString(snapshot_.subject) : QString{}; }
+QString SocietyAccount::code() const { return !error_.isEmpty() ? error_ : QString::fromStdString(snapshot_.code); }
+void SocietyAccount::refresh() {
+    if (!session_ || requestStarted_ || decisionMade_) return;
+    requestStarted_ = true;
+    session_->refresh(true);
+}
 bool SocietyAccount::openSociety() { return QDesktopServices::openUrl(QUrl(QStringLiteral("society://"))); }
-void SocietyAccount::invalidate() { if (!launchGranted_ && session_) session_->cancel(); }
+void SocietyAccount::invalidate() { if (!decisionMade_ && session_) session_->cancel(); }

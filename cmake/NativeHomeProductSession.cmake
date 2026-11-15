@@ -1,0 +1,21 @@
+if(TARGET DreamscapesHomeWorkspaceNative AND TARGET DreamscapesHomeContentSession AND TARGET DreamscapesHomeQueueSession)
+    add_library(DreamscapesHomeProductSession STATIC
+        src/App/Views/Home/NativeHomeProductSession.h src/App/Views/Home/NativeHomeProductSession.cpp)
+    set_target_properties(DreamscapesHomeProductSession PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+    target_compile_features(DreamscapesHomeProductSession PUBLIC cxx_std_23)
+    target_link_libraries(DreamscapesHomeProductSession PUBLIC DreamscapesHomeWorkspaceNative
+        DreamscapesHomeContentSession DreamscapesHomeComposerSession DreamscapesHomeQueueSession)
+    if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+        add_executable(DreamscapesNativeHomeProductSessionTests tests/tst_native_home_product_session.cpp)
+        set_target_properties(DreamscapesNativeHomeProductSessionTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+        target_compile_definitions(DreamscapesNativeHomeProductSessionTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/resources")
+        target_link_libraries(DreamscapesNativeHomeProductSessionTests PRIVATE DreamscapesHomeProductSession)
+        if(DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR AND EXISTS "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}/iiGUI/WidgetState.h")
+            target_include_directories(DreamscapesNativeHomeProductSessionTests PRIVATE "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}")
+            target_compile_definitions(DreamscapesNativeHomeProductSessionTests PRIVATE DREAMSCAPES_HOME_PRODUCT_WIDGET_TEST=1)
+        endif()
+        add_test(NAME Dreamscapes.NativeHomeProductSession COMMAND DreamscapesNativeHomeProductSessionTests)
+        set_tests_properties(Dreamscapes.NativeHomeProductSession PROPERTIES TIMEOUT 60
+            ENVIRONMENT "TMPDIR=${CMAKE_CURRENT_SOURCE_DIR}/resources;SOCIETY_DISABLE_SESSION_RESTORE=1;IILOCALLLM_DISABLE_APP_MCP=1")
+    endif()
+endif()

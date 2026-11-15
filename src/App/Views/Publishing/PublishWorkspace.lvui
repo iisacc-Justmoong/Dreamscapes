@@ -1,0 +1,24 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Publish Workspace", style: .header2)
+            Label(id: "migratedText0", text: "Back", style: .body)
+            Label(id: "migratedText1", text: "Drafts", style: .body)
+            Label(id: "migratedText2", text: "Save draft", style: .body)
+            Label(id: "migratedText3", text: "Publish", style: .body)
+            Label(id: "migratedText4", text: "TITLE", style: .body)
+            Label(id: "migratedText5", text: "Move ↑", style: .body)
+            Label(id: "migratedText6", text: "Move ↓", style: .body)
+            Label(id: "migratedText7", text: "Caption", style: .body)
+            Label(id: "migratedText8", text: "Alt text", style: .body)
+            Label(id: "migratedText9", text: "Add ↓", style: .body)
+            Label(id: "migratedText10", text: "Credits & source", style: .body)
+            Label(id: "migratedText11", text: "Attribution", style: .body)
+            Label(id: "migratedText12", text: "Save publication canvas", style: .body)
+            Label(id: "migratedText13", text: "Open publication canvas", style: .body)
+        }
+    }
+}

@@ -1,0 +1,15 @@
+import vm NativeHomePresetSaveBackend
+HStack {
+    LabelButton(id: "homeSavePreset", text: vm.saveLabel, tone: .default, enabled: vm.enabled, onClick: vm.open)
+    Popover(id: "homePresetSavePopover", accessibilityName: vm.heading) {
+        VStack(spacing: Metric.space8, alignment: .stretch) {
+            Label(text: vm.heading, style: .header2)
+            InputField(id: "homePresetName", text: vm.draft, placeholder: vm.placeholder,
+                       accessibilityName: vm.placeholder, onEdited: vm.edited)
+            HStack(spacing: Metric.space8) {
+                LabelButton(id: "homePresetCancel", text: vm.cancelLabel, tone: .default, onClick: vm.cancel)
+                LabelButton(id: "homePresetSave", text: vm.saveLabel, tone: .default, enabled: vm.canSave, onClick: vm.save)
+            }
+        }
+    }
+}

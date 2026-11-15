@@ -1,6 +1,6 @@
 #include "GenerationComposerModel.h"
 #include "../ViewModels/ViewData.h"
-#include "../Views/Home/HomeCanvas.h"
+#include "HomeGenerationInputs.h"
 #include "AdvancedImageParameters.h"
 #include "GenerationController.h"
 #include <QScopedValueRollback>
@@ -27,11 +27,19 @@ QObject *GenerationComposerModel::canvas() const {
     return canvas_;
 }
 void GenerationComposerModel::setCanvas(QObject *value) {
-    auto *next = qobject_cast<HomeCanvas *>(value);
+    auto *next = dynamic_cast<HomeGenerationInputs *>(value) ? value : nullptr;
     if (canvas_ != next) {
+        QObject::disconnect(canvasDestroyed_);
         canvas_ = next;
+        if (next) canvasDestroyed_ = connect(next, &QObject::destroyed, this, [this] {
+            canvas_ = nullptr;
+            emit bindingsChanged();
+        });
         emit bindingsChanged();
     }
+}
+HomeGenerationInputs *GenerationComposerModel::inputProvider() const {
+    return dynamic_cast<HomeGenerationInputs *>(canvas_.data());
 }
 QObject *GenerationComposerModel::parameterStore() const {
     return parameterStore_;
@@ -198,11 +206,12 @@ void GenerationComposerModel::applyNegativeDefault() {
     edit("defaultPrompts", defaultPrompts());
 }
 bool GenerationComposerModel::addAttachment(const QUrl &source) {
-    return canvas_ && canvas_->addAttachment(source);
+    auto *inputs = inputProvider();
+    return inputs && inputs->addAttachment(source);
 }
 QVariantMap GenerationComposerModel::generationParameters(const QString &model) {
-    return canvas_ ? canvas_->generationParameters(prompt().trimmed(), model, aspectRatio(), generationCount())
-                   : QVariantMap{};
+    auto *inputs = inputProvider();
+    return inputs ? inputs->generationParameters(prompt().trimmed(), model, aspectRatio(), generationCount()) : QVariantMap{};
 }
 QVariantMap GenerationComposerModel::parameters(const QString &model, bool includeInputs) {
     auto result = parameterStore_ ? parameterStore_->parameters() : QVariantMap{};
@@ -214,7 +223,8 @@ QVariantMap GenerationComposerModel::parameters(const QString &model, bool inclu
     result["outputCount"] = generationCount();
     result["seed"] = seed();
     result["referenceImages"] = QVariantList{};
-    if (includeInputs && canvas_ && (canvas_->hasContent() || !canvas_->attachments().isEmpty())) {
+    auto *provider = inputProvider();
+    if (includeInputs && provider && (provider->hasContent() || !provider->attachments().isEmpty())) {
         const auto inputs = generationParameters(model);
         if (inputs.isEmpty())
             return {};
@@ -291,7 +301,8 @@ QString GenerationComposerModel::enqueue(GenerationComposerModel *desktop) {
         return {};
     }
     const auto seed = desktop ? desktop->seed() : -1;
-    const bool inputs = canvas_ && (canvas_->hasContent() || !canvas_->attachments().isEmpty());
+    auto *provider = inputProvider();
+    const bool inputs = provider && (provider->hasContent() || !provider->attachments().isEmpty());
     QString id;
     if (video()) {
         QString firstFrame;
@@ -299,9 +310,9 @@ QString GenerationComposerModel::enqueue(GenerationComposerModel *desktop) {
             const auto settings = generationParameters(generation_->selectedVideoModel());
             const auto references = settings.value("referenceImages").toList();
             if (settings.isEmpty() || references.size() != 1) {
-                requestError_ = canvas_->inputError().isEmpty()
-                                    ? tr("Use one image or one painted canvas as the video's first frame.")
-                                    : canvas_->inputError();
+                auto *current = inputProvider();
+                const auto error = current ? current->inputError() : QString{};
+                requestError_ = error.isEmpty() ? tr("Use one image or one painted canvas as the video's first frame.") : error;
                 return {};
             }
             firstFrame = references.front().toString();
@@ -329,7 +340,8 @@ QString GenerationComposerModel::enqueue(GenerationComposerModel *desktop) {
         const auto settings = desktop ? desktop->parameters(generation_->selectedModel(), true)
                                       : generationParameters(generation_->selectedModel());
         if (settings.isEmpty()) {
-            requestError_ = canvas_ ? canvas_->inputError() : tr("Canvas input is unavailable.");
+            auto *current = inputProvider();
+            requestError_ = current ? current->inputError() : tr("Canvas input is unavailable.");
             return {};
         }
         id = generation_->enqueueHomeCanvas(settings, aspectRatio(), desktop && desktop->usesExplicitParameters());

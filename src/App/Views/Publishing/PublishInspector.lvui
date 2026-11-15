@@ -1,0 +1,33 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Publish Inspector", style: .header2)
+            Label(id: "migratedText0", text: "Cover & preview", style: .body)
+            Label(id: "migratedText1", text: "Cover canvas", style: .body)
+            Label(id: "migratedText2", text: "Project details", style: .body)
+            Label(id: "migratedText3", text: "Description", style: .body)
+            Label(id: "migratedText4", text: "Content type", style: .body)
+            Label(id: "migratedText5", text: "Topic", style: .body)
+            Label(id: "migratedText6", text: "Software", style: .body)
+            Label(id: "migratedText7", text: "Tags", style: .body)
+            Label(id: "migratedText8", text: "Rights & safety", style: .body)
+            Label(id: "migratedText9", text: "License", style: .body)
+            Label(id: "migratedText10", text: "Contains adult content", style: .body)
+            Label(id: "migratedText11", text: "Contains graphic violence", style: .body)
+            Label(id: "migratedText12", text: "Contains childlike elements", style: .body)
+            Label(id: "migratedText13", text: "Contains real people", style: .body)
+            Label(id: "migratedText14", text: "Publishing", style: .body)
+            Label(id: "migratedText15", text: "Publish time", style: .body)
+            Label(id: "migratedText16", text: "Scheduled time", style: .body)
+            Label(id: "migratedText17", text: "Who can comment", style: .body)
+            Label(id: "migratedText18", text: "Show reaction counts", style: .body)
+            Label(id: "migratedText19", text: "Show comment counts", style: .body)
+            Label(id: "migratedText20", text: "@Mention", style: .body)
+            Label(id: "migratedText21", text: "Destinations", style: .body)
+            Label(id: "migratedText22", text: "Review", style: .body)
+        }
+    }
+}

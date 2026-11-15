@@ -1,0 +1,64 @@
+import vm NativeReviewQueueBackend
+VStack(id: "reviewQueue", spacing: Metric.space8, alignment: .stretch, flex: 1) {
+    HStack(spacing: Metric.space4) {
+        Label(text: vm.heading, style: .caption, flex: 1)
+        LabelButton(id: "allJobs", text: vm.allJobsLabel, tone: .default, enabled: vm.selectionEnabled, onClick: vm.showAllJobs)
+    }
+    HStack(spacing: Metric.space8) {
+        Label(text: vm.runningSummary, style: .caption, flex: 1)
+        Label(text: vm.queuedSummary, style: .caption, flex: 1)
+    }
+    HStack(spacing: Metric.space8) {
+        Label(text: vm.completedSummary, style: .caption, flex: 1)
+        Label(text: vm.failedSummary, style: .caption, flex: 1)
+    }
+    Label(text: vm.canceledSummary, style: .caption)
+    if (vm.previewVisible) {
+        VStack(spacing: Metric.space4, alignment: .stretch) {
+            Image(id: "livePreview", source: vm.previewSource, height: 120, fit: .Contain)
+            Label(text: vm.previewLabel, style: .caption)
+        }
+    }
+    ZStack(id: "jobArea", alignment: .stretch, flex: 1) {
+        for (item in vm.items, key: item.token, id: "jobs", itemHeight: 100,
+             measureHeight: true, measureRevision: vm.layoutRevision, spacing: Metric.space4, overscan: 1) {
+            EventListener(id: "jobListener", sizeToContent: true, onClick: item.select) {
+                VStack(id: "job", spacing: Metric.space4, padding: Metric.space8, alignment: .stretch,
+                       backgroundColor: Color.surfaceSolid, cornerRadius: Metric.radius4,
+                       borderColor: Color.blue, borderWidth: item.selected ? Metric.stroke1 : 0) {
+                    HStack(spacing: Metric.space4) {
+                        Label(id: "jobTitle", text: item.title, style: .caption, elideRight: true, flex: 1)
+                        if (item.isFailed) {
+                            Label(id: "jobFailed", text: item.stateLabel, style: .caption, color: Color.red)
+                        } else {
+                            Label(id: "jobState", text: item.stateLabel, style: .caption)
+                        }
+                    }
+                    Label(id: "jobModel", text: item.modelLabel, style: .caption, elideRight: true)
+                    if (item.showProgress) {
+                        ProgressBar(id: "jobProgress", currentValue: item.step, maximumValue: item.total,
+                                    size: .regular, motionEnabled: false)
+                    }
+                    Label(id: "jobDetail", text: item.detail, style: .caption, elideRight: true)
+                    if (item.canCancel) {
+                        HStack {
+                            LabelButton(id: "cancelJob", text: vm.cancelLabel, tone: .default, onClick: item.cancel)
+                        }
+                    }
+                    if (item.canInspectFailure) {
+                        HStack {
+                            LabelButton(id: "failureDetails", text: vm.failureLabel, tone: .default, onClick: item.inspectFailure)
+                        }
+                    }
+                }
+            }
+        }
+        if (vm.empty) {
+            VStack(id: "emptyQueue", alignment: .center, flex: 1) {
+                Spacer()
+                Label(text: vm.emptyLabel, style: .caption)
+                Spacer()
+            }
+        }
+    }
+}

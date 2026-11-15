@@ -1,5 +1,28 @@
 # Dreamscapes
 
+> **Current build:** the default application is a simplified LVUI/iiGUI view
+> migration. Home, Image, Video and session-local result review use dynamic
+> C++ view models. New Canvas, editor, files, publishing and preferences have native
+> view models. Local Society file browsing, `.iisc` open/save and bounded
+> canvas frame rendering and visual timeline playback are connected; many former views remain minimal
+> static LVUI presentations. Generation, licensing, publication transport,
+> audio playback, remote-only files and other former product
+> integrations are not connected in this build. The application has not been launched or
+> visually verified as part of this change. See [Native view cutover](docs/NativeViewCutover.md)
+> [Native generation view models](docs/NativeDynamicGeneration.md), and
+> [Native editor and workspace view models](docs/NativeDynamicWorkspaces.md).
+
+Build with `cmake -S . -B build` and `cmake --build build --target Dreamscapes`.
+The native executable accepts `--help` and `--list-views` as non-GUI agent
+commands and `--view image` to select an initial view. Its Python inventory is available from
+`src/App/Native/dreamscapes_views.py`.
+
+## Earlier Qt application documentation
+
+The sections below describe the previous application and retained backend
+sources. They do not describe connected functionality in the current native
+view build.
+
 Dreamscapes uses Society for local account access and product licensing. Society
 owns the account connection, and Dreamscapes verifies a signed, device-bound
 license before starting generation. Remote generation, synchronization and file

@@ -90,20 +90,35 @@ private slots:
             .device={std::string(64,'a'),"pc","Fixture","macos","1","com.iisacc.dreamscapes","1"},
             .socket_path=path.toStdString(), .timeout=std::chrono::seconds(2),
             .keys={{"dreamscapes-fixture",dreamscapes_license_fixture::publicKey()}}};
+        {
+            SocietyAccount denied(options);
+            QTRY_COMPARE_WITH_TIMEOUT(denied.code(), QStringLiteral("license_not_owned"), 10000);
+            QVERIFY(denied.signedIn()); QVERIFY(!denied.licensed());
+            QCOMPARE(requests, 1);
+            denied.refresh();
+            QTest::qWait(3500); // SocietySession normally schedules a retry after three seconds.
+            QCOMPARE(requests, 1);
+            QCOMPARE(denied.code(), QStringLiteral("license_not_owned"));
+        }
+        owned = true; tampered = true;
+        {
+            SocietyAccount invalid(options);
+            QTRY_COMPARE_WITH_TIMEOUT(invalid.code(), QStringLiteral("invalid_society_response"), 10000);
+            QVERIFY(!invalid.signedIn()); QVERIFY(!invalid.licensed());
+            QCOMPARE(requests, 2);
+            invalid.refresh(); QTest::qWait(100);
+            QCOMPARE(requests, 2);
+        }
+        tampered = false;
         SocietyAccount account(options);
-        QTRY_COMPARE_WITH_TIMEOUT(account.code(), QStringLiteral("license_not_owned"), 10000);
-        QVERIFY(account.signedIn()); QVERIFY(!account.licensed());
-        owned = true; tampered = true; account.refresh();
-        QTRY_COMPARE_WITH_TIMEOUT(account.code(), QStringLiteral("invalid_society_response"), 10000);
-        QVERIFY(!account.signedIn()); QVERIFY(!account.licensed());
-        tampered = false; account.refresh();
         QTRY_VERIFY_WITH_TIMEOUT(account.licensed(), 10000);
         QCOMPARE(account.subject(), QStringLiteral("fixture-owner"));
+        QCOMPARE(requests, 3);
         server.close();
-        QTest::qWait(2500);
-        account.refresh();
-        QVERIFY(account.licensed());QCOMPARE(account.code(),QStringLiteral("licensed"));
-        QVERIFY(requests >= 3);
+        QTest::qWait(3500);
+        account.refresh(); account.invalidate();
+        QVERIFY(account.licensed()); QCOMPARE(account.code(), QStringLiteral("licensed"));
+        QCOMPARE(requests, 3);
     }
 };
 QTEST_GUILESS_MAIN(SocietyAccountTests)

@@ -1,0 +1,91 @@
+import vm NativeLayerPanelBackend
+@Static let resizeLayerPanel: (Double, Double) -> Void = vm.sizeHandler(Metric.space16)
+EventListener(id: "layerPanelSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizeLayerPanel) {
+    VStack(id: "editorLayersPanel", width: vm.width, height: vm.height, spacing: Metric.space4,
+           padding: Metric.space8, alignment: .stretch) {
+        HStack(spacing: Metric.space8, alignment: .center) {
+            IconButton(iconName: "panel-layers-stack", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, enabled: false, accessibilityName: "Layers")
+            Label(text: "Layers", style: .body, flex: 1)
+        }
+        HStack(spacing: Metric.space2, alignment: .center) {
+            IconButton(id: "layerPropertiesTab", iconName: "panel-layers-stack", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, checkable: false, checked: vm.layerMode, selectionStyle: .segmented,
+                       accessibilityName: "Layer", onClick: vm.showLayer)
+            IconButton(iconName: "panel-layers-adjust", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, enabled: false, accessibilityName: "Adjust")
+            IconButton(iconName: "panel-layers-histogram", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, enabled: false, accessibilityName: "Histogram")
+            IconButton(id: "layerInformationTab", iconName: "panel-layers-information", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, checkable: false, checked: vm.informationMode, selectionStyle: .segmented,
+                       accessibilityName: "Information", onClick: vm.showInformation)
+        }
+        Label(text: vm.viewTitle, style: .body)
+        if (vm.hasSelection) {
+            Label(id: "layerSelectedLabel", text: vm.selectedLabel, style: .caption, elideRight: true)
+        } else {
+            Label(id: "layerNoSelection", text: "Select a layer", style: .caption)
+        }
+        VStack(width: vm.contentWidth, height: 0, flex: 1, spacing: Metric.space4,
+               alignment: .stretch, visible: vm.layerMode) {
+            HStack(spacing: Metric.space8, alignment: .center) {
+                Label(text: "Blend mode", style: .body, flex: 1)
+                ComboBox(id: "layerBlend", text: vm.blend, width: vm.blendWidth, enabled: vm.hasSelection,
+                         accessibilityName: "Layer blend mode", onClick: vm.openBlendMenu)
+            }
+            HStack(spacing: Metric.space8, alignment: .center) {
+                Label(text: "Opacity", style: .body, flex: 1)
+                InputField(id: "layerOpacityInput", text: vm.opacityText, width: vm.fieldWidth,
+                           enabled: vm.hasSelection, accessibilityName: "Layer opacity",
+                           onEdited: vm.editOpacity, onSubmit: vm.commitOpacity)
+            }
+            Slider(id: "layerOpacitySlider", from: 0, to: 100, value: vm.opacity, stepSize: 1,
+                   width: vm.contentWidth, size: .mini, enabled: vm.hasSelection,
+                   accessibilityName: "Layer opacity slider", onMoved: vm.moveOpacity)
+            if (vm.status != "") { Label(id: "layerPanelStatus", text: vm.status, style: .caption) }
+            for (item in vm.layers, key: item.id, id: "editorLayers", itemHeight: Metric.size44,
+                 width: vm.contentWidth, height: 0, flex: 1, overscan: 1) {
+                HStack(spacing: Metric.space4, alignment: .center) {
+                    LabelButton(id: "editorLayerName", text: item.name, tone: .default, flex: 1, onClick: item.select)
+                    if (item.selected) { Label(text: "Selected", style: .caption) }
+                    ToggleSwitch(id: "editorLayerVisible", checked: item.visible, onToggled: item.toggleVisible)
+                }
+            }
+            HStack(spacing: Metric.space4, alignment: .center) {
+                IconButton(id: "editorNewLayer", iconName: "new-layer", width: Metric.size22, height: Metric.size22,
+                           tone: .default, enabled: vm.hasDocument, accessibilityName: "New layer", onClick: vm.openNewMenu)
+                IconButton(id: "editorDuplicateLayer", iconName: "duplicate-layer", width: Metric.size22, height: Metric.size22,
+                           tone: .default, enabled: vm.canDuplicate, accessibilityName: "Duplicate layer", onClick: vm.duplicateSelected)
+                IconButton(id: "editorDeleteLayer", iconName: "generaldelete", width: Metric.size22, height: Metric.size22,
+                           tone: .destructive, enabled: vm.hasSelection, accessibilityName: "Delete layer", onClick: vm.removeSelected)
+            }
+        }
+        VStack(width: vm.contentWidth, height: 0, flex: 1, spacing: Metric.space4,
+               alignment: .stretch, visible: vm.informationMode) {
+            Label(text: "Layer details", style: .body)
+            for (item in vm.information, key: item.id, id: "layerInformationRows", itemHeight: Metric.size22,
+                 width: vm.contentWidth, height: 0, flex: 1, overscan: 1) {
+                HStack(spacing: Metric.space4, alignment: .center) {
+                    Label(text: item.label, style: .caption, flex: 1)
+                    Label(text: item.value, style: .caption, elideRight: true)
+                }
+            }
+        }
+        Menu(id: "layerBlendMenu", targetId: "layerBlend", showIconSlot: false) {
+            for (item in vm.blends, key: item.key, id: "layerBlendChoices") {
+                MenuItem(id: "layerBlendChoice", label: item.label, showIconSlot: false,
+                         hasChildItems: false, onClick: { vm.chooseBlend(item.key) })
+            }
+        }
+        Menu(id: "layerNewMenu", targetId: "editorNewLayer", showIconSlot: false) {
+            MenuItem(id: "newStaticBitmap", label: "Static bitmap", showIconSlot: false,
+                     hasChildItems: false, onClick: vm.createStaticBitmap)
+            MenuItem(id: "newStaticVector", label: "Static vector", showIconSlot: false,
+                     hasChildItems: false, onClick: vm.createStaticVector)
+            MenuItem(id: "newDynamicBitmap", label: "Dynamic bitmap", showIconSlot: false,
+                     hasChildItems: false, onClick: vm.createDynamicBitmap)
+            MenuItem(id: "newDynamicVector", label: "Dynamic vector", showIconSlot: false,
+                     hasChildItems: false, onClick: vm.createDynamicVector)
+        }
+    }
+}

@@ -1,0 +1,22 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Editor Text Panel", style: .header2)
+            Label(id: "migratedText0", text: "Content", style: .body)
+            Label(id: "migratedText1", text: "LVRS · Text role", style: .body)
+            Label(id: "migratedText2", text: "Theme aliases", style: .body)
+            Label(id: "migratedText3", text: "Text ·", style: .body)
+            Label(id: "migratedText4", text: "Aa", style: .body)
+            Label(id: "migratedText5", text: "Canvas ·", style: .body)
+            Label(id: "migratedText6", text: "Fill & opacity", style: .body)
+            Label(id: "migratedText7", text: "Color & range", style: .body)
+            Label(id: "migratedText8", text: "Edge & shadow", style: .body)
+            Label(id: "migratedText9", text: "Noise", style: .body)
+            Label(id: "migratedText10", text: "Bubble", style: .body)
+            Label(id: "migratedText11", text: "Reset", style: .body)
+        }
+    }
+}

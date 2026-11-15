@@ -1,0 +1,15 @@
+cmake_minimum_required(VERSION 3.24)
+project(DreamscapesNativeLicenseBridgeTests LANGUAGES CXX)
+include(CTest)
+find_package(iiLicenseManagerPresentation 0.3 CONFIG REQUIRED)
+add_executable(DreamscapesNativeLicenseBridgeTests license.cpp
+    ../../src/App/Native/NativeLicenseBridge.cpp)
+target_compile_features(DreamscapesNativeLicenseBridgeTests PRIVATE cxx_std_23)
+target_include_directories(DreamscapesNativeLicenseBridgeTests PRIVATE ../../src)
+target_link_libraries(DreamscapesNativeLicenseBridgeTests PRIVATE iiLicenseManager::Presentation)
+add_test(NAME Dreamscapes.NativeLicenseBridge COMMAND DreamscapesNativeLicenseBridgeTests)
+set_tests_properties(Dreamscapes.NativeLicenseBridge PROPERTIES TIMEOUT 30)
+if(APPLE)
+    set_tests_properties(Dreamscapes.NativeLicenseBridge PROPERTIES ENVIRONMENT_MODIFICATION
+        "DYLD_LIBRARY_PATH=unset:;DYLD_FALLBACK_LIBRARY_PATH=unset:;DYLD_FRAMEWORK_PATH=unset:;DYLD_FALLBACK_FRAMEWORK_PATH=unset:")
+endif()

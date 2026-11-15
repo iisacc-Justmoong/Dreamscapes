@@ -6,7 +6,7 @@
 #include <QFileInfo>
 #include <QImageReader>
 #include <QPainter>
-#include <iiSocietyHelper.h>
+#include <QPointer>
 #include <QStandardPaths>
 #include <QUuid>
 #include <QWheelEvent>
@@ -14,13 +14,6 @@
 #include <cmath>
 
 namespace {
-QSize outputSize(const QString &ratio) {
-    if(ratio=="4:3") return {1368,1024};
-    if(ratio=="3:4") return {1024,1368};
-    if(ratio=="16:9") return {1824,1024};
-    if(ratio=="9:16") return {1024,1824};
-    return ratio=="1:1" ? QSize(1024,1024) : QSize();
-}
 QImage rasterImage(const RasterLayer &pixels) {
     return QImage(reinterpret_cast<const uchar *>(pixels.pixels.data()),pixels.width,pixels.height,
                   pixels.width*4,QImage::Format_ARGB32).copy();
@@ -54,44 +47,27 @@ void HomeCanvas::wheelEvent(QWheelEvent *event) {
     event->ignore();
 }
 bool HomeCanvas::fail(const QString &message) {
+    const bool success = message.isEmpty();
     if(m_error!=message){m_error=message;emit inputErrorChanged();}
-    return message.isEmpty();
+    return success;
 }
 bool HomeCanvas::hasContent() const {
     const auto *pixels=selectedRasterPixels();
     return pixels&&std::any_of(pixels->pixels.begin(),pixels->pixels.end(),[](auto p){return p>>24;});
 }
 bool HomeCanvas::addAttachment(const QUrl &source) {
-    if (!source.isLocalFile()) return fail(tr("Choose a local image file."));
-    iiSocietyHelper::FileSystem files(iiSocietyHelper::FileSystem::Initialization::Deferred);
-    if (!files.openForSource(source.toLocalFile())) return fail(files.errorString());
-    const auto original = files.aliasForPath(source.toLocalFile());
-    if (!original.value("available").toBool()) return fail(tr("Choose a readable local image."));
-    const auto canonical = original.value("source").toUrl();
-    for (const auto &entry : m_attachments)
-        if (entry.toMap().value("source").toUrl() == canonical) return fail({});
-    if (m_attachments.size() >= 19) return fail(tr("Attach up to 19 images alongside the canvas."));
-    auto alias = files.importCanvas(source.toLocalFile());
-    if (alias.isEmpty()) return fail(files.errorString());
-    const auto preview = files.preview(alias.value("path").toString());
-    if (preview.isEmpty()) return fail(files.errorString());
-    alias["previewSource"] = preview; alias["thumbnailSource"] = preview;
-    QImageReader reader(preview.toLocalFile()); reader.setAutoTransform(true);
-    const auto size = reader.size();
-    if (original.value("size").toLongLong() > 256LL * 1024 * 1024 || !reader.canRead() || size.isEmpty()
-        || qint64(size.width()) * size.height() > 64LL * 1024 * 1024)
-        return fail(tr("Choose a readable image of at most 64 megapixels."));
-    m_attachments.append(QVariantMap{{"source", canonical}, {"filename", original.value("name")},
-        {"alias", alias}, {"documentSource", alias.value("source")}, {"previewSource", preview},
-        {"width", size.width()}, {"height", size.height()}, {"sizeBytes", original.value("size")}});
-    emit attachmentsChanged(); return fail({});
+    const auto previous=m_references.attachments().size();
+    if(!m_references.add(source)) return fail(m_references.error());
+    const QPointer<HomeCanvas> guard(this);
+    if(previous!=m_references.attachments().size()) emit attachmentsChanged();
+    return guard ? fail({}) : true;
 }
 bool HomeCanvas::removeAttachment(int index) {
-    if(index<0||index>=m_attachments.size()) return fail(tr("Attachment no longer exists."));
-    m_attachments.removeAt(index); emit attachmentsChanged(); return fail({});
+    if(!m_references.remove(index)) return fail(m_references.error());
+    const QPointer<HomeCanvas> guard(this); emit attachmentsChanged(); return guard ? fail({}) : true;
 }
 bool HomeCanvas::setAspectRatio(const QString &ratio) {
-    const auto size=outputSize(ratio);
+    const auto size=dreamscapes::homeReferenceOutputSize(ratio);
     if(size.isEmpty()) return fail(tr("Unsupported canvas ratio."));
     if(size==QSize(canvasWidth(),canvasHeight())) return fail({});
     if(liveStrokeActive()) cancelStroke();
@@ -114,9 +90,10 @@ bool HomeCanvas::pasteAttachment(const QUrl &source,qreal itemX,qreal itemY) {
         return fail(tr("Finish the current stroke before placing an image."));
     const QFileInfo info(source.toLocalFile());
     const auto canonical=QUrl::fromLocalFile(info.exists() ? info.canonicalFilePath() : info.absoluteFilePath());
-    const auto attached=std::find_if(m_attachments.begin(),m_attachments.end(),
+    const auto &attachments=m_references.attachments();
+    const auto attached=std::find_if(attachments.begin(),attachments.end(),
         [&](const auto &v){return v.toMap().value("source").toUrl()==canonical;});
-    if(!source.isLocalFile() || attached==m_attachments.end()) return fail(tr("Attach the image before placing it on the canvas."));
+    if(!source.isLocalFile() || attached==attachments.end()) return fail(tr("Attach the image before placing it on the canvas."));
     const auto point=QPointF((itemX-panX())/zoom(),(itemY-panY())/zoom());
     if(point.x()<0||point.y()<0||point.x()>=canvasWidth()||point.y()>=canvasHeight())
         return fail(tr("Drop the image inside the canvas."));
@@ -154,7 +131,7 @@ QVariantMap HomeCanvas::generationParameters(const QString &prompt,const QString
         }
         references.append(QUrl::fromLocalFile(path).toString());
     }
-    for(const auto &entry:m_attachments)references.append(entry.toMap().value("previewSource").toUrl().toString());
+    references.append(m_references.previewSources());
     auto args=dreamscapes::imageParametersToMap(iiLocalDiffusion::ImageParameters::defaults());
     args["prompt"]=prompt; args["model"]=model; args["width"]=canvasWidth(); args["height"]=canvasHeight();
     args["outputCount"]=count; args["referenceImages"]=references;

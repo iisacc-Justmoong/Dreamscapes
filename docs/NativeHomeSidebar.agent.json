@@ -1,0 +1,128 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:4cf23c1856081d359aa75847363892c47fa37c2d0c1e216e73883c741e1f3990",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/NativeHomeSidebar.md",
+    "sha256": "f2ecb65d06d167ef6a36b756e80b1437bdd9dcf2b333b0fc27fe201faa93fdfe",
+    "bytes": 1829,
+    "line_count": 30,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Home sidebar migration contract",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Home sidebar migration contract\n",
+      "level": 1,
+      "title": "Home sidebar migration contract"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 7,
+      "raw": "The Home sidebar follows Figma node `1467:4562`. It provides Home, New Canvas,\nImage, Video, Audio, Board, Tools, Files, Assets and Generation History in the\nexisting order, separated into the same groups. The LVUI menu items use their\nauthored LVUI icons and native interaction states. Selection is a navigation\nstate, independent of hover, press and button type.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 16,
+      "raw": "The parent supplies the selected action and whether the compact layout is\nactive. The regular view includes labels; the compact view retains icon names,\naccessible labels and descriptive tooltips. Both layouts keep actions usable by\npointer and keyboard, and short windows must allow the focused item to be\nrevealed by scrolling. The sidebar emits the same action identifiers to the\nexisting Home controller rather than opening files or changing generation\nstate itself. Translation and navigation definitions are supplied by the\napplication adapter.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 18,
+      "end_line": 23,
+      "raw": "The Qt-free sidebar model and LVUI widget now project caller-supplied entries,\nuse the authored icons, and keep selected, compact and interaction states\nindependent. Widget tests cover action delivery, external selection, compact\naccessible names, hover and keyboard-focus tooltips, keyboard activation,\nscroll-to-focus and retirement. The generated renderer is checked for Qt and\nLVRS dependencies.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 24,
+      "end_line": 24,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 25,
+      "end_line": 30,
+      "raw": "The existing product sidebar remains QML. The native widget is not connected to\nthe application yet. The intermediate LVUI Home composition uses an unclipped\nsidebar source, and its headless test checks that a compact tooltip opens with\ngeometry and text clipping extending beyond the sidebar. The eventual platform\nhost still needs visual verification, and all production action definitions and\nthe original navigation route must be connected before replacing the QML view.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Home sidebar migration contract",
+      "anchor": "home-sidebar-migration-contract",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000005",
+        "line": 12,
+        "text": "pointer and keyboard, and short windows must allow the focused item to be",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000009",
+        "line": 30,
+        "text": "the original navigation route must be connected before replacing the QML view.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

@@ -41,6 +41,24 @@ class NativeViewModelBridgeTests : public QObject {
                  QStringLiteral("Rectangle"));
         QVERIFY(!item->property("graphic").value<QJSValue>().toVariant().toMap().isEmpty());
     }
+    void videoTimelineStateIsNativeType() {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"QML(import QtQml
+import Dreamscapes.Storage 1.0
+QtObject { property VideoTimelineState timeline: VideoTimelineState {} }
+)QML", {});
+        QScopedPointer<QObject> root(component.create());
+        QVERIFY2(root, qPrintable(component.errorString()));
+        auto *timeline = qobject_cast<VideoTimelineModel *>(root->property("timeline").value<QObject *>());
+        QVERIFY(timeline);
+        QCOMPARE(timeline->objectName(), QStringLiteral("videoTimelineState"));
+        QVERIFY(timeline->tracks().isEmpty());
+        const auto track = timeline->addTrack(QStringLiteral("Contents"), QStringLiteral("Reference"), -1);
+        QVERIFY(!track.isEmpty());
+        QCOMPARE(timeline->tracks().size(), 1);
+        QCOMPARE(timeline->tracks().first().toMap().value("id").toString(), track);
+    }
     void advancedImageModelChoicesPreserveLabelsAndIds() {
         QQmlEngine engine;
         QQmlComponent component(&engine);

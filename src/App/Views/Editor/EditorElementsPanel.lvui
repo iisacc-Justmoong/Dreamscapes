@@ -1,0 +1,37 @@
+import vm NativeElementsPanelBackend
+@Static let resizeElements: (Double, Double) -> Void = vm.sizeHandler(Metric.space16, Metric.space8)
+EventListener(id: "elementsPanelSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizeElements) {
+    ScrollView(id: "elementsPanelScroll", width: vm.width, height: vm.height) {
+    VStack(id: "elementsPanel", width: vm.width, spacing: Metric.space8,
+           padding: Metric.space8, alignment: .stretch) {
+        Label(text: "Elements", style: .body)
+        if (vm.editable) {
+            Label(id: "elementsSelectedName", text: vm.selectedName, style: .caption)
+        }
+        Label(text: "Size", style: .body)
+        HStack(width: vm.contentWidth, spacing: Metric.space8, alignment: .center) {
+            VStack(width: vm.fieldWidth, spacing: Metric.space2, alignment: .stretch) {
+                Label(text: "Width", style: .caption)
+                InputField(id: "elementsWidth", text: vm.widthText, width: vm.fieldWidth, enabled: vm.editable,
+                           accessibilityName: "Element width in pixels", onEdited: vm.editWidth, onSubmit: vm.apply)
+            }
+            VStack(width: vm.fieldWidth, spacing: Metric.space2, alignment: .stretch) {
+                Label(text: "Height", style: .caption)
+                InputField(id: "elementsHeight", text: vm.heightText, width: vm.fieldWidth, enabled: vm.editable,
+                           accessibilityName: "Element height in pixels", onEdited: vm.editHeight, onSubmit: vm.apply)
+            }
+        }
+        HStack(spacing: Metric.space8, alignment: .center) {
+            Label(text: "Constrain proportions", style: .body, flex: 1)
+            ToggleSwitch(id: "elementsConstrain", checked: vm.constrained, enabled: vm.editable, onToggled: vm.setConstrained)
+        }
+        Label(text: "Appearance", style: .body)
+        HStack(spacing: Metric.space8, alignment: .center) {
+            Label(text: "Fill", style: .caption, flex: 1)
+            InputField(id: "elementsFill", text: vm.fillText, width: vm.fieldWidth, enabled: vm.fillEditable,
+                       accessibilityName: "Vector fill color", onEdited: vm.editFill, onSubmit: vm.applyFill)
+        }
+        if (vm.status != "") { Label(id: "elementsStatus", text: vm.status, style: .caption) }
+    }
+    }
+}

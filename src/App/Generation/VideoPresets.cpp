@@ -44,6 +44,14 @@ QVariantMap controlsOnly(const QVariantMap &parameters)
     for (const auto &field : fields) if (parameters.contains(field)) saved.insert(field, parameters.value(field));
     return saved;
 }
+QString lowVramName(const QStringList &existing)
+{
+    const auto base = QObject::tr("Low VRAM");
+    auto name = base;
+    for (int suffix = 1; existing.contains(name); ++suffix)
+        name = QObject::tr("Low VRAM (built-in %1)").arg(suffix);
+    return name;
+}
 QString presetValidationError(const QVariantMap &saved)
 {
     auto validated = QJsonObject::fromVariantMap(saved);
@@ -71,14 +79,24 @@ QString presetValidationError(const QVariantMap &saved)
 QStringList GenerationController::videoPresetNames() const
 {
     QString error;
-    return readPresets(presetPath(m_runtime.modelPreferencesFile), m_memoryVideoPresets, error).keys();
+    auto names = readPresets(presetPath(m_runtime.modelPreferencesFile), m_memoryVideoPresets, error).keys();
+    names.prepend(lowVramName(names));
+    return names;
+}
+
+QString GenerationController::lowVramVideoPresetName() const
+{
+    QString error;
+    return lowVramName(readPresets(presetPath(m_runtime.modelPreferencesFile), m_memoryVideoPresets, error).keys());
 }
 
 QVariantMap GenerationController::videoPreset(const QString &name)
 {
     QString error;
     const auto presets = readPresets(presetPath(m_runtime.modelPreferencesFile), m_memoryVideoPresets, error);
-    const auto value = controlsOnly(presets.value(name.trimmed()).toMap());
+    const auto value = name.trimmed() == lowVramName(presets.keys())
+        ? QVariantMap{{"offload", "sequential"}, {"cpuTextEncoding", true}, {"vaeTiling", true}}
+        : controlsOnly(presets.value(name.trimmed()).toMap());
     if (error.isEmpty() && value.isEmpty()) error = tr("Video preset does not exist.");
     if (error.isEmpty()) error = presetValidationError(value);
     if (m_videoPresetError != error) { m_videoPresetError = error; emit videoPresetsChanged(); }
@@ -93,6 +111,7 @@ bool GenerationController::saveVideoPreset(const QString &name, const QVariantMa
     const auto key = name.trimmed();
     if (key.isEmpty() || key.size() > 100 || key.contains(QChar::Null) || key == tr("Default"))
         return fail(tr("Use a preset name of 1 to 100 characters other than Default."));
+    if (key == lowVramVideoPresetName()) return fail(tr("The built-in Low VRAM preset cannot be overwritten."));
     // Presets contain controls only. Documents, shots, image keys and runtime
     // state belong to their own owners and are never captured by a preset.
     const auto saved = controlsOnly(parameters);

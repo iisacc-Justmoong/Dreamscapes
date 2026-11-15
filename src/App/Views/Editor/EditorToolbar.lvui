@@ -1,0 +1,28 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Editor Toolbar", style: .header2)
+            Label(id: "migratedText0", text: "Elements", style: .body)
+            Label(id: "migratedText1", text: "Text", style: .body)
+            Label(id: "migratedText2", text: "Camera/Photo", style: .body)
+            Label(id: "migratedText3", text: "File", style: .body)
+            Label(id: "migratedText4", text: "Background", style: .body)
+            Label(id: "migratedText5", text: "Audio track", style: .body)
+            Label(id: "migratedText6", text: "Canvas", style: .body)
+            Label(id: "migratedText7", text: "Generative", style: .body)
+            Label(id: "migratedText8", text: "Layers", style: .body)
+            Label(id: "migratedText9", text: "Select", style: .body)
+            Label(id: "migratedText10", text: "Color", style: .body)
+            Label(id: "migratedText11", text: "Effects", style: .body)
+            Label(id: "migratedText12", text: "Retouch", style: .body)
+            Label(id: "migratedText13", text: "Fill", style: .body)
+            Label(id: "migratedText14", text: "Brush", style: .body)
+            Label(id: "migratedText15", text: "Adjust", style: .body)
+            Label(id: "migratedText16", text: "Masking", style: .body)
+            Label(id: "migratedText17", text: "Eraser", style: .body)
+        }
+    }
+}

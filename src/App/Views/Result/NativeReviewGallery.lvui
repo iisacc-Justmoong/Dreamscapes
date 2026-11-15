@@ -15,11 +15,21 @@ ApplicationWindow(title: "Dreamscapes · Results", width: 1440, height: 900) {
         for (item in vm.items, key: item.token, id: "results", itemHeight: 172,
              itemWidth: 160, spacing: 8, overscan: 1, navigation: nav,
              selectionMode: .multiple, selectOnMove: false, selectOnClick: false,
-             onActivate: vm.activate) {
+             activateOnDoubleClick: true, onActivate: vm.openDetail) {
             VStack(id: "result", spacing: 4, alignment: .stretch) {
                 Image(id: "thumbnail", source: item.token, width: 152, height: 132, fit: .Cover)
                 Label(id: "title", text: item.title, style: .caption)
                 Label(id: "review", text: item.reviewLabel, style: .caption)
+                ContextMenu(id: "reviewContextMenu", targetId: "result", showIconSlot: false,
+                            onOpened: item.openMenu, onItemTriggered: item.menuAction) {
+                    ContextMenuItem(id: "reviewContextShortlist", label: item.shortlistLabel(), hasChildItems: false)
+                    ContextMenuItem(id: "reviewContextReject", label: item.rejectLabel(), hasChildItems: false)
+                    ContextMenuItem(id: "reviewContextReset", label: item.resetLabel(), hasChildItems: false)
+                    ContextMenuItem(id: "reviewContextCompare", label: item.compareLabel(), enabled: item.canContextCompare(), hasChildItems: false)
+                    ContextMenuItem(id: "reviewContextEdit", label: item.editLabel(), enabled: item.canContextEdit(), hasChildItems: false)
+                    ContextMenuItem(id: "reviewContextSaveFile", label: item.saveFileLabel(), enabled: item.canContextSaveFile(), hasChildItems: false)
+                    ContextMenuItem(id: "reviewContextSavePhotos", label: item.savePhotosLabel(), enabled: item.canContextSavePhotos(), hasChildItems: false)
+                }
             }
         }
         HStack(spacing: 4) {

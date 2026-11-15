@@ -1,0 +1,45 @@
+import vm NativeHomeSelectedFileBackend
+EventListener(id: "selectedFileSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    VStack(id: "selectedFileContent", width: vm.viewportWidth, height: vm.viewportHeight,
+           spacing: Metric.space8, alignment: .stretch, flex: 1) {
+        HStack(spacing: Metric.space8) {
+            Label(id: "selectedFileHeading", text: vm.heading, style: .header2, flex: 1)
+            LabelButton(id: "openSelectedFile", text: vm.openLabel, tone: .default, enabled: vm.canOpen, onClick: vm.open)
+        }
+        Image(id: "selectedFilePreview", source: vm.previewSource, fit: .Contain, flex: 1)
+        Label(id: "selectedFileName", text: vm.name, style: .header2, elideRight: true)
+        Label(id: "selectedFilePath", text: vm.path, style: .caption, color: Color.text.description, elideRight: true)
+        if (vm.wide) {
+            HStack(id: "selectedFilePropertiesWide", spacing: Metric.space16) {
+                VStack(spacing: Metric.space4, alignment: .stretch, flex: 1) {
+                    Label(text: vm.canvasLabel, style: .caption, color: Color.text.description)
+                    Label(id: "selectedCanvasValue", text: vm.dimensions, style: .body, elideRight: true)
+                }
+                VStack(spacing: Metric.space4, alignment: .stretch, flex: 1) {
+                    Label(text: vm.structureLabel, style: .caption, color: Color.text.description)
+                    Label(id: "selectedStructureValue", text: vm.structure, style: .body, elideRight: true)
+                }
+                VStack(spacing: Metric.space4, alignment: .stretch, flex: 1) {
+                    Label(text: vm.colorLabel, style: .caption, color: Color.text.description)
+                    Label(id: "selectedColorValue", text: vm.color, style: .body, elideRight: true)
+                }
+            }
+        } else {
+            VStack(id: "selectedFilePropertiesNarrow", spacing: Metric.space8, alignment: .stretch) {
+                HStack(spacing: Metric.space8) {
+                    Label(text: vm.canvasLabel, style: .caption, color: Color.text.description, flex: 1)
+                    Label(id: "selectedCanvasValue", text: vm.dimensions, style: .body, elideRight: true, flex: 1)
+                }
+                HStack(spacing: Metric.space8) {
+                    Label(text: vm.structureLabel, style: .caption, color: Color.text.description, flex: 1)
+                    Label(id: "selectedStructureValue", text: vm.structure, style: .body, elideRight: true, flex: 1)
+                }
+                HStack(spacing: Metric.space8) {
+                    Label(text: vm.colorLabel, style: .caption, color: Color.text.description, flex: 1)
+                    Label(id: "selectedColorValue", text: vm.color, style: .body, elideRight: true, flex: 1)
+                }
+            }
+        }
+        Label(id: "selectedFileStatus", text: vm.status, style: .caption, color: Color.text.description, elideRight: true)
+    }
+}

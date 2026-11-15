@@ -1,0 +1,33 @@
+import vm NativeHomeQueueBackend
+VStack(id: "homeQueueBar", spacing: Metric.space8, padding: Metric.space12, alignment: .stretch) {
+    HStack(spacing: Metric.space8) {
+        Label(id: "queueHeading", text: vm.heading, style: .header2)
+        Spacer()
+        LabelButton(id: "openQueue", text: vm.openLabel, tone: .borderless,
+                    enabled: vm.canOpenQueue, onClick: vm.openQueue)
+    }
+    HStack(spacing: Metric.space8) {
+        Image(id: "readyIndicator", source: "asset://dreamscapes/home-queue-ready.svg",
+              width: 6, height: 6, fit: .Contain)
+        VStack(spacing: Metric.space4, flex: 1, alignment: .stretch) {
+            Label(id: "queueStatus", text: vm.status, style: .body)
+            Label(id: "queueSummary", text: vm.summary, style: .caption)
+        }
+        Label(id: "queueSession", text: vm.currentSession, style: .caption)
+    }
+    HStack(spacing: Metric.space16) {
+        VStack(spacing: Metric.space4, flex: 1, alignment: .stretch) {
+            Label(text: vm.deviceLabel, style: .caption)
+            Label(id: "queueDevice", text: vm.device, style: .body)
+        }
+        VStack(spacing: Metric.space4, flex: 1, alignment: .stretch) {
+            Label(text: vm.modelLabel, style: .caption)
+            Label(id: "queueModel", text: vm.modelName, style: .body)
+        }
+        VStack(spacing: Metric.space4, flex: 1, alignment: .stretch) {
+            Label(text: vm.executionLabel, style: .caption)
+            Label(id: "queueExecution", text: vm.execution, style: .body)
+        }
+    }
+    Label(id: "queueDetail", text: vm.detail, style: .caption)
+}

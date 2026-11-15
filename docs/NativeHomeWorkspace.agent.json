@@ -1,0 +1,261 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:de62f0b4fc5c542600a8c4b5cd38281185c0e5670aa3e4ed8e5c2fd09d9f0948",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/NativeHomeWorkspace.md",
+    "sha256": "022d09e7bd10ed321fb66eb173592b0f483d8a8dc1607b81b0bf36fcbfc77400",
+    "bytes": 6232,
+    "line_count": 95,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Native Home workspace composition",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Native Home workspace composition\n",
+      "level": 1,
+      "title": "Native Home workspace composition"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 9,
+      "raw": "The native Home workspace follows Dreamscapes Figma `1467:4554` and the\nexisting `DesktopHome.qml` behavior. The sidebar, recent files, selected file,\nqueue, recent generations and generation composer are independently supplied\nnative view sources. A source is required for every region: missing or failed\ncontent must not silently turn into an empty production panel. The application\nadapter owns live data, translation, navigation, file commands and generation;\nthe workspace owns only layout and presentation state.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 11,
+      "end_line": 18,
+      "raw": "At a window width below 700 the sidebar is 48 wide, otherwise 181. The\ncontent viewport scrolls. At a viewport width of 1040 or more the file and\nsession panels are placed in two columns; otherwise they stack vertically.\nThe 12 or 16 point content inset, 12 point gaps, 360 point minimum file-panel\nheight and 160 point session panels follow the existing layout. Caller-supplied\ncomposer height participates in the file-panel height calculation. Resizing\nmust not modify files or submit a generation. Header and footer content and\nactions are supplied by the application rather than example data from Figma.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 20,
+      "end_line": 34,
+      "raw": "The LVUI workspace composes the existing native views through iiGUI NativeView.\nUntil LVUI supplies a responsive grid, a small C++ layout backend moves the\ntwo already-mounted child views instead of destroying them at a breakpoint.\nIt does not draw or style the controls. This retains the native collection's\nscroll position and focus while resizing, independently of document state.\nThe LVUI view passes `Metric.space12` and `Metric.space16` to that layout\nbackend; the application does not define its own spacing tokens.\nThe enclosing view requires an actual composer source instead of substituting\nan empty one. A headless widget test mounts the real native panels, exercises\ncommands and resizing, and checks the compact sidebar tooltip's geometry and\nclip. It also verifies that a failed replacement preserves the prior workspace\nand that retirement releases the model. A separate headless test mounts the\nreal LVUI composer with the other native panels, checks prompt focus and\nworkspace height across a resize, and sends a command to an isolated draft\nhandler. It does not open the application or run generation.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 35,
+      "end_line": 35,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 36,
+      "end_line": 42,
+      "raw": "The view is an intermediate native composition, not the application's Home.\nThe remaining QuickGenerate canvas and picker, other routes, the top-level\nwindow and complete controller adapters remain required. The workspace must\nnot replace the running Home until all\nits native regions and commands have functional parity, and the native\ntooltip and resizing behavior are checked in an actual host. Automated\nheadless tests are distinct from a visually verified installed application.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 43,
+      "end_line": 43,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 44,
+      "end_line": 49,
+      "raw": "When the composer reports a new natural height during a Home resize, the\nworkspace retains the latest height and recalculates after the active layout\npublication. A resize must not discard that height or trigger generation.\nThe composer-to-workspace binding observes the panel's measured height and\nretains no generation or file ownership. Retiring the binding stops future\nlayout updates; it does not close either model or cancel work.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 50,
+      "end_line": 50,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 51,
+      "end_line": 54,
+      "raw": "The recent-file and recent-generation views may use separate preview resolvers:\ntheir session adapters generate different lazy preview identifiers. The\nselected-file preview continues to use the common resolver. If a specialized\nresolver is not supplied, that view falls back to the common one.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 55,
+      "end_line": 55,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 56,
+      "end_line": 72,
+      "raw": "The Home content adapter reads the active generation controller's Society\nmirror and applies the same history projection as the existing Home. It keeps\nrecent-file selection, filtering, result focus and multi-selection as view\nstate across mirror updates. Removing a selected file reconciles the selection\nto the next available entry and updates the selected-file panel. It passes the\noriginal Society value to the existing open/edit commands, and View all uses\nthe existing storage navigation. Changing or destroying the active controller\nmust detach the old mirror; retiring the adapter must detach its commands.\nMirror notifications do not request storage refreshes or run generation.\nThe adapter is tested with an isolated `GenerationController` and Society\nmirror, including reentrant notifications, controller replacement and\nretirement. A headless LVUI workspace test combines that adapter with the\nexisting generation draft, checks thumbnails and file selection, and follows\nthe existing View all and submit signals. It tests pointer selection after\nresizing and scrolling. It does not run an inference job or launch the app.\nThe nested collection input fix is in iiGUI's shared\n`CollectionWidgetNavigation` header; builds must use a version containing it.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 73,
+      "end_line": 73,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 74,
+      "end_line": 77,
+      "raw": "The old `HomeContentRow`, `HomePromptStarters` and `GenerationHistory` QML\ndefinitions had no remaining application references and are no longer bundled.\nThe active recent-file, selected-file and recent-generation paths are distinct\nviews and remain present while the application transition is in progress.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 78,
+      "end_line": 78,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 79,
+      "end_line": 88,
+      "raw": "The product Home session composes the real generation draft, Society content,\nqueue, reference picker and native workspace into a single retained source.\nIt forwards submission and advanced settings to the existing workspace\ncontroller, routes the active generation controller's complete submitted job\nbatch to the existing review navigation, and disconnects the previous\ncontroller on replacement. It exposes file and new-canvas commands, and uses\ncaller-provided navigation, translations, artwork and host file dialog. View resizing and\ncontent synchronization must never submit generation. The product session is\nnot the application entrypoint until the other routes and window controls have\nequivalent native views.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 89,
+      "end_line": 89,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 90,
+      "end_line": 95,
+      "raw": "`Dreamscapes.NativeHomeProductSession` exercises that composition with a\ntemporary Society store, a fake model fixture and a paused generation queue.\nIt verifies multi-job submission, review navigation and controller replacement\nwithout executing model inference or launching the application. Its iiGUI\nwidget tree also checks that the same session presents the selected Society\nfile and accepts the attachment and queue commands.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Native Home workspace composition",
+      "anchor": "native-home-workspace-composition",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 6,
+        "text": "native view sources. A source is required for every region: missing or failed",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000003",
+        "line": 7,
+        "text": "content must not silently turn into an empty production panel. The application",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000005",
+        "line": 17,
+        "text": "must not modify files or submit a generation. Header and footer content and",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000009",
+        "line": 38,
+        "text": "window and complete controller adapters remain required. The workspace must",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000011",
+        "line": 46,
+        "text": "publication. A resize must not discard that height or trigger generation.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 63,
+        "text": "must detach the old mirror; retiring the adapter must detach its commands.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 64,
+        "text": "Mirror notifications do not request storage refreshes or run generation.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 72,
+        "text": "`CollectionWidgetNavigation` header; builds must use a version containing it.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000019",
+        "line": 86,
+        "text": "content synchronization must never submit generation. The product session is",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

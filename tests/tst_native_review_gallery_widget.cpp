@@ -1,6 +1,7 @@
 #include "App/Views/Result/NativeReviewGalleryView.h"
 #include <LVUI/NativeImageResolver.h>
 #include "iiGUI/WidgetState.h"
+#include <algorithm>
 #include <iostream>
 #include <set>
 #include <stdexcept>
@@ -111,12 +112,53 @@ void exercise() {
     click(1);
     check(gallery->session()->focusedKey() == gallery->items.get()[1]->key && gallery->session()->selectedCount() == 0,
           "A plain result click did not exclusively focus");
+    check(detailed.empty(), "A single result click opened the detail view");
+    const auto bounds = take(row(1).snapshot()).bounds;
+    for (std::uint32_t count=1;count<=2;++count) {
+        good(state->input({.kind=ii::gui::WidgetInputKind::pointer_down,.x=bounds.x+2,.y=bounds.y+2,
+                           .timestamp=double(count),.buttons=1,.native_click_count=count}));
+        good(state->input({.kind=ii::gui::WidgetInputKind::pointer_up,.x=bounds.x+2,.y=bounds.y+2,
+                           .timestamp=double(count)+0.1,.buttons=1,.native_click_count=count}));
+    }
+    check(detailed==std::vector<vm::Value>{entries[1]} && gallery->session()->selectedCount()==0,
+          "Double-click did not open the focused result without changing selection");
     click(3, true);
     check(gallery->session()->selectedCount() == 3, "Shift-click did not select the expected result range");
+    const auto contextBounds=take(row(3).snapshot()).bounds;
+    good(state->input({.kind=ii::gui::WidgetInputKind::context_request,.x=contextBounds.x+2,.y=contextBounds.y+2}));
+    const auto selectedToken=gallery->items.get()[3]->token;
+    const auto menu=take(list.keyed_content_item(selectedToken,"reviewContextMenu"));
+    check(take(menu.snapshot()).opened,"A result context request did not open its menu");
+    good(take(list.keyed_content_item(selectedToken,"reviewContextCompare")).activate());
+    check(compared==std::vector<vm::Value>{entries[1],entries[2],entries[3]},
+          "The context menu did not compare the selected original results");
+    const auto unselectedBounds=take(row(0).snapshot()).bounds;
+    const auto unselectedToken=gallery->items.get()[0]->token;
+    const auto openUnselected=[&] {
+        good(state->input({.kind=ii::gui::WidgetInputKind::context_request,.x=unselectedBounds.x+2,.y=unselectedBounds.y+2}));
+        check(take(take(list.keyed_content_item(unselectedToken,"reviewContextMenu")).snapshot()).opened,
+              "The unselected result context did not open");
+    };
+    openUnselected();
+    const auto label=[](std::size_t count){return "Candidates: "+std::to_string(count);};
+    gallery->contextMenu()->setStrings({label,label,label,label,label,"Save file","Save photo"});
+    const auto nodes=take(state->snapshots());
+    check(std::ranges::any_of(nodes,[](const auto &node){return node.text=="Candidates: 1";}),
+          "Context labels did not update after the host supplied translations");
+    good(take(list.keyed_content_item(unselectedToken,"reviewContextShortlist")).activate());
+    check(gallery->session()->shortlistedCount()==1 && gallery->session()->selectedCount()==3,
+          "The context menu applied review to unrelated selected results");
+    openUnselected();
+    good(take(list.keyed_content_item(unselectedToken,"reviewContextReset")).activate());
+    check(gallery->session()->shortlistedCount()==0,"The context menu could not reset a single result");
     good(take(root.content_item("edit")).activate());
     check(edited == std::vector<vm::Value>{entries[1], entries[2], entries[3]},
           "The native edit button did not receive the selected original results");
     good(list.focus());
+    edited.clear();
+    good(state->input({.kind=ii::gui::WidgetInputKind::key_down,.key=ii::gui::WidgetKey::enter}));
+    check(edited==std::vector<vm::Value>{entries[1],entries[2],entries[3]},
+          "Enter did not edit the selected results");
     auto key = [&](std::string text) {
         good(state->input({.kind = ii::gui::WidgetInputKind::key_down,
                            .key = ii::gui::WidgetKey::character,

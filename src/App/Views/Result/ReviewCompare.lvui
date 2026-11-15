@@ -1,0 +1,14 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Review Compare", style: .header2)
+            Label(id: "migratedText0", text: "Fit", style: .body)
+            Label(id: "migratedText1", text: "100%", style: .body)
+            Label(id: "migratedText2", text: "Close", style: .body)
+            Label(id: "migratedText3", text: "Preview · 100% uses available preview pixels · Wheel to zoom · Drag to pan", style: .body)
+        }
+    }
+}

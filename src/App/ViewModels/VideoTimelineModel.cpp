@@ -2,6 +2,7 @@
 #include "ViewData.h"
 namespace dreamscapes {
 VideoTimelineModel::VideoTimelineModel(QObject *parent) : QObject(parent) {
+    setObjectName(QStringLiteral("videoTimelineState"));
     refresh();
 }
 QVariant VideoTimelineModel::send(vm::TimelineAction action, std::initializer_list<QVariant> arguments) {

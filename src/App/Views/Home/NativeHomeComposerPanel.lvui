@@ -1,0 +1,19 @@
+import vm NativeHomeComposerPanelBackend
+@Static let resizeComposer: (Double, Double) -> Void = vm.sizeHandler(Metric.space8, Metric.space12, Metric.size22,
+    Metric.textCaptionLineHeight + Metric.space4 + Metric.size22, Metric.size44)
+EventListener(id: "homeComposerPanelSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizeComposer) {
+    VStack(id: "homeComposerPanel", width: vm.viewportWidth, spacing: Metric.space8,
+           leftPadding: Metric.space12, rightPadding: Metric.space12, topPadding: Metric.space12, bottomPadding: Metric.space12,
+           alignment: .stretch) {
+        NativeView(id: "homeComposerTop", source: vm.topGrid, width: vm.contentWidth, height: vm.topHeight, clip: false)
+        NativeView(id: "homeComposerSettings", source: vm.settingsGrid, width: vm.contentWidth, height: vm.settingsHeight, clip: false)
+        if (vm.hasAttachments) {
+            NativeView(id: "homeComposerReferences", source: vm.attachments, width: vm.contentWidth, height: Metric.size44, clip: false)
+        }
+        if (vm.hasError) {
+            EventListener(id: "homeComposerError", width: vm.contentWidth, sizeToContent: true, onSizeChanged: vm.errorSizeChanged) {
+                Label(id: "homeComposerErrorText", text: vm.error, style: .caption, color: Color.red, selectable: false)
+            }
+        }
+    }
+}

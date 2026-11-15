@@ -1,0 +1,44 @@
+import vm NativeReviewInspectorBackend
+EventListener(id: "reviewInspectorSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    VStack(id: "reviewInspector", width: vm.viewportWidth, height: vm.viewportHeight,
+           spacing: Metric.space8, alignment: .stretch) {
+        HStack(spacing: Metric.space8) {
+            Label(id: "inspectorHeading", text: vm.heading, style: .caption, flex: 1)
+            Label(id: "inspectorSelection", text: vm.selectionSummary, style: .caption)
+        }
+        ZStack(id: "inspectorPreview", width: vm.viewportWidth, height: vm.previewHeight, alignment: .center) {
+            if (vm.hasMediaView) {
+                NativeView(id: "inspectorMedia", source: vm.mediaView, width: vm.viewportWidth, height: vm.previewHeight)
+            } else {
+                ZStack(alignment: .center) {
+                    Image(id: "inspectorPreviewImage", source: vm.previewSource, width: vm.viewportWidth,
+                          height: vm.previewHeight, fit: .Contain)
+                    if (vm.noPreview) { Label(id: "inspectorNoPreview", text: vm.noResult, style: .caption) }
+                }
+            }
+        }
+        HStack(spacing: Metric.space8) {
+            Label(text: vm.previewLabel, style: .caption, color: Color.text.body, flex: 1)
+            LabelButton(id: "inspectorExpand", text: vm.expandLabel, tone: .default, enabled: vm.canExpand, onClick: vm.expand)
+            LabelButton(id: "inspectorSave", text: vm.saveLabel, tone: .default, enabled: vm.canSave, onClick: vm.save)
+        }
+        for (item in vm.fields, key: item.key, id: "inspectorFields", itemHeight: Metric.size44,
+             measureHeight: true, spacing: Metric.space8, overscan: 1) {
+            VStack(id: "inspectorField", spacing: Metric.space2, alignment: .stretch) {
+                Label(id: "inspectorFieldLabel", text: item.label, style: .caption, color: Color.text.body)
+                if (item.usesWrappedText) {
+                    TextEditor(id: "inspectorFieldText", text: item.text, readOnly: true, wrapEnabled: true,
+                               width: vm.viewportWidth, height: item.height,
+                               accessibilityName: item.label, onContentHeightChanged: item.setMeasuredHeight,
+                               onWrappingFallbackChanged: item.wrappingFallbackChanged)
+                } else {
+                    CodeEditor(id: "inspectorLongFieldText", model: item.document, sourceRevision: item.revision,
+                               readOnly: true, width: vm.viewportWidth, height: item.height,
+                               accessibilityName: item.label)
+                }
+            }
+        }
+        if (vm.jobVisible) { Label(id: "inspectorJob", text: vm.jobText, style: .caption, color: Color.text.body) }
+        Label(id: "inspectorOriginal", text: vm.originalText, style: .caption, color: Color.text.body)
+    }
+}

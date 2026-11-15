@@ -1,0 +1,20 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Publish Destination Review", style: .header2)
+            Label(id: "migratedText0", text: "← Content", style: .body)
+            Label(id: "migratedText1", text: "Shared fields follow Society. Destination edits are saved inside the same .iisc file.", style: .body)
+            Label(id: "migratedText2", text: "Reset destination to source", style: .body)
+            Label(id: "migratedText3", text: "↺", style: .body)
+            Label(id: "migratedText4", text: "Publishing account", style: .body)
+            Label(id: "migratedText5", text: "Connect an account through the native account service to enable uploading.", style: .body)
+            Label(id: "migratedText6", text: "Exported media / public URLs", style: .body)
+            Label(id: "migratedText7", text: "Local export path", style: .body)
+            Label(id: "migratedText8", text: "Public HTTPS URL", style: .body)
+            Label(id: "migratedText9", text: "Export publication frames", style: .body)
+        }
+    }
+}

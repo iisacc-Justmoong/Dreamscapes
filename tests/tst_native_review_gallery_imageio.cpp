@@ -78,10 +78,19 @@ void exercise(const std::string &path) {
                                  std::to_string(workers.stats().submitted) +
                                  " results=" + std::to_string(gallery->items.get().size()));
     }
+    check(loader->previewStatus(path,152,132)==native::PreviewStatus::ready,
+          "The image loader did not expose the ready status");
     check(gallery->session()->entryAt(0) == original, "Preview loading changed the result metadata");
     gallery->session()->replaceEntries({entry(path + ".missing")});
     check(matchingImages(take(state->drawing_snapshot({640, 480}))) == 0,
           "A changed preview source retained the previous image");
+    const auto missingDeadline=std::chrono::steady_clock::now()+10s;
+    auto missing=loader->previewStatus(path+".missing",152,132);
+    while (missing==native::PreviewStatus::loading && std::chrono::steady_clock::now()<missingDeadline) {
+        loop.poll(); std::this_thread::sleep_for(1ms);
+        missing=loader->previewStatus(path+".missing",152,132);
+    }
+    check(missing==native::PreviewStatus::failed,"The image loader did not expose a failed preview");
     good(root.clear_content());
     gallery.reset();
     loader.reset();

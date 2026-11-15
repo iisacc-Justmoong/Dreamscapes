@@ -1,0 +1,77 @@
+import vm NativeMaskPanelBackend
+@Static let resizeMasks: (Double, Double) -> Void = vm.sizeHandler(Metric.space16, Metric.size44, Metric.size280)
+EventListener(id: "maskPanelSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizeMasks) {
+    ScrollView(id: "maskPanelScroll", width: vm.width, height: vm.height) {
+    VStack(id: "maskPanel", width: vm.width, spacing: Metric.space8,
+           padding: Metric.space8, alignment: .stretch) {
+        HStack(spacing: Metric.space8, alignment: .center) {
+            IconButton(iconName: "panel-background-mask", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, enabled: false, accessibilityName: "Background")
+            Label(text: "Background", style: .body, flex: 1)
+        }
+        HStack(spacing: Metric.space2, alignment: .center) {
+            IconButton(iconName: "panel-background-color", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, enabled: false, accessibilityName: "Color unavailable")
+            IconButton(iconName: "panel-background-remove", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, enabled: false, accessibilityName: "Remove unavailable")
+            IconButton(iconName: "panel-background-mask", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, checked: true, checkable: false, selectionStyle: .segmented,
+                       accessibilityName: "Mask")
+            IconButton(iconName: "panel-background-replace", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, enabled: false, accessibilityName: "Replace unavailable")
+        }
+        Label(text: "Mask", style: .body)
+        if (vm.canAdd) { Label(id: "maskLayerName", text: vm.layerName, style: .caption, elideRight: true) }
+        else { Label(id: "maskNoLayer", text: "Select an artwork layer", style: .caption) }
+        HStack(spacing: Metric.space8, alignment: .center) {
+            Label(text: "Masks", style: .body, flex: 1)
+            ToggleSwitch(id: "maskStackEnabled", checked: vm.stackEnabled, enabled: vm.canAdd,
+                         accessibilityName: "Enable mask stack", onToggled: vm.setStackEnabled)
+        }
+        if (vm.legacyMasks) { Label(text: "Legacy masks are preserved; editing unavailable", style: .caption) }
+        if (vm.empty) { Label(id: "maskEmpty", text: "No masks", style: .caption) }
+        for (item in vm.rows, key: item.id, id: "maskRows", itemHeight: Metric.size44,
+             width: vm.contentWidth, height: vm.listHeight, overscan: 1) {
+            HStack(spacing: Metric.space4, alignment: .center) {
+                LabelButton(id: "maskName", text: item.name, tone: .default, flex: 1,
+                            checkable: false, checked: item.selected, selectionStyle: .segmented, onClick: item.select)
+                IconButton(id: "maskVisibility", iconName: "visibility", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, checkable: false, checked: item.enabled, selectionStyle: .segmented,
+                           accessibilityName: "Toggle mask visibility", onClick: item.toggleCurrent)
+            }
+        }
+        HStack(spacing: Metric.space4, alignment: .center) {
+            IconButton(id: "maskCreate", iconName: "new-layer", width: Metric.size22, height: Metric.size22,
+                       tone: .default, enabled: vm.canAdd, accessibilityName: "New mask", onClick: vm.createMask)
+            IconButton(id: "maskDuplicate", iconName: "duplicate-layer", width: Metric.size22, height: Metric.size22,
+                       tone: .default, enabled: vm.canEdit, accessibilityName: "Duplicate mask", onClick: vm.duplicateMask)
+            IconButton(id: "maskDelete", iconName: "delete-layer", width: Metric.size22, height: Metric.size22,
+                       tone: .default, enabled: vm.canEdit, accessibilityName: "Delete mask", onClick: vm.removeMask)
+            IconButton(id: "maskInvert", iconName: "mask-invert", width: Metric.size22, height: Metric.size22,
+                       tone: .default, enabled: vm.canEdit, checked: vm.inverted, checkable: false,
+                       selectionStyle: .segmented, accessibilityName: "Invert mask", onClick: vm.toggleInverted)
+        }
+        Label(text: "Properties", style: .body)
+        HStack(spacing: Metric.space8, alignment: .center) {
+            Label(text: "Combine", style: .body, flex: 1)
+            ComboBox(id: "maskCombine", text: vm.combine, width: vm.comboWidth, enabled: vm.canEdit,
+                     accessibilityName: "Mask combination", onClick: vm.openCombineMenu)
+        }
+        Label(text: "Feather", style: .caption)
+        Slider(id: "maskFeather", from: 0, to: 128, value: vm.feather, stepSize: 1,
+               width: vm.contentWidth, size: .mini, enabled: vm.canEdit,
+               accessibilityName: "Mask feather in pixels", onMoved: vm.setFeather)
+        Label(text: "Density", style: .caption)
+        Slider(id: "maskDensity", from: 0, to: 100, value: vm.density, stepSize: 1,
+               width: vm.contentWidth, size: .mini, enabled: vm.canEdit,
+               accessibilityName: "Mask density percent", onMoved: vm.setDensity)
+        if (vm.status != "") { Label(id: "maskStatus", text: vm.status, style: .caption) }
+        Menu(id: "maskCombineMenu", targetId: "maskCombine", showIconSlot: false) {
+            MenuItem(id: "maskCombineAdd", label: "Add / union", showIconSlot: false, hasChildItems: false, onClick: vm.setAdd)
+            MenuItem(id: "maskCombineSubtract", label: "Subtract", showIconSlot: false, hasChildItems: false, onClick: vm.setSubtract)
+            MenuItem(id: "maskCombineIntersect", label: "Intersect", showIconSlot: false, hasChildItems: false, onClick: vm.setIntersect)
+            MenuItem(id: "maskCombineReplace", label: "Replace", showIconSlot: false, hasChildItems: false, onClick: vm.setReplace)
+        }
+    }
+    }
+}

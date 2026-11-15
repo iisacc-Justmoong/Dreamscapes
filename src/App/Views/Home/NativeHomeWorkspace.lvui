@@ -1,0 +1,30 @@
+import vm NativeHomeWorkspaceBackend
+@Static let resizeHome: (Double, Double) -> Void = vm.sizeHandler(Metric.space12, Metric.space16)
+EventListener(id: "homeWorkspaceSurface", width: 0, height: 0, flex: 1,
+              onSizeChanged: resizeHome) {
+    HStack(id: "homeWorkspace", width: vm.windowWidth, height: vm.windowHeight, spacing: 0, alignment: .stretch) {
+        NativeView(id: "homeSidebar", source: vm.sidebar, width: vm.sidebarWidth, height: vm.windowHeight, clip: false)
+        ScrollView(id: "homeWorkspaceScroll", width: vm.viewportWidth, height: vm.windowHeight) {
+            VStack(id: "homeWorkspaceContent", width: vm.viewportWidth, spacing: Metric.space12,
+                   leftPadding: vm.inset, rightPadding: vm.inset, topPadding: Metric.space16, bottomPadding: Metric.space16,
+                   alignment: .stretch) {
+                HStack(id: "homeWorkspaceHeader", width: vm.contentWidth, spacing: Metric.space8, alignment: .center) {
+                    Label(text: vm.heading, style: .header2)
+                    if (vm.hasSubtitle) { Label(text: vm.subtitle, style: .caption, color: Color.text.description) }
+                    Spacer()
+                    LabelButton(id: "homeOpenFile", text: vm.openFileLabel, tone: .default, enabled: vm.canOpenFile, onClick: vm.openFile)
+                    LabelButton(id: "homeNewCanvas", text: vm.newCanvasLabel, tone: .default, enabled: vm.canNewCanvas, onClick: vm.newCanvas)
+                }
+                NativeView(id: "homeComposer", source: vm.composer, width: vm.contentWidth, height: vm.composerHeight)
+                if (vm.hasError) { Label(id: "homeError", text: vm.error, style: .caption) }
+                NativeView(id: "homeFileWorkspace", source: vm.filePair, width: vm.contentWidth, height: vm.filePairHeight)
+                NativeView(id: "homeSessionWorkspace", source: vm.sessionPair, width: vm.contentWidth, height: vm.sessionPairHeight)
+                HStack(id: "homeWorkspaceStatus", width: vm.contentWidth, height: Metric.size22, spacing: Metric.space8) {
+                    Label(id: "homeStatus", text: vm.status, style: .caption, color: Color.text.description, elideRight: true)
+                    Spacer()
+                    Label(text: vm.storageLabel, style: .caption, color: Color.text.description, elideRight: true)
+                }
+            }
+        }
+    }
+}

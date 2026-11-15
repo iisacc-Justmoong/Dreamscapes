@@ -33,6 +33,7 @@ public:
         OrdinalRole, ThumbnailRole, MediaTypeRole, TitleRole };
     explicit GenerationReviewModel(QObject* parent = nullptr);
     [[nodiscard]] std::shared_ptr<dreamscapes::review::Session> nativeSession() const { return m_session; }
+    [[nodiscard]] QVariantList originalEntries(const std::vector<dreamscapes::vm::Value> &values) const { return originalsFor(values); }
     int rowCount(const QModelIndex& parent = {}) const override;
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int,QByteArray> roleNames() const override;

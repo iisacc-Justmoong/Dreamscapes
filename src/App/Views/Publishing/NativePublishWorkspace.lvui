@@ -1,0 +1,57 @@
+import vm NativePublishWorkspaceBackend
+@Static let resizePublish: (Double, Double) -> Void = vm.sizeHandler(Metric.size280)
+EventListener(id: "publishSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizePublish) {
+    VStack(width: vm.width, height: vm.height, spacing: Metric.space8, padding: Metric.space8, alignment: .stretch) {
+        HStack(spacing: Metric.space8, alignment: .center) {
+            Label(text: "Publish", style: .header2, flex: 1)
+            LabelButton(id: "publishSaveDraft", text: "Save draft", tone: .default, enabled: vm.canSaveDraft, onClick: vm.saveDraft)
+            LabelButton(text: "Publish", tone: .default, enabled: vm.canPublish)
+        }
+        if (vm.draftMessage != "") { Label(id: "publishDraftMessage", text: vm.draftMessage, style: .caption) }
+        HStack(height: 0, flex: 1, spacing: Metric.space8, alignment: .stretch) {
+            VStack(width: vm.contentWidth, spacing: Metric.space8, alignment: .stretch) {
+                Label(text: "Title", style: .caption)
+                InputField(id: "publishTitle", text: vm.title, enabled: vm.hasDocument,
+                           accessibilityName: "Title", onEdited: vm.editTitle)
+                Label(text: "Description", style: .caption)
+                InputField(id: "publishDescription", text: vm.description, enabled: vm.hasDocument,
+                           accessibilityName: "Description", onEdited: vm.editDescription)
+                Label(text: "Canvas preview", style: .caption)
+                EventListener(id: "publishPreviewSurface", width: 0, height: 0, flex: 1,
+                              onSizeChanged: vm.previewSizeChanged) {
+                    ZStack(width: vm.previewWidth, height: vm.previewHeight, alignment: .center) {
+                        if (vm.hasFrame) {
+                            Image(id: "publishCanvasPreview", source: vm.renderedFrame,
+                                  width: vm.previewWidth, height: vm.previewHeight, fit: .Contain)
+                        }
+                        if (vm.renderStatus != "") {
+                            Label(id: "publishRenderStatus", text: vm.renderStatus, style: .caption)
+                        }
+                    }
+                }
+                Label(text: "Connect an account and prepare media to publish", style: .caption)
+                Label(id: "publishPlan", text: vm.planText, style: .caption)
+            }
+            VStack(width: vm.panelWidth, spacing: Metric.space4, alignment: .stretch) {
+                Label(text: "Publishing targets", style: .body)
+                Label(id: "publishPlatform", text: vm.platformName, style: .caption)
+                Label(id: "publishPolicy", text: vm.policyText, style: .caption)
+                HStack(spacing: Metric.space4) {
+                    Label(text: "Thread", style: .caption, flex: 1)
+                    ToggleSwitch(id: "publishThread", checked: vm.threaded, enabled: vm.canThread, onToggled: vm.setThreaded)
+                }
+                for (item in vm.targets, key: item.id, id: "publishTargets", itemHeight: Metric.size44, measureHeight: true,
+                     width: vm.panelWidth, height: 0, flex: 1, overscan: 1) {
+                    VStack(spacing: Metric.space2, alignment: .stretch) {
+                        HStack(spacing: Metric.space4, alignment: .center) {
+                            CheckBox(id: "publishInclude", text: item.name, checked: item.included,
+                                     enabled: vm.hasDocument, onToggled: item.setIncluded, flex: 1)
+                            LabelButton(id: "publishTarget", text: "Review", tone: .default, onClick: item.choose)
+                        }
+                        if (item.selectionStatus != "") { Label(text: item.selectionStatus, style: .caption) }
+                    }
+                }
+            }
+        }
+    }
+}

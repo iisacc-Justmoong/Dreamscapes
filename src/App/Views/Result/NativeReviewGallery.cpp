@@ -3,6 +3,30 @@
 #include <utility>
 
 namespace dreamscapes::review {
+namespace {
+std::string menuLabel(const std::weak_ptr<ReviewContextModel> &weak,ReviewContextAction action) {
+    auto menu=weak.lock(); return menu && menu->active()?menu->label(action):std::string{};
+}
+bool menuEnabled(const std::weak_ptr<ReviewContextModel> &weak,ReviewContextAction action) {
+    auto menu=weak.lock(); return menu && menu->active() && menu->enabled(action);
+}
+}
+void ReviewGalleryItem::openMenu() {if (auto menu=contextOwner.lock(); menu && menu->active()) (void)menu->open(key);}
+void ReviewGalleryItem::menuAction(int value) {
+    if (value<0 || value>static_cast<int>(ReviewContextAction::savePhotos)) return;
+    if (auto menu=contextOwner.lock(); menu && menu->active()) (void)menu->invoke(static_cast<ReviewContextAction>(value));
+}
+std::string ReviewGalleryItem::shortlistLabel() const {return menuLabel(contextOwner,ReviewContextAction::shortlist);}
+std::string ReviewGalleryItem::rejectLabel() const {return menuLabel(contextOwner,ReviewContextAction::reject);}
+std::string ReviewGalleryItem::resetLabel() const {return menuLabel(contextOwner,ReviewContextAction::reset);}
+std::string ReviewGalleryItem::compareLabel() const {return menuLabel(contextOwner,ReviewContextAction::compare);}
+std::string ReviewGalleryItem::editLabel() const {return menuLabel(contextOwner,ReviewContextAction::edit);}
+std::string ReviewGalleryItem::saveFileLabel() const {return menuLabel(contextOwner,ReviewContextAction::saveFile);}
+std::string ReviewGalleryItem::savePhotosLabel() const {return menuLabel(contextOwner,ReviewContextAction::savePhotos);}
+bool ReviewGalleryItem::canContextCompare() const {return menuEnabled(contextOwner,ReviewContextAction::compare);}
+bool ReviewGalleryItem::canContextEdit() const {return menuEnabled(contextOwner,ReviewContextAction::edit);}
+bool ReviewGalleryItem::canContextSaveFile() const {return menuEnabled(contextOwner,ReviewContextAction::saveFile);}
+bool ReviewGalleryItem::canContextSavePhotos() const {return menuEnabled(contextOwner,ReviewContextAction::savePhotos);}
 
 std::shared_ptr<ReviewGalleryModel> ReviewGalleryModel::create(std::shared_ptr<Session> session) {
     auto result = std::shared_ptr<ReviewGalleryModel>(new ReviewGalleryModel(std::move(session)));
@@ -29,6 +53,7 @@ void ReviewGalleryModel::requireOwner() const {
 
 void ReviewGalleryModel::start() {
     requireOwner();
+    context_ = ReviewContextModel::create(session_);
     navigation_ = ReviewNavigation::create(session_);
     const std::weak_ptr<ReviewGalleryModel> weak = shared_from_this();
     observer_ = std::make_shared<ChangePort>([weak](const Change &change) {
@@ -50,6 +75,7 @@ std::shared_ptr<ReviewNavigation> ReviewGalleryModel::navigation() const {
     requireOwner();
     return navigation_;
 }
+std::shared_ptr<ReviewContextModel> ReviewGalleryModel::contextMenu() const {requireOwner(); return context_;}
 
 void ReviewGalleryModel::bindNavigation(std::shared_ptr<dreamscapes::review::CollectionNavigation> navigation) {
     requireOwner();
@@ -116,6 +142,7 @@ void ReviewGalleryModel::updateItem(const Row &row) {
         item = std::make_shared<ReviewGalleryItem>();
         item->key = row.key;
         item->token = navigation_->tokenForKey(row.key);
+        item->contextOwner = context_;
     }
     if (item->source != row.thumbnail) {
         item->source = row.thumbnail;
@@ -126,6 +153,13 @@ void ReviewGalleryModel::updateItem(const Row &row) {
         (void)item->thumbnailAddress.set(vm::text(row.thumbnail));
     }
     (void)item->title.set(row.title);
+    (void)item->mediaType.set(row.mediaType);
+    (void)item->jobId.set(vm::text(vm::get(row.entry,"id")));
+    (void)item->ordinal.set(row.ordinal);
+    (void)item->rejected.set(row.review==State::Rejected);
+    (void)item->badgeVisible.set(row.selected || row.review!=State::Unreviewed);
+    (void)item->badge.set(std::string(row.selected?"✓ ":"") +
+        (row.review==State::Shortlisted?"★":row.review==State::Rejected?"×":""));
     (void)item->selected.set(row.selected);
     (void)item->focused.set(row.focused);
     const char *label = row.review == State::Shortlisted ? "Shortlisted"
@@ -148,6 +182,14 @@ void ReviewGalleryModel::setImageResolver(std::shared_ptr<const lvui::native::Im
     requireOwner();
     (void)imageResolver_.set(std::move(resolver));
 }
+bool ReviewGalleryModel::clearImageResolver(const std::shared_ptr<const lvui::native::ImageResolver<ii::gui::RasterImage>> &expected) {
+    // The native surface may retire after its gallery session has closed, but
+    // its image workers and event loop must still be released in that order.
+    if (owner_ != std::this_thread::get_id())
+        throw std::logic_error("Review gallery requires its owner thread");
+    if (imageResolver_.get()!=expected) return false;
+    (void)imageResolver_.set({}); return true;
+}
 
 std::shared_ptr<const ii::gui::RasterImage>
 ReviewGalleryModel::imageForToken(std::string_view token, std::uint32_t width, std::uint32_t height) const {
@@ -163,6 +205,18 @@ ReviewGalleryModel::imageForToken(std::string_view token, std::uint32_t width, s
     const auto resolver = imageResolver_.get();
     return address.empty() || !resolver ? nullptr : resolver->image(address, width, height);
 }
+std::optional<dreamscapes::native::PreviewStatus>
+ReviewGalleryModel::previewStatusForToken(std::string_view token,std::uint32_t width,std::uint32_t height) const {
+    requireOwner();
+    const auto key=navigation_->keyForToken(token); const auto found=itemsByKey_.find(key);
+    if (found==itemsByKey_.end()) return {};
+    const auto &item=found->second;
+    if (item->thumbnail.get()) return dreamscapes::native::PreviewStatus::ready;
+    const auto address=item->thumbnailAddress.get();
+    if (address.empty()) return dreamscapes::native::PreviewStatus::loading;
+    auto status=std::dynamic_pointer_cast<const dreamscapes::native::PreviewStatusSource>(imageResolver_.get());
+    return status?std::optional{status->previewStatus(address,width,height)}:std::nullopt;
+}
 
 void ReviewGalleryModel::updateActions() {
     (void)resultSummary.set(std::to_string(session_->totalCount()) + " results");
@@ -170,19 +224,29 @@ void ReviewGalleryModel::updateActions() {
     const auto action = session_->actionEntries();
     (void)canReview.set(!action.empty());
     (void)hasSelection.set(session_->selectedCount() != 0);
-    (void)canEdit.set(static_cast<bool>(edit_) && Session::validImages(action));
+    (void)canEdit.set(canEditEntries(action));
     (void)canCompare.set(static_cast<bool>(compare_) && Session::validImages(session_->selectedEntries(), 2, 4));
     (void)canExport.set(static_cast<bool>(export_) && !action.empty());
 }
 
-void ReviewGalleryModel::setEditHandler(Action handler) {
+bool ReviewGalleryModel::canEditEntries(const std::vector<vm::Value> &entries) const {
+    if (!edit_ || !Session::validImages(entries)) return false;
+    try {return !editEligible_ || editEligible_(entries);} catch (...) {return false;}
+}
+void ReviewGalleryModel::setEditHandler(Action handler,Eligibility eligible) {
     requireOwner();
-    edit_ = std::move(handler);
+    const auto keepAlive=shared_from_this(); auto contextHandler=handler;auto contextEligibility=eligible;
+    edit_ = std::move(handler);editEligible_=std::move(eligible);
+    context_->setEditHandler(std::move(contextHandler),std::move(contextEligibility));
+    if (!active_) return;
     updateActions();
 }
 void ReviewGalleryModel::setCompareHandler(Action handler) {
     requireOwner();
+    const auto keepAlive=shared_from_this(); auto contextHandler=handler;
     compare_ = std::move(handler);
+    context_->setCompareHandler(std::move(contextHandler));
+    if (!active_) return;
     updateActions();
 }
 void ReviewGalleryModel::setExportHandler(Action handler) {
@@ -194,11 +258,13 @@ void ReviewGalleryModel::setDetailHandler(Action handler) {
     requireOwner();
     detail_ = std::move(handler);
 }
+void ReviewGalleryModel::setSaveFileHandler(Action handler) {requireOwner(); context_->setSaveFileHandler(std::move(handler));}
+void ReviewGalleryModel::setSavePhotosHandler(Action handler) {requireOwner(); context_->setSavePhotosHandler(std::move(handler));}
 void ReviewGalleryModel::edit() {
     requireOwner();
     auto action = edit_;
     auto values = session_->actionEntries();
-    if (action && Session::validImages(values))
+    if (action && canEditEntries(values))
         action(std::move(values));
 }
 void ReviewGalleryModel::compare() {
@@ -234,15 +300,25 @@ void ReviewGalleryModel::activate(std::string token) {
     session_->focusAt(index);
     edit();
 }
+void ReviewGalleryModel::openDetail(std::string token) {
+    requireOwner();
+    const auto key = navigation_->keyForToken(token);
+    const auto index = session_->indexForKey(key);
+    if (index < 0) return;
+    session_->focusAt(index);
+    detail();
+}
 void ReviewGalleryModel::close() {
     if (!active_)
         return;
     requireOwner();
     active_ = false;
     observer_.reset();
+    if (context_) {context_->close(); context_.reset();}
     navigation_->close();
     navigation_.reset();
     session_.reset();
+    edit_={};editEligible_={};compare_={};export_={};detail_={};
     itemsByKey_.clear();
     (void)items.set({});
 }

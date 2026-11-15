@@ -1,0 +1,19 @@
+import vm NativeHomeComposerSeedBackend
+EventListener(id: "homeSeedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    VStack(width: vm.viewportWidth, spacing: Metric.space4, alignment: .stretch) {
+        Label(text: vm.heading, style: .caption, color: Color.text.description)
+        LabelMenuButton(id: "homeSeedButton", text: vm.value, accessibilityName: vm.heading,
+                        width: vm.viewportWidth, tone: .default, enabled: vm.enabled, onClick: vm.open)
+        Popover(id: "homeSeedPopover", accessibilityName: vm.heading) {
+            VStack(spacing: Metric.space8, alignment: .stretch) {
+                Label(text: vm.heading, style: .header2)
+                InputField(id: "homeSeedField", text: vm.draft, placeholder: vm.randomLabel,
+                           accessibilityName: vm.heading, onEdited: vm.edited)
+                HStack(spacing: Metric.space8) {
+                    LabelButton(id: "homeSeedRandom", text: vm.randomLabel, tone: .default, onClick: vm.randomize)
+                    LabelButton(id: "homeSeedApply", text: vm.applyLabel, tone: .default, onClick: vm.apply)
+                }
+            }
+        }
+    }
+}

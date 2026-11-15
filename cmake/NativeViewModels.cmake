@@ -9,6 +9,8 @@ add_library(DreamscapesViewModelsNative STATIC
     src/App/ViewModels/Native/ViewRuntime.cpp
     src/App/ViewModels/Native/ViewProjection.cpp
     src/App/ViewModels/Native/CanvasDraft.cpp
+    src/App/Views/Result/NativeReviewQueue.h
+    src/App/Views/Result/NativeReviewQueue.cpp
     src/App/Views/Result/NativeReviewSession.h
     src/App/Views/Result/NativeReviewSession.cpp)
 set_target_properties(DreamscapesViewModelsNative PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)

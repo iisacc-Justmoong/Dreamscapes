@@ -1,0 +1,14 @@
+import vm NativeHomeComposerChoiceBackend
+EventListener(id: "homeChoiceSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    VStack(id: "homeChoiceContent", width: vm.viewportWidth, spacing: Metric.space4, alignment: .stretch) {
+        if (vm.showHeading) { Label(id: "homeChoiceHeading", text: vm.heading, style: .caption, color: Color.text.description) }
+        LabelMenuButton(id: "homeChoiceButton", text: vm.value, accessibilityName: vm.heading,
+                        width: vm.viewportWidth, tone: .default, enabled: vm.enabled, onClick: vm.openMenu)
+        Menu(id: "homeChoiceMenu", targetId: "homeChoiceButton", showIconSlot: false) {
+            for (item in vm.choices, key: item.key, id: "homeChoiceRows") {
+                MenuItem(id: "homeChoiceEntry", label: item.label, enabled: item.enabled, state: item.state,
+                         showIconSlot: false, hasChildItems: false, onClick: { vm.choose(item.key) })
+            }
+        }
+    }
+}

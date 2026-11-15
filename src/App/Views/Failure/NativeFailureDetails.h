@@ -34,6 +34,7 @@ class FailureDetailsModel final {
     void show();
     void dismiss();
     void copyReport();
+    void wrappingFallbackChanged(bool fallback);
     void setReportFailure(std::string error);
     [[nodiscard]] const std::string &reportText() const noexcept { return text_; }
 
@@ -68,4 +69,5 @@ class NativeFailureDetailsBackend final {
     ii::core::Observable<std::string> &title, &closeLabel, &copyLabel, &accessibilityName, &copyError, &reportError, &wrappedText;
     void dismiss() { model->dismiss(); }
     void copyReport() { model->copyReport(); }
+    void wrappingFallbackChanged(bool fallback) { model->wrappingFallbackChanged(fallback); }
 };

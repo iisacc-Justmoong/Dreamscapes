@@ -1,0 +1,38 @@
+import nav NativeHomeRecentGenerationsNavigationScope
+import vm NativeHomeRecentGenerationsBackend
+EventListener(id: "recentGenerationSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    VStack(width: vm.viewportWidth, height: vm.viewportHeight, spacing: 0, alignment: .stretch, flex: 1) {
+        HStack(height: Metric.size22, alignment: .center, spacing: Metric.space6) {
+            Label(text: vm.heading, style: .header2, selectable: false, elideRight: true, flex: 1)
+            if (vm.canSelect) {
+                LabelButton(id: "recentGenerationSelect", text: vm.selectLabel, tone: .borderless, onClick: vm.toggleMode)
+            }
+            if (vm.selectionMode) {
+                LabelButton(id: "recentGenerationEdit", text: vm.editLabel, tone: .default, enabled: vm.canEdit, onClick: vm.edit)
+            }
+            LabelButton(id: "recentGenerationViewAll", text: vm.viewAll, tone: .borderless, onClick: vm.browse)
+        }
+        ZStack(alignment: .stretch, flex: 1) {
+            for (item in vm.rows, key: item.token, id: "recentGenerations", itemHeight: Metric.size48,
+                 itemWidth: vm.itemWidth, spacing: 0, overscan: 1, navigation: nav, selectionMode: .none,
+                 selectOnMove: false, selectOnClick: false, activateOnClick: true,
+                 onCurrentChanged: vm.focus, onActivate: vm.activate) {
+                HStack(id: "generationRow", width: vm.itemWidth, height: Metric.size48,
+                       spacing: Metric.space8, rightPadding: Metric.space12, alignment: .center,
+                       backgroundColor: item.selected ? Color.blue.selected : Color.transparent) {
+                    Image(id: "generationPreview", source: item.preview, width: 60, height: 40,
+                          fit: .Cover, cornerRadius: Metric.radius6)
+                    VStack(spacing: Metric.space2, alignment: .stretch, flex: 1) {
+                        Label(id: "generationName", text: item.name, style: .body, selectable: false, elideRight: true)
+                        Label(text: item.description, style: .caption, selectable: false, color: Color.text.description, elideRight: true)
+                        Label(text: item.summary, style: .caption, selectable: false, color: Color.text.description, elideRight: true)
+                    }
+                }
+            }
+            if (vm.showEmpty) {
+                Label(id: "recentGenerationEmpty", text: vm.emptyMessage, style: .body, selectable: false)
+            }
+        }
+        Label(text: vm.countSummary, style: .caption, color: Color.text.description, selectable: false, elideRight: true)
+    }
+}

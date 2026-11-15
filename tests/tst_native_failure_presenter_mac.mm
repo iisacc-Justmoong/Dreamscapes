@@ -13,6 +13,14 @@ void stop(NSApplication *app) {
     [app postEvent:[NSEvent otherEventWithType:NSEventTypeApplicationDefined location:NSZeroPoint
         modifierFlags:0 timestamp:0 windowNumber:0 context:nil subtype:0 data1:0 data2:0] atStart:YES];
 }
+// Host retirement and AppKit surface removal are asynchronous. Wait for the
+// observed state rather than assuming both finish within one fixed delay.
+void waitUntil(BOOL (^ready)(void), dispatch_block_t continuation) {
+    if (ready()) { continuation(); return; }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 20 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
+        waitUntil(ready, continuation);
+    });
+}
 struct State {
     std::string error;
     int dismissed = 0, fallback = 0;
@@ -53,7 +61,14 @@ int main(int argc, char **argv) {
             if (!presenterPtr->openOnNativeParent(controllerPtr, (__bridge void *)state->parent, "job-one")) {
                 state->error = "Native presenter refused a valid parent"; stop(app); return;
             }
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 300 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
+            waitUntil(^BOOL {
+                if (state->parent.subviews.count != state->originalSubviews + 1) return NO;
+                NSView *surface = state->parent.subviews.lastObject;
+                for (NSView *child in surface.subviews)
+                    if ([child.layer isKindOfClass:NSClassFromString(@"CAMetalLayer")] && !child.layer.opaque)
+                        return YES;
+                return NO;
+            }, ^{
                 if (state->parent.subviews.count != state->originalSubviews + 1 || state->window.delegate != state->windowDelegate) {
                     state->error = "Native failure view was not mounted in the borrowed window"; stop(app); return;
                 }
@@ -71,8 +86,16 @@ int main(int argc, char **argv) {
                 if (!model || model->reportText() != "Generated diagnostic") {
                     state->error = "Controller evidence did not reach the mounted native view"; stop(app); return;
                 }
+                const QString korean(1800, QChar(0xd55c));
+                controllerPtr->failureExplained("job-one", {{"jobId", "job-one"}, {"details", korean}});
+                if (!model->usesWrappedText.get() || model->reportText() != korean.toStdString()) {
+                    state->error = "A safe Korean report left the native failure view"; stop(app); return;
+                }
                 model->dismiss();
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 300 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
+                waitUntil(^BOOL {
+                    return state->dismissed == 1 && state->parent.subviews.count == state->originalSubviews &&
+                        !presenterPtr->activeModel();
+                }, ^{
                     if (state->dismissed != 1 || state->parent.subviews.count != state->originalSubviews || presenterPtr->activeModel()) {
                         state->error = "Dismissal did not retire the native surface"; stop(app); return;
                     }
@@ -80,10 +103,22 @@ int main(int argc, char **argv) {
                         state->error = "Could not reopen the native failure view"; stop(app); return;
                     }
                     controllerPtr->failureExplained("job-two", {{"jobId", "job-two"}, {"details", QString(5000, QLatin1Char('x'))}});
-                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 300 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
+                    auto longModel = presenterPtr->activeModel();
+                    if (!longModel || !longModel->usesWrappedText.get() || state->fallback != 0) {
+                        state->error = "A wrappable long report unnecessarily returned to QML"; stop(app); return;
+                    }
+                    if (!longModel->setViewport(17, 700)) {
+                        state->error = "Could not trigger a narrow native report viewport"; stop(app); return;
+                    }
+                    [state->window setContentSize:NSMakeSize(17, 700)];
+                    waitUntil(^BOOL {
+                        return state->fallback == 1 && state->parent.subviews.count == state->originalSubviews &&
+                            !presenterPtr->activeModel();
+                    }, ^{
                         if (state->fallback != 1 || state->parent.subviews.count != state->originalSubviews || presenterPtr->activeModel()) {
                             state->error = "Long-report fallback failed or left the surface mounted"; stop(app); return;
                         }
+                        [state->window setContentSize:NSMakeSize(900, 700)];
                         if (!presenterPtr->openOnNativeParent(controllerPtr, (__bridge void *)state->parent, "job-three")) {
                             state->error = "Could not reopen the view before shutdown"; stop(app); return;
                         }
@@ -97,7 +132,7 @@ int main(int argc, char **argv) {
                 });
             });
         });
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 8 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 25 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
             state->error = "Native presenter test timed out"; stop(app);
         });
         [app run];

@@ -1,0 +1,96 @@
+import vm NativeEditorWorkspaceBackend
+@Static let resizeEditor: (Double, Double) -> Void = vm.sizeHandler(Metric.size280, Metric.size22, Metric.space8)
+EventListener(id: "editorSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizeEditor) {
+    VStack(id: "editorWorkspace", width: vm.width, height: vm.height, spacing: Metric.space4, alignment: .stretch) {
+        HStack(spacing: Metric.space8, padding: Metric.space8, alignment: .center) {
+            if (vm.hasDocument) {
+                Label(id: "editorDocumentName", text: vm.title, style: .body, flex: 1)
+            } else {
+                Label(id: "editorNoDocument", text: "No canvas open", style: .body, flex: 1)
+            }
+            if (vm.dirty) { Label(id: "editorUnsaved", text: "Unsaved", style: .caption) }
+            LabelButton(id: "editorOpenFile", text: "Open", tone: .default, enabled: vm.canOpenFile, onClick: vm.openFile)
+            LabelButton(id: "editorSaveFile", text: "Save", tone: .default, enabled: vm.canSaveFile, onClick: vm.saveFile)
+            LabelButton(id: "editorSaveFileAs", text: "Save as", tone: .default, enabled: vm.canSaveFileAs, onClick: vm.saveFileAs)
+            LabelButton(id: "editorPublish", text: "Publish", tone: .default, enabled: vm.hasDocument, onClick: vm.publish)
+        }
+        if (vm.fileMessage != "") {
+            Label(id: "editorFileMessage", text: vm.fileMessage, style: .caption)
+        }
+        HStack(id: "editorBody", height: 0, flex: 1, spacing: Metric.space4, alignment: .stretch) {
+            VStack(id: "editorCanvasArea", width: vm.canvasWidth, spacing: Metric.space8,
+                   padding: Metric.space8, alignment: .stretch) {
+                if (vm.hasDocument) {
+                    Label(id: "editorDimensions", text: vm.dimensions, style: .caption)
+                }
+                EventListener(id: "editorCanvasSurface", width: 0, height: 0, flex: 1,
+                              onSizeChanged: vm.canvasSizeChanged) {
+                    ZStack(width: vm.previewWidth, height: vm.previewHeight, alignment: .center) {
+                        if (vm.hasDocument) {
+                            ZStack(width: vm.previewWidth, height: vm.previewHeight, alignment: .center) {
+                                if (vm.hasFrame) {
+                                    Image(id: "editorCanvasFrame", source: vm.renderedFrame,
+                                          width: vm.previewWidth, height: vm.previewHeight, fit: .Contain)
+                                }
+                                if (vm.renderStatus != "") {
+                                    Label(id: "editorCanvasStatus", text: vm.renderStatus, style: .caption)
+                                }
+                            }
+                        } else {
+                            Label(text: "Open a canvas to begin", style: .caption)
+                        }
+                    }
+                }
+            }
+            VStack(id: "editorLayersSlot", width: vm.panelWidth, spacing: 0, alignment: .stretch) {
+                NativeView(id: "editorPanelView", source: vm.panelView, width: vm.panelWidth, height: 0, flex: 1)
+            }
+            VStack(id: "editorToolBar", width: Metric.size22, spacing: Metric.space2, alignment: .center) {
+                IconButton(id: "editorElementsTool", iconName: "rectangle", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, checkable: false, checked: vm.elementsPanelActive, selectionStyle: .segmented,
+                           accessibilityName: "Elements", onClick: vm.showElementsPanel)
+                IconButton(id: "editorBackgroundTool", iconName: "panel-background-mask", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, checkable: false, checked: vm.maskPanelActive, selectionStyle: .segmented,
+                           accessibilityName: "Background", onClick: vm.showMaskPanel)
+                IconButton(id: "editorFileTool", iconName: "document-properties", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, checkable: false, checked: vm.filePanelActive, selectionStyle: .segmented,
+                           accessibilityName: "File", onClick: vm.showFilePanel)
+                IconButton(id: "editorCanvasTool", iconName: "canvas-size", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, checkable: false, checked: vm.canvasPanelActive, selectionStyle: .segmented,
+                           accessibilityName: "Canvas", onClick: vm.showCanvasPanel)
+                IconButton(id: "editorLayerTool", iconName: "panel-layers-stack", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, checkable: false, checked: vm.layerPanelActive, selectionStyle: .segmented,
+                           accessibilityName: "Layers", onClick: vm.showLayerPanel)
+            }
+        }
+        HStack(id: "editorTimeline", spacing: Metric.space8, padding: Metric.space8, alignment: .center) {
+            Label(text: "Timeline", style: .body)
+            LabelButton(id: "editorPreviousFrame", text: "Previous", tone: .default, enabled: vm.canPrevious, onClick: vm.previous)
+            LabelButton(id: "editorPlay", text: vm.playText, tone: .default, enabled: vm.canPlay, onClick: vm.togglePlayback)
+            Label(id: "editorFrame", text: vm.frameText, style: .caption)
+            LabelButton(id: "editorNextFrame", text: "Next", tone: .default, enabled: vm.canNext, onClick: vm.next)
+            if (vm.timelineStatus != "") { Label(id: "editorTimelineStatus", text: vm.timelineStatus, style: .caption) }
+            Label(text: "", style: .caption, flex: 1)
+            IconButton(id: "timelineNewLayer", iconName: "new-layer", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, enabled: vm.hasDocument, accessibilityName: "New layer or audio track",
+                       onClick: vm.openTimelineMenu)
+        }
+        EventListener(id: "editorTimelineSurface", width: vm.width, height: Metric.size280,
+                      onSizeChanged: vm.timelineSizeChanged) {
+            NativeView(id: "editorTimelineView", source: vm.timelineView,
+                       width: vm.timelineWidth, height: vm.timelineHeight)
+        }
+        Menu(id: "timelineNewMenu", targetId: "timelineNewLayer", showIconSlot: false) {
+            MenuItem(id: "timelineNewStaticBitmap", label: "Static bitmap", showIconSlot: false,
+                     hasChildItems: false, onClick: vm.createStaticBitmap)
+            MenuItem(id: "timelineNewStaticVector", label: "Static vector", showIconSlot: false,
+                     hasChildItems: false, onClick: vm.createStaticVector)
+            MenuItem(id: "timelineNewDynamicBitmap", label: "Dynamic bitmap", showIconSlot: false,
+                     hasChildItems: false, onClick: vm.createDynamicBitmap)
+            MenuItem(id: "timelineNewDynamicVector", label: "Dynamic vector", showIconSlot: false,
+                     hasChildItems: false, onClick: vm.createDynamicVector)
+            MenuItem(id: "timelineNewAudio", label: "Audio track", showIconSlot: false,
+                     hasChildItems: false, onClick: vm.createAudioTrack)
+        }
+    }
+}

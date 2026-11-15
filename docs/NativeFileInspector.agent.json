@@ -1,0 +1,107 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:ae437786e3bdd3ec5477e1ad9fba81bda0c43451fc7f2c1d226cf038ef93e465",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/NativeFileInspector.md",
+    "sha256": "9c343b58f7fa061b21d71d6964ad76699ae36a2908497418103c63cd677d4a23",
+    "bytes": 1652,
+    "line_count": 25,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Native file inspector",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Native file inspector\n",
+      "level": 1,
+      "title": "Native file inspector"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 9,
+      "raw": "The editor's File tool uses the Information, Contents and Storage sections in\n`resources/viewmodels/file.json`, which records the corresponding Dreamscapes\nFigma design. The native view presents every declared row without substituting\nFigma's sample content. Values come from the active iiSharedCanvas document,\nthe transient editor frame and the connected canvas-file session. A field for\nwhich those providers have not supplied data is labeled `Unavailable` rather\nthan guessed. The row set stays present even when no document is open.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 11,
+      "end_line": 18,
+      "raw": "The three section selectors and the File/Layers tool switch are presentation\nstate. They must not change, save or re-render the canvas. The inspector only\nobserves the active document and file session; existing editor Open and Save\ncommands remain the owners of file operations. Document and file changes\nrefresh the visible section, and frame changes update the current-frame value.\nThe inspector does not scan, hash or open a file while presenting these rows.\nFile size, storage kind and stored revision describe the last version verified\nby the file worker; external changes are detected by the existing save path.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 19,
+      "end_line": 19,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 20,
+      "end_line": 25,
+      "raw": "Native model and widget tests cover the complete schema, dynamic document and\nfile values, navigation without document edits and actual editor mounting. The\nschema is broader than the current native providers; unavailable fields are not\nevidence that the corresponding information is missing from an `.iisc` file.\nRepeated records are currently limited to 256 entries per field, with the\nomitted count displayed; pagination for larger collections is not yet connected.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Native file inspector",
+      "anchor": "native-file-inspector",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000005",
+        "line": 12,
+        "text": "state. They must not change, save or re-render the canvas. The inspector only",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

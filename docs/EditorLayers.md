@@ -1,5 +1,11 @@
 # Editor layer panels
 
+The sections describing LVRS controls and the legacy editor below document the
+previous implementation. The current native LVUI route implements Layer and
+Information, including independent duplication; Adjust, Histogram and the
+remaining legacy layer operations have not yet been migrated. See
+[NativeDynamicWorkspaces.md](NativeDynamicWorkspaces.md) for the current runtime.
+
 2026-10-16: Navigation now follows the compact atlas at Figma `778:87433`, `778:87555`, `778:87708` and `778:87856`: four 22px original LVRS icons inside the 30px selector, a trailing Reset icon, and a 20px current-view title with its 18px icon. The document-backed controls below retain their operations. Reset also restores histogram channel/source and clipping state. See [EditorCompactPanels.md](EditorCompactPanels.md).
 
 The existing resizable editor dock now presents four views from Dreamscapes Figma: [Layer 564:92996](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-92996), [Adjust 564:93315](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-93315), [Histogram 564:93634](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-93634), and [Information 564:93953](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=564-93953). The mobile Layer sheet uses the same presenter. Other editor tools retain their current presenters.
@@ -27,6 +33,20 @@ Histogram renders the current finite-canvas composite or selected layer at the c
 Information reads source dimensions, content type, actual embedded asset ID, untagged RGB and 8-bit raster precision (or vector geometry), rather than copying Figma's example profile and precision. Sample color reads a real composite pixel on the next canvas click; Copy color and Copy details use the system clipboard. Reveal source opens the saved document's directory because media is embedded in that document. Unsaved documents cannot reveal a source file.
 
 ## Validation
+
+### Native LVUI layer duplication contract
+
+The native layer panel's Duplicate action copies the selected bitmap or vector
+layer immediately above the original. Each referenced raster or vector asset is
+copied with a new document-unique identity, including each distinct source used
+by a dynamic layer; repeated references remain shared within the copy. Layer
+properties, timing, motion and source keyframes are preserved. The original
+layer and its assets remain independent, including in an already captured worker
+snapshot. Unsupported layer kinds cannot invoke this action. Selection changes
+alone never modify the document, while a successful duplicate marks the draft
+dirty and is saved through the existing `.iisc` path. A failed copy leaves the
+document unchanged. Runtime widget tests exercise the actual LVUI action; native
+document tests cover static and dynamic content, identities and serialization.
 
 The hierarchy's active row must track the selected document layer after duplicate, direct document selection, visibility updates and user row activation. The Layer GUI regression checks both document IDs and native row selection; all seven footer tones and rendered background colors are checked against Figma's default and destructive states before locking, while locked and after unlocking. It also checks footer icon loading, native icon slots and rendered sizes.
 

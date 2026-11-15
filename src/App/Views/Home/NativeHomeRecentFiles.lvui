@@ -1,0 +1,83 @@
+import nav NativeHomeRecentFilesNavigationScope
+import vm NativeHomeRecentFilesBackend
+EventListener(id: "recentSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    VStack(id: "recentContent", width: vm.viewportWidth, height: vm.viewportHeight,
+           spacing: Metric.space8, alignment: .stretch, flex: 1) {
+        HStack(spacing: Metric.space8, alignment: .center) {
+            Label(id: "recentHeading", text: vm.heading, style: .header2, selectable: false)
+            Label(id: "recentCount", text: vm.countSummary, style: .caption, color: Color.text.description, selectable: false)
+            Spacer()
+            LabelMenuButton(id: "recentFilter", text: vm.filterLabel, tone: .default, visible: vm.showFilter, onClick: vm.openFilter)
+            LabelButton(id: "recentViewAll", text: vm.viewAll, tone: .borderless, onClick: vm.browse)
+        }
+        HStack(spacing: Metric.space8, height: Metric.size22, leftPadding: Metric.space8,
+               rightPadding: Metric.space8, alignment: .center) {
+            Label(text: vm.fileColumn, style: .caption, color: Color.text.description, selectable: false, flex: 1)
+            if (vm.showSpecifications) {
+                HStack(width: 112) {
+                    Label(id: "recentSpecificationsHeader", text: vm.specificationsColumn,
+                          style: .caption, color: Color.text.description, selectable: false)
+                }
+            }
+            if (vm.showUpdated) {
+                HStack(width: 82) {
+                    Label(id: "recentUpdatedHeader", text: vm.updatedColumn,
+                          style: .caption, color: Color.text.description, selectable: false)
+                }
+            }
+            if (vm.showSpecifications) {
+                HStack(width: 70) {
+                    Label(id: "recentStateHeader", text: vm.stateColumn,
+                          style: .caption, color: Color.text.description, selectable: false)
+                }
+            }
+        }
+        ZStack(alignment: .stretch, flex: 1) {
+            for (item in vm.rows, key: item.token, id: "recentFiles", itemHeight: Metric.size48,
+                 spacing: 0, overscan: 1, navigation: nav, selectionMode: .single,
+                 activateOnDoubleClick: true, onActivate: vm.open) {
+                HStack(id: "recentRow", height: Metric.size48, spacing: Metric.space8, alignment: .center,
+                       leftPadding: Metric.space8, rightPadding: Metric.space8,
+                       backgroundColor: item.selected ? Color.blue.selected : Color.transparent) {
+                    Image(id: "recentPreview", source: item.preview, width: Metric.space36, height: Metric.space36,
+                          fit: .Cover, cornerRadius: Metric.radius6)
+                    VStack(spacing: Metric.space4, alignment: .stretch, flex: 1) {
+                        Label(id: "recentName", text: item.name, style: .body, selectable: false, elideRight: true)
+                        Label(id: "recentDescription", text: item.description, style: .caption, selectable: false,
+                              color: Color.text.description, elideRight: true)
+                    }
+                    if (vm.showSpecifications) {
+                        HStack(width: 112) {
+                            Label(id: "recentDimensions", text: item.dimensions, style: .caption,
+                                  selectable: false, color: Color.text.description, elideRight: true)
+                        }
+                    }
+                    if (vm.showUpdated) {
+                        HStack(width: 82) {
+                            Label(id: "recentDate", text: item.date, style: .caption,
+                                  selectable: false, color: Color.text.description, elideRight: true)
+                        }
+                    }
+                    if (vm.showSpecifications) {
+                        HStack(width: 70) {
+                            Label(id: "recentState", text: item.state, style: .caption,
+                                  selectable: false, color: Color.text.description, elideRight: true)
+                        }
+                    }
+                }
+            }
+            if (vm.showEmpty) {
+                Label(id: "recentEmpty", text: vm.emptyMessage, style: .body, selectable: false)
+            }
+        }
+        Label(id: "recentSelection", text: vm.selectionSummary, style: .caption,
+              color: Color.text.description, selectable: false, elideRight: true)
+        Menu(id: "recentFilterMenu", targetId: "recentFilter", showIconSlot: false, onItemTriggered: vm.filterAt) {
+            MenuItem(id: "recentFilterAll", label: vm.allTypesLabel, hasChildItems: false)
+            MenuItem(id: "recentFilterCanvas", label: vm.canvasLabel, hasChildItems: false)
+            MenuItem(id: "recentFilterImage", label: vm.imageLabel, hasChildItems: false)
+            MenuItem(id: "recentFilterVideo", label: vm.videoLabel, hasChildItems: false)
+            MenuItem(id: "recentFilterDocument", label: vm.documentLabel, hasChildItems: false)
+        }
+    }
+}

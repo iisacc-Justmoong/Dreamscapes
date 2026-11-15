@@ -35,7 +35,30 @@ void exercise() {
     good(threshold.setReport(vm::Value(vm::Object{{"details", vm::Value(std::string(limit - 1, 'x'))}})));
     check(threshold.usesWrappedText.get(), "Text below the layout limit should use wrapping");
     good(threshold.setReport(vm::Value(vm::Object{{"details", vm::Value(std::string(limit, 'x'))}})));
-    check(!threshold.usesWrappedText.get(), "Text at the layout limit should use the document viewer");
+    check(threshold.usesWrappedText.get(), "A long line fitting the text byte budget should try native wrapping");
+    std::string korean;
+    for (std::size_t i = 0; i < limit - 1; ++i) korean += "한";
+    good(threshold.setReport(vm::Value(vm::Object{{"details", vm::Value(korean)}})));
+    check(threshold.usesWrappedText.get(), "Safe Korean text was rejected by its UTF-8 byte length");
+    korean += "한";
+    good(threshold.setReport(vm::Value(vm::Object{{"details", vm::Value(korean)}})));
+    check(threshold.usesWrappedText.get(), "Korean text was rejected before actual layout");
+    std::string emoji;
+    for (std::size_t i = 0; i < limit / 2 - 1; ++i) emoji += "😀";
+    good(threshold.setReport(vm::Value(vm::Object{{"details", vm::Value(emoji)}})));
+    check(threshold.usesWrappedText.get(), "Safe supplementary text was rejected by its UTF-8 byte length");
+    emoji += "😀";
+    good(threshold.setReport(vm::Value(vm::Object{{"details", vm::Value(emoji)}})));
+    check(threshold.usesWrappedText.get(), "Supplementary text was rejected before actual layout");
+    good(threshold.setReport(vm::Value(vm::Object{{"details", vm::Value(std::string(limit - 1, '\n'))}})));
+    check(threshold.usesWrappedText.get(), "A trailing empty line inside the layout budget was rejected");
+    const auto narrow = NativeTextLayout::create(std::string(limit - 1, '\n'), {}, false, 1.0);
+    check(narrow && narrow->lines().size() == limit,
+          "The conservative bound did not preserve the final empty visual line");
+    good(threshold.setReport(vm::Value(vm::Object{{"details", vm::Value(std::string(limit, '\n'))}})));
+    check(!threshold.usesWrappedText.get(), "Too many actual paragraphs reached the bounded text editor");
+    good(threshold.setReport(vm::Value(vm::Object{{"details", vm::Value(std::string(NativeTextLayout::maximum_bytes+1, 'x'))}})));
+    check(!threshold.usesWrappedText.get(), "Text beyond the input byte limit reached the text editor");
     failure::FailureDetailsModel reentrant;
     bool rejectedReentry = false;
     auto subscription = reentrant.canCopy.observe([&](bool value, std::uint64_t) {
@@ -114,7 +137,7 @@ void exercise() {
           "Active view did not update or clear the stale copy error");
     good(take(modal.popup_content("failureDetails.action-0")).activate());
     check(!model->open.get() && !take(modal.snapshot()).opened, "Close did not dismiss the native dialog");
-    const std::string wrappedReport = std::string(3200, 'x') + " 한글 😀 end";
+    const std::string wrappedReport = std::string(5000, 'x') + " 한글 😀 end";
     good(model->setReport(vm::Value(vm::Object{{"details", vm::Value(wrappedReport)}})));
     check(model->usesWrappedText.get(), "A normal report did not use the wrapped viewer");
     model->show();
@@ -130,6 +153,48 @@ void exercise() {
     model->copyReport();
     check(copied == wrappedReport, "Visual wrapping changed the copied report");
     good(take(modal.popup_content("failureDetails.action-0")).activate());
+    std::string koreanReport;
+    for (int i = 0; i < 1800; ++i) koreanReport += "한";
+    good(model->setReport(vm::Value(vm::Object{{"details", vm::Value(koreanReport)}})));
+    check(model->usesWrappedText.get(), "A byte-heavy Korean report did not use the native viewer");
+    model->show();
+    (void)take(tree->drawing_snapshot({900, 700}));
+    reportBranch = take(modal.popup_content("@lvui/conditional/3"));
+    auto koreanEditor = take(reportBranch.content_item("failureExplanationText"));
+    auto koreanSnapshot = take(koreanEditor.snapshot());
+    check(take(koreanEditor.text_content({0, koreanSnapshot.text_length})).text == koreanReport,
+          "The wrapped native viewer lost Korean report text");
+    const auto koreanBounds = koreanSnapshot.bounds;
+    const auto koreanTop = take(koreanEditor.text_position(koreanBounds.x + 12, koreanBounds.y + 12));
+    const auto koreanNext = take(koreanEditor.text_position(koreanBounds.x + 12, koreanBounds.y + 35));
+    check(koreanNext > koreanTop, "The Korean report did not wrap into selectable visual lines");
+    good(tree->input({.kind=WidgetInputKind::pointer_down, .x=koreanBounds.x+10, .y=koreanBounds.y+10, .buttons=1}));
+    good(tree->input({.kind=WidgetInputKind::pointer_move, .x=koreanBounds.x+90, .y=koreanBounds.y+10, .buttons=1}));
+    good(tree->input({.kind=WidgetInputKind::pointer_up, .x=koreanBounds.x+90, .y=koreanBounds.y+10}));
+    const auto koreanSelection = take(koreanEditor.snapshot()).text_selection;
+    check(koreanSelection.length > 0, "The Korean report could not be selected by dragging");
+    model->copyReport();
+    check(copied == koreanReport && take(koreanEditor.snapshot()).text_selection == koreanSelection,
+          "The native viewer changed the Korean report or its selection during copy");
+    good(take(modal.popup_content("failureDetails.action-0")).activate());
+    good(model->setReport(vm::Value(vm::Object{{"details", vm::Value(wrappedReport)}})));
+    model->show();
+    (void)take(tree->drawing_snapshot({900,700}));
+    check(model->usesWrappedText.get(), "The wide viewport unnecessarily left the native wrapped viewer");
+    good(model->setViewport(17,700));
+    good(root.set_extent({17,700}));
+    (void)take(tree->drawing_snapshot({17,700}));
+    if (auto branch=modal.popup_content("@lvui/conditional/3")) {
+        if (auto field=branch->content_item("failureExplanationText")) {
+            if (auto geometry=field->snapshot())
+                (void)field->text_position(geometry->bounds.x+1,geometry->bounds.y+1);
+        }
+    }
+    check(!model->usesWrappedText.get() && model->reportText()==wrappedReport,
+          "An actual layout fallback was not reported or damaged the text");
+    good(take(modal.popup_content("failureDetails.action-0")).activate());
+    good(root.set_extent({900,700}));
+    good(model->setViewport(900,700));
     const std::string longReport = std::string(120000, 'x') + "\n완료";
     good(model->setReport(vm::Value(vm::Object{{"details", vm::Value(longReport)}})));
     model->copyReport();

@@ -1,0 +1,225 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:0c66a30b177d3a17a38eedd1366c20a9e4c8c5ff0a2326de0aeb3cbc9d577907",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/NativeApplicationWindow.md",
+    "sha256": "2a26820deb50cb6affbbeb9b63c500816da5ead851e24bf92e134488c490afde",
+    "bytes": 3036,
+    "line_count": 51,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Native application window migration",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Native application window migration\n",
+      "level": 1,
+      "title": "Native application window migration"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 7,
+      "raw": "Dreamscapes is moving from a QML-owned application window to LVUI views hosted\nby iiGUI. The window boundary must not require a `QWindow`, `QQuickItem`, or\nQML engine: it accepts a native widget factory and retains its resources until\nthe window closes. The product supplies its real view models and commands to\nthat factory; the window does not invent or persist application state.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "heading",
+      "start_line": 9,
+      "end_line": 9,
+      "raw": "## Window and event-loop contract\n",
+      "level": 2,
+      "title": "Window and event-loop contract"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 11,
+      "end_line": 16,
+      "raw": "The primary native window supports both a standalone iiGUI event loop and an\nalready-running native event loop. The latter is a transition path for the\nexisting Qt-based nonvisual controllers; iiGUI currently supports it on macOS\nand Windows. Unsupported platforms must return the iiGUI error rather than\nsilently displaying an incomplete screen. The standalone path is independent\nof QML and does not depend on an externally owned native window.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 17,
+      "end_line": 17,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 18,
+      "end_line": 24,
+      "raw": "Window operations and callbacks belong to the creating thread. The content\nfactory runs once after the host opens and may use the host's UI event loop.\nIts LVUI widget tree and retained services survive through the deferred close\ncallback. A failed factory reports its original error and closes the incomplete\nwindow; the application can then choose its own recovery. Closing can be\nvetoed by the application's existing unsaved-work policy. A window or its host\nmust never be destroyed while iiGUI is still processing a callback.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 25,
+      "end_line": 25,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 26,
+      "end_line": 29,
+      "raw": "`chooseFile` forwards file-dialog options and completion to the live iiGUI host\non the window's owner thread. A closed or unopened window rejects the request;\nunsupported hosts return their own error. A headless boundary test checks those\nstate and thread rules without opening a window or a system dialog.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "heading",
+      "start_line": 31,
+      "end_line": 31,
+      "raw": "## Scope and verification\n",
+      "level": 2,
+      "title": "Scope and verification"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 32,
+      "end_line": 32,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 33,
+      "end_line": 36,
+      "raw": "The new boundary is migration infrastructure, not a claim that the Home,\nreview, editor, publishing, preferences, or mobile flows have all moved. The\nexisting application still uses QML and LVRS until equivalent native screens,\nnavigation, dialogs, accessibility, and platform behavior are connected.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 37,
+      "end_line": 37,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 38,
+      "end_line": 44,
+      "raw": "Tests create an isolated native window under a nonactivating test application,\nmount the generated LVUI Home queue with its real view model, exercise a button\nand close veto, and verify resource lifetime and failure handling. They use no\npretrained model, live Society store, or installed Dreamscapes application.\nThis test exercises the external event-loop path on macOS; it does not verify\nstandalone event-loop ownership, the Windows adapter, or mobile hosts. The full\nproduct build and legacy tests remain separate evidence.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 45,
+      "end_line": 45,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 46,
+      "end_line": 51,
+      "raw": "`Dreamscapes.NativeHomeQueueWindow` also connects this window to the product's\nreal generation and workspace session through `NativeHomeQueueSession`. It\nuses an isolated Society fixture and a paused generation queue, checks that\nlive queued-job counts reach the LVUI widgets, and activates the existing\nreview navigation. The current controllers in that integration remain\nQt-based; the test does not instantiate a QML or Qt view.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Native application window migration",
+      "anchor": "native-application-window-migration",
+      "start_line": 1
+    },
+    {
+      "block_id": "b000005",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Window and event-loop contract",
+      "anchor": "window-and-event-loop-contract",
+      "start_line": 9
+    },
+    {
+      "block_id": "b000013",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Scope and verification",
+      "anchor": "scope-and-verification",
+      "start_line": 31
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 4,
+        "text": "by iiGUI. The window boundary must not require a `QWindow`, `QQuickItem`, or",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000007",
+        "line": 14,
+        "text": "and Windows. Unsupported platforms must return the iiGUI error rather than",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000009",
+        "line": 24,
+        "text": "must never be destroyed while iiGUI is still processing a callback.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

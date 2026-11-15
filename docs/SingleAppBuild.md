@@ -42,3 +42,13 @@ python3 -B -m unittest discover -s tests -p test_deploy_macos_lock.py -v
 같은 환경 변수로 `DreamscapesMcpTests nativeQuitReapsActiveGeneration`을 실행하면 격리된 테스트 모델과 대기 중인 생성 프로세스를 사용한다. 실제 추론을 실행하지 않으며, 생성 중 일반 종료가 요청된 뒤 자식 프로세스와 로컬 endpoint가 정리되는지 확인한다. 생성에 필요한 Society 라이선스 세션이 없으면 생성 중 종료 검사는 건너뛰고 그 사실을 보고한다. 설치본 대상 지정도 위와 동일하다.
 
 File 패널 빌드 검증은 iiSharedCanvas 0.30.2와 이를 정확히 참조하는 iiSocietyHelper 0.8.2를 `build/runtime-sdk`에 설치해 사용한다. iiGraphicAdjust는 앱의 기존 0.4.0 계약에 맞는 `SDK/iiGraphicAdjust/build/stage` 패키지를 사용한다. 별도 설치본의 더 최신 패키지로 자동 교체하지 않는다.
+# Inference SDK header precedence
+
+The desktop MCP integration receives iiLocalDiffusion types through the
+iiMultimodalAgent image-type interface. Both interfaces must use the explicitly
+selected iiLocalDiffusion package as a normal include directory. Otherwise an
+older header in the environment's `CPATH` can precede the selected package's
+system include directory and make the headers disagree with the linked SDK.
+When compile commands are exported, `Dreamscapes.SelectedInferenceHeaders`
+checks the real product compile command with a conflicting temporary `CPATH`
+header. It performs syntax checking only and does not launch the application.

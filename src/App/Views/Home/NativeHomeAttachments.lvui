@@ -1,0 +1,23 @@
+import vm NativeHomeAttachmentsBackend
+EventListener(id: "homeAttachmentsSurface", width: 0, height: Metric.size44, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "homeAttachmentsScroll", width: vm.viewportWidth, height: Metric.size44,
+               horizontal: true, visible: vm.visible) {
+        HStack {
+            for (item in vm.rows, key: item.key, id: "homeAttachments", horizontal: true, spacing: Metric.space8) {
+                HStack(id: "homeAttachment", width: 220, height: Metric.size44, spacing: Metric.space8,
+                       leftPadding: Metric.space6, rightPadding: Metric.space6, alignment: .center,
+                       backgroundColor: Color.surfacePanel, cornerRadius: Metric.radius12) {
+                    Image(id: "homeAttachmentImage", source: item.preview, width: 30, height: 30, fit: .Cover)
+                    VStack(spacing: 0, alignment: .stretch, flex: 1) {
+                        Label(id: "homeAttachmentName", text: item.name, style: .body, selectable: false, elideRight: true)
+                        Label(id: "homeAttachmentDetail", text: item.detail, style: .caption, selectable: false,
+                              color: Color.text.description, elideRight: true)
+                    }
+                    IconButton(id: "homeAttachmentRemove", iconName: "generalremove", width: Metric.size22,
+                               height: Metric.size22, tone: .default, enabled: vm.enabled,
+                               accessibilityName: item.removeAccessible, onClick: { vm.remove(item.key) })
+                }
+            }
+        }
+    }
+}

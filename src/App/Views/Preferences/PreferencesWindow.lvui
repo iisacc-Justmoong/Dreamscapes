@@ -1,0 +1,39 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Preferences Window", style: .header2)
+            Label(id: "migratedText0", text: "Preferences — Dreamscapes", style: .body)
+            Label(id: "migratedText1", text: "Display Name", style: .body)
+            Label(id: "migratedText2", text: "General", style: .body)
+            Label(id: "migratedText3", text: "Appearence", style: .body)
+            Label(id: "migratedText4", text: "Storage", style: .body)
+            Label(id: "migratedText5", text: "Image", style: .body)
+            Label(id: "migratedText6", text: "Video", style: .body)
+            Label(id: "migratedText7", text: "Audio", style: .body)
+            Label(id: "migratedText8", text: "Agents", style: .body)
+            Label(id: "migratedText9", text: "Share", style: .body)
+            Label(id: "migratedText10", text: "Intergration", style: .body)
+            Label(id: "migratedText11", text: "Publish", style: .body)
+            Label(id: "migratedText12", text: "About", style: .body)
+            Label(id: "migratedText13", text: "Accessibility", style: .body)
+            Label(id: "migratedText14", text: "Keyboard Shortcut", style: .body)
+            Label(id: "migratedText15", text: "Choose the existing Society drive used for shared models and files. This does not move or delete data.", style: .body)
+            Label(id: "migratedText16", text: "Current location", style: .body)
+            Label(id: "migratedText17", text: "Existing Society drive folder", style: .body)
+            Label(id: "migratedText18", text: "Choose folder…", style: .body)
+            Label(id: "migratedText19", text: "Apply", style: .body)
+            Label(id: "migratedText20", text: "Set the defaults used for new generations.", style: .body)
+            Label(id: "migratedText21", text: "Default image generation model", style: .body)
+            Label(id: "migratedText22", text: "Default video generation model", style: .body)
+            Label(id: "migratedText23", text: "Default prompt", style: .body)
+            Label(id: "migratedText24", text: "Default negative prompt", style: .body)
+            Label(id: "migratedText25", text: "Account", style: .body)
+            Label(id: "migratedText26", text: "Sign in to Society to verify your Dreamscapes license.", style: .body)
+            Label(id: "migratedText27", text: "Check license", style: .body)
+            Label(id: "migratedText28", text: "Open Society", style: .body)
+        }
+    }
+}

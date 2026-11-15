@@ -1,0 +1,255 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:caf0cdb44de9758e0174d3b215aa5b8d51b8b747dde467b79d5c28a3111e7144",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/NativeReviewQueue.md",
+    "sha256": "c2a55b6db1ed135d0ef94e930b869d77a06d97c8c51425e7cd57e0800f64994d",
+    "bytes": 7816,
+    "line_count": 86,
+    "encoding": "utf-8",
+    "language": "ko"
+  },
+  "document": {
+    "title": "생성 검토 큐의 네이티브 뷰모델",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# 생성 검토 큐의 네이티브 뷰모델\n",
+      "level": 1,
+      "title": "생성 검토 큐의 네이티브 뷰모델"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 6,
+      "raw": "생성 검토 화면의 큐는 제품 생성 세션이 제공하는 작업과 진행 상태를 읽는\n화면 투영이다. 원본 결과, 생성 작업, 파일을 변경하지 않는다. LVUI는 이 모델이\n제공하는 행과 상태를 표시하며 실제 취소와 실패 상세 열기는 호스트가 제공한\n콜백으로 전달한다.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 8,
+      "end_line": 12,
+      "raw": "`QueueSnapshot`은 전체 작업과 현재 추론 단계, 현재 미리보기 주소를 담는다.\n작업 순서와 실재하는 출력 수를 보존하며 완료된 작업에 임의의 진행률을 부여하지\n않는다. 실행·연결·다운로드는 Running, 대기는 Queued, 완료·실패·취소는 각각\n별도로 센다. 측정 가능한 진행은 실제 활성 작업의 step과 양수 total이 함께 있을\n때에만 표시한다. 미리보기는 활성 작업에만 연결한다.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 13,
+      "end_line": 13,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 14,
+      "end_line": 22,
+      "raw": "행은 작업 ID에 안정된 화면 토큰을 할당한다. 같은 작업의 단계나 진행률이 바뀌어도\n기존 행 객체를 보존해 스크롤 및 포커스가 초기화되지 않게 한다. 제거된 행에서 늦게\n들어온 명령은 무시한다. 작업 ID가 중복되면 스냅샷을 거절하고 기존 표시를 보존한다.\nID가 없는 작업도 목록에서 빠뜨리지 않지만 필터·취소·실패 상세 명령을 허용하지\n않는다. 표시 문자열과 명령은 모델의 소유 스레드에서 처리한다.\n표시 알림 수신자가 예외를 던지더라도 다른 행과 상태의 갱신을 시도하고 오류를\n호출자에게 돌려준다. 명령의 허용 여부는 갱신된 원본 작업 상태를 기준으로 확인한다.\n호스트의 번역·서식 함수가 실패하면 새 투영을 적용하기 전에 오류를 반환하며 기존\n큐를 유지한다.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 23,
+      "end_line": 23,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 24,
+      "end_line": 28,
+      "raw": "큐에서 작업을 선택하면 같은 네이티브 검토 세션의 작업 필터만 바꾸며 결과 선택과\n원본 메타데이터를 유지한다. All jobs는 이 필터를 해제한다. 취소는 현재 대기·실행·\n연결·다운로드 작업에만, 실패 상세는 현재 실패 작업에만 전달한다. 콜백이 없으면\n해당 명령은 비활성화된다. 행을 제거하거나 큐를 닫은 뒤 예전 행을 눌러도 새 작업에\n명령이 전달되면 안 된다.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 29,
+      "end_line": 29,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 30,
+      "end_line": 44,
+      "raw": "기존 생성 투영을 사용하는 동안 `NativeReviewQueueBridge`는 작업과 추론 상태를\n네이티브 모델에 전달한다. 미리보기의 작업 ID와 URL은 기본적으로 같은 생성 투영에서\n읽고 현재 활성 작업의 주소만 표시한다. 독립 호스트는 명시적으로 별도 미리보기를\n제공할 수도 있다. 작업 취소와 실패 상세는 호스트가 제공하는 콜백으로 돌리고,\n브리지 또는 생성 투영이 종료되면 콜백을 제거한다. 거절된 스냅샷의 오류는\n`lastError`로 노출하고 이전 큐를 유지한다. 그동안 취소와 실패 상세 명령은\n비활성화하며, 다음 유효한 스냅샷이 도착하면 호스트가 제공한 명령을 다시 연결한다.\n기존 제품 화면을 네이티브 표면으로 이행할 때에는 생성 투영이 작업 상태와 미리보기\n주소·작업 ID를 한 스냅샷으로 제공한다. 큐 항목과 All jobs의 활성화는 필터를\n바꾼 뒤 호스트에 원래 작업 ID를 전달하므로 기존의 포커스 복귀나 좁은 화면 닫기\n동작도 유지할 수 있다. 출처가 유효하지 않거나 연결이 끝난 동안에는 필터 변경도\n차단하며, 유효한 투영이 돌아오면 다시 허용한다.\n작업과 추론 상태가 그대로인 미리보기 변경은 해당 미리보기만 갱신한다. 각 프레임마다\n모든 작업 행을 다시 만들거나 서식을 적용하지 않으며, 작업이 바뀌는 스냅샷에서는\n새 작업과 미리보기의 대상 ID를 함께 검증한다.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 45,
+      "end_line": 45,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 46,
+      "end_line": 49,
+      "raw": "제품 세션 연결은 기존 `WorkspaceSession`의 생성 컨트롤러와 검토 모델이 소유한\n동일한 네이티브 세션을 사용한다. 호스트는 작업 선택·취소·실패 상세 콜백을\n주입하며, 큐 화면 자체는 Qt나 QML 타입을 참조하지 않는다. 세션을 닫으면 늦게\n전달된 행 동작은 원래 컨트롤러에 도달하지 않는다.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 50,
+      "end_line": 50,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 51,
+      "end_line": 56,
+      "raw": "macOS 전환 표면은 기존 창의 지정된 영역에 iiGUI 호스트를 붙이고 LVUI 큐를\n마운트한다. 미리보기 파일 읽기·디코딩은 별도의 제한된 iiSDK 작업자에서 수행하며,\n완료 알림은 호스트의 UI 이벤트 루프로 전달한다. 숨김과 위치·크기 변경은 생성\n작업이나 파일을 변경하지 않는다. 표면을 닫을 때는 작업을 취소하고 UI 스레드를\n막지 않고 작업자의 종료를 기다린 뒤 호스트와 빌린 부모 뷰를 해제한다. 부모 창이\n먼저 닫혀도 작업자 종료가 완료될 때까지 표면을 유지한다.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 57,
+      "end_line": 57,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 58,
+      "end_line": 64,
+      "raw": "macOS 제품 진입점은 생성 검토 화면의 넓은 큐와 좁은 큐에 이 표면을 연결한다.\n표면은 큐가 실제로 필요할 때 생성되고 기존 검토 세션, 선택·취소·실패 상세 신호와\n같은 데이터를 사용한다. 창 크기나 큐의 위치가 바뀌면 표면도 이동한다. 큐가 잘리거나\n회전되었을 때, 다른 모달·팝업이 표시될 때, 표면을 생성하지 못할 때는 해당 영역의\n기존 화면으로 돌아간다. 언어가 바뀌면 기존 검토 세션을 보존하며 번역된 표면을 다시\n만든다. 정상 종료에서는 표면과 미리보기 작업이 정리될 때까지 비동기로 기다린다.\n이는 QML 호스트와의 전환 연결이며, 아직 QML 진입점이나 기존 큐 파일을 제거하지 않는다.\n"
+    },
+    {
+      "id": "b000018",
+      "kind": "blank",
+      "start_line": 65,
+      "end_line": 65,
+      "raw": "\n"
+    },
+    {
+      "id": "b000019",
+      "kind": "paragraph",
+      "start_line": 66,
+      "end_line": 79,
+      "raw": "`Dreamscapes.NativeReviewQueue`는 작업별 진행률과 미리보기 대상, 필터·선택 보존,\n오래된 명령, 중복 ID, 익명 작업, 알림·서식 실패 및 스레드 경계를 검사한다.\n`Dreamscapes.NativeReviewQueueBridge`는 기존 생성 투영의 갱신과 명령 인자, 잘못된\n스냅샷에서의 명령 차단과 복구, 연결 종료를 검사한다. 두 검사는 실제 생성이나\n제품 창에서의 네이티브 렌더링을 실행하지 않는다.\n`Dreamscapes.NativeReviewQueueWidget`은 네이티브 위젯 트리에서 빈 상태, 행 선택,\n작업별 명령, 진행률 변경, 사용 가능한 영역을 채우는 목록 높이와 1,000개 작업의\n가상화를 검사한다. 화면 밖 행의 높이가 바뀔 때 보이는 행의 위치도 검사한다.\n`Connected` 검사는 기존 생성 투영의 신호가 위젯과 명령까지 전달되는지 검사한다.\n`ProductSession`은 중지된 생성 컨트롤러를 통해 제품 세션에 대한 선택·취소와 미리보기\n전환을 검사한다. `Region`, `Overlays`, `Presenter`는 창 배치, 팝업 겹침, 넓은 화면과\n좁은 화면의 전환, 번역 재생성, 종료 조정을 검사한다. macOS `SurfaceMac`과\n`SurfaceLifetimeMac`은 숨긴 테스트 창에서 실제 iiGUI 표면, 파일 미리보기, 창이 먼저\n닫히는 경우를 검사한다. 실제 제품 실행이나 이미지 생성은 이 검사에 포함되지 않는다.\n"
+    },
+    {
+      "id": "b000020",
+      "kind": "blank",
+      "start_line": 80,
+      "end_line": 80,
+      "raw": "\n"
+    },
+    {
+      "id": "b000021",
+      "kind": "paragraph",
+      "start_line": 81,
+      "end_line": 86,
+      "raw": "이 모델과 검사는 LVUI 기반 전환의 일부다. 다른 운영체제의 제품 큐 및 나머지 QML\n화면의 전환이 완료되었다는 의미는 아니다. 빈 상태의 디자인 참조는\n[Figma Generation review](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1699-6367),\n진행·실패 행의 참조는 [Figma Queue states](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1701-6421)이다.\n네이티브 큐는 LVUI와 iiGUI의 자연 높이 가상 목록을 사용한다. 각 행의 상태 변경으로\n버튼이나 진행 막대가 나타나고 사라질 때 화면 밖 행의 높이 캐시도 무효화한다.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "생성 검토 큐의 네이티브 뷰모델",
+      "anchor": "생성-검토-큐의-네이티브-뷰모델",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 4,
+        "text": "화면 투영이다. 원본 결과, 생성 작업, 파일을 변경하지 않는다. LVUI는 이 모델이",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 48,
+        "text": "주입하며, 큐 화면 자체는 Qt나 QML 타입을 참조하지 않는다. 세션을 닫으면 늦게",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 49,
+        "text": "전달된 행 동작은 원래 컨트롤러에 도달하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 54,
+        "text": "작업이나 파일을 변경하지 않는다. 표면을 닫을 때는 작업을 취소하고 UI 스레드를",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000017",
+        "line": 64,
+        "text": "이는 QML 호스트와의 전환 연결이며, 아직 QML 진입점이나 기존 큐 파일을 제거하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000019",
+        "line": 70,
+        "text": "제품 창에서의 네이티브 렌더링을 실행하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000021",
+        "label": "Figma Generation review",
+        "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1699-6367",
+        "kind": "external",
+        "line": 83
+      },
+      {
+        "block_id": "b000021",
+        "label": "Figma Queue states",
+        "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=1701-6421",
+        "kind": "external",
+        "line": 84
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

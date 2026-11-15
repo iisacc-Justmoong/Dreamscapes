@@ -1,0 +1,11 @@
+import vm NativeHomePresetGroupBackend
+@Static let resizePreset: (Double, Double) -> Void = vm.sizeHandler(Metric.space4, 52)
+EventListener(id: "homePresetGroupSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizePreset) {
+    VStack(width: vm.viewportWidth, spacing: Metric.space4, alignment: .stretch) {
+        Label(text: vm.heading, style: .caption, color: Color.text.description)
+        HStack(spacing: Metric.space4, alignment: .center) {
+            NativeView(id: "homePresetLoadSlot", source: vm.choice, width: vm.choiceWidth, height: Metric.size22, clip: false)
+            NativeView(id: "homePresetSaveSlot", source: vm.save, width: vm.saveWidth, height: Metric.size22, clip: false)
+        }
+    }
+}

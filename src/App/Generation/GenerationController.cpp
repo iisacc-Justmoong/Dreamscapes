@@ -1320,6 +1320,9 @@ void GenerationController::startWorkerGeneration(const QString &model)
                 "--image-cond-noise-scale", QString::number(video.value("imageConditionNoise").toDouble()),
                 "--video-crf", QString::number(video.value("crf").toInt()),
                 "--video-preset", video.value("encodingPreset").toString()});
+            // An explicit flag makes older workers fail closed instead of
+            // silently treating Sequential as ordinary native execution.
+            if (video.value("offload").toString() == "sequential") arguments.append("--low-vram");
         }
         const auto firstFrame = video.value("firstFrame").toString();
         if (!firstFrame.isEmpty()) arguments.append({"--first-frame",firstFrame});

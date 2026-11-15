@@ -1,0 +1,233 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:1299be7ef2c24cc6621e3a78630cc14aa80291cc7d7387f34bde0477177b72aa",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/NativeHomeRecentFiles.md",
+    "sha256": "749b7328a3fb8faa92d3fecc0cbae21cfcde831d83698950a46097dde9256eea",
+    "bytes": 3597,
+    "line_count": 56,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Home recent files migration contract",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Home recent files migration contract\n",
+      "level": 1,
+      "title": "Home recent files migration contract"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 7,
+      "raw": "The Home recent-files view is being moved to LVUI and iiGUI using Dreamscapes\nFigma node `1467:5049`. The Figma names and pictures are examples; the product\nmust use the real recent-file projection and preview resolver. The containing\nHome layout supplies the outside 12px inset. The view uses LVUI controls and\ntokens, not product-specific colors or component overrides.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 14,
+      "raw": "The header contains the file count, type filter and View all command. The\nscrollable list presents the thumbnail, name, summary, specifications,\nmodified date and state. At the same breakpoints as the current Home view it\nomits lower-priority columns and the filter when the content is narrow. An\nempty or loading list reports the corresponding status. File counts and\nmetadata must come from the product snapshot rather than invented data.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 15,
+      "end_line": 15,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 16,
+      "end_line": 23,
+      "raw": "Selection and keyboard focus are view state. A stable file identity must survive\nreordering, filtering and changes to other entries. Filtering does not change\nthe selected file. Removing a selected file chooses the first remaining file,\nmatching the current view. Selecting a row updates the shared selected-file\npanel; Enter and double-click open the selected file through the original\napplication route, and View all navigates to the existing file browser. The\nexact original file value, including remote-storage fields, must be retained for\nopen. List scrolling and selection must not edit a file or start a generation.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 24,
+      "end_line": 24,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 25,
+      "end_line": 31,
+      "raw": "The native view model and renderer do not depend on Qt, QML or LVRS. The\nexisting Home and storage controllers remain separate transport adapters until\nthe application window has migrated. Use a keyed, virtualized LVUI collection\nand asynchronous image resolver, retaining only visible row widgets. Tests\nmust cover empty and loading views, filtering, row identities, live selection,\nreordering, source removal, keyboard and pointer commands, remote file\nnavigation, responsive layout, image loading and native renderer boundaries.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 32,
+      "end_line": 32,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 33,
+      "end_line": 38,
+      "raw": "The LVUI list, native navigation and Qt-free projection are implemented. The\nmacOS application attaches the native list to the current Home panel through a\ntemporary presenter. The original QML panel remains the layout and transport\nhost, and becomes visible again if the native surface fails, is obscured by a\nmodal, or is closing. The containing window and the rest of Home still require\nmigration; this adapter does not remove their Qt, QML or LVRS dependencies.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 39,
+      "end_line": 39,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 40,
+      "end_line": 45,
+      "raw": "The session keeps the original file values for open and creates stable preview\naddresses without reading every file. The image resolver resolves addresses for\nvisible rows on demand, and the existing native image loader performs decoding\nasynchronously. Replaced snapshots invalidate their preview addresses, including\nwhen the source changes while an address is being resolved. Filtering is a view\noperation and never rewrites the original files.\n"
+    },
+    {
+      "id": "b000014",
+      "kind": "blank",
+      "start_line": 46,
+      "end_line": 46,
+      "raw": "\n"
+    },
+    {
+      "id": "b000015",
+      "kind": "paragraph",
+      "start_line": 47,
+      "end_line": 52,
+      "raw": "Automated coverage exercises the model, actual iiGUI widget tree, input and\nvirtualized collection, session, presenter and the Qt-free renderer boundary.\nThe widget test uses 1,000 items and checks that only a bounded number of row\nwidgets and preview requests are active. Presenter tests use a QML fixture to\ncheck the temporary connection; they do not establish a manually verified\ninstalled-application or platform-rendering result.\n"
+    },
+    {
+      "id": "b000016",
+      "kind": "blank",
+      "start_line": 53,
+      "end_line": 53,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 54,
+      "end_line": 56,
+      "raw": "The intermediate native Home composition keeps this same list widget mounted\nwhile switching between its wide and narrow layout. A headless composition test\nchecks that its scroll position and keyboard focus survive the breakpoint.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Home recent files migration contract",
+      "anchor": "home-recent-files-migration-contract",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 5,
+        "text": "must use the real recent-file projection and preview resolver. The containing",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000005",
+        "line": 14,
+        "text": "metadata must come from the product snapshot rather than invented data.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000007",
+        "line": 16,
+        "text": "Selection and keyboard focus are view state. A stable file identity must survive",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000007",
+        "line": 22,
+        "text": "exact original file value, including remote-storage fields, must be retained for",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000007",
+        "line": 23,
+        "text": "open. List scrolling and selection must not edit a file or start a generation.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000009",
+        "line": 25,
+        "text": "The native view model and renderer do not depend on Qt, QML or LVRS. The",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000009",
+        "line": 29,
+        "text": "must cover empty and loading views, filtering, row identities, live selection,",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 45,
+        "text": "operation and never rewrites the original files.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000015",
+        "line": 51,
+        "text": "check the temporary connection; they do not establish a manually verified",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

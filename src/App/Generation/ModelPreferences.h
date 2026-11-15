@@ -19,6 +19,9 @@ struct ModelPreferences {
     bool operator==(const ModelPreferences &) const = default;
 };
 
+// Decode and encode the legacy on-disk format without accessing a file.
+bool parseModelPreferences(std::string_view bytes, ModelPreferences &value, std::string &error);
+std::string serializeModelPreferences(const ModelPreferences &value);
 // Empty paths provide an in-memory configuration for isolated runtime fixtures.
 bool readModelPreferences(const std::filesystem::path &path, ModelPreferences &value, std::string &error);
 bool writeModelPreferences(const std::filesystem::path &path, const ModelPreferences &value, std::string &error);

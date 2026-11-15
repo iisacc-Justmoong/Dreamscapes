@@ -1,12 +1,16 @@
 #include "../src/App/Publishing/SocialPublishingController.h"
 #include <QCoreApplication>
 #include <QElapsedTimer>
+#include <QFile>
+#include <QJsonObject>
+#include <QTemporaryDir>
 #include <QEventLoop>
 #include <QJsonDocument>
 #include <QThread>
 #include <QPointer>
 #include <QScopeGuard>
 #include <atomic>
+#include <filesystem>
 #include <iostream>
 #include <semaphore>
 #include <stdexcept>
@@ -39,6 +43,44 @@ Account grant() {
     a.scopes = {"tweet.read", "tweet.write", "users.read"}; return a;
 }
 QVariantMap payload(const QString& key) { return {{"text", "A fixture post"}, {"idempotencyKey", key}}; }
+struct MediaTransport final : Transport {
+    std::atomic<bool> metadataValid{false};
+    Response send(const Request& request, std::stop_token) override {
+        if (request.url.ends_with("/initialize")) return {200, {}, R"({"data":{"id":"12345"}})"};
+        if (request.url.ends_with("/append")) return {204};
+        if (request.url.ends_with("/finalize")) return {200, {}, R"({"data":{"id":"12345"}})"};
+        if (request.url == "https://api.x.com/2/media/metadata") {
+            const auto body = QJsonDocument::fromJson(QByteArray::fromStdString(request.body)).object();
+            metadataValid = body.value("id").toString() == "12345" &&
+                body.value("metadata").toObject().value("alt_text").toObject().value("text").toString() == "A blue sky" &&
+                !body.contains("media_id");
+            return {204};
+        }
+        if (request.url == "https://api.x.com/2/tweets") return {201, {}, R"({"data":{"id":"67890"}})"};
+        return {404};
+    }
+};
+void xMediaThroughApplicationAdapter() {
+    const auto resources = std::filesystem::path(__FILE__).parent_path().parent_path() / "resources";
+    QTemporaryDir directory(QString::fromStdString((resources / "social-publishing-XXXXXX").string()));
+    check(directory.isValid(), "Cannot create isolated media fixture");
+    QFile media(directory.filePath("image.png"));
+    check(media.open(QIODevice::WriteOnly) && media.write("fixture", 7) == 7, "Cannot write media fixture");
+    media.close();
+    auto transport = std::make_shared<MediaTransport>();
+    SocialPublishingController backend(transport);
+    auto account = grant(); account.scopes.push_back("media.write");
+    backend.configureAccount("x", Platform::X, account);
+    const QVariantMap input{{"text", "A test"}, {"idempotencyKey", "media-intent"},
+        {"media", QVariantList{QVariantMap{{"kind", "image"}, {"localFile", media.fileName()},
+                                         {"mimeType", "image/png"}, {"altText", "A blue sky"}}}}};
+    check(!backend.submit("x", input).isEmpty(), "Application adapter did not queue media");
+    check(wait([&] { return backend.pendingCount() == 0; }), "Media publication did not finish");
+    check(backend.jobs().last().toMap().value("state") == "published" && transport->metadataValid,
+          "Application did not forward v2 X metadata");
+    check(!QJsonDocument::fromVariant(backend.jobs()).toJson().contains("must-never"),
+          "Application exposed the account credential");
+}
 void destinationSequences() {
     ReviewSource source; source.post.text=std::string(700,'a'); source.post.idempotencyKey="thread-intent";
     auto plan=planPublication(Platform::X,source);
@@ -280,6 +322,7 @@ void cancellationCallbacksCanObserveTheQueue(const QString& action) {
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     const std::vector<std::pair<const char*, std::function<void()>>> cases{
+        {"x-media-through-application", xMediaThroughApplicationAdapter},
         {"destination-sequences", destinationSequences},
         {"existing-contracts", run}, {"stalled-close", stalledTransferDoesNotHoldTheViewOpen},
         {"completion-order", completionPrecedesItsPresentationNotification},

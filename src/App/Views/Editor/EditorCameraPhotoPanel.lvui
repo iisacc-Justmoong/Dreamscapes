@@ -1,0 +1,30 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Editor Camera Photo Panel", style: .header2)
+            Label(id: "migratedText0", text: "Duration", style: .body)
+            Label(id: "migratedText1", text: "Current captured", style: .body)
+            Label(id: "migratedText2", text: "Import", style: .body)
+            Label(id: "migratedText3", text: "Camera preview", style: .body)
+            Label(id: "migratedText4", text: "Device", style: .body)
+            Label(id: "migratedText5", text: "Refresh devices", style: .body)
+            Label(id: "migratedText6", text: "Capture photo", style: .body)
+            Label(id: "migratedText7", text: "Capture", style: .body)
+            Label(id: "migratedText8", text: "Capture a display, an app window, or a precise region.", style: .body)
+            Label(id: "migratedText9", text: "Display / window", style: .body)
+            Label(id: "migratedText10", text: "Choose a target", style: .body)
+            Label(id: "migratedText11", text: "Capture image", style: .body)
+            Label(id: "migratedText12", text: "Gallery", style: .body)
+            Label(id: "migratedText13", text: "Browse, organize, and reuse your image sources.", style: .body)
+            Label(id: "migratedText14", text: "Library", style: .body)
+            Label(id: "migratedText15", text: "Search", style: .body)
+            Label(id: "migratedText16", text: "Sort by", style: .body)
+            Label(id: "migratedText17", text: "Allow Photos access", style: .body)
+            Label(id: "migratedText18", text: "Select all", style: .body)
+            Label(id: "migratedText19", text: "Choose an image folder", style: .body)
+        }
+    }
+}

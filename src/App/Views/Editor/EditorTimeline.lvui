@@ -1,0 +1,41 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Editor Timeline", style: .header2)
+            Label(id: "migratedText0", text: "Timeline options", style: .body)
+            Label(id: "migratedText1", text: "‹<", style: .body)
+            Label(id: "migratedText2", text: "‹", style: .body)
+            Label(id: "migratedText3", text: "›", style: .body)
+            Label(id: "migratedText4", text: ">›", style: .body)
+            Label(id: "migratedText5", text: "−1f", style: .body)
+            Label(id: "migratedText6", text: "+1f", style: .body)
+            Label(id: "migratedText7", text: "Split at head", style: .body)
+            Label(id: "migratedText8", text: "Exclude", style: .body)
+            Label(id: "migratedText9", text: "Ripple delete", style: .body)
+            Label(id: "migratedText10", text: "Layer +", style: .body)
+            Label(id: "migratedText11", text: "···", style: .body)
+            Label(id: "migratedText12", text: "I In", style: .body)
+            Label(id: "migratedText13", text: "O Out", style: .body)
+            Label(id: "migratedText14", text: "Fit", style: .body)
+            Label(id: "migratedText15", text: "Layers", style: .body)
+            Label(id: "migratedText16", text: "0", style: .body)
+            Label(id: "migratedText17", text: "L", style: .body)
+            Label(id: "migratedText18", text: "S", style: .body)
+            Label(id: "migratedText19", text: "M", style: .body)
+            Label(id: "migratedText20", text: "In", style: .body)
+            Label(id: "migratedText21", text: "Out", style: .body)
+            Label(id: "migratedText22", text: "Duration", style: .body)
+            Label(id: "migratedText23", text: "Source", style: .body)
+            Label(id: "migratedText24", text: "Out exclusive", style: .body)
+            Label(id: "migratedText25", text: "Keep", style: .body)
+            Label(id: "migratedText26", text: "Solo", style: .body)
+            Label(id: "migratedText27", text: "Lock", style: .body)
+            Label(id: "migratedText28", text: "Duplicate", style: .body)
+            Label(id: "migratedText29", text: "Delete key", style: .body)
+            Label(id: "migratedText30", text: "Layer name", style: .body)
+        }
+    }
+}

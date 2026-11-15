@@ -1,0 +1,24 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Main", style: .header2)
+            Label(id: "migratedText0", text: "File", style: .body)
+            Label(id: "migratedText1", text: "Quit Dreamscapes", style: .body)
+            Label(id: "migratedText2", text: "Edit", style: .body)
+            Label(id: "migratedText3", text: "Preferences…", style: .body)
+            Label(id: "migratedText4", text: "Window", style: .body)
+            Label(id: "migratedText5", text: "Help", style: .body)
+            Label(id: "migratedText6", text: "Latest failure explanation…", style: .body)
+            Label(id: "migratedText7", text: "Dreamscapes", style: .body)
+            Label(id: "migratedText8", text: "Open Canvas or Image", style: .body)
+            Label(id: "migratedText9", text: "Cancel", style: .body)
+            Label(id: "migratedText10", text: "Society", style: .body)
+            Label(id: "migratedText11", text: "Local image generation is unavailable in this build.", style: .body)
+            Label(id: "migratedText12", text: "Generation queue", style: .body)
+            Label(id: "migratedText13", text: "Details", style: .body)
+        }
+    }
+}

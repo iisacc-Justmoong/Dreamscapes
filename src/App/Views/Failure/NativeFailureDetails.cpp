@@ -59,11 +59,17 @@ ii::core::Result<void> FailureDetailsModel::setReport(const vm::Value &report) {
         .range = {0, (*current)->length()}, .text = next});
     if (!changed) return ii::core::fail(ii::core::ErrorCode::invalid_argument, changed.error().message);
     text_ = std::move(next);
-    // A byte bound also bounds the UTF-16 units and visual rows, even for a
-    // one-pixel viewport. Larger reports retain the document-backed viewer.
-    const bool canWrap = text_.size() < ii::gui::NativeTextLayout::maximum_lines &&
-        text_.size() <= ii::gui::TextInputModel::maximum_bytes;
-    if (canWrap) { wrappedText.set(text_); usesWrappedText.set(true); }
+    // Visual line count depends on the actual font and width. The editor
+    // reports a wrapping fallback after it has shaped the live viewport.
+    bool canWrap = text_.size() <= ii::gui::TextInputModel::maximum_bytes &&
+                   text_.size() <= ii::gui::NativeTextLayout::maximum_bytes;
+    std::size_t paragraphs = 1;
+    for (std::size_t i = 0; canWrap && i < text_.size(); ++i) {
+        if (text_[i] != '\r' && text_[i] != '\n') continue;
+        if (++paragraphs > ii::gui::NativeTextLayout::maximum_lines) canWrap = false;
+        if (text_[i] == '\r' && i + 1 < text_.size() && text_[i + 1] == '\n') ++i;
+    }
+    if (canWrap) { usesWrappedText.set(true); wrappedText.set(text_); }
     else { usesWrappedText.set(false); wrappedText.set({}); }
     canCopy.set(!text_.empty());
     copyError.set({}); copyFailed.set(false);
@@ -95,6 +101,10 @@ void FailureDetailsModel::requireOwner() const {
 void FailureDetailsModel::setClipboardWriter(ClipboardWriter writer) { requireOwner(); clipboard_ = std::move(writer); }
 void FailureDetailsModel::show() { requireOwner(); open.set(true); }
 void FailureDetailsModel::dismiss() { requireOwner(); open.set(false); }
+void FailureDetailsModel::wrappingFallbackChanged(bool fallback) {
+    requireOwner();
+    if (fallback) usesWrappedText.set(false);
+}
 void FailureDetailsModel::setReportFailure(std::string error) {
     requireOwner(); reportError.set(std::move(error)); reportFailed.set(!reportError.get().empty());
 }

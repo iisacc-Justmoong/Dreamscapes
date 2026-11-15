@@ -1,0 +1,18 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Video Generation Workspace", style: .header2)
+            Label(id: "migratedText0", text: "Save video", style: .body)
+            Label(id: "migratedText1", text: "Video", style: .body)
+            Label(id: "migratedText2", text: "−", style: .body)
+            Label(id: "migratedText3", text: "Fit", style: .body)
+            Label(id: "migratedText4", text: "100%", style: .body)
+            Label(id: "migratedText5", text: "+", style: .body)
+            Label(id: "migratedText6", text: "Enter a prompt to generate a video.", style: .body)
+            Label(id: "migratedText7", text: "Cancel", style: .body)
+        }
+    }
+}

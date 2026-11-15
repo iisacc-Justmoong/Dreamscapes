@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/VideoGenerationWorkspace.md",
-    "sha256": "9744b984e777653292b08a98fb256df235ffe80f2b1394f29324503c32dfedf5",
-    "bytes": 19188,
-    "line_count": 115,
+    "sha256": "159a9f6a41a3d0787af5142eff77a0a0cbbc1961f5a1ab166d863f476fb6556f",
+    "bytes": 20782,
+    "line_count": 125,
     "encoding": "utf-8",
     "language": "ko"
   },
@@ -203,7 +203,7 @@
       "kind": "paragraph",
       "start_line": 31,
       "end_line": 31,
-      "raw": "`VideoTimelineState.qml` starts with an empty track list. The gutter **+** menu adds a named Layers, Images, Audio or Caption track (internal types Shots and Contents are retained). Tracks stay in that type order; position controls reorder tracks within their type. Shots/image keys reference stable track IDs, and image conditions are never distributed by a fixed numeric lane. Track edits and deletion participate in undo/redo. Audio/Caption rows have no initial placeholders.\n"
+      "raw": "The native `VideoTimelineModel` starts with an empty track list. The gutter **+** menu adds a named Layers, Images, Audio or Caption track (internal types Shots and Contents are retained). Tracks stay in that type order; position controls reorder tracks within their type. Shots/image keys reference stable track IDs, and image conditions are never distributed by a fixed numeric lane. Track edits and deletion participate in undo/redo. Audio/Caption rows have no initial placeholders.\n"
     },
     {
       "id": "b000026",
@@ -217,7 +217,7 @@
       "kind": "paragraph",
       "start_line": 33,
       "end_line": 33,
-      "raw": "`VideoTimelineState.qml` owns shot boundaries, selection, excluded/locked state, per-shot prompts, image keyframes, frame numbers, image condition weights, undo and redo. The empty timeline's ruler reflects duration × FPS without creating shots. Generating from an empty shot collection uses the composition prompt, duration, FPS and explicitly added image conditions in one internal generation segment; submission never inserts that segment into the draft. Only **+ Layer** creates a visible shot, and its first shot spans the current generation duration. User-added kept shots are concatenated in timeline order. Splitting, trimming, rolling a boundary, sliding a shot, duplicating and ripple deletion change that draft. Changes are bounded to at least two output frames per shot. Deleting the final shot returns to an empty timeline. Keyboard controls include V/B, frame arrows, I/O, Space and undo/redo. The Generation/Shot inspector tabs share the selected shot. Image conditions can be chosen at the first, last or current frame, dragged, nudged, weighted, copied, pasted and deleted; their initial strength is the runtime default of 1.0.\n"
+      "raw": "The native timeline model owns shot boundaries, selection, excluded/locked state, per-shot prompts, image keyframes, frame numbers, image condition weights, undo and redo. The empty timeline's ruler reflects duration × FPS without creating shots. Generating from an empty shot collection uses the composition prompt, duration, FPS and explicitly added image conditions in one internal generation segment; submission never inserts that segment into the draft. Only **+ Layer** creates a visible shot, and its first shot spans the current generation duration. User-added kept shots are concatenated in timeline order. Splitting, trimming, rolling a boundary, sliding a shot, duplicating and ripple deletion change that draft. Changes are bounded to at least two output frames per shot. Deleting the final shot returns to an empty timeline. Keyboard controls include V/B, frame arrows, I/O, Space and undo/redo. The Generation/Shot inspector tabs share the selected shot. Image conditions can be chosen at the first, last or current frame, dragged, nudged, weighted, copied, pasted and deleted; their initial strength is the runtime default of 1.0.\n"
     },
     {
       "id": "b000028",
@@ -230,364 +230,415 @@
       "id": "b000029",
       "kind": "paragraph",
       "start_line": 35,
-      "end_line": 35,
-      "raw": "The inspector exposes width/height, duration/FPS, aspect ratio, count, camera motion, steps, CFG, seed, interpolation, temporal decoding, execution and H.264 quality/preset. Defaults match `normalizeVideoRecipe`: 1024 × 576, 5 seconds, 24 FPS, one output, 30 steps, CFG 3 and a random seed (`-1`), with the existing decoding/execution/encoding defaults. Prompt and negative prompt start empty unless the user configured defaults in Preferences. No example negative prompt or fixed seed is injected. Camera motion defaults to None and uses the SDK's text-conditioning path; no Camera/Zoom track is added. Width and height must be divisible by 32; invalid fields block submission. Duration/FPS resize the draft's frame extent even when it contains no shots. **Reset** restores generation defaults and clears tracks, shots, keyframes, selections, clipboard, undo/redo, playback and timeline zoom. The workspace has parameter presets, but no template or saved-recipe controls and does not read or write the former `VideoGeneration/savedRecipe` setting. Existing saved settings are left untouched. Navigation retains user edits after first opening.\n"
+      "end_line": 38,
+      "raw": "The temporary `VideoTimelineState` name resolves directly to the C++ model;\nit no longer instantiates a separate QML state wrapper. The model's Qt-free\ntimeline core and the existing visual timeline retain their separate roles.\nThe visual Video workspace is still QML until its LVUI view is connected.\n"
     },
     {
       "id": "b000030",
       "kind": "blank",
-      "start_line": 36,
-      "end_line": 36,
+      "start_line": 39,
+      "end_line": 39,
       "raw": "\n"
     },
     {
       "id": "b000031",
       "kind": "paragraph",
-      "start_line": 37,
-      "end_line": 37,
-      "raw": "`GenerationController::enqueueVideoRecipe` validates a complete immutable submission, copies every image condition to Society's GenerationInputs, and creates the existing serial queue. The controller writes an SDK storyboard into its job workspace with kept shots, shot prompts, per-shot frame counts, local image conditions and weights. It forwards every exposed runtime parameter to the installed iiLocalDiffusion video launcher. Queue ownership stays in the Video workspace, so generation does not navigate to the Home result screen. All requested output variations stay selectable and playable in the preview; cancellation uses the existing queue cancellation and **Save video** exports the verified MP4 bytes.\n"
+      "start_line": 40,
+      "end_line": 40,
+      "raw": "The inspector exposes width/height, duration/FPS, aspect ratio, count, camera motion, steps, CFG, seed, interpolation, temporal decoding, execution and H.264 quality/preset. Defaults match `normalizeVideoRecipe`: 1024 × 576, 5 seconds, 24 FPS, one output, 30 steps, CFG 3 and a random seed (`-1`), with the existing decoding/execution/encoding defaults. Prompt and negative prompt start empty unless the user configured defaults in Preferences. No example negative prompt or fixed seed is injected. Camera motion defaults to None and uses the SDK's text-conditioning path; no Camera/Zoom track is added. Width and height must be divisible by 32; invalid fields block submission. Duration/FPS resize the draft's frame extent even when it contains no shots. **Reset** restores generation defaults and clears tracks, shots, keyframes, selections, clipboard, undo/redo, playback and timeline zoom. The workspace has parameter presets, but no template or saved-recipe controls and does not read or write the former `VideoGeneration/savedRecipe` setting. Existing saved settings are left untouched. Navigation retains user edits after first opening.\n"
     },
     {
       "id": "b000032",
       "kind": "blank",
-      "start_line": 38,
-      "end_line": 38,
+      "start_line": 41,
+      "end_line": 41,
       "raw": "\n"
     },
     {
       "id": "b000033",
       "kind": "paragraph",
-      "start_line": 39,
-      "end_line": 45,
-      "raw": "Save video captures the selected result when opening the system dialog. Cancelling\ndoes no export; choosing another result before accepting does not change the\ncaptured source. The worker-owned export keeps UI input available and exposes\nbusy/pending/completed/error feedback. The accepted copy can finish after its view\ncloses without retaining that view or opening/synchronizing a Society drive.\n`videoWorkspaceRoutesEditsAndGenerates` checks cancellation, source capture and\nthe actual exported bytes after selection changes with the dialog open.\n"
+      "start_line": 42,
+      "end_line": 42,
+      "raw": "`GenerationController::enqueueVideoRecipe` validates a complete immutable submission, copies every image condition to Society's GenerationInputs, and creates the existing serial queue. The controller writes an SDK storyboard into its job workspace with kept shots, shot prompts, per-shot frame counts, local image conditions and weights. It forwards every exposed runtime parameter to the installed iiLocalDiffusion video launcher. Queue ownership stays in the Video workspace, so generation does not navigate to the Home result screen. All requested output variations stay selectable and playable in the preview; cancellation uses the existing queue cancellation and **Save video** exports the verified MP4 bytes.\n"
     },
     {
       "id": "b000034",
       "kind": "blank",
-      "start_line": 46,
-      "end_line": 46,
+      "start_line": 43,
+      "end_line": 43,
       "raw": "\n"
     },
     {
       "id": "b000035",
       "kind": "paragraph",
-      "start_line": 47,
-      "end_line": 47,
-      "raw": "Audio and Caption rows exist only after the user adds tracks and show empty states. Audio mixing, caption rendering and text overlays are not implemented by this generation workspace. The weight view displays image condition anchors; arbitrary curve interpolation is not sent to the LTX SDK.\n"
+      "start_line": 44,
+      "end_line": 50,
+      "raw": "Save video captures the selected result when opening the system dialog. Cancelling\ndoes no export; choosing another result before accepting does not change the\ncaptured source. The worker-owned export keeps UI input available and exposes\nbusy/pending/completed/error feedback. The accepted copy can finish after its view\ncloses without retaining that view or opening/synchronizing a Society drive.\n`videoWorkspaceRoutesEditsAndGenerates` checks cancellation, source capture and\nthe actual exported bytes after selection changes with the dialog open.\n"
     },
     {
       "id": "b000036",
       "kind": "blank",
-      "start_line": 48,
-      "end_line": 48,
+      "start_line": 51,
+      "end_line": 51,
       "raw": "\n"
     },
     {
       "id": "b000037",
+      "kind": "paragraph",
+      "start_line": 52,
+      "end_line": 52,
+      "raw": "Audio and Caption rows exist only after the user adds tracks and show empty states. Audio mixing, caption rendering and text overlays are not implemented by this generation workspace. The weight view displays image condition anchors; arbitrary curve interpolation is not sent to the LTX SDK.\n"
+    },
+    {
+      "id": "b000038",
+      "kind": "blank",
+      "start_line": 53,
+      "end_line": 53,
+      "raw": "\n"
+    },
+    {
+      "id": "b000039",
       "kind": "heading",
-      "start_line": 49,
-      "end_line": 49,
+      "start_line": 54,
+      "end_line": 54,
       "raw": "## Verification\n",
       "level": 2,
       "title": "Verification"
     },
     {
-      "id": "b000038",
-      "kind": "blank",
-      "start_line": 50,
-      "end_line": 50,
-      "raw": "\n"
-    },
-    {
-      "id": "b000039",
-      "kind": "paragraph",
-      "start_line": 51,
-      "end_line": 58,
-      "raw": "The Video workspace uses `VideoTimeline.qml` and `VideoTimelineState.qml` for\nits generation recipe. It retains empty generation defaults and user-defined\nShots/Contents/Audio/Caption tracks. The editor's finalized Figma design\n`1065:90081` is implemented separately by `EditorTimeline.qml` and\n`EditorTimelineModel`: its **Layers** rows read and edit the actual native IISC\ncanvas rather than a generation draft. The two consumers share LVRS controls\nand fixed button-state policy, while preserving these different data contracts.\nSee [EditorLayout.md](EditorLayout.md#bottom-timeline).\n"
-    },
-    {
       "id": "b000040",
       "kind": "blank",
-      "start_line": 59,
-      "end_line": 59,
+      "start_line": 55,
+      "end_line": 55,
       "raw": "\n"
     },
     {
       "id": "b000041",
       "kind": "paragraph",
-      "start_line": 60,
-      "end_line": 60,
-      "raw": "Frame-rate controls in this workspace and Home QuickGenerate offer 12, 24, 30, 60 and 120 FPS; the default remains 24 FPS. Both submission APIs accept the same set, including 30 seconds at 120 FPS. An FPS edit changes the empty timeline's frame extent without adding shots or keys. The interpolation factor is a minimum: iiLocalDiffusion automatically increases source-frame spacing for high output rates, limits current LTX source generation to its nominal 25 FPS policy and interpolates to the requested final FPS. The UI forwards the request and does not implement interpolation. SDK planning, local/remote request and real FFmpeg media regressions cover 60/120 FPS, anchor preservation and unchanged output timing; product queue and GUI regressions cover both controls and final FPS metadata.\n"
+      "start_line": 56,
+      "end_line": 63,
+      "raw": "The Video workspace uses `VideoTimeline.qml` and `VideoTimelineModel` for\nits generation recipe. It retains empty generation defaults and user-defined\nShots/Contents/Audio/Caption tracks. The editor's finalized Figma design\n`1065:90081` is implemented separately by `EditorTimeline.qml` and\n`EditorTimelineModel`: its **Layers** rows read and edit the actual native IISC\ncanvas rather than a generation draft. The two consumers share LVRS controls\nand fixed button-state policy, while preserving these different data contracts.\nSee [EditorLayout.md](EditorLayout.md#bottom-timeline).\n"
     },
     {
       "id": "b000042",
       "kind": "blank",
-      "start_line": 61,
-      "end_line": 61,
+      "start_line": 64,
+      "end_line": 64,
       "raw": "\n"
     },
     {
       "id": "b000043",
       "kind": "paragraph",
-      "start_line": 62,
-      "end_line": 62,
-      "raw": "The fitted preview frame stays centered horizontally and vertically inside the preview surface, independently of the inspector and timeline. The workspace regression checks 1:1, 16:9, 9:16, 4:1 and 1:4 output ratios across four window sizes, including the narrow scrolling workspace, and verifies both centering and containment. `DREAMSCAPES_CENTER_CAPTURE_DIR` captures these ratio variants in an existing directory under `build/`.\n"
+      "start_line": 65,
+      "end_line": 65,
+      "raw": "Frame-rate controls in this workspace and Home QuickGenerate offer 12, 24, 30, 60 and 120 FPS; the default remains 24 FPS. Both submission APIs accept the same set, including 30 seconds at 120 FPS. An FPS edit changes the empty timeline's frame extent without adding shots or keys. The interpolation factor is a minimum: iiLocalDiffusion automatically increases source-frame spacing for high output rates, limits current LTX source generation to its nominal 25 FPS policy and interpolates to the requested final FPS. The UI forwards the request and does not implement interpolation. SDK planning, local/remote request and real FFmpeg media regressions cover 60/120 FPS, anchor preservation and unchanged output timing; product queue and GUI regressions cover both controls and final FPS metadata.\n"
     },
     {
       "id": "b000044",
       "kind": "blank",
-      "start_line": 63,
-      "end_line": 63,
+      "start_line": 66,
+      "end_line": 66,
       "raw": "\n"
     },
     {
       "id": "b000045",
       "kind": "paragraph",
-      "start_line": 64,
-      "end_line": 64,
-      "raw": "Invalid numeric edits block generation. **Reset** clears the field error and restores the displayed value; the workspace regression test exercises the visible reset button.\n"
+      "start_line": 67,
+      "end_line": 67,
+      "raw": "The fitted preview frame stays centered horizontally and vertically inside the preview surface, independently of the inspector and timeline. The workspace regression checks 1:1, 16:9, 9:16, 4:1 and 1:4 output ratios across four window sizes, including the narrow scrolling workspace, and verifies both centering and containment. `DREAMSCAPES_CENTER_CAPTURE_DIR` captures these ratio variants in an existing directory under `build/`.\n"
     },
     {
       "id": "b000046",
       "kind": "blank",
-      "start_line": 65,
-      "end_line": 65,
+      "start_line": 68,
+      "end_line": 68,
       "raw": "\n"
     },
     {
       "id": "b000047",
       "kind": "paragraph",
-      "start_line": 66,
-      "end_line": 66,
-      "raw": "Disabling **Random seed** requires an explicitly entered nonnegative fixed seed when the draft still has the random sentinel `-1`. The UI marks that seed invalid and blocks submission instead of inserting a fixed value or continuing to generate randomly. Re-enabling random seed clears that requirement. After user shot edits, duration/FPS changes also update the generation extent used when the last shot is deleted, even if the requested frame count already matches the edited shots. Undo/redo keeps duration, FPS and that frame extent synchronized.\n"
+      "start_line": 69,
+      "end_line": 69,
+      "raw": "Invalid numeric edits block generation. **Reset** clears the field error and restores the displayed value; the workspace regression test exercises the visible reset button.\n"
     },
     {
       "id": "b000048",
       "kind": "blank",
-      "start_line": 67,
-      "end_line": 67,
+      "start_line": 70,
+      "end_line": 70,
       "raw": "\n"
     },
     {
       "id": "b000049",
       "kind": "paragraph",
-      "start_line": 68,
-      "end_line": 68,
-      "raw": "`Dreamscapes.Video` runs the retained Home video queue/player/export path, `videoWorkspaceStartsEmptyAndUsesGenerationDefaults`, `videoInspectorStaysWithinViewport` and `videoWorkspaceRoutesEditsAndGenerates`. The empty-state regression verifies blank previews and collections, absence of recipe-saving controls, default parameters, duration/FPS edits without inserting shots, explicit image conditions without shots, deletion of the final shot, undo/redo, complete default reset and a normal generation submission from an empty timeline. The workspace test opens the real sidebar entry, asserts the bounded inspector width and measured timeline height, clipped single-row timeline controls, independent scrolling and aspect fit, explicitly adds its editing fixture shots, exercises split/undo and image frame/weight editing, checks draft retention and resized windows, and verifies kept-shot/image-condition values in the accepted queue. It then runs the deterministic process fixture to produce and decode MP4, checks workspace result ownership, plays the output and records optional screenshots via `DREAMSCAPES_CAPTURE_DIR`. Fixture output proves request and UI plumbing, not learned LTX image quality.\n"
+      "start_line": 71,
+      "end_line": 71,
+      "raw": "Disabling **Random seed** requires an explicitly entered nonnegative fixed seed when the draft still has the random sentinel `-1`. The UI marks that seed invalid and blocks submission instead of inserting a fixed value or continuing to generate randomly. Re-enabling random seed clears that requirement. After user shot edits, duration/FPS changes also update the generation extent used when the last shot is deleted, even if the requested frame count already matches the edited shots. Undo/redo keeps duration, FPS and that frame extent synchronized.\n"
     },
     {
       "id": "b000050",
       "kind": "blank",
-      "start_line": 69,
-      "end_line": 69,
+      "start_line": 72,
+      "end_line": 72,
       "raw": "\n"
     },
     {
       "id": "b000051",
       "kind": "paragraph",
-      "start_line": 70,
-      "end_line": 70,
-      "raw": "`videoRecipeValidatesRuntimeContract` checks dimensions, numeric types and limits, enum validation, duplicate/out-of-range image frame anchors and shot-count/frame-count constraints. Existing video queue tests continue to verify immutable first-frame copying, bad output rejection and cancellation. A real installed LTX model invocation remains a distinct runtime smoke check.\n"
+      "start_line": 73,
+      "end_line": 73,
+      "raw": "`Dreamscapes.Video` runs the retained Home video queue/player/export path, `videoWorkspaceStartsEmptyAndUsesGenerationDefaults`, `videoInspectorStaysWithinViewport` and `videoWorkspaceRoutesEditsAndGenerates`. The empty-state regression verifies blank previews and collections, absence of recipe-saving controls, default parameters, duration/FPS edits without inserting shots, explicit image conditions without shots, deletion of the final shot, undo/redo, complete default reset and a normal generation submission from an empty timeline. The workspace test opens the real sidebar entry, asserts the bounded inspector width and measured timeline height, clipped single-row timeline controls, independent scrolling and aspect fit, explicitly adds its editing fixture shots, exercises split/undo and image frame/weight editing, checks draft retention and resized windows, and verifies kept-shot/image-condition values in the accepted queue. It then runs the deterministic process fixture to produce and decode MP4, checks workspace result ownership, plays the output and records optional screenshots via `DREAMSCAPES_CAPTURE_DIR`. Fixture output proves request and UI plumbing, not learned LTX image quality.\n"
     },
     {
       "id": "b000052",
       "kind": "blank",
-      "start_line": 71,
-      "end_line": 71,
+      "start_line": 74,
+      "end_line": 74,
       "raw": "\n"
     },
     {
       "id": "b000053",
       "kind": "paragraph",
-      "start_line": 72,
-      "end_line": 72,
-      "raw": "The inspector containment regression covers 280 × 320, 300 × 740 and 402 × 740 panels. It measures every visible parameter row against the viewport, scrolls to the final encoding control, and verifies that geometry changes leave the parameter snapshot unchanged. No inference job is started by this check.\n"
+      "start_line": 75,
+      "end_line": 75,
+      "raw": "`videoRecipeValidatesRuntimeContract` checks dimensions, numeric types and limits, enum validation, duplicate/out-of-range image frame anchors and shot-count/frame-count constraints. Existing video queue tests continue to verify immutable first-frame copying, bad output rejection and cancellation. A real installed LTX model invocation remains a distinct runtime smoke check.\n"
     },
     {
       "id": "b000054",
       "kind": "blank",
-      "start_line": 73,
-      "end_line": 73,
+      "start_line": 76,
+      "end_line": 76,
       "raw": "\n"
     },
     {
       "id": "b000055",
+      "kind": "paragraph",
+      "start_line": 77,
+      "end_line": 77,
+      "raw": "The inspector containment regression covers 280 × 320, 300 × 740 and 402 × 740 panels. It measures every visible parameter row against the viewport, scrolls to the final encoding control, and verifies that geometry changes leave the parameter snapshot unchanged. No inference job is started by this check.\n"
+    },
+    {
+      "id": "b000056",
+      "kind": "blank",
+      "start_line": 78,
+      "end_line": 78,
+      "raw": "\n"
+    },
+    {
+      "id": "b000057",
       "kind": "heading",
-      "start_line": 74,
-      "end_line": 74,
+      "start_line": 79,
+      "end_line": 79,
       "raw": "## Atomic composition edits\n",
       "level": 2,
       "title": "Atomic composition edits"
     },
     {
-      "id": "b000056",
-      "kind": "blank",
-      "start_line": 75,
-      "end_line": 75,
-      "raw": "\n"
-    },
-    {
-      "id": "b000057",
-      "kind": "paragraph",
-      "start_line": 76,
-      "end_line": 81,
-      "raw": "Duration and FPS edits now validate a complete shot/keyframe plan before changing\nthe draft or its undo/redo stacks. Every shot retains its minimum frame count;\nproportional rounding reserves enough frames for all remaining shots. A six-shot\ncomposition can therefore shrink to twelve frames with two frames per shot.\nInsufficient duration, non-finite counts/rates and a nonpositive rate produce an\nexplicit timeline error without changing the draft or creating a Redo entry.\n"
-    },
-    {
       "id": "b000058",
       "kind": "blank",
-      "start_line": 82,
-      "end_line": 82,
+      "start_line": 80,
+      "end_line": 80,
       "raw": "\n"
     },
     {
       "id": "b000059",
       "kind": "paragraph",
-      "start_line": 83,
-      "end_line": 87,
-      "raw": "Image-condition anchors remain distinct when a composition is resized. If\nrounding would put two anchors at the same frame, the edit is rejected while\npreserving both conditions. The parameter panel retains its last accepted\nvalues, marks the attempted edit invalid and blocks submission. A valid retry\nclears that field error. Resizing does not add/drop conditions or enqueue work.\n"
+      "start_line": 81,
+      "end_line": 86,
+      "raw": "Duration and FPS edits now validate a complete shot/keyframe plan before changing\nthe draft or its undo/redo stacks. Every shot retains its minimum frame count;\nproportional rounding reserves enough frames for all remaining shots. A six-shot\ncomposition can therefore shrink to twelve frames with two frames per shot.\nInsufficient duration, non-finite counts/rates and a nonpositive rate produce an\nexplicit timeline error without changing the draft or creating a Redo entry.\n"
     },
     {
       "id": "b000060",
       "kind": "blank",
-      "start_line": 88,
-      "end_line": 88,
+      "start_line": 87,
+      "end_line": 87,
       "raw": "\n"
     },
     {
       "id": "b000061",
       "kind": "paragraph",
-      "start_line": 89,
-      "end_line": 96,
-      "raw": "The previous shrink failure checkpointed a partially changed composition and\nthen called Undo, exposing that invalid state through Redo. Parameter fields also\naccepted the edit regardless of the timeline result. `Dreamscapes.VideoComposition`\nexercises the actual workspace/panel/state chain for insufficient duration,\ncolliding anchors, NaN counts/rates and zero FPS. It verifies unchanged draft\nbytes and history on rejection, recovery, exact minimum shot allocation and\nvalid Undo/Redo. This supplements the native recipe validation and existing full\nVideo fixture; it does not invoke a user's inference model.\n"
+      "start_line": 88,
+      "end_line": 92,
+      "raw": "Image-condition anchors remain distinct when a composition is resized. If\nrounding would put two anchors at the same frame, the edit is rejected while\npreserving both conditions. The parameter panel retains its last accepted\nvalues, marks the attempted edit invalid and blocks submission. A valid retry\nclears that field error. Resizing does not add/drop conditions or enqueue work.\n"
     },
     {
       "id": "b000062",
       "kind": "blank",
-      "start_line": 97,
-      "end_line": 98,
-      "raw": "\n\n"
+      "start_line": 93,
+      "end_line": 93,
+      "raw": "\n"
     },
     {
       "id": "b000063",
+      "kind": "paragraph",
+      "start_line": 94,
+      "end_line": 101,
+      "raw": "The previous shrink failure checkpointed a partially changed composition and\nthen called Undo, exposing that invalid state through Redo. Parameter fields also\naccepted the edit regardless of the timeline result. `Dreamscapes.VideoComposition`\nexercises the actual workspace/panel/state chain for insufficient duration,\ncolliding anchors, NaN counts/rates and zero FPS. It verifies unchanged draft\nbytes and history on rejection, recovery, exact minimum shot allocation and\nvalid Undo/Redo. This supplements the native recipe validation and existing full\nVideo fixture; it does not invoke a user's inference model.\n"
+    },
+    {
+      "id": "b000064",
+      "kind": "blank",
+      "start_line": 102,
+      "end_line": 103,
+      "raw": "\n\n"
+    },
+    {
+      "id": "b000065",
       "kind": "heading",
-      "start_line": 99,
-      "end_line": 99,
+      "start_line": 104,
+      "end_line": 104,
       "raw": "## Compact Figma layout (2026-10-23)\n",
       "level": 2,
       "title": "Compact Figma layout (2026-10-23)"
     },
     {
-      "id": "b000064",
-      "kind": "blank",
-      "start_line": 100,
-      "end_line": 100,
-      "raw": "\n"
-    },
-    {
-      "id": "b000065",
-      "kind": "paragraph",
-      "start_line": 101,
-      "end_line": 101,
-      "raw": "The reference is [Video workspace 464:9774](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=464-9774) and [all parameters 498:11999](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=498-11999). At the reference window size the 402px inspector spans the content height. The preview, its 46px view/playback bars, 28px status strip and 264px timeline occupy the remaining left column. The generation summary, Reset and Generate remain outside the inspector's independent scroll viewport. Narrow windows retain horizontal workspace scrolling; below 360px inspector width the paired controls become one column without dropping parameters.\n"
-    },
-    {
       "id": "b000066",
       "kind": "blank",
-      "start_line": 102,
-      "end_line": 102,
+      "start_line": 105,
+      "end_line": 105,
       "raw": "\n"
     },
     {
       "id": "b000067",
       "kind": "paragraph",
-      "start_line": 103,
-      "end_line": 103,
-      "raw": "Width/Height, Duration/Frame rate and Aspect ratio/Output count share rows. Model, preset and execution selectors use their available row width. Compact PanelRow spacing is opt-in and leaves every other panel's default density intact; LVRS metrics, fonts and control rendering remain native. Aspect changes use the SDK's exact 32px-grid sizes, while direct dimension edits remain supported and display Custom when appropriate. All sampling, image, execution and output controls remain reachable through scrolling. Numeric fields retain the raw text while focused and restore their display units on blur; valid prefixes such as 32 must not prevent typing 320, and fractional controls must retain the decimal point during editing. The native keyboard regression covers typing and focus transitions.\n"
+      "start_line": 106,
+      "end_line": 106,
+      "raw": "The reference is [Video workspace 464:9774](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=464-9774) and [all parameters 498:11999](https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=498-11999). At the reference window size the 402px inspector spans the content height. The preview, its 46px view/playback bars, 28px status strip and 264px timeline occupy the remaining left column. The generation summary, Reset and Generate remain outside the inspector's independent scroll viewport. Narrow windows retain horizontal workspace scrolling; below 360px inspector width the paired controls become one column without dropping parameters.\n"
     },
     {
       "id": "b000068",
       "kind": "blank",
-      "start_line": 104,
-      "end_line": 104,
+      "start_line": 107,
+      "end_line": 107,
       "raw": "\n"
     },
     {
       "id": "b000069",
       "kind": "paragraph",
-      "start_line": 105,
-      "end_line": 105,
-      "raw": "Camera motion 1/2/3 select supported SDK movements. None slots are omitted from the submitted camera list. Neutral/static, duplicate and opposing combinations are rejected before queueing. The normalized camera list is retained in every submitted storyboard shot and consumed by iiLocalDiffusion's existing effective-prompt path. This is text-conditioned motion rather than a guaranteed physical camera trajectory.\n"
+      "start_line": 108,
+      "end_line": 108,
+      "raw": "Width/Height, Duration/Frame rate and Aspect ratio/Output count share rows. Model, preset and execution selectors use their available row width. Compact PanelRow spacing is opt-in and leaves every other panel's default density intact; LVRS metrics, fonts and control rendering remain native. Aspect changes use the SDK's exact 32px-grid sizes, while direct dimension edits remain supported and display Custom when appropriate. All sampling, image, execution and output controls remain reachable through scrolling. Numeric fields retain the raw text while focused and restore their display units on blur; valid prefixes such as 32 must not prevent typing 320, and fractional controls must retain the decimal point during editing. The native keyboard regression covers typing and focus transitions.\n"
     },
     {
       "id": "b000070",
       "kind": "blank",
-      "start_line": 106,
-      "end_line": 106,
+      "start_line": 109,
+      "end_line": 109,
       "raw": "\n"
     },
     {
       "id": "b000071",
       "kind": "paragraph",
-      "start_line": 107,
-      "end_line": 107,
-      "raw": "Select preset and Save to preset persist only generation controls and the selected model. They exclude timeline shots, image keys, file references, jobs and playback state. The catalog uses the generation-preferences path plus `.video-presets.json`, with schema `dreamscapes.video-presets/1`, at most 100 names and an 8 MiB limit. A blank prompt can be saved; it does not become an invented prompt on load. Loading resizes the current composition transactionally, preserves the existing tracks/keys, and does not enqueue inference or create a file/document revision. Injected controllers without a preferences path use an in-memory catalog.\n"
+      "start_line": 110,
+      "end_line": 110,
+      "raw": "Camera motion 1/2/3 select supported SDK movements. None slots are omitted from the submitted camera list. Neutral/static, duplicate and opposing combinations are rejected before queueing. The normalized camera list is retained in every submitted storyboard shot and consumed by iiLocalDiffusion's existing effective-prompt path. This is text-conditioned motion rather than a guaranteed physical camera trajectory.\n"
     },
     {
       "id": "b000072",
       "kind": "blank",
-      "start_line": 108,
-      "end_line": 108,
+      "start_line": 111,
+      "end_line": 111,
       "raw": "\n"
     },
     {
       "id": "b000073",
       "kind": "paragraph",
-      "start_line": 109,
-      "end_line": 109,
-      "raw": "The timeline opens empty with Layers/Keyframes/Curves, range controls, frame snap interval, linked selection, zoom and Fit. Mode buttons retain the native label width so Keyframes does not elide at the reference window size. Its underlying generation recipe retains the existing Shots vocabulary. + Layer explicitly creates a generation shot; the gutter + menu creates user-selected track kinds. Editing tools and track controls appear only after the user creates content and stay on clipped single rows. Ruler, playhead, clips and empty-lane grid share a frame pitch of 114.6666666667/10 pixels at 100%. Tick and grid delegates cover only the visible range and adapt their step when zoomed out, so long/high-FPS drafts do not instantiate one visual per document frame. Zoom, Fit and ruler navigation do not add undo entries or enqueue work. Shared LVRS transport icons render at 16×16. A 22×26 vector playhead marker shares the editor implementation and follows the LVRS accent color; the reference photograph is dynamic user/output content and is never inserted as sample data.\n"
+      "start_line": 112,
+      "end_line": 112,
+      "raw": "Select preset and Save to preset persist only generation controls and the selected model. They exclude timeline shots, image keys, file references, jobs and playback state. The catalog uses the generation-preferences path plus `.video-presets.json`, with schema `dreamscapes.video-presets/1`, at most 100 names and an 8 MiB limit. A blank prompt can be saved; it does not become an invented prompt on load. Loading resizes the current composition transactionally, preserves the existing tracks/keys, and does not enqueue inference or create a file/document revision. Injected controllers without a preferences path use an in-memory catalog.\n"
     },
     {
       "id": "b000074",
       "kind": "blank",
-      "start_line": 110,
-      "end_line": 110,
+      "start_line": 113,
+      "end_line": 113,
       "raw": "\n"
     },
     {
       "id": "b000075",
       "kind": "paragraph",
-      "start_line": 111,
-      "end_line": 111,
-      "raw": "`Dreamscapes.Video` measures paired-row geometry, full-height inspector separation, sticky-action containment, parameter coverage at 280/300/402px, aspect updates, camera/preset round trips with no inserted shots or jobs, scrolling to the output controls and actual fixture generation/export. `videoPresetsKeepOnlyGenerationControls` checks persistence, Unicode paths, reference exclusion and rejected camera combinations. The recipe-contract regression verifies camera validation and storyboard propagation. Fixture checks do not run the installed 22B model.\n"
+      "start_line": 114,
+      "end_line": 114,
+      "raw": "The timeline opens empty with Layers/Keyframes/Curves, range controls, frame snap interval, linked selection, zoom and Fit. Mode buttons retain the native label width so Keyframes does not elide at the reference window size. Its underlying generation recipe retains the existing Shots vocabulary. + Layer explicitly creates a generation shot; the gutter + menu creates user-selected track kinds. Editing tools and track controls appear only after the user creates content and stay on clipped single rows. Ruler, playhead, clips and empty-lane grid share a frame pitch of 114.6666666667/10 pixels at 100%. Tick and grid delegates cover only the visible range and adapt their step when zoomed out, so long/high-FPS drafts do not instantiate one visual per document frame. Zoom, Fit and ruler navigation do not add undo entries or enqueue work. Shared LVRS transport icons render at 16×16. A 22×26 vector playhead marker shares the editor implementation and follows the LVRS accent color; the reference photograph is dynamic user/output content and is never inserted as sample data.\n"
     },
     {
       "id": "b000076",
       "kind": "blank",
-      "start_line": 112,
-      "end_line": 112,
+      "start_line": 115,
+      "end_line": 115,
       "raw": "\n"
     },
     {
       "id": "b000077",
       "kind": "paragraph",
-      "start_line": 113,
-      "end_line": 113,
-      "raw": "The video GUI fixtures allow 30 seconds for queued outputs and asynchronous export completion on external storage. They wait for success or failure, report export errors, and still require captured-source byte equality. The two complete video flows can run in separate processes with the signed application frameworks in `DYLD_FRAMEWORK_PATH` and `DYLD_LIBRARY_PATH`; this verifies the deployment runtime without carrying singleton state between scenarios. These budgets are test orchestration limits, not inference performance guarantees.\n"
+      "start_line": 116,
+      "end_line": 116,
+      "raw": "`Dreamscapes.Video` measures paired-row geometry, full-height inspector separation, sticky-action containment, parameter coverage at 280/300/402px, aspect updates, camera/preset round trips with no inserted shots or jobs, scrolling to the output controls and actual fixture generation/export. `videoPresetsKeepOnlyGenerationControls` checks persistence, Unicode paths, reference exclusion and rejected camera combinations. The recipe-contract regression verifies camera validation and storyboard propagation. Fixture checks do not run the installed 22B model.\n"
     },
     {
       "id": "b000078",
       "kind": "blank",
-      "start_line": 114,
-      "end_line": 114,
+      "start_line": 117,
+      "end_line": 117,
       "raw": "\n"
     },
     {
       "id": "b000079",
       "kind": "paragraph",
-      "start_line": 115,
-      "end_line": 115,
+      "start_line": 118,
+      "end_line": 118,
+      "raw": "The video GUI fixtures allow 30 seconds for queued outputs and asynchronous export completion on external storage. They wait for success or failure, report export errors, and still require captured-source byte equality. The two complete video flows can run in separate processes with the signed application frameworks in `DYLD_FRAMEWORK_PATH` and `DYLD_LIBRARY_PATH`; this verifies the deployment runtime without carrying singleton state between scenarios. These budgets are test orchestration limits, not inference performance guarantees.\n"
+    },
+    {
+      "id": "b000080",
+      "kind": "blank",
+      "start_line": 119,
+      "end_line": 119,
+      "raw": "\n"
+    },
+    {
+      "id": "b000081",
+      "kind": "paragraph",
+      "start_line": 120,
+      "end_line": 120,
       "raw": "Picker fixtures create their source image outside the watched Society drive and import it through the owner API; export targets model the system picker's external save location. This avoids a direct fixture write racing the drive index. The native IISC destination, original-source removal, immutable condition copy, captured result selection and exported MP4 byte comparisons remain asserted.\n"
+    },
+    {
+      "id": "b000082",
+      "kind": "heading",
+      "start_line": 121,
+      "end_line": 121,
+      "raw": "## Low VRAM video preset\n",
+      "level": 2,
+      "title": "Low VRAM video preset"
+    },
+    {
+      "id": "b000083",
+      "kind": "blank",
+      "start_line": 122,
+      "end_line": 122,
+      "raw": "\n"
+    },
+    {
+      "id": "b000084",
+      "kind": "paragraph",
+      "start_line": 123,
+      "end_line": 123,
+      "raw": "The built-in Low VRAM preset changes only video execution controls: sequential offload, CPU text encoding and VAE tiling. It retains the current prompt, dimensions, timeline and other draft controls. The video worker receives an explicit `--low-vram` flag as well as sequential offload; older workers reject the flag rather than silently running standard execution. The native iiLocalDiffusion worker streams disk-backed weights at graph boundaries and may use substantially more time. Choosing sequential offload directly also enables CPU text encoding and VAE tiling. Turning either option off or changing to a CPU-only device returns offload to Auto; changing offload away from Sequential exits Low VRAM. A CPU-only device cannot select the Low VRAM preset; switch its device to an automatic or GPU option first. Existing user presets are retained even when their name conflicts with the built-in option. The built-in is available without writing a preset file.\n"
+    },
+    {
+      "id": "b000085",
+      "kind": "blank",
+      "start_line": 124,
+      "end_line": 124,
+      "raw": "\n"
+    },
+    {
+      "id": "b000086",
+      "kind": "paragraph",
+      "start_line": 125,
+      "end_line": 125,
+      "raw": "`videoLowVramPresetPreservesDraftAndUserPresets` exercises selection, exit and name collisions. `videoLowVramReachesWorker` uses a deterministic fake worker and temporary storage to check the submitted flag and execution controls; it does not prove inference or pretrained-model output quality.\n"
     }
   ],
   "outline": [
@@ -624,28 +675,36 @@
       "start_line": 29
     },
     {
-      "block_id": "b000037",
+      "block_id": "b000039",
       "parent_id": "b000001",
       "level": 2,
       "title": "Verification",
       "anchor": "verification",
-      "start_line": 49
+      "start_line": 54
     },
     {
-      "block_id": "b000055",
+      "block_id": "b000057",
       "parent_id": "b000001",
       "level": 2,
       "title": "Atomic composition edits",
       "anchor": "atomic-composition-edits",
-      "start_line": 74
+      "start_line": 79
     },
     {
-      "block_id": "b000063",
+      "block_id": "b000065",
       "parent_id": "b000001",
       "level": 2,
       "title": "Compact Figma layout (2026-10-23)",
       "anchor": "compact-figma-layout-2026-10-23",
-      "start_line": 99
+      "start_line": 104
+    },
+    {
+      "block_id": "b000082",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "Low VRAM video preset",
+      "anchor": "low-vram-video-preset",
+      "start_line": 121
     }
   ],
   "indexes": {
@@ -674,41 +733,41 @@
       {
         "block_id": "b000025",
         "line": 31,
-        "text": "`VideoTimelineState.qml` starts with an empty track list. The gutter **+** menu adds a named Layers, Images, Audio or Caption track (internal types Shots and Contents are retained). Tracks stay in that type order; position controls reorder tracks within their type. Shots/image keys reference stable track IDs, and image conditions are never distributed by a fixed numeric lane. Track edits and deletion participate in undo/redo. Audio/Caption rows have no initial placeholders.",
+        "text": "The native `VideoTimelineModel` starts with an empty track list. The gutter **+** menu adds a named Layers, Images, Audio or Caption track (internal types Shots and Contents are retained). Tracks stay in that type order; position controls reorder tracks within their type. Shots/image keys reference stable track IDs, and image conditions are never distributed by a fixed numeric lane. Track edits and deletion participate in undo/redo. Audio/Caption rows have no initial placeholders.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000027",
         "line": 33,
-        "text": "`VideoTimelineState.qml` owns shot boundaries, selection, excluded/locked state, per-shot prompts, image keyframes, frame numbers, image condition weights, undo and redo. The empty timeline's ruler reflects duration × FPS without creating shots. Generating from an empty shot collection uses the composition prompt, duration, FPS and explicitly added image conditions in one internal generation segment; submission never inserts that segment into the draft. Only **+ Layer** creates a visible shot, and its first shot spans the current generation duration. User-added kept shots are concatenated in timeline order. Splitting, trimming, rolling a boundary, sliding a shot, duplicating and ripple deletion change that draft. Changes are bounded to at least two output frames per shot. Deleting the final shot returns to an empty timeline. Keyboard controls include V/B, frame arrows, I/O, Space and undo/redo. The Generation/Shot inspector tabs share the selected shot. Image conditions can be chosen at the first, last or current frame, dragged, nudged, weighted, copied, pasted and deleted; their initial strength is the runtime default of 1.0.",
+        "text": "The native timeline model owns shot boundaries, selection, excluded/locked state, per-shot prompts, image keyframes, frame numbers, image condition weights, undo and redo. The empty timeline's ruler reflects duration × FPS without creating shots. Generating from an empty shot collection uses the composition prompt, duration, FPS and explicitly added image conditions in one internal generation segment; submission never inserts that segment into the draft. Only **+ Layer** creates a visible shot, and its first shot spans the current generation duration. User-added kept shots are concatenated in timeline order. Splitting, trimming, rolling a boundary, sliding a shot, duplicating and ripple deletion change that draft. Changes are bounded to at least two output frames per shot. Deleting the final shot returns to an empty timeline. Keyboard controls include V/B, frame arrows, I/O, Space and undo/redo. The Generation/Shot inspector tabs share the selected shot. Image conditions can be chosen at the first, last or current frame, dragged, nudged, weighted, copied, pasted and deleted; their initial strength is the runtime default of 1.0.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000029",
-        "line": 35,
+        "block_id": "b000031",
+        "line": 40,
         "text": "The inspector exposes width/height, duration/FPS, aspect ratio, count, camera motion, steps, CFG, seed, interpolation, temporal decoding, execution and H.264 quality/preset. Defaults match `normalizeVideoRecipe`: 1024 × 576, 5 seconds, 24 FPS, one output, 30 steps, CFG 3 and a random seed (`-1`), with the existing decoding/execution/encoding defaults. Prompt and negative prompt start empty unless the user configured defaults in Preferences. No example negative prompt or fixed seed is injected. Camera motion defaults to None and uses the SDK's text-conditioning path; no Camera/Zoom track is added. Width and height must be divisible by 32; invalid fields block submission. Duration/FPS resize the draft's frame extent even when it contains no shots. **Reset** restores generation defaults and clears tracks, shots, keyframes, selections, clipboard, undo/redo, playback and timeline zoom. The workspace has parameter presets, but no template or saved-recipe controls and does not read or write the former `VideoGeneration/savedRecipe` setting. Existing saved settings are left untouched. Navigation retains user edits after first opening.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000067",
-        "line": 103,
+        "block_id": "b000069",
+        "line": 108,
         "text": "Width/Height, Duration/Frame rate and Aspect ratio/Output count share rows. Model, preset and execution selectors use their available row width. Compact PanelRow spacing is opt-in and leaves every other panel's default density intact; LVRS metrics, fonts and control rendering remain native. Aspect changes use the SDK's exact 32px-grid sizes, while direct dimension edits remain supported and display Custom when appropriate. All sampling, image, execution and output controls remain reachable through scrolling. Numeric fields retain the raw text while focused and restore their display units on blur; valid prefixes such as 32 must not prevent typing 320, and fractional controls must retain the decimal point during editing. The native keyboard regression covers typing and focus transitions.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000073",
-        "line": 109,
+        "block_id": "b000075",
+        "line": 114,
         "text": "The timeline opens empty with Layers/Keyframes/Curves, range controls, frame snap interval, linked selection, zoom and Fit. Mode buttons retain the native label width so Keyframes does not elide at the reference window size. Its underlying generation recipe retains the existing Shots vocabulary. + Layer explicitly creates a generation shot; the gutter + menu creates user-selected track kinds. Editing tools and track controls appear only after the user creates content and stay on clipped single rows. Ruler, playhead, clips and empty-lane grid share a frame pitch of 114.6666666667/10 pixels at 100%. Tick and grid delegates cover only the visible range and adapt their step when zoomed out, so long/high-FPS drafts do not instantiate one visual per document frame. Zoom, Fit and ruler navigation do not add undo entries or enqueue work. Shared LVRS transport icons render at 16×16. A 22×26 vector playhead marker shares the editor implementation and follows the LVRS accent color; the reference photograph is dynamic user/output content and is never inserted as sample data.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000075",
-        "line": 111,
+        "block_id": "b000077",
+        "line": 116,
         "text": "`Dreamscapes.Video` measures paired-row geometry, full-height inspector separation, sticky-action containment, parameter coverage at 280/300/402px, aspect updates, camera/preset round trips with no inserted shots or jobs, scrolling to the output controls and actual fixture generation/export. `videoPresetsKeepOnlyGenerationControls` checks persistence, Unicode paths, reference exclusion and rejected camera combinations. The recipe-contract regression verifies camera validation and storyboard propagation. Fixture checks do not run the installed 22B model.",
         "basis": "lexical_match",
         "context": "paragraph"
@@ -717,25 +776,25 @@
     "commands": [],
     "links": [
       {
-        "block_id": "b000039",
+        "block_id": "b000041",
         "label": "EditorLayout.md",
         "target": "EditorLayout.md#bottom-timeline",
         "kind": "relative",
-        "line": 58
+        "line": 63
       },
       {
-        "block_id": "b000065",
+        "block_id": "b000067",
         "label": "Video workspace 464:9774",
         "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=464-9774",
         "kind": "external",
-        "line": 101
+        "line": 106
       },
       {
-        "block_id": "b000065",
+        "block_id": "b000067",
         "label": "all parameters 498:11999",
         "target": "https://www.figma.com/design/bn8O4AHKr1X9DWnhR1TgEy/Dreamscapes?node-id=498-11999",
         "kind": "external",
-        "line": 101
+        "line": 106
       }
     ],
     "tables": []

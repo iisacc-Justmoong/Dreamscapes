@@ -1,3 +1,4 @@
 #pragma once
 class QObject;
-void installDreamscapesMcp(QObject* root, QObject* lifetime);
+class ApplicationShutdownCoordinator;
+void installDreamscapesMcp(QObject* root, QObject* lifetime, ApplicationShutdownCoordinator* shutdown);

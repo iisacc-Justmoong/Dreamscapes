@@ -71,6 +71,25 @@ void VideoDraftModel::notify(const QVariantMap &oldValues, const QVariantMap &ol
 bool VideoDraftModel::edit(const QString &key, const QVariant &value) {
     const auto old = values(), invalid = invalidInputs();
     const auto result = draft_.edits().send({key.toStdString(), nativeValue(value)});
+    if (result && *result) {
+        const auto current = values();
+        if (key == "offload" && current.value("offload").toString() == "sequential") {
+            (void)draft_.edits().send({"cpuTextEncoding", nativeValue(QVariant(true))});
+            (void)draft_.edits().send({"vaeTiling", nativeValue(QVariant(true))});
+        } else if ((key == "cpuTextEncoding" || key == "vaeTiling") && !current.value(key).toBool() &&
+                   current.value("offload").toString() == "sequential") {
+            (void)draft_.edits().send({"offload", nativeValue(QVariant(QStringLiteral("auto")))});
+        } else if (key == "device" && current.value("device").toString() == "cpu" &&
+                   current.value("offload").toString() == "sequential") {
+            (void)draft_.edits().send({"offload", nativeValue(QVariant(QStringLiteral("auto")))});
+        }
+        if (generation_ && (key == "offload" || key == "cpuTextEncoding" || key == "vaeTiling" || key == "device") &&
+            selectedPreset_ == generation_->lowVramVideoPresetName() &&
+            values().value("offload").toString() != "sequential") {
+            selectedPreset_ = tr("Default");
+            emit presetChanged();
+        }
+    }
     notify(old, invalid);
     return result && *result;
 }
@@ -101,7 +120,13 @@ bool VideoDraftModel::savePreset(const QString &name) {
     return true;
 }
 bool VideoDraftModel::loadPreset(const QString &name) {
-    auto next = defaults();
+    const bool lowVram = generation_ && name == generation_->lowVramVideoPresetName();
+    auto next = lowVram ? values() : defaults();
+    if (lowVram && next.value("device").toString() == "cpu") {
+        presetFeedback_ = tr("Low VRAM requires an automatic or GPU device; CPU execution does not use GPU offload.");
+        emit presetChanged();
+        return false;
+    }
     QVariantMap saved;
     if (name != tr("Default")) {
         if (!generation_)
@@ -115,7 +140,7 @@ bool VideoDraftModel::loadPreset(const QString &name) {
         for (auto it = saved.begin(); it != saved.end(); ++it)
             next[it.key()] = it.value();
     }
-    if (timeline_ && !timeline_->resizeComposition(next.value("duration").toInt() * next.value("fps").toInt(),
+    if (timeline_ && !lowVram && !timeline_->resizeComposition(next.value("duration").toInt() * next.value("fps").toInt(),
                                                    next.value("fps").toDouble())) {
         presetFeedback_ = timeline_->error();
         emit presetChanged();

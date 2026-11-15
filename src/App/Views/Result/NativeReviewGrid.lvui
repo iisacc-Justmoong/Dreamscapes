@@ -1,0 +1,43 @@
+import nav NativeReviewNavigationScope
+import vm NativeReviewGridBackend
+EventListener(id: "gridSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    for (item in vm.items, key: item.token, id: "gridResults", itemHeight: vm.cellSize,
+         itemWidth: vm.minimumCellWidth, columns: vm.columns, width: vm.viewportWidth, height: vm.viewportHeight,
+         spacing: 0, overscan: 1, navigation: nav, selectionMode: .multiple,
+         selectOnMove: false, selectOnClick: false, activateOnDoubleClick: true, onActivate: vm.openDetail) {
+        ZStack(id: "gridTile", width: vm.cellSize, height: vm.cellSize, alignment: .center,
+               backgroundColor: Color.surfaceSolid) {
+            Image(id: "gridThumbnail", source: item.token, width: vm.cellSize,
+                  height: vm.cellSize, fit: .Cover, opacity: item.rejected ? 0.45 : 1)
+            Label(id: "gridPreviewStatus", text: vm.previewMessage(item.token),
+                  visible: vm.previewMessage(item.token) != "", style: .caption, selectable: false)
+            VStack(width: vm.cellSize, height: vm.cellSize, alignment: .stretch) {
+                HStack(alignment: .center) {
+                    Spacer()
+                    if (item.badgeVisible) {
+                        HStack(backgroundColor: Color.surfaceSolid, leftPadding: Metric.space4, rightPadding: Metric.space4) {
+                            Label(id: "gridBadge", text: item.badge, style: .caption, selectable: false)
+                        }
+                    }
+                }
+                Spacer()
+                HStack(height: Metric.size22, backgroundColor: Color.surfaceSolid,
+                       leftPadding: Metric.space2, rightPadding: Metric.space2, alignment: .center) {
+                    Label(id: "gridTitle", text: vm.tileTitle(item), style: .caption, selectable: false, elideRight: true, flex: 1)
+                }
+            }
+            ZStack(width: vm.cellSize, height: vm.cellSize, borderColor: Color.blue,
+                   borderWidth: item.selected ? Metric.stroke1 * 2 : item.focused ? Metric.stroke1 : 0)
+            ContextMenu(id: "gridContextMenu", targetId: "gridTile", showIconSlot: false,
+                        onOpened: item.openMenu, onItemTriggered: item.menuAction) {
+                ContextMenuItem(id: "gridContextShortlist", label: item.shortlistLabel(), hasChildItems: false)
+                ContextMenuItem(id: "gridContextReject", label: item.rejectLabel(), hasChildItems: false)
+                ContextMenuItem(id: "gridContextReset", label: item.resetLabel(), hasChildItems: false)
+                ContextMenuItem(id: "gridContextCompare", label: item.compareLabel(), enabled: item.canContextCompare(), hasChildItems: false)
+                ContextMenuItem(id: "gridContextEdit", label: item.editLabel(), enabled: item.canContextEdit(), hasChildItems: false)
+                ContextMenuItem(id: "gridContextSaveFile", label: item.saveFileLabel(), enabled: item.canContextSaveFile(), hasChildItems: false)
+                ContextMenuItem(id: "gridContextSavePhotos", label: item.savePhotosLabel(), enabled: item.canContextSavePhotos(), hasChildItems: false)
+            }
+        }
+    }
+}

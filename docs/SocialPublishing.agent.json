@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/SocialPublishing.md",
-    "sha256": "ffa6276314b60a37ed93e940f1b8f4645cf2ff0b6ca50c312c9846d1e468f394",
-    "bytes": 10543,
-    "line_count": 168,
+    "sha256": "a667f44a54dd3187aa159d455aecbec55af29fe348b5f04db388074fbf5a93be",
+    "bytes": 11078,
+    "line_count": 176,
     "encoding": "utf-8",
     "language": "ko"
   },
@@ -394,6 +394,36 @@
       "start_line": 161,
       "end_line": 168,
       "raw": "`Dreamscapes.SocialPublishing`은 기존 계약과 별도로 전송 정체 중 종료,\n완료 알림 순서, 기록 교체 중 중복 ID, 완료·연결 해제·계정 교체 중 소유자 삭제,\n최신 계정 설정·연결 해제·독립 계정 변경, 취소·해제·종료 콜백의 큐 재조회 사례를\n검사한다. `--case <이름>`으로 각 사례를 독립 실행할 수 있다. 전송을 보류하는\n검사는 GUI 종료가 끝난 뒤 전송을 풀며, 750ms의 탈출 장치를 사용해 기존의\n종료 대기를 실패로 검출한다. 모든 제공자는 가짜 전송기이며 외부 게시를 수행하지\n않는다. 힙 접근 계측 검사는 제품의 게시 어댑터와 해당 검사 실행 파일에 한정하며,\n전체 앱의 메모리·스레드·프로세스 종료 검증과 구분한다.\n"
+    },
+    {
+      "id": "b000052",
+      "kind": "blank",
+      "start_line": 169,
+      "end_line": 169,
+      "raw": "\n"
+    },
+    {
+      "id": "b000053",
+      "kind": "heading",
+      "start_line": 170,
+      "end_line": 170,
+      "raw": "## X 미디어 메타데이터 연동 검사\n",
+      "level": 2,
+      "title": "X 미디어 메타데이터 연동 검사"
+    },
+    {
+      "id": "b000054",
+      "kind": "blank",
+      "start_line": 171,
+      "end_line": 171,
+      "raw": "\n"
+    },
+    {
+      "id": "b000055",
+      "kind": "paragraph",
+      "start_line": 172,
+      "end_line": 176,
+      "raw": "Dreamscapes 어댑터는 전달받은 미디어 설명을 iiSocialIntegration의 X v2\n메타데이터 요청까지 보존한다. `x-media-through-application` 검사는 격리된\n임시 파일과 모의 전송으로 요청의 `id` 및 `metadata.alt_text.text`와 인증\n정보 비노출을 검사한다. 이 검사는 실제 OAuth 계정 등록이나 실게시의 증거가\n아니다. 현재 계정 승인 서비스 연결이 없으면 앱에서 자동 업로드를 시작할 수 없다.\n"
     }
   ],
   "outline": [
@@ -436,6 +466,14 @@
       "title": "작업 수명과 완료 알림 순서",
       "anchor": "작업-수명과-완료-알림-순서",
       "start_line": 138
+    },
+    {
+      "block_id": "b000053",
+      "parent_id": "b000001",
+      "level": 2,
+      "title": "X 미디어 메타데이터 연동 검사",
+      "anchor": "x-미디어-메타데이터-연동-검사",
+      "start_line": 170
     }
   ],
   "indexes": {

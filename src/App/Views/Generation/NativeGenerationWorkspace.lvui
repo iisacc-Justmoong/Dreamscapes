@@ -1,0 +1,46 @@
+import vm NativeGenerationWorkspaceBackend
+@Static let resizeGeneration: (Double, Double) -> Void = vm.sizeHandler(Metric.size400, Metric.size280)
+EventListener(id: "generationSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizeGeneration) {
+    HStack(width: vm.width, height: vm.height, spacing: 0, alignment: .stretch) {
+        if (vm.showPreview) {
+            VStack(id: "generationPreview", width: vm.previewWidth, height: vm.height,
+                   spacing: Metric.space8, padding: Metric.space8, alignment: .stretch) {
+                Label(id: "generationMedia", text: vm.media, style: .body)
+                ZStack(flex: 1, alignment: .center) {
+                    Label(id: "generationEmptyPreview", text: "No result selected", style: .caption)
+                }
+            }
+        }
+        VStack(id: "generationParameters", width: vm.panelWidth, height: vm.height, spacing: Metric.space4,
+                   padding: Metric.space8, alignment: .stretch) {
+                Label(id: "generationHeading", text: vm.heading, style: .header2)
+                for (item in vm.fields, key: item.key, id: "generationFields", itemHeight: Metric.size44,
+                     measureHeight: true, width: vm.panelWidth, height: 0, flex: 1, overscan: 1) {
+                    VStack(id: "generationField", spacing: Metric.space2, alignment: .stretch) {
+                        if (item.showSection) {
+                            Label(id: "generationSection", text: item.section, style: .body)
+                        }
+                        HStack(spacing: Metric.space8, alignment: .center) {
+                            Label(id: "generationFieldLabel", text: item.label, style: .caption, flex: 1)
+                            if (item.isToggle) {
+                                ToggleSwitch(id: "generationToggle", checked: item.checked, enabled: item.enabled,
+                                             onToggled: item.toggled)
+                            } else if (item.isChoice) {
+                                ListItemSelector(id: "generationChoice", options: item.options, currentIndex: item.index,
+                                                 enabled: item.enabled, accessibilityName: item.label,
+                                                 onCurrentIndexChanged: item.selected)
+                            } else {
+                                InputField(id: "generationInput", text: item.text, enabled: item.enabled,
+                                           accessibilityName: item.label, onEdited: item.edited)
+                            }
+                        }
+                        if (item.invalid) {
+                            Label(id: "generationInputError", text: item.error, style: .caption)
+                        }
+                    }
+                }
+                Label(id: "generationServiceStatus", text: "Generation service unavailable", style: .caption)
+                LabelButton(id: "generationSubmit", text: "Generate", tone: .default, enabled: vm.canGenerate)
+        }
+    }
+}

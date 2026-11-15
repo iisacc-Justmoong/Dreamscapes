@@ -1,11 +1,14 @@
 #pragma once
 
 #include "NativeReviewNavigation.h"
+#include "NativeReviewContext.h"
+#include "App/Native/NativePreviewStatus.h"
 #include <LVUI/NativeImageResolver.h>
 #include <iiGUI/Image.h>
 #include <iiSDKCore/Core/Property/Observable.h>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <thread>
 #include <unordered_map>
@@ -17,9 +20,26 @@ struct ReviewGalleryItem final {
     std::string key, token;
     vm::Value source;
     ii::core::Observable<std::string> title, reviewLabel;
+    ii::core::Observable<std::string> mediaType,jobId,badge;
+    ii::core::Observable<std::int64_t> ordinal{0};
+    ii::core::Observable<bool> badgeVisible{false},rejected{false};
     ii::core::Observable<bool> selected{false}, focused{false};
     ii::core::Observable<std::shared_ptr<const ii::gui::RasterImage>> thumbnail;
     ii::core::Observable<std::string> thumbnailAddress;
+    std::weak_ptr<ReviewContextModel> contextOwner;
+    void openMenu();
+    void menuAction(int);
+    [[nodiscard]] std::string shortlistLabel() const;
+    [[nodiscard]] std::string rejectLabel() const;
+    [[nodiscard]] std::string resetLabel() const;
+    [[nodiscard]] std::string compareLabel() const;
+    [[nodiscard]] std::string editLabel() const;
+    [[nodiscard]] std::string saveFileLabel() const;
+    [[nodiscard]] std::string savePhotosLabel() const;
+    [[nodiscard]] bool canContextCompare() const;
+    [[nodiscard]] bool canContextEdit() const;
+    [[nodiscard]] bool canContextSaveFile() const;
+    [[nodiscard]] bool canContextSavePhotos() const;
 };
 
 // Presentation only: a caller supplies real result values, preview images and
@@ -27,6 +47,7 @@ struct ReviewGalleryItem final {
 class ReviewGalleryModel final : public std::enable_shared_from_this<ReviewGalleryModel> {
   public:
     using Action = std::function<void(std::vector<vm::Value>)>;
+    using Eligibility = ReviewContextModel::Eligibility;
     using Item = std::shared_ptr<ReviewGalleryItem>;
     static std::shared_ptr<ReviewGalleryModel> create(std::shared_ptr<Session> session);
     ~ReviewGalleryModel();
@@ -42,23 +63,30 @@ class ReviewGalleryModel final : public std::enable_shared_from_this<ReviewGalle
     // Inspect only from the model's owning thread, including during teardown.
     bool active() const noexcept { return active_; }
     std::shared_ptr<ReviewNavigation> navigation() const;
+    std::shared_ptr<ReviewContextModel> contextMenu() const;
     void bindNavigation(std::shared_ptr<dreamscapes::review::CollectionNavigation> navigation);
     bool setThumbnail(std::string_view key, const vm::Value &expectedSource,
                       std::shared_ptr<const ii::gui::RasterImage> image);
     // The resolver is called only by mounted rows; it can use LVUI::ImageIO
     // or an application provider and publish changes through Observable reads.
     void setImageResolver(std::shared_ptr<const lvui::native::ImageResolver<ii::gui::RasterImage>> resolver);
+    bool clearImageResolver(const std::shared_ptr<const lvui::native::ImageResolver<ii::gui::RasterImage>> &expected);
     [[nodiscard]] std::shared_ptr<const ii::gui::RasterImage>
     imageForToken(std::string_view token, std::uint32_t width, std::uint32_t height) const;
-    void setEditHandler(Action);
+    [[nodiscard]] std::optional<dreamscapes::native::PreviewStatus>
+    previewStatusForToken(std::string_view token,std::uint32_t width,std::uint32_t height) const;
+    void setEditHandler(Action,Eligibility={});
     void setCompareHandler(Action);
     void setExportHandler(Action);
     void setDetailHandler(Action);
+    void setSaveFileHandler(Action);
+    void setSavePhotosHandler(Action);
     void edit();
     void compare();
     void exportResults();
     void detail();
     void activate(std::string token);
+    void openDetail(std::string token);
     void close();
 
   private:
@@ -69,14 +97,17 @@ class ReviewGalleryModel final : public std::enable_shared_from_this<ReviewGalle
     void rebuildItems(const std::unordered_map<std::string, Item> *previous = nullptr);
     void updateItem(const Row &row);
     void updateActions();
+    [[nodiscard]] bool canEditEntries(const std::vector<vm::Value> &) const;
 
     const std::thread::id owner_ = std::this_thread::get_id();
     std::shared_ptr<Session> session_;
     std::shared_ptr<ReviewNavigation> navigation_;
+    std::shared_ptr<ReviewContextModel> context_;
     std::shared_ptr<ChangePort> observer_;
     std::unordered_map<std::string, Item> itemsByKey_;
     ii::core::Observable<std::shared_ptr<const lvui::native::ImageResolver<ii::gui::RasterImage>>> imageResolver_;
     Action edit_, compare_, export_, detail_;
+    Eligibility editEligible_;
     bool active_ = true;
 };
 } // namespace dreamscapes::review
@@ -85,7 +116,7 @@ class ReviewGalleryModel final : public std::enable_shared_from_this<ReviewGalle
 // product binding to retire independently without invalidating another owner.
 class NativeReviewNavigationScope final {
     std::shared_ptr<dreamscapes::review::CollectionNavigation> value_;
-    std::function<void()> detail_;
+    std::function<void()> detail_, edit_;
 
   public:
     dreamscapes::review::CollectionNavigation::StateSource &state;
@@ -99,11 +130,17 @@ class NativeReviewNavigationScope final {
     bool set_current(std::string key) { return value_->set_current(std::move(key)); }
     template <class... Args> auto focus_at(Args &&...args) { return value_->focus_at(std::forward<Args>(args)...); }
     void setDetailHandler(std::function<void()> handler) { detail_ = std::move(handler); }
+    void setEditHandler(std::function<void()> handler) { edit_ = std::move(handler); }
     template <class Source, class... Args>
     auto command(const Source &source, lvui::native::CollectionCommand command, Args &&...args) {
         if (command == lvui::native::CollectionCommand::toggle) {
             if (detail_)
                 detail_();
+            return lvui::native::CollectionNavigationReply{.handled = true};
+        }
+        if (command == lvui::native::CollectionCommand::activate) {
+            if (edit_)
+                edit_();
             return lvui::native::CollectionNavigationReply{.handled = true};
         }
         return value_->command(source, command, std::forward<Args>(args)...);
@@ -133,6 +170,7 @@ class NativeReviewGalleryBackend final {
     void reject() { session->toggleReview(dreamscapes::review::State::Rejected); }
     void clearSelection() { session->clearSelection(); }
     void activate(std::string token) { model->activate(std::move(token)); }
+    void openDetail(std::string token) { model->openDetail(std::move(token)); }
     void edit() { model->edit(); }
     void compare() { model->compare(); }
     void exportResults() { model->exportResults(); }

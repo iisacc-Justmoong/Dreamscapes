@@ -1,0 +1,56 @@
+import vm NativeCanvasWorkspaceBackend
+@Static let resizeCanvas: (Double, Double) -> Void = vm.sizeHandler(Metric.size280)
+EventListener(id: "newCanvasSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizeCanvas) {
+    VStack(width: vm.width, height: vm.height, padding: Metric.space8, spacing: Metric.space8, alignment: .stretch) {
+        HStack(spacing: Metric.space8, alignment: .center) {
+            Label(text: "New canvas", style: .header2, flex: 1)
+            LabelButton(id: "createCanvas", text: "Create canvas", tone: .default, enabled: vm.canCreate, onClick: vm.createCanvas)
+        }
+        HStack(height: 0, flex: 1, spacing: Metric.space8, alignment: .stretch) {
+            VStack(width: vm.listWidth, spacing: Metric.space8, alignment: .stretch) {
+                InputField(text: vm.query, accessibilityName: "Search sizes or formats", onEdited: vm.search)
+                HStack(height: 0, flex: 1, spacing: Metric.space8, alignment: .stretch) {
+                    VStack(width: vm.detailWidth, spacing: Metric.space4, alignment: .stretch) {
+                        LabelButton(text: "Custom dimensions", tone: .default, onClick: vm.custom)
+                        for (item in vm.categories, key: item.id, id: "canvasCategories", itemHeight: Metric.size44,
+                             width: vm.detailWidth, height: 0, flex: 1, overscan: 1) {
+                            HStack(spacing: Metric.space4, alignment: .center) {
+                                LabelButton(text: item.name, tone: .default, flex: 1, onClick: item.choose)
+                                if (item.selected) { Label(text: "Selected", style: .caption) }
+                            }
+                        }
+                    }
+                    for (item in vm.presets, key: item.id, id: "canvasPresets", itemHeight: Metric.size44,
+                         width: vm.detailWidth, height: 0, flex: 1, overscan: 1) {
+                        LabelButton(text: item.name, tone: .default, onClick: item.choose)
+                    }
+                }
+            }
+            VStack(width: vm.detailWidth, spacing: Metric.space8, alignment: .stretch) {
+                Label(text: "Canvas details", style: .header2)
+                Label(id: "canvasSelection", text: vm.selectionName, style: .body)
+                Label(text: "Width", style: .caption)
+                InputField(text: vm.widthText, accessibilityName: "Canvas width", onEdited: vm.editWidth)
+                Label(text: "Height", style: .caption)
+                InputField(text: vm.heightText, accessibilityName: "Canvas height", onEdited: vm.editHeight)
+                Label(text: "Units", style: .caption)
+                HStack(spacing: Metric.space4) {
+                    Label(text: vm.unit, style: .body, flex: 1)
+                    LabelButton(text: "px", tone: .default, onClick: vm.pixels)
+                    LabelButton(text: "mm", tone: .default, onClick: vm.millimeters)
+                    LabelButton(text: "in", tone: .default, onClick: vm.inches)
+                }
+                Label(text: "Print resolution (PPI)", style: .caption)
+                InputField(text: vm.ppiText, accessibilityName: "Canvas resolution", onEdited: vm.editPpi)
+                Label(text: "Background", style: .caption)
+                Label(text: vm.background, style: .body)
+                HStack(spacing: Metric.space4) {
+                    LabelButton(text: "White", tone: .default, onClick: vm.white)
+                    LabelButton(text: "Transparent", tone: .default, onClick: vm.transparent)
+                    LabelButton(text: "Black", tone: .default, onClick: vm.black)
+                }
+                Label(id: "canvasStatus", text: vm.status, style: .caption)
+            }
+        }
+    }
+}

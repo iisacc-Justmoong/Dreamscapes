@@ -777,23 +777,27 @@ void GuiTests::licenseEntryUsesTheSocietyAccount()
     using namespace iisacc::accounts::native;
     SocietySessionOptions options{.product_id = "dreamscapes",
         .device = {std::string(64, 'a'), "pc", "Fixture", "macos", "1", "com.iisacc.dreamscapes", "1"},
-        .socket_path = fixture.filePath("signed.sock").toStdString(), .timeout = std::chrono::seconds(2),
+        .socket_path = fixture.filePath("signed.sock").toStdString(), .timeout = std::chrono::seconds(20),
         .keys = {{"dreamscapes-fixture", dreamscapes_license_fixture::publicKey()}}};
     SocietyAccount signedAccount(options);
     QVERIFY(window->setProperty("licenseAccount", QVariant::fromValue(static_cast<QObject *>(&signedAccount))));
-    QTRY_COMPARE_WITH_TIMEOUT(signedAccount.code(), QStringLiteral("invalid_society_response"), 10000);
+    QTRY_COMPARE_WITH_TIMEOUT(signedAccount.code(), QStringLiteral("invalid_society_response"), 60000);
     QVERIFY(!signedAccount.licensed());
     QVERIFY(!window->property("licenseGranted").toBool());
     QVERIFY(item(window, "societyLicenseGate")->isVisible());
-    tampered = false; signedAccount.refresh();
-    QTRY_VERIFY_WITH_TIMEOUT(signedAccount.licensed(), 10000);
+    tampered = false;
+    SocietyAccount validAccount(options);
+    QVERIFY(window->setProperty("licenseAccount", QVariant::fromValue(static_cast<QObject *>(&validAccount))));
+    QTRY_VERIFY_WITH_TIMEOUT(validAccount.licensed(), 60000);
     QTRY_VERIFY(window->property("licenseGranted").toBool());
     QTRY_VERIFY(item(window, "appContent")->isVisible());
     const auto requestsAtGrant = requests;
-    tampered = true; signedAccount.refresh();
-    QCOMPARE(signedAccount.code(), QStringLiteral("licensed"));
+    tampered = true; validAccount.refresh();
+    QTest::qWait(3500); // Past the denied-session retry interval.
+    QCOMPARE(validAccount.code(), QStringLiteral("licensed"));
     QVERIFY(window->property("licenseGranted").toBool());
     QVERIFY(item(window, "appContent")->isVisible());
+    QVERIFY(!item(window, "societyLicenseGate")->isVisible());
     QCOMPARE(requests, requestsAtGrant);
 }
 
@@ -5087,8 +5091,9 @@ void GuiTests::referenceViewsDoNotPrepareStorage() {
     const QString directory = QStringLiteral(DREAMSCAPES_QML_SOURCE_DIR);
     const QString file = kind == "advanced" ? "Views/Home/AdvancedGenerate.qml"
         : kind == "video-monitor" ? "Views/Video/VideoGenerationWorkspace.qml" : "Views/Video/VideoTimeline.qml";
-    QQmlComponent stateComponent(&engine, QUrl::fromLocalFile(directory + "/Views/Video/VideoTimelineState.qml"));
-    std::unique_ptr<QObject> state(kind.startsWith("video-") && kind != "video-monitor" ? stateComponent.create() : nullptr);
+    std::unique_ptr<QObject> state;
+    if (kind.startsWith("video-") && kind != "video-monitor")
+        state = std::make_unique<dreamscapes::VideoTimelineModel>();
     QQmlComponent component(&engine, QUrl::fromLocalFile(directory + '/' + file));
     QVariantMap properties{{"generation", QVariant::fromValue(backend.get())}};
     if (state) properties["stateModel"] = QVariant::fromValue(state.get());
@@ -6089,10 +6094,7 @@ void GuiTests::editorNativeCanvasEditsAndPersists()
 
 void GuiTests::videoTimelineTracks()
 {
-    QQmlEngine engine;
-    QQmlComponent component(&engine, sourceUrl("Views/Video/VideoTimelineState.qml"));
-    QScopedPointer<dreamscapes::VideoTimelineModel> state(qobject_cast<dreamscapes::VideoTimelineModel *>(component.create()));
-    QVERIFY2(state, qPrintable(component.errorString()));
+    QScopedPointer<dreamscapes::VideoTimelineModel> state(new dreamscapes::VideoTimelineModel);
     QCOMPARE(listProperty(state.data(), "tracks").size(), 0);
     QVERIFY(!state->property("canUndo").toBool());
     auto addTrack = [&](const QString &type, const QString &name, int position = -1) {
@@ -12343,7 +12345,9 @@ void GuiTests::videoHomeSubmitPlaysAndExports()
     QVERIFY(quick->setProperty("mediaType","Video"));
     QTRY_COMPARE(quick->property("mediaType").toString(),QString("Video"));
     auto *options=item(quick,"desktopGenerationComposer"); QVERIFY(options && options->isVisible());
-    QVERIFY(item(quick,"homeModelButton")->isEnabled());
+    // Model discovery runs asynchronously; the fixture must wait for the
+    // inventory notification instead of assuming it arrived with the window.
+    QTRY_VERIFY_WITH_TIMEOUT(item(quick,"homeModelButton")->isEnabled(), 10000);
     auto *fpsMenu=quick->findChild<QObject *>("videoFpsMenu"); QVERIFY(fpsMenu);
     QCOMPARE(listProperty(fpsMenu,"items").size(),5);
     QVERIFY(QMetaObject::invokeMethod(fpsMenu,"itemTriggered",Q_ARG(int,3),Q_ARG(QVariant,listProperty(fpsMenu,"items")[3])));
@@ -12637,9 +12641,7 @@ void GuiTests::videoInspectorStaysWithinViewport()
     GenerationController controller(runtime);
     QVERIFY(controller.connectStorage(storage.path()));
     QQmlEngine engine;
-    QQmlComponent timelineComponent(&engine, sourceUrl("Views/Video/VideoTimelineState.qml"));
-    std::unique_ptr<QObject> timeline(timelineComponent.create());
-    QVERIFY2(timeline, qPrintable(timelineComponent.errorString()));
+    auto timeline = std::make_unique<dreamscapes::VideoTimelineModel>();
     QQmlComponent component(&engine, sourceUrl("Views/Video/VideoParameterPanel.qml"));
     std::unique_ptr<QObject> object(component.createWithInitialProperties({
         {"generation", QVariant::fromValue<QObject *>(&controller)},

@@ -1,0 +1,29 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Generation Result", style: .header2)
+            Label(id: "migratedText0", text: "Save to File", style: .body)
+            Label(id: "migratedText1", text: "Export selected originals", style: .body)
+            Label(id: "migratedText2", text: "Save current to File", style: .body)
+            Label(id: "migratedText3", text: "Save current to Photos", style: .body)
+            Label(id: "migratedText4", text: "Arrival order", style: .body)
+            Label(id: "migratedText5", text: "Newest first", style: .body)
+            Label(id: "migratedText6", text: "Seed", style: .body)
+            Label(id: "migratedText7", text: "Back", style: .body)
+            Label(id: "migratedText8", text: "Generation review", style: .body)
+            Label(id: "migratedText9", text: "Queue", style: .body)
+            Label(id: "migratedText10", text: "Inspect", style: .body)
+            Label(id: "migratedText11", text: "Cancel batch", style: .body)
+            Label(id: "migratedText12", text: "Clear job filter", style: .body)
+            Label(id: "migratedText13", text: "Edit focused", style: .body)
+            Label(id: "migratedText14", text: "Save video", style: .body)
+            Label(id: "migratedText15", text: "Clear selection", style: .body)
+            Label(id: "migratedText16", text: "Close", style: .body)
+            Label(id: "migratedText17", text: "Fit", style: .body)
+            Label(id: "migratedText18", text: "100%", style: .body)
+        }
+    }
+}

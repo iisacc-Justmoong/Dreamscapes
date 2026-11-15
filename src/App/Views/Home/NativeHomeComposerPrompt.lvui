@@ -1,0 +1,15 @@
+import vm NativeHomeComposerPromptBackend
+@Static let resizePrompt: (Double, Double) -> Void = vm.sizeHandler(Metric.space8, Metric.size22)
+@Static let measurePrompt: (Double) -> Void = vm.measureHandler(Metric.space2, Metric.size22)
+EventListener(id: "homePromptSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizePrompt) {
+    HStack(width: vm.viewportWidth, height: vm.viewportHeight, spacing: Metric.space8, alignment: .center) {
+        TextEditor(id: "homePrompt", text: vm.text, placeholder: vm.placeholder, accessibilityName: vm.accessible,
+                   width: vm.editorWidth, height: vm.viewportHeight, minimumHeight: Metric.size22,
+                   verticalPadding: Metric.space2, wrapEnabled: true, enabled: vm.enabled,
+                   onEdited: vm.edited, onSubmit: vm.submitted, onContentHeightChanged: measurePrompt)
+        if (vm.clearVisible) {
+            IconButton(id: "homeClearPrompt", iconName: "generalremove", width: Metric.size22, height: Metric.size22,
+                       tone: .default, enabled: vm.enabled, accessibilityName: vm.clearAccessible, onClick: vm.clear)
+        }
+    }
+}

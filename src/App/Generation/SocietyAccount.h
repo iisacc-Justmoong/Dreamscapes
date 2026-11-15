@@ -36,6 +36,8 @@ private:
     void initialize(iisacc::accounts::native::SocietySessionOptions);
     bool enforced_ = true;
     bool launchGranted_ = false;
+    bool requestStarted_ = false;
+    bool decisionMade_ = false;
     QString error_;
     iisacc::accounts::native::AppDevice device_;
     ii::runtime::EventLoop loop_;

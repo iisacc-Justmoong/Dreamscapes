@@ -1,0 +1,10 @@
+import vm NativeApplicationShellBackend
+EventListener(id: "applicationSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    VStack(width: vm.width, height: vm.height, spacing: Metric.space8, alignment: .stretch) {
+        LabelButton(id: "applicationBack", text: "Home", tone: .default, onClick: vm.goHome)
+        if (vm.hasPageStatus) {
+            Label(id: "applicationPageStatus", text: vm.pageStatus, style: .caption)
+        }
+        NativeView(id: "applicationPage", source: vm.page, width: vm.width, height: 0, flex: 1)
+    }
+}

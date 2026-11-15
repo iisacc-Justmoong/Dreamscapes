@@ -1,0 +1,178 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:384e07f3667ee719ccd79bc6c8fd3cbaf3df0f261dfc994363b05ddca447d146",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/NativeDynamicGeneration.md",
+    "sha256": "e6a5d5dc1c9ba1bf1cbb97a6c0d7f716c1b3b74c105f516b693a0f0aadabd13e",
+    "bytes": 2830,
+    "line_count": 45,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Native generation view models",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Native generation view models\n",
+      "level": 1,
+      "title": "Native generation view models"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 6,
+      "raw": "Dreamscapes' native views bind observable, owner-thread C++ presentation state\nto LVUI and forward user edits to the model. This follows the same boundary as\nCongregation: views do not own inference or document state, and a missing\nservice is never reported as a successful operation.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 7,
+      "end_line": 7,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 8,
+      "end_line": 17,
+      "raw": "The Home composer shares a session-local `ComposerState` with its LVUI controls.\nPrompt, negative prompt, media, size, count, duration, frame rate and seed\nchanges must update the displayed draft without writing a document or starting\ngeneration. The generation button is unavailable until a real generation\nhandler is supplied. The Advanced command opens the corresponding native\nImage or Video view while retaining the draft. On that command, the applicable\nHome dimensions, output count, seed and Video duration and frame rate are\ncopied into the matching advanced draft. Reopening Advanced without changing\nthose Home settings preserves edits made in the advanced draft. Later changes\nto an individual Home setting replace only the corresponding advanced value.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 18,
+      "end_line": 18,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 19,
+      "end_line": 27,
+      "raw": "The Image and Video screens use native parameter models rather than the static\nmigration text. Image defaults, types, choices and validation come from\n`iiLocalDiffusion::imageParameterSpecs` and `ImageParameters`; Video uses\nDreamscapes' existing `VideoDraft` edit and validation rules. A rejected\nnumeric edit retains the user's input and reports the validation state without\noverwriting the accepted parameter. Model selection and generation submission\nremain unavailable when no provider is connected. View state is separate from\nfiles and is not persisted by merely changing a control. Reference image,\nControlNet and LoRA collections are not yet exposed in these native views.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 28,
+      "end_line": 28,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 29,
+      "end_line": 33,
+      "raw": "The result route uses the existing native review `Session` and gallery. Review\nselection and shortlist changes are session-local and survive navigation. The\nhistory provider is not connected; the screen says so and starts without\nfabricated results. Edit, export and preview remain unavailable without their\nrespective handlers and providers.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 34,
+      "end_line": 34,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 35,
+      "end_line": 38,
+      "raw": "The host passes its actual content size to the native root on first mount and\non resize, so changing pages cannot collapse the interactive viewport. The\nparameter list uses LVUI's measured, virtualized collection rather than nesting\nan oversized retained list inside another scroll view.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 39,
+      "end_line": 39,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 40,
+      "end_line": 45,
+      "raw": "The additional editor, storage, publishing and preference model seams and\ntheir explicit integration limits are described in\n[Native editor and workspace view models](NativeDynamicWorkspaces.md). Other\nmigrated views remain static, and the product service connections are not\nestablished merely by those models. Tests use in-memory models and windowless\niiGUI widget trees; they do not run generation or launch the application.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Native generation view models",
+      "anchor": "native-generation-view-models",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000003",
+        "line": 5,
+        "text": "Congregation: views do not own inference or document state, and a missing",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000003",
+        "line": 6,
+        "text": "service is never reported as a successful operation.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000005",
+        "line": 10,
+        "text": "changes must update the displayed draft without writing a document or starting",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 45,
+        "text": "iiGUI widget trees; they do not run generation or launch the application.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [
+      {
+        "block_id": "b000013",
+        "label": "Native editor and workspace view models",
+        "target": "NativeDynamicWorkspaces.md",
+        "kind": "relative",
+        "line": 42
+      }
+    ],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

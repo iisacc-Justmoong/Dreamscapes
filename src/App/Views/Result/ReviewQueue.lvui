@@ -1,0 +1,16 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Review Queue", style: .header2)
+            Label(id: "migratedText0", text: "GENERATION", style: .body)
+            Label(id: "migratedText1", text: "All jobs", style: .body)
+            Label(id: "migratedText2", text: "Live preview", style: .body)
+            Label(id: "migratedText3", text: "Cancel job", style: .body)
+            Label(id: "migratedText4", text: "Failure details", style: .body)
+            Label(id: "migratedText5", text: "No generation jobs", style: .body)
+        }
+    }
+}

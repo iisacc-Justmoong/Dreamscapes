@@ -1,0 +1,24 @@
+import vm NativeHomeSidebarBackend
+EventListener(id: "sidebarSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "sidebarScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(spacing: 0, alignment: .stretch, leftPadding: Metric.space8, rightPadding: Metric.space8,
+               topPadding: Metric.space8, bottomPadding: Metric.space8) {
+            for (item in vm.rows, key: item.key, id: "sidebarActions") {
+                VStack(spacing: 0, alignment: .stretch) {
+                    if (item.divider) {
+                        MenuDivider(id: "sidebarDivider")
+                    } else {
+                        VStack(spacing: 0, alignment: .stretch) {
+                            MenuItem(id: "sidebarAction", label: item.label, iconName: item.icon, accessibilityName: item.accessible,
+                                     state: item.state, iconSize: 18, keyVisible: false, showChevron: false, hasChildItems: false,
+                                     itemWidth: vm.viewportWidth > Metric.space16 ? vm.viewportWidth - Metric.space16 : 1,
+                                     onClick: { vm.activate(item.key) })
+                            Tooltip(id: "sidebarTooltip", targetId: "sidebarAction", text: item.accessible,
+                                    automatic: vm.compact, preferredPlacement: .RightSide)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

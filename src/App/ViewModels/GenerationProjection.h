@@ -2,6 +2,7 @@
 #include "Native/GenerationPresentation.h"
 #include <QObject>
 #include <QTimer>
+#include <QUrl>
 #include <QVariant>
 namespace dreamscapes {
 class GenerationProjection : public QObject {
@@ -15,6 +16,8 @@ class GenerationProjection : public QObject {
     Q_PROPERTY(bool busy READ busy WRITE setBusy NOTIFY inputsChanged)
     Q_PROPERTY(int previewStep READ previewStep WRITE setPreviewStep NOTIFY inputsChanged)
     Q_PROPERTY(int previewTotalSteps READ previewTotalSteps WRITE setPreviewTotalSteps NOTIFY inputsChanged)
+    Q_PROPERTY(QUrl previewImage READ previewImage NOTIFY inputsChanged)
+    Q_PROPERTY(QString previewJobId READ previewJobId NOTIFY inputsChanged)
     Q_PROPERTY(QString selectedResultId READ selectedResultId WRITE setSelectedResultId NOTIFY inputsChanged)
     Q_PROPERTY(QString selectedImageSource READ selectedImageSource WRITE setSelectedImageSource NOTIFY inputsChanged)
     Q_PROPERTY(QVariantList submissionJobs READ submissionJobs NOTIFY submissionJobsChanged)
@@ -29,6 +32,9 @@ class GenerationProjection : public QObject {
     Q_PROPERTY(QString generationStatusText READ generationStatusText NOTIFY generationStatusTextChanged)
   public:
     explicit GenerationProjection(QObject *parent = nullptr);
+    // Backend-owned fields can change together when a native host attaches or
+    // switches sessions. Selection remains the view's independent state.
+    void applySourceInputs(const QVariantMap &);
     QVariantList jobs() const {
         return inputs_.value("jobs").toList();
     }
@@ -65,6 +71,8 @@ class GenerationProjection : public QObject {
         return inputs_.value("previewTotalSteps").toInt();
     }
     void setPreviewTotalSteps(int);
+    QUrl previewImage() const { return inputs_.value("previewImage").toUrl(); }
+    QString previewJobId() const { return inputs_.value("previewJobId").toString(); }
     QString selectedResultId() const {
         return inputs_.value("selectedResultId").toString();
     }
@@ -108,6 +116,9 @@ class GenerationProjection : public QObject {
     Q_INVOKABLE QString stateLabel(const QString &) const;
   signals:
     void inputsChanged();
+    // Lets lightweight consumers observe job changes without rebuilding on
+    // unrelated image-preview or selection updates.
+    void jobsChanged();
     void submissionJobsChanged();
     void submissionResultsChanged();
     void reviewResultsChanged();

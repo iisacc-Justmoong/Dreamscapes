@@ -1,0 +1,16 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Home Recent Files", style: .header2)
+            Label(id: "migratedText0", text: "Recent files", style: .body)
+            Label(id: "migratedText1", text: "View all", style: .body)
+            Label(id: "migratedText2", text: "FILE", style: .body)
+            Label(id: "migratedText3", text: "SPECIFICATIONS", style: .body)
+            Label(id: "migratedText4", text: "UPDATED", style: .body)
+            Label(id: "migratedText5", text: "STATE", style: .body)
+        }
+    }
+}

@@ -1,0 +1,36 @@
+import vm NativeFilePanelBackend
+@Static let resizeFilePanel: (Double, Double) -> Void = vm.sizeHandler(Metric.space16)
+EventListener(id: "filePanelSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizeFilePanel) {
+    VStack(id: "editorFilePanel", width: vm.width, height: vm.height, spacing: Metric.space4,
+           padding: Metric.space8, alignment: .stretch) {
+        HStack(spacing: Metric.space8, alignment: .center) {
+            IconButton(iconName: "document-properties", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, enabled: false, accessibilityName: "File")
+            Label(text: "File", style: .body, flex: 1)
+        }
+        HStack(spacing: Metric.space2, alignment: .center) {
+            IconButton(id: "fileInformationTab", iconName: "document-properties", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, checkable: false, checked: vm.informationMode, selectionStyle: .segmented,
+                       accessibilityName: "Information", onClick: vm.showInformation)
+            IconButton(id: "fileContentsTab", iconName: "panel-preserve-layers", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, checkable: false, checked: vm.contentsMode, selectionStyle: .segmented,
+                       accessibilityName: "Contents", onClick: vm.showContents)
+            IconButton(id: "fileStorageTab", iconName: "panel-file-location", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, checkable: false, checked: vm.storageMode, selectionStyle: .segmented,
+                       accessibilityName: "Storage", onClick: vm.showStorage)
+        }
+        Label(id: "filePanelTitle", text: vm.viewTitle, style: .body)
+        for (item in vm.rows, key: item.id, id: "fileInspectorRows", itemHeight: Metric.size44,
+             measureHeight: true, width: vm.contentWidth, height: 0, flex: 1, overscan: 1) {
+            if (item.section) {
+                Label(id: "fileInspectorSection", text: item.label, style: .body)
+            } else {
+                HStack(spacing: Metric.space4, alignment: .center) {
+                    Label(id: "fileInspectorLabel", text: item.label, style: .caption, flex: 1)
+                    TextEditor(id: "fileInspectorValue", text: item.value, readOnly: true, wrapEnabled: true,
+                               width: vm.valueWidth, height: Metric.size44, accessibilityName: item.label)
+                }
+            }
+        }
+    }
+}

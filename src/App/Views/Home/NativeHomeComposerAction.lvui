@@ -1,0 +1,16 @@
+import vm NativeHomeComposerActionBackend
+EventListener(id: "homeActionSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    VStack(width: vm.viewportWidth, spacing: Metric.space4, alignment: .stretch) {
+        if (vm.showHeading) { Label(text: vm.heading, style: .caption, color: Color.text.description) }
+        if (vm.icon) {
+            IconButton(id: "homeActionIcon", iconName: "generaladd", width: Metric.size22, height: Metric.size22,
+                       tone: .default, enabled: vm.enabled, accessibilityName: vm.accessible, onClick: vm.invoke)
+        } else if (vm.primary) {
+            LabelButton(id: "homeActionPrimary", text: vm.label, width: vm.viewportWidth, tone: .primary,
+                        enabled: vm.enabled, accessibilityName: vm.accessible, onClick: vm.invoke)
+        } else {
+            LabelButton(id: "homeActionDefault", text: vm.label, width: vm.viewportWidth, tone: .default,
+                        enabled: vm.enabled, accessibilityName: vm.accessible, onClick: vm.invoke)
+        }
+    }
+}

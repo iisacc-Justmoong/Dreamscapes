@@ -1,0 +1,19 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Storage Browser", style: .header2)
+            Label(id: "migratedText0", text: "Home", style: .body)
+            Label(id: "migratedText1", text: "Files", style: .body)
+            Label(id: "migratedText2", text: "History", style: .body)
+            Label(id: "migratedText3", text: "Published", style: .body)
+            Label(id: "migratedText4", text: "Search files", style: .body)
+            Label(id: "migratedText5", text: "↑", style: .body)
+            Label(id: "migratedText6", text: "Retry", style: .body)
+            Label(id: "migratedText7", text: "Cancel", style: .body)
+            Label(id: "migratedText8", text: "Open file", style: .body)
+        }
+    }
+}

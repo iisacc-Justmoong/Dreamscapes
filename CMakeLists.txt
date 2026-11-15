@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.31)
 include("${CMAKE_CURRENT_LIST_DIR}/cmake/single-app/Defaults.cmake")
 project(Dreamscapes VERSION 0.1.1 LANGUAGES CXX)
 option(DREAMSCAPES_NATIVE_FOUNDATION_ONLY "Build and test the Qt-free native view-model foundation (no application)" OFF)
-if(DREAMSCAPES_NATIVE_FOUNDATION_ONLY)
+option(DREAMSCAPES_NATIVE_VIEW_APP "Build the simplified LVUI and iiGUI application" ON)
+if(DREAMSCAPES_NATIVE_FOUNDATION_ONLY OR DREAMSCAPES_NATIVE_VIEW_APP)
     set(CMAKE_DISABLE_FIND_PACKAGE_Qt5 ON)
     set(CMAKE_DISABLE_FIND_PACKAGE_Qt6 ON)
     set(CMAKE_CXX_EXTENSIONS OFF)
@@ -12,6 +13,17 @@ if(DREAMSCAPES_NATIVE_FOUNDATION_ONLY)
     include(CTest)
     include(cmake/NativeFailureDetails.cmake)
     include(cmake/NativeReviewNavigation.cmake)
+    include(cmake/NativeHomeQueue.cmake)
+    include(cmake/NativeHomeSelectedFile.cmake)
+    include(cmake/NativeHomeRecentFiles.cmake)
+    include(cmake/NativeHomeRecentGenerations.cmake)
+    include(cmake/NativeHomeSidebar.cmake)
+    include(cmake/NativeHomeComposer.cmake)
+    include(cmake/NativeHomeWorkspace.cmake)
+    include(cmake/NativeApplicationWindow.cmake)
+    if(DREAMSCAPES_NATIVE_VIEW_APP AND NOT DREAMSCAPES_NATIVE_FOUNDATION_ONLY)
+        include(cmake/NativeViewApp.cmake)
+    endif()
     if(BUILD_TESTING)
         add_executable(DreamscapesNativeViewModelTests tests/tst_nativeviewmodels.cpp)
         target_link_libraries(DreamscapesNativeViewModelTests PRIVATE DreamscapesViewModelsNative)
@@ -31,6 +43,7 @@ if(DREAMSCAPES_NATIVE_FOUNDATION_ONLY)
     endif()
     return()
 endif()
+message(FATAL_ERROR "The legacy Qt Quick view build has been retired. Enable DREAMSCAPES_NATIVE_VIEW_APP or DREAMSCAPES_NATIVE_FOUNDATION_ONLY.")
 find_package(iiSDKCore 0.18.1 CONFIG REQUIRED COMPONENTS Runtime HINTS "$ENV{HOME}/.local/SDK/iiSDKCore")
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 find_package(iiAccountManagerNative 0.2.10 CONFIG REQUIRED HINTS
@@ -56,6 +69,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 QuickDialogs2 Concurrent Multimedia)
+include(cmake/QtApple.cmake)
 find_package(Qt6ShaderTools 6.8.3 EXACT REQUIRED)
 
 # Link the runtime capabilities used by this product.
@@ -69,6 +83,12 @@ if(IOS OR ANDROID OR EMSCRIPTEN)
     find_package(iiMultimodalAgent 0.1 CONFIG REQUIRED COMPONENTS FailureDiagnostics HINTS "$ENV{HOME}/.local/SDK/iiMultimodalAgent")
 else()
     find_package(iiMultimodalAgent 0.1 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiMultimodalAgent")
+endif()
+# The agent's image type interface re-exports the selected diffusion include
+# directory. Keep that re-export non-system too: otherwise CMake deduplicates
+# it as -isystem and an older CPATH SDK can override the selected package.
+if(TARGET iiMultimodalAgent::ImageTypes)
+    set_target_properties(iiMultimodalAgent::ImageTypes PROPERTIES SYSTEM FALSE)
 endif()
 find_package(iiSharedCanvas 0.32.0 EXACT CONFIG REQUIRED COMPONENTS Quick HINTS
     "${CMAKE_CURRENT_SOURCE_DIR}/../../SDK/iiSharedCanvas/build/install" "$ENV{HOME}/.local/SDK/iiSharedCanvas")
@@ -220,11 +240,15 @@ qt_add_qml_module(DreamscapesGeneration
         src/App/ViewModels/WorkspaceSession.h src/App/ViewModels/WorkspaceSession.cpp
         src/App/Generation/VideoDraftModel.h src/App/Generation/VideoDraftModel.cpp
         src/App/Generation/GenerationComposerModel.h src/App/Generation/GenerationComposerModel.cpp
+        src/App/Generation/HomeGenerationInputs.h
+        src/App/Generation/HomeReferenceStore.h src/App/Generation/HomeReferenceStore.cpp
+        src/App/Generation/NativeHomeReferenceInputs.h src/App/Generation/NativeHomeReferenceInputs.cpp
         src/App/Generation/GenerationSubmissionModel.h src/App/Generation/GenerationSubmissionModel.cpp
         src/App/StorageViewTypes.h src/App/StorageViewTypes.cpp
         src/App/Views/Home/HomeCanvas.h src/App/Views/Home/HomeCanvas.cpp
         src/App/Views/Home/CanvasPresets.h src/App/Views/Home/CanvasPresets.cpp
         src/App/Views/Home/CanvasPreview.h src/App/Views/Home/CanvasPreview.cpp
+        src/App/Views/Home/CanvasPreviewAddress.h src/App/Views/Home/CanvasPreviewAddress.cpp
         src/App/Views/Home/HomeFileDetails.h src/App/Views/Home/HomeFileDetails.cpp
         src/App/Views/Home/ImageOpenRequest.h src/App/Views/Home/ImageOpenRequest.cpp
         src/App/Views/ColorManagerModel.h src/App/Views/ColorManagerModel.cpp
@@ -374,9 +398,19 @@ if(APPLE AND NOT IOS)
     list(APPEND CMAKE_BUILD_RPATH "$<TARGET_FILE_DIR:LVRS::LVRS>")
 endif()
 
-# Source location must not change the QML module's existing resource URLs.
+# The existing Qt host explicitly consumes the SDK's isolated legacy view;
+# the resource URL stays stable while the native LVUI host is developed.
+if(DREAMSCAPES_LICENSEMANAGER_VIEWS_DIR AND
+        NOT EXISTS "${DREAMSCAPES_LICENSEMANAGER_VIEWS_DIR}/SocietyLicenseGate.qml")
+    unset(DREAMSCAPES_LICENSEMANAGER_VIEWS_DIR CACHE)
+    unset(DREAMSCAPES_LICENSEMANAGER_VIEWS_DIR)
+endif()
 find_path(DREAMSCAPES_LICENSEMANAGER_VIEWS_DIR NAMES SocietyLicenseGate.qml
     HINTS "$ENV{IILICENSEMANAGER_VIEWS_DIR}"
+        "${iiLicenseManager_LEGACY_QML_VIEWS_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../SDK/iiLicenseManager/src/Legacy/qml"
+        "$ENV{HOME}/.local/SDK/iiLicenseManager/share/iiLicenseManager/legacy/qml"
+        "$ENV{HOME}/.local/SDK/iiLicenseManager/platforms/macos/share/iiLicenseManager/legacy/qml"
         "${CMAKE_CURRENT_SOURCE_DIR}/../../SDK/iiLicenseManager/src/Views"
         "$ENV{HOME}/.local/SDK/iiLicenseManager/share/iiLicenseManager/views"
         "$ENV{HOME}/.local/SDK/iiLicenseManager/platforms/macos/share/iiLicenseManager/views")
@@ -429,12 +463,10 @@ lvrs_add_qml_app(
         src/App/Views/Home/HomeRecentFiles.qml
         src/App/Views/Home/HomeSelectedFile.qml
         src/App/Views/Home/HomeRecentGenerations.qml
-        src/App/Views/Home/HomeContentRow.qml
         src/App/Views/Home/StorageBrowser.qml
 
         src/App/Views/Home/ImageSelectionBar.qml
 
-        src/App/Views/Home/HomePromptStarters.qml
         src/App/Views/Home/DesktopHome.qml
         src/App/Views/Home/DesktopHomeSidebar.qml
         src/App/Views/Home/DesktopHomeToolbar.qml
@@ -443,8 +475,6 @@ lvrs_add_qml_app(
         src/App/Views/Video/VideoGenerationWorkspace.qml
         src/App/Views/Video/VideoParameterPanel.qml
         src/App/Views/Video/VideoTimeline.qml
-        src/App/Views/Video/VideoTimelineState.qml
-        src/App/Views/Home/GenerationHistory.qml
         src/App/Views/Result/GenerationResult.qml
         src/App/Views/Result/ReviewQueue.qml
         src/App/Views/Result/ReviewInspector.qml
@@ -657,9 +687,29 @@ dreamscapes_add_app_icons(Dreamscapes)
 
 include(CTest)
 include(cmake/NativeFailureDetails.cmake)
-if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+if((BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING) OR (APPLE AND NOT IOS))
     include(cmake/NativeReviewNavigation.cmake)
 endif()
+include(cmake/NativeHomeQueue.cmake)
+include(cmake/NativeHomeSelectedFile.cmake)
+include(cmake/NativeHomeRecentFiles.cmake)
+include(cmake/NativeHomeRecentGenerations.cmake)
+include(cmake/NativeHomeSidebar.cmake)
+include(cmake/NativeHomeComposer.cmake)
+include(cmake/NativeHomeWorkspace.cmake)
+include(cmake/NativeApplicationWindow.cmake)
+include(cmake/NativeGenerationProjectionBinding.cmake)
+include(cmake/NativeHomeQueueSession.cmake)
+include(cmake/NativeHomeProductSession.cmake)
+include(cmake/NativePanelHost.cmake)
+include(cmake/NativeEmbeddedSurface.cmake)
+include(cmake/NativeReviewInspectorPresenter.cmake)
+include(cmake/NativeReviewGridPresenter.cmake)
+include(cmake/NativeReviewProductSession.cmake)
+include(cmake/NativeHomeQueuePresenter.cmake)
+include(cmake/NativeHomeSelectedFilePresenter.cmake)
+include(cmake/NativeHomeRecentFilesPresenter.cmake)
+include(cmake/NativeHomeRecentGenerationsPresenter.cmake)
 option(DREAMSCAPES_BUILD_ANDROID_PHOTO_TESTS "Build the native MediaStore integration test APK" OFF)
 if(ANDROID AND DREAMSCAPES_BUILD_ANDROID_PHOTO_TESTS)
     set(QT_USE_TARGET_ANDROID_BUILD_DIR TRUE CACHE BOOL "Keep Android test and app packages separate" FORCE)
@@ -1320,10 +1370,11 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
         canvasRoutesPreserveSelectionAndDraft mobileEditorToolbarSlidesAndSelects)
     set_tests_properties(Dreamscapes.NewCanvasGui PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1" TIMEOUT 300)
-    target_link_libraries(DreamscapesHomeCanvasTests PRIVATE DreamscapesGeneration Qt6::Test)
-    target_compile_definitions(DreamscapesHomeCanvasTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+    target_link_libraries(DreamscapesHomeCanvasTests PRIVATE DreamscapesGeneration DreamscapesHomeComposerSession Qt6::Test)
+    target_compile_definitions(DreamscapesHomeCanvasTests PRIVATE DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/resources")
     add_test(NAME Dreamscapes.HomeCanvas COMMAND DreamscapesHomeCanvasTests)
-    set_tests_properties(Dreamscapes.HomeCanvas PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 60)
+    set_tests_properties(Dreamscapes.HomeCanvas PROPERTIES ENVIRONMENT
+        "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;TMPDIR=${CMAKE_CURRENT_SOURCE_DIR}/resources;SOCIETY_DISABLE_SESSION_RESTORE=1;IILOCALLLM_DISABLE_APP_MCP=1" TIMEOUT 60)
 
     qt_add_executable(DreamscapesGenerationTests src/App/Generation/tst_Generation.cpp)
     qt_add_executable(DreamscapesAdvancedParametersTests tests/tst_advancedparameters.cpp)
@@ -1392,11 +1443,21 @@ endif()
 if(UNIX AND NOT IOS AND NOT ANDROID AND NOT EMSCRIPTEN)
     target_sources(Dreamscapes PRIVATE src/App/Mcp/DreamscapesMcp.cpp src/App/Mcp/DreamscapesMcp.h)
     target_link_libraries(Dreamscapes PRIVATE iiMultimodalAgent::iiMultimodalAgent)
+    if(APPLE AND NOT IOS)
+        include(cmake/NativeQuestionPresenter.cmake)
+    endif()
     set_source_files_properties("${IIMULTIMODALAGENT_QML_DIR}/UserQuestionsSheet.qml" PROPERTIES QT_RESOURCE_ALIAS "UserQuestionsSheet.qml")
     qt_add_resources(Dreamscapes AgentQuestionUi PREFIX "/iiLocalLLM"
         FILES "${IIMULTIMODALAGENT_QML_DIR}/UserQuestionsSheet.qml")
     target_compile_definitions(Dreamscapes PRIVATE DREAMSCAPES_WITH_LOCAL_MCP=1)
     if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+        if(CMAKE_EXPORT_COMPILE_COMMANDS)
+            find_package(Python3 REQUIRED COMPONENTS Interpreter)
+            add_test(NAME Dreamscapes.SelectedInferenceHeaders
+                COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_selected_inference_headers.py"
+                    "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json" "${CMAKE_CURRENT_SOURCE_DIR}/resources")
+            set_tests_properties(Dreamscapes.SelectedInferenceHeaders PROPERTIES TIMEOUT 90)
+        endif()
         # Existing UI tests must not advertise fixtures to the user's live agent.
         get_property(_existing_app_tests DIRECTORY PROPERTY TESTS)
         set_property(TEST ${_existing_app_tests} APPEND PROPERTY ENVIRONMENT "IILOCALLLM_DISABLE_APP_MCP=1")
@@ -1412,6 +1473,10 @@ if(UNIX AND NOT IOS AND NOT ANDROID AND NOT EMSCRIPTEN)
         add_test(NAME Dreamscapes.Mcp COMMAND DreamscapesMcpTests)
         set_tests_properties(Dreamscapes.Mcp PROPERTIES TIMEOUT 90)
     endif()
+endif()
+
+if(WIN32 OR (APPLE AND NOT IOS))
+    include(cmake/NativeLicensePresenter.cmake)
 endif()
 
 if(NOT IOS AND NOT ANDROID AND NOT EMSCRIPTEN)

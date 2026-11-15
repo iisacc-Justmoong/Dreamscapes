@@ -9,12 +9,32 @@ GenerationProjection::GenerationProjection(QObject *parent) : QObject(parent) {
     connect(&elapsed_, &QTimer::timeout, this, &GenerationProjection::refresh);
     refresh();
 }
+void GenerationProjection::applySourceInputs(const QVariantMap &patch) {
+    bool changed = false, presentationChanged = false, jobDataChanged = false;
+    for (const auto *key : {"jobs", "results", "currentResult", "requestIds", "inferenceStatus", "connected", "busy",
+                            "previewStep", "previewTotalSteps", "previewImage", "previewJobId"}) {
+        const auto entry = patch.constFind(QLatin1String(key));
+        if (entry != patch.cend() && inputs_.value(entry.key()) != entry.value()) {
+            inputs_.insert(entry.key(), entry.value());
+            changed = true;
+            if (entry.key() != QLatin1String("previewImage") && entry.key() != QLatin1String("previewJobId"))
+                presentationChanged = true;
+            if (entry.key() == QLatin1String("jobs")) jobDataChanged = true;
+        }
+    }
+    if (!changed)
+        return;
+    if (presentationChanged) refresh();
+    emit inputsChanged();
+    if (jobDataChanged) emit jobsChanged();
+}
 void GenerationProjection::setJobs(QVariantList value) {
     if (inputs_.value("jobs") == QVariant::fromValue(value))
         return;
     inputs_["jobs"] = QVariant::fromValue(value);
     refresh();
     emit inputsChanged();
+    emit jobsChanged();
 }
 void GenerationProjection::setResults(QVariantList value) {
     if (inputs_.value("results") == QVariant::fromValue(value))

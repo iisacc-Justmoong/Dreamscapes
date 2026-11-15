@@ -1,0 +1,14 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Image Generation Workspace", style: .header2)
+            Label(id: "migratedText0", text: "Open in canvas", style: .body)
+            Label(id: "migratedText1", text: "Reset", style: .body)
+            Label(id: "migratedText2", text: "Cancel batch", style: .body)
+            Label(id: "migratedText3", text: "Generate", style: .body)
+        }
+    }
+}

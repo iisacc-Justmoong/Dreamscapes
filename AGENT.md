@@ -1,5 +1,18 @@
 # Dreamscapes
 
+## 현재 네이티브 뷰 전환
+
+기본 `Dreamscapes` 타깃은 LVUI·iiGUI 기반의 단순화된 창이며 과거 QML 뷰는
+빌드하지 않는다. Home, Image, Video와 결과 검토는 세션의 C++ 뷰모델에 연결되어
+있다. 새 캔버스·에디터·파일·게시·설정 경로에도 C++ 뷰모델이 있으며 문서와 공급자 입력을
+세션에서 투영한다. Society 로컬 파일 탐색, `.iisc` 열기·저장 및 캔버스 프레임
+렌더링과 시각 프레임 재생은 연결되어 있다. 다른 다수의 뷰는 정적 전환 상태이며 생성·라이선스·오디오 재생·
+원격 전용 파일 다운로드·실제 게시 등의 이전 백엔드는 이 타깃에 연결되지 않았다.
+이전 제품 설명이나 과거 테스트를 현 타깃의 실행·기능
+검증으로 취급하지 않는다. 뷰 목록, 빌드 경계와 검증 범위는
+`docs/NativeViewCutover.md`, `docs/NativeDynamicGeneration.md`,
+`docs/NativeDynamicWorkspaces.md`와 짝이 되는 JSON 문서를 따른다.
+
 ## 작업 실패 진단
 
 실패 설명은 iiMultimodalAgent의 공통 C++23 진단과 데스크톱 에이전트를 사용한다.

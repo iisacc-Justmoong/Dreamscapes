@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/NativeFailureDetails.md",
-    "sha256": "443d44825ec0805d446cac727879ff77e4d2cb1434016ad0f09af3504b07e35a",
-    "bytes": 4687,
-    "line_count": 53,
+    "sha256": "fc5b6ad78fe813378d9937fc5388762c6ea88779b76da0b38ca260b77a0012c6",
+    "bytes": 5488,
+    "line_count": 60,
     "encoding": "utf-8",
     "language": "ko"
   },
@@ -70,50 +70,50 @@
       "id": "b000007",
       "kind": "paragraph",
       "start_line": 17,
-      "end_line": 24,
-      "raw": "네이티브 문서와 iiGUI 기본 클립보드의 텍스트 한도는 UTF-8 기준 64 MiB이며,\nNUL을 포함한 텍스트는 거절한다. 이전 1 MiB 클립보드 한도는 제거했다.\n일반 길이 보고서는 LVUI `TextEditor`의 자동 줄바꿈과 내부 스크롤을 사용한다. 텍스트\n레이아웃의 4096개 시각 행 예산을 어떤 폭에서도 넘지 않도록 UTF-8 바이트 수가 그보다\n작은 경우에만 적용한다. 더 긴 보고서는 문서 기반 `CodeEditor`로 표시하며 아직 자동\n줄바꿈하지 않는다. 원문은 잘라내지 않는다. 갱신된 LVUI 코드 편집기는 선택\n범위를 64 MiB까지 조각으로 읽어 복사하지만, 이 기능을 사용하려면 해당 LVUI와 iiGUI\n빌드를 함께 사용해야 한다.\n"
+      "end_line": 26,
+      "raw": "네이티브 문서와 iiGUI 기본 클립보드의 텍스트 한도는 UTF-8 기준 64 MiB이며,\nNUL을 포함한 텍스트는 거절한다. 이전 1 MiB 클립보드 한도는 제거했다.\n입력 및 레이아웃의 UTF-8 바이트 한도와 4096개 문단 한도에 맞는 보고서는 실제 폭과\n글꼴로 자동 줄바꿈을 시도한다. LVUI의 `onWrappingFallbackChanged`는 iiGUI의 실제\n시각 행 예산 초과를 알리므로, 긴 텍스트라도 현재 폭에서 줄바꿈할 수 있다면 네이티브\n화면에 남는다. 창 폭이 좁아져 배치가 한도를 넘으면 기존 QML 화면으로 복귀한다.\n그보다 큰 보고서는 문서 기반 `CodeEditor`로 표시하며 아직 자동\n줄바꿈하지 않는다. 원문은 잘라내지 않는다. 갱신된 LVUI 코드 편집기는 선택\n범위를 64 MiB까지 조각으로 읽어 복사하지만, 이 기능을 사용하려면 해당 LVUI와 iiGUI\n빌드를 함께 사용해야 한다.\n"
     },
     {
       "id": "b000008",
       "kind": "blank",
-      "start_line": 25,
-      "end_line": 25,
+      "start_line": 27,
+      "end_line": 27,
       "raw": "\n"
     },
     {
       "id": "b000009",
       "kind": "paragraph",
-      "start_line": 26,
-      "end_line": 29,
+      "start_line": 28,
+      "end_line": 31,
       "raw": "기존 Qt 생성 컨트롤러와의 전환용 `NativeFailureDetailsBridge`는 백엔드 계층에 두며,\n열린 작업의 보고서와 완료 알림만 네이티브 모델에 전달한다. 다른 작업의 늦은 알림은\n무시하고 갱신 실패 시 기존 보고서를 보존한다. 뷰와 뷰모델은 Qt·QML·LVRS를 포함하지\n않는다. 브리지는 당분간 Qt 컨트롤러의 이벤트를 사용한다.\n"
     },
     {
       "id": "b000010",
       "kind": "blank",
-      "start_line": 30,
-      "end_line": 30,
+      "start_line": 32,
+      "end_line": 32,
       "raw": "\n"
     },
     {
       "id": "b000011",
       "kind": "paragraph",
-      "start_line": 31,
-      "end_line": 39,
-      "raw": "`DreamscapesFailureDetailsNative`는 테스트 활성화와 관계없이 빌드할 수 있는 독립 뷰\n라이브러리이며 `DreamscapesFailureDetailsBridge`는 기존 생성 컨트롤러가 있는 구성에서만\n만든다. macOS 제품 창의 실패 상세 명령은 `NativeFailurePresenter`를 통해 실제 생성\n컨트롤러와 iiGUI 임베딩 표면을 연결한다. 기존 애플리케이션의 창과 이벤트 루프는\n소유자가 유지하며 투명 합성으로 모달 뒤의 창을 보존한다. 창을 닫거나 앱이 종료될 때\n표면도 정리한다. 표면 장착이 실패하거나\n보고서가 줄바꿈 편집기의 안전한 범위를 넘으면 기존 QML 보고서 뷰로 돌아간다.\n다른 플랫폼은 아직 기존 뷰를 사용한다. 이 브리지는 전환 경계이며 앱의 다른 QML\n화면이나 LVRS 의존성이 제거되었다는 뜻은 아니다.\n"
+      "start_line": 33,
+      "end_line": 41,
+      "raw": "`DreamscapesFailureDetailsNative`는 테스트 활성화와 관계없이 빌드할 수 있는 독립 뷰\n라이브러리이며 `DreamscapesFailureDetailsBridge`는 기존 생성 컨트롤러가 있는 구성에서만\n만든다. macOS 제품 창의 실패 상세 명령은 `NativeFailurePresenter`를 통해 실제 생성\n컨트롤러와 iiGUI 임베딩 표면을 연결한다. 기존 애플리케이션의 창과 이벤트 루프는\n소유자가 유지하며 투명 합성으로 모달 뒤의 창을 보존한다. 창을 닫거나 앱이 종료될 때\n표면도 정리한다. 표면 장착이 실패하거나\n보고서가 줄바꿈 편집기의 바이트·문단 한도를 넘거나 실제 배치가 실패하면 기존 QML 보고서 뷰로 돌아간다.\n다른 플랫폼은 아직 기존 뷰를 사용한다. 이 브리지는 전환 경계이며 앱의 다른 QML\n화면이나 LVRS 의존성이 제거되었다는 뜻은 아니다.\n"
     },
     {
       "id": "b000012",
       "kind": "blank",
-      "start_line": 40,
-      "end_line": 40,
+      "start_line": 42,
+      "end_line": 42,
       "raw": "\n"
     },
     {
       "id": "b000013",
       "kind": "paragraph",
-      "start_line": 41,
-      "end_line": 53,
-      "raw": "`Dreamscapes.NativeFailureDetails`는 창 없는 iiGUI 트리에서 드래그 선택, 복사 대상,\n선택 보존, 보고서 갱신과 오류, 짧은 보고서의 줄바꿈·스크롤과 긴 텍스트 대체 경로,\n작은 뷰포트 및 스레드 경계를 검사한다.\n모달 기하는 LVUI 값 계약을 사용하는 iiGUI 모델에서 계산하며, 줄바꿈 가능\n범위는 iiGUI가 소유한 텍스트 배치와 입력 한도를 사용한다.\n`Dreamscapes.NativeFailureRendererBoundary`는 생성된 뷰와 테스트 바이너리의 Qt·LVRS\n의존성을 검사한다. `Dreamscapes.NativeFailureBridge`는 실제 컨트롤러의 신호에 테스트\n보고서를 발행하여 해당 작업에만 반영되는지 검사한다. 실제 에이전트 실행은 포함하지\n않는다. `Dreamscapes.NativeFailureClipboardMac`은 사용자의 클립보드가 아닌 고유한\nmacOS 페이스트보드에서 2 MiB 넘는 보고서를 실제 iiGUI 구현으로 복사·읽기 한다.\n`Dreamscapes.NativeFailurePresenterMac`은 표시하지 않는 별도 AppKit 창에서 실제 생성\n컨트롤러 신호, 장착·닫기·긴 보고서 복귀 및 종료 정리를 검사한다. 이는 설치된 제품의\n실행 검증이나 실제 창에서의 시각적 동등성 검증과는 다르다.\n"
+      "start_line": 43,
+      "end_line": 60,
+      "raw": "`Dreamscapes.NativeFailureDetails`는 창 없는 iiGUI 트리에서 드래그 선택, 복사 대상,\n선택 보존, 보고서 갱신과 오류, 짧은 보고서의 줄바꿈·스크롤과 긴 텍스트 대체 경로,\n작은 뷰포트 및 스레드 경계를 검사한다. 한글·보조 평면 문자와 긴 보고서의 선택·복사,\n실제 폭에 따른 줄바꿈 실패도 검사한다.\n모달 기하는 LVUI 값 계약을 사용하는 iiGUI 모델에서 계산하며, 줄바꿈 가능\n범위는 iiGUI가 소유한 텍스트 배치와 입력 한도를 사용한다.\n`Dreamscapes.NativeFailureRendererBoundary`는 생성된 뷰와 테스트 바이너리의 Qt·LVRS\n의존성을 검사한다. `Dreamscapes.NativeFailureBridge`는 실제 컨트롤러의 신호에 테스트\n보고서를 발행하여 해당 작업에만 반영되는지 검사한다. 실제 에이전트 실행은 포함하지\n않는다. `Dreamscapes.NativeFailureClipboardMac`은 사용자의 클립보드가 아닌 고유한\nmacOS 페이스트보드에서 2 MiB 넘는 보고서를 실제 iiGUI 구현으로 복사·읽기 한다.\n창 없는 위젯 검사는 iiGUI 내부 `WidgetState`를 사용하므로 해당 헤더와 같은 빌드의\n정적 iiGUI가 필요하다. 배포용 공유 라이브러리는 이 내부 심볼을 공개하지 않는다.\n모델·화면 및 제품 연결부를 빌드할 때 선택한 iiGUI, LVUI, iiSDKCore의 ABI도 일치해야 한다.\n`Dreamscapes.NativeFailurePresenterMac`은 표시하지 않는 별도 AppKit 창에서 실제 생성\n컨트롤러 신호, 장착·닫기·긴 보고서 복귀 및 종료 정리를 검사한다. 이는 설치된 제품의\n실행 검증이나 실제 창에서의 시각적 동등성 검증과는 다르다. 비동기 표면 장착과 해제는\n고정된 지연 시간 대신 관찰된 상태와 제한 시간으로 확인한다.\n"
     }
   ],
   "outline": [
@@ -151,15 +151,29 @@
       },
       {
         "block_id": "b000007",
-        "line": 22,
+        "line": 24,
         "text": "줄바꿈하지 않는다. 원문은 잘라내지 않는다. 갱신된 LVUI 코드 편집기는 선택",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000007",
-        "line": 24,
+        "line": 26,
         "text": "빌드를 함께 사용해야 한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 55,
+        "text": "정적 iiGUI가 필요하다. 배포용 공유 라이브러리는 이 내부 심볼을 공개하지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 56,
+        "text": "모델·화면 및 제품 연결부를 빌드할 때 선택한 iiGUI, LVUI, iiSDKCore의 ABI도 일치해야 한다.",
         "basis": "lexical_match",
         "context": "paragraph"
       }

@@ -1,0 +1,35 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "New Canvas Dialog", style: .header2)
+            Label(id: "migratedText0", text: "New canvas", style: .body)
+            Label(id: "migratedText1", text: "Start with a size. Make it your own.", style: .body)
+            Label(id: "migratedText2", text: "Search sizes or formats", style: .body)
+            Label(id: "migratedText3", text: "Close", style: .body)
+            Label(id: "migratedText4", text: "CATEGORIES", style: .body)
+            Label(id: "migratedText5", text: "Custom dimensions", style: .body)
+            Label(id: "migratedText6", text: "Cancel", style: .body)
+            Label(id: "migratedText7", text: "Create canvas", style: .body)
+            Label(id: "migratedText8", text: "Use px for digital graphics, mm or inches for print.", style: .body)
+            Label(id: "migratedText9", text: "No formats found", style: .body)
+            Label(id: "migratedText10", text: "Try a platform, format or size, such as Instagram, A4 or 1920 × 1080.", style: .body)
+            Label(id: "migratedText11", text: "Clear search", style: .body)
+            Label(id: "migratedText12", text: "CANVAS DETAILS", style: .body)
+            Label(id: "migratedText13", text: "Width", style: .body)
+            Label(id: "migratedText14", text: "Height", style: .body)
+            Label(id: "migratedText15", text: "Units", style: .body)
+            Label(id: "migratedText16", text: "Print resolution (PPI)", style: .body)
+            Label(id: "migratedText17", text: "Background", style: .body)
+            Label(id: "migratedText18", text: "Select a preset or customize its dimensions before creating.", style: .body)
+            Label(id: "migratedText19", text: "Pixels (px)", style: .body)
+            Label(id: "migratedText20", text: "Millimeters (mm)", style: .body)
+            Label(id: "migratedText21", text: "Inches (in)", style: .body)
+            Label(id: "migratedText22", text: "White", style: .body)
+            Label(id: "migratedText23", text: "Transparent", style: .body)
+            Label(id: "migratedText24", text: "Black", style: .body)
+        }
+    }
+}

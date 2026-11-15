@@ -16,20 +16,32 @@ Dreamscapes requests its license decision from Society through iiAccountManager
 Native `SocietySession` over the same-user local channel. Dreamscapes does not
 receive passwords, online cookies or bearer credentials. It verifies the signed
 response, device, product and expiry before granting access; signed denial,
-invalid responses and an unavailable Society fail closed. The account page
-opens Society or requests a fresh local license check. Sign-out is performed in
+invalid responses and an unavailable Society fail closed. Each application run
+makes one license decision. After a denial or unavailable result, restart the
+application to request a new decision; opening Society does not alter the result
+of an already completed run. Sign-out is performed in
 Society and affects its account rather than a separate Dreamscapes session.
 
 시작 시 작업 화면을 먼저 표시하고 이벤트 루프에 Society 라이선스의 비동기 확인을 예약한다.
 확인 중이라는 사실은 유효한 라이선스의 증거가 아니며, 생성 요청과 비시각적
 호출의 기존 권한 검사는 계속 유효하다. 검증 결과가 명시적 거부 또는 확인
-불가이면 iiLicenseManager의 안내 화면에서 Society 열기와 재시도를 제공한다.
-재확인이나 라이선스 상태 변화는 이미 구성된 작업 화면과 초안 상태를 보존한다.
-승인 후에는 현재 실행 동안 해당 결정을 유지한다.
+불가이면 iiLicenseManager의 안내 화면을 표시한다. 이 실행의 첫 확인이
+끝나면 성공 여부와 상태를 메모리에 고정하고 자동 확인, 포커스 변경 및
+명령으로 인한 재확인을 중단한다. Society에 로그인한 뒤 다시 확인하려면
+앱을 재시작한다. 성공한 결정은 대몬 연결 해제나 토큰 만료 이후에도 앱을
+종료할 때까지 유지되며 디스크에 영속화하지 않는다.
 
-The QML view is embedded from `DREAMSCAPES_LICENSEMANAGER_VIEWS_DIR` at build
-time. It defaults to the workspace iiLicenseManager source or an installed SDK
-view. `Dreamscapes.LicenseEntry` covers the view's checking, denial, retry and
+The macOS and Windows source configurations select iiLicenseManager's LVUI license gate
+and its independent `iiLicenseManager::Presentation` model. Dreamscapes
+provides the existing account decision and the Society-open command. It does
+not provide a retry command because a completed decision is fixed until the
+next launch; the LVUI retry control is therefore disabled and explains that
+the app must be restarted. If the external native host cannot be mounted, the
+isolated legacy QML view remains as a fallback. That view is embedded from
+`DREAMSCAPES_LICENSEMANAGER_VIEWS_DIR` at build time, first looking under
+`src/Legacy/qml` or the installed `share/iiLicenseManager/legacy/qml` directory.
+The Windows presenter is source-level integration; its product build and
+window/input behavior have not been verified on Windows. `Dreamscapes.LicenseEntry` covers checking, denial and
 grant states. `Dreamscapes.LicenseEntrySociety`
 checks the actual account-to-window binding when Society is unavailable and
 rejects a tampered response before a signed grant through a local fixture broker,
@@ -48,3 +60,23 @@ tampered token, unavailable service and retention after token expiry. A register
 checks the Society-open command without launching the user's application. This
 is not evidence of a production account, installed app, successful paid
 activation, shutdown responsiveness or cross-platform operation.
+
+The independent presentation package, generated LVUI view and Dreamscapes
+bridge were also checked with a fake paint device and an offscreen presenter.
+Those tests do not start the installed application or establish production
+license service or visible-window behavior.
+
+On 2026-11-15 the macOS Dreamscapes target and its app bundle built with the
+independent presentation package. The global `CPATH` selected an older
+iiLocalDiffusion header ahead of the configured package, so the build was run
+with global C/C++ include-path variables removed and the affected application
+object was recompiled. The final executable refers to the presentation library
+and no longer directly refers to the old license-client library. This was a
+build-tree artifact, not an installation or an application launch.
+A second work session also built the same app bundle during the final rebuild;
+after that build finished, the executable and bundled library were inspected:
+the executable refers to the presentation library, the C API symbols are
+present, and a strict deep code-signature verification passed. This inspection
+does not establish visible-window or license-service behavior. The subsequently
+added C model-lease API was verified in a separate SDK staging package; this
+bundle has not been rebuilt to include that later C API revision.

@@ -1,0 +1,40 @@
+lvui_generate(NAME NativeHomeRecentFiles SOURCE src/App/Views/Home/NativeHomeRecentFiles.lvui
+    FRAMEWORK iiGUI INCLUDES App/Views/Home/NativeHomeRecentFilesView.h OUTPUT_VARIABLE _native_home_recent_files)
+add_library(DreamscapesHomeRecentFilesNative STATIC
+    src/App/Views/Home/NativeHomeRecentFiles.h src/App/Views/Home/NativeHomeRecentFiles.cpp
+    src/App/Views/Home/NativeHomeRecentFilesView.h src/App/Views/Home/NativeHomeRecentFilesView.cpp
+    "${_native_home_recent_files}")
+set_target_properties(DreamscapesHomeRecentFilesNative PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+target_compile_features(DreamscapesHomeRecentFilesNative PUBLIC cxx_std_23)
+target_include_directories(DreamscapesHomeRecentFilesNative PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src" PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+target_link_libraries(DreamscapesHomeRecentFilesNative PUBLIC DreamscapesViewModelsNative LVUI::Native iiGUI::iiGUI)
+if(TARGET DreamscapesGeneration)
+    add_library(DreamscapesHomeRecentFilesSession STATIC
+        src/App/Views/Home/NativeHomeRecentFilesSession.h src/App/Views/Home/NativeHomeRecentFilesSession.cpp)
+    set_target_properties(DreamscapesHomeRecentFilesSession PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+    target_compile_features(DreamscapesHomeRecentFilesSession PUBLIC cxx_std_23)
+    target_link_libraries(DreamscapesHomeRecentFilesSession PUBLIC DreamscapesHomeRecentFilesNative DreamscapesGeneration)
+endif()
+if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+    add_executable(DreamscapesNativeHomeRecentFilesTests tests/tst_native_home_recent_files.cpp)
+    set_target_properties(DreamscapesNativeHomeRecentFilesTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+    target_link_libraries(DreamscapesNativeHomeRecentFilesTests PRIVATE DreamscapesHomeRecentFilesNative)
+    add_test(NAME Dreamscapes.NativeHomeRecentFiles COMMAND DreamscapesNativeHomeRecentFilesTests)
+    if(TARGET DreamscapesHomeRecentFilesSession)
+        add_executable(DreamscapesNativeHomeRecentFilesSessionTests tests/tst_native_home_recent_files_session.cpp)
+        set_target_properties(DreamscapesNativeHomeRecentFilesSessionTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+        target_link_libraries(DreamscapesNativeHomeRecentFilesSessionTests PRIVATE DreamscapesHomeRecentFilesSession)
+        add_test(NAME Dreamscapes.NativeHomeRecentFilesSession COMMAND DreamscapesNativeHomeRecentFilesSessionTests)
+    endif()
+    if(DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR AND EXISTS "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}/iiGUI/WidgetState.h")
+        add_executable(DreamscapesNativeHomeRecentFilesWidgetTests tests/tst_native_home_recent_files_widget.cpp)
+        set_target_properties(DreamscapesNativeHomeRecentFilesWidgetTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+        target_include_directories(DreamscapesNativeHomeRecentFilesWidgetTests PRIVATE "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}")
+        target_link_libraries(DreamscapesNativeHomeRecentFilesWidgetTests PRIVATE DreamscapesHomeRecentFilesNative)
+        add_test(NAME Dreamscapes.NativeHomeRecentFilesWidget COMMAND DreamscapesNativeHomeRecentFilesWidgetTests)
+        find_package(Python3 REQUIRED COMPONENTS Interpreter)
+        add_test(NAME Dreamscapes.NativeHomeRecentFilesRendererBoundary
+            COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_review_renderer_boundary.py"
+                "${_native_home_recent_files}" "$<TARGET_FILE:DreamscapesNativeHomeRecentFilesWidgetTests>")
+    endif()
+endif()

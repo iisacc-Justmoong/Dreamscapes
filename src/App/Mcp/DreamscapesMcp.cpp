@@ -1,4 +1,7 @@
 #include "DreamscapesMcp.h"
+#ifdef DREAMSCAPES_NATIVE_QUESTION_PRESENTER
+#include "NativeQuestionPresenter.h"
+#endif
 #include "App/Generation/GenerationController.h"
 #include <iiMultimodalAgent/agent/ObjectTools.h>
 #include <iiMultimodalAgent/agent/McpServer.h>
@@ -35,7 +38,7 @@ QJsonObject status(GenerationController& controller) {
         {"latest_image", controller.latestImage().toString()}};
 }
 }
-void installDreamscapesMcp(QObject* root, QObject* lifetime) {
+void installDreamscapesMcp(QObject* root, QObject* lifetime, ApplicationShutdownCoordinator* shutdown) {
     if (qEnvironmentVariable("IILOCALLLM_DISABLE_APP_MCP") == "1") return;
     auto* controller = root->findChild<GenerationController*>("generationController");
     if (!controller) { qWarning() << "Dreamscapes MCP: generation controller is unavailable"; return; }
@@ -116,7 +119,12 @@ void installDreamscapesMcp(QObject* root, QObject* lifetime) {
             m::LocalApplicationIdentity{"com.iisacc.dreamscapes", "Dreamscapes", DREAMSCAPES_APP_VERSION},
             std::move(protocol));
         if (!server->listen()) { qWarning() << "Dreamscapes MCP:" << server->errorString(); return; }
-        root->setProperty("agentQuestionInbox", QVariant::fromValue(questions));
+#ifdef DREAMSCAPES_NATIVE_QUESTION_PRESENTER
+        if (!dreamscapes::questions::installNativeQuestionPresenter(root, questions, lifetime, shutdown))
+#else
+        Q_UNUSED(shutdown);
+#endif
+            root->setProperty("agentQuestionInbox", QVariant::fromValue(questions));
         QObject::connect(qApp, &QCoreApplication::aboutToQuit, lifetime, [questions, server] { questions->close(); server->close(); });
         QObject::connect(controller, &QObject::destroyed, lifetime, [questions, server] { questions->close(); server->close(); });
     } catch (const std::exception& error) { qWarning() << "Dreamscapes MCP:" << error.what(); }

@@ -1,0 +1,8 @@
+#pragma once
+namespace dreamscapes::native {
+inline constexpr auto applicationVersion="@PROJECT_VERSION@";
+inline constexpr auto queueReadySvg=R"DREAMSCAPES_SVG(@DREAMSCAPES_QUEUE_READY_SVG@)DREAMSCAPES_SVG";
+inline constexpr auto preferencesCatalog=R"PREFS(@DREAMSCAPES_PREFERENCES_CATEGORIES@)PREFS";
+inline constexpr auto canvasCatalog=R"CANVAS(@DREAMSCAPES_CANVAS_CATALOG@)CANVAS";
+inline constexpr auto filePanelCatalog=R"FILEPANEL(@DREAMSCAPES_FILE_PANEL_CATALOG@)FILEPANEL";
+}

@@ -335,6 +335,7 @@ void registerNativeViewModelTypes() {
     qmlRegisterType<SnapshotListModel>("Dreamscapes.Storage", 1, 0, "NativeSnapshotListModel");
     qmlRegisterType<GenerationProjection>("Dreamscapes.Storage", 1, 0, "NativeGenerationProjection");
     qmlRegisterType<VideoTimelineModel>("Dreamscapes.Storage", 1, 0, "NativeVideoTimeline");
+    qmlRegisterType<VideoTimelineModel>("Dreamscapes.Storage", 1, 0, "VideoTimelineState");
     qmlRegisterUncreatableType<ViewDataDomain>("Dreamscapes.Storage", 1, 0, "NativeViewDataDomain",
                                                "Owned by NativeData");
     qmlRegisterSingletonType<ViewData>("Dreamscapes.Storage", 1, 0, "NativeData",

@@ -1,0 +1,177 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:d13ed5226fc224e5a093b638e7e95c9b4c6f63c63daf3621559bb6926f5a1384",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/NativeHomeRecentGenerations.md",
+    "sha256": "c0ae2cf89f6fbc0e8a6d64ebff1ce835342fd8c0fa7ccd177574045084c45116",
+    "bytes": 2750,
+    "line_count": 43,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Home recent generations migration contract",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Home recent generations migration contract\n",
+      "level": 1,
+      "title": "Home recent generations migration contract"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 7,
+      "raw": "The Home recent-generations area follows Figma node `1467:5050`. Its two-column\nlayout becomes one column below 500 pixels. Each 48-pixel cell contains a\n60-by-40 preview and the actual result name, model, media type and available\ngeneration metadata. The parent Home layout supplies the 12-pixel outside\ninset. Use LVUI components and tokens; sample content is not product data.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 14,
+      "raw": "The header retains View all and the existing Select, Cancel and Edit controls.\nIn ordinary mode clicking a result opens it through the existing file route;\nin selection mode it toggles eligible images. Edit passes the original selected\nimage values to the existing multi-image editor route. Video and other ineligible\nitems must not enter image selection. Selected items are view state, not changes\nto generation records or source files.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 15,
+      "end_line": 15,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 16,
+      "end_line": 22,
+      "raw": "Maintain focus and the scroll position when results arrive. Keyboard navigation\nuses the current number of columns; Enter activates the focused entry. The\ncollection must preserve stable identities under reorder and mutation, and keep\nonly visible cells and previews active. Empty and loading states come from the\nreal storage snapshot. Local and remote metadata and opening behavior must\nremain unchanged. A native presentation failure must reveal the legacy panel\nuntil its containing Home window has itself been migrated.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 23,
+      "end_line": 23,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 24,
+      "end_line": 29,
+      "raw": "The Qt-free recent-generations view model projects real file entries, reuses\nthe image-selection policy and retains stable tokens across reordering. The\nLVUI and iiGUI grid uses the shared native collection navigation and image\nresolver. Automated tests cover responsive column counts, loading, selection,\nvideo exclusion, pointer and keyboard activation, removal, reentrant result\nchanges and bounded widget and preview creation for 1,000 entries.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 30,
+      "end_line": 30,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 31,
+      "end_line": 37,
+      "raw": "On macOS the application attaches the native grid to the current Home panel\nthrough a temporary presenter. The adapter preserves the original result\nobjects for single-file and multi-image editing, and synchronizes selection\nmode and image keys with the existing Home selection model. The original QML\npanel remains the transport and layout host; it is uncovered if the native\nsurface fails, a modal overlaps it, or the surface is retired. Other platforms\ncontinue using the existing view until their native hosts are connected.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 38,
+      "end_line": 38,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 39,
+      "end_line": 43,
+      "raw": "Presenter and session tests use the actual Home selection model plus isolated\nQML fixtures to check original values, modal overlap, panel-name collisions,\nlanguage changes, fallback and asynchronous shutdown. They do not establish\nmanually verified platform rendering or installed-application behavior. The\ncontaining window and the remaining QML views still require migration.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Home recent generations migration contract",
+      "anchor": "home-recent-generations-migration-contract",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000005",
+        "line": 13,
+        "text": "items must not enter image selection. Selected items are view state, not changes",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000007",
+        "line": 18,
+        "text": "collection must preserve stable identities under reorder and mutation, and keep",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000007",
+        "line": 20,
+        "text": "real storage snapshot. Local and remote metadata and opening behavior must",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000007",
+        "line": 21,
+        "text": "remain unchanged. A native presentation failure must reveal the legacy panel",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 41,
+        "text": "language changes, fallback and asynchronous shutdown. They do not establish",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

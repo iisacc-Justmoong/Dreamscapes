@@ -753,7 +753,9 @@ std::optional<Row> Session::rowAt(int index) const {
     const auto ordinal = ordinals_.at(key);
     std::ostringstream title;
     title.imbue(std::locale::classic());
-    title << media << " · " << std::setfill('0') << std::setw(2) << ordinal;
+    const auto displayName=text(get(entry,"displayName"));
+    if (!displayName.empty()) title << displayName;
+    else title << media << " · " << std::setfill('0') << std::setw(2) << ordinal;
     return Row{key,
                media,
                title.str(),

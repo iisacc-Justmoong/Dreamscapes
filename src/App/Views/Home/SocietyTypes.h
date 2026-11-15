@@ -40,6 +40,11 @@ struct NativeVideoTimelineRegistration {
     QML_FOREIGN(dreamscapes::VideoTimelineModel)
     QML_NAMED_ELEMENT(NativeVideoTimeline)
 };
+struct VideoTimelineStateRegistration {
+    Q_GADGET
+    QML_FOREIGN(dreamscapes::VideoTimelineModel)
+    QML_NAMED_ELEMENT(VideoTimelineState)
+};
 struct NativeViewDataDomainRegistration {
     Q_GADGET
     QML_FOREIGN(dreamscapes::ViewDataDomain)

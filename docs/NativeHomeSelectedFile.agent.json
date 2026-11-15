@@ -1,0 +1,163 @@
+{
+  "format": "iisacc.agent-document",
+  "schema_version": 1,
+  "document_id": "urn:iisacc:document:2ef49d248e8e4b3ea93236e2895bbbecbb34dbbc543899c6e3d81ac73af88c31",
+  "project": {
+    "id": "urn:iisacc:project:Product%2FDreamscapes",
+    "name": "Dreamscapes",
+    "root": "Product/Dreamscapes",
+    "kind": "application"
+  },
+  "source": {
+    "path": "docs/NativeHomeSelectedFile.md",
+    "sha256": "5eaf73b89851ae7341302bc008ea315a657e3ac1bf7fb4d70dfc71ffc8acaa52",
+    "bytes": 2630,
+    "line_count": 42,
+    "encoding": "utf-8",
+    "language": "en"
+  },
+  "document": {
+    "title": "Home selected-file view migration",
+    "role": "guide",
+    "authority": "markdown_source"
+  },
+  "blocks": [
+    {
+      "id": "b000001",
+      "kind": "heading",
+      "start_line": 1,
+      "end_line": 1,
+      "raw": "# Home selected-file view migration\n",
+      "level": 1,
+      "title": "Home selected-file view migration"
+    },
+    {
+      "id": "b000002",
+      "kind": "blank",
+      "start_line": 2,
+      "end_line": 2,
+      "raw": "\n"
+    },
+    {
+      "id": "b000003",
+      "kind": "paragraph",
+      "start_line": 3,
+      "end_line": 7,
+      "raw": "The LVUI selected-file view follows Dreamscapes Home Figma node `1467:5053`.\nIt is paired with the recent-file selection, uses the existing LVUI label,\nbutton, image and layout tokens, and does not paint a separate panel background.\nThe image is supplied by the application's asynchronous image service; the\nFigma example is not product data.\n"
+    },
+    {
+      "id": "b000004",
+      "kind": "blank",
+      "start_line": 8,
+      "end_line": 8,
+      "raw": "\n"
+    },
+    {
+      "id": "b000005",
+      "kind": "paragraph",
+      "start_line": 9,
+      "end_line": 10,
+      "raw": "The Home layout supplies the panel's outside spacing. The selected-file view\nfills that content rectangle and must not apply the same inset a second time.\n"
+    },
+    {
+      "id": "b000006",
+      "kind": "blank",
+      "start_line": 11,
+      "end_line": 11,
+      "raw": "\n"
+    },
+    {
+      "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 12,
+      "end_line": 20,
+      "raw": "The Qt-free selected-file model receives the current file and preview address.\nIt projects the existing file identity, availability, path, dimensions,\nstructure, color and modification state without modifying the source document\nor triggering a storage scan. An absent value is shown as `Unavailable`; an\nunavailable Society file offers `Download and open`. Opening is an injected\ncommand, and no command is available without a file and an active handler.\nReplacing the file immediately clears details from the previous file.\nAsynchronous metadata replies are admitted only for the exact file snapshot\nthat initiated them, so a late result cannot contaminate a later selection.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 21,
+      "end_line": 21,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 22,
+      "end_line": 28,
+      "raw": "The existing Home file-details reader and canvas-preview address logic remain\nthe authoritative product adapters during the transition. They deliver native\nmodel inputs and the original file object, including opaque Society fields, to\nthe existing `WorkspaceSession` open/download path. Their lifetime is separate\nfrom the LVUI view; no QML engine or QQuick item is needed by the native model\nor its view. The original QML Home still exists on platforms whose full native\nwindow has not yet replaced it.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 29,
+      "end_line": 29,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 30,
+      "end_line": 36,
+      "raw": "On macOS the transition presenter connects this LVUI content to the existing\nHome selection and open signal. It preserves the complete Society file value,\nincluding remote availability and opaque fields. While another surface covers\nthe panel, the native surface is unavailable, or the panel is clipped, the\nexisting Home content remains available. Language changes reconstruct the\nsurface with the current selection; shutdown waits for the preview worker to\nretire. The full Home and application window have not yet migrated.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 37,
+      "end_line": 37,
+      "raw": "\n"
+    },
+    {
+      "id": "b000013",
+      "kind": "paragraph",
+      "start_line": 38,
+      "end_line": 42,
+      "raw": "Tests must cover an empty selection, local and remote files, metadata arrival\nand stale replies, handler retirement, navigation with the original file,\nand LVUI widget updates with an injected image resolver. Real file previews\nand the existing canvas preview path are validated separately; synthetic UI\nfixtures must not be described as real Society or model generation evidence.\n"
+    }
+  ],
+  "outline": [
+    {
+      "block_id": "b000001",
+      "parent_id": null,
+      "level": 1,
+      "title": "Home selected-file view migration",
+      "anchor": "home-selected-file-view-migration",
+      "start_line": 1
+    }
+  ],
+  "indexes": {
+    "directive_candidates": [
+      {
+        "block_id": "b000005",
+        "line": 10,
+        "text": "fills that content rectangle and must not apply the same inset a second time.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 38,
+        "text": "Tests must cover an empty selection, local and remote files, metadata arrival",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000013",
+        "line": 42,
+        "text": "fixtures must not be described as real Society or model generation evidence.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      }
+    ],
+    "commands": [],
+    "links": [],
+    "tables": []
+  },
+  "provenance": {
+    "generator": "workspace-docs",
+    "version": "1.0.0",
+    "profile": "lossless-blocks-v1",
+    "derived": true
+  }
+}

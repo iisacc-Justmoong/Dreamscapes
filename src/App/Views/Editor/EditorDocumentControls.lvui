@@ -1,0 +1,29 @@
+import vm NativeMigratedViewBackend
+EventListener(id: "migratedSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    ScrollView(id: "migratedScroll", width: vm.viewportWidth, height: vm.viewportHeight) {
+        VStack(id: "migratedContent", width: vm.viewportWidth, spacing: Metric.space8,
+               leftPadding: Metric.space16, rightPadding: Metric.space16,
+               topPadding: Metric.space16, bottomPadding: Metric.space16, alignment: .stretch) {
+            Label(id: "migratedHeading", text: "Editor Document Controls", style: .header2)
+            Label(id: "migratedText0", text: "Open", style: .body)
+            Label(id: "migratedText1", text: "Add Images", style: .body)
+            Label(id: "migratedText2", text: "Opening originals…", style: .body)
+            Label(id: "migratedText3", text: "Cancel", style: .body)
+            Label(id: "migratedText4", text: "Save", style: .body)
+            Label(id: "migratedText5", text: "Undo", style: .body)
+            Label(id: "migratedText6", text: "Redo", style: .body)
+            Label(id: "migratedText7", text: "Layers", style: .body)
+            Label(id: "migratedText8", text: "Fit", style: .body)
+            Label(id: "migratedText9", text: "Previous", style: .body)
+            Label(id: "migratedText10", text: "Next", style: .body)
+            Label(id: "migratedText11", text: "Save As", style: .body)
+            Label(id: "migratedText12", text: "Paint Color", style: .body)
+            Label(id: "migratedText13", text: "Open Canvas", style: .body)
+            Label(id: "migratedText14", text: "Add Image Artboards", style: .body)
+            Label(id: "migratedText15", text: "Place Image", style: .body)
+            Label(id: "migratedText16", text: "Document Layers", style: .body)
+            Label(id: "migratedText17", text: "Add Paint Layer", style: .body)
+            Label(id: "migratedText18", text: "Delete Layer", style: .body)
+        }
+    }
+}

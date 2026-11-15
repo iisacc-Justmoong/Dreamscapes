@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CanvasPreviewAddress.h"
 #include <QObject>
 #include <QUrl>
 #include <QVariantMap>
@@ -19,6 +20,5 @@ public:
 };
 
 namespace dreamscapes {
-QUrl canvasPreviewSource(const QVariantMap &file);
 void installCanvasPreviewProvider(QQmlEngine &engine);
 }

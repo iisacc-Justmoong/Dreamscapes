@@ -1,0 +1,22 @@
+import vm NativeStorageWorkspaceBackend
+EventListener(id: "storageSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.sizeChanged) {
+    VStack(width: vm.width, height: vm.height, padding: Metric.space8, spacing: Metric.space8, alignment: .stretch) {
+        HStack(spacing: Metric.space8, alignment: .center) {
+            Label(id: "storageHeading", text: vm.heading, style: .header2, flex: 1)
+            LabelButton(id: "storageOpen", text: "Open", tone: .default, enabled: vm.canOpen, onClick: vm.open)
+        }
+        HStack(spacing: Metric.space8, alignment: .center) {
+            LabelButton(id: "storageUp", text: "Up", tone: .default, enabled: vm.canUp, onClick: vm.up)
+            InputField(id: "storageSearch", text: vm.query, accessibilityName: "Search files", onEdited: vm.search, flex: 1)
+            Label(id: "storageDirectory", text: vm.directory, style: .caption)
+        }
+        Label(id: "storageStatus", text: vm.status, style: .caption)
+        for (item in vm.rows, key: item.key, id: "storageRows", itemHeight: Metric.size44,
+             width: vm.width, height: 0, flex: 1, overscan: 1) {
+            HStack(spacing: Metric.space4, alignment: .center) {
+                LabelButton(id: "storageRow", text: item.name, tone: .default, flex: 1, onClick: item.activate)
+                if (item.selected) { Label(text: "Selected", style: .caption) }
+            }
+        }
+    }
+}

@@ -13,16 +13,75 @@ target_link_libraries(DreamscapesReviewNavigationNative PUBLIC DreamscapesViewMo
 # point until its data sources and all remaining product flows are connected.
 lvui_generate(NAME NativeReviewGallery SOURCE src/App/Views/Result/NativeReviewGallery.lvui
     FRAMEWORK iiGUI INCLUDES App/Views/Result/NativeReviewGallery.h OUTPUT_VARIABLE _native_review_gallery)
+lvui_generate(NAME NativeReviewGrid SOURCE src/App/Views/Result/NativeReviewGrid.lvui
+    FRAMEWORK iiGUI INCLUDES App/Views/Result/NativeReviewGridView.h OUTPUT_VARIABLE _native_review_grid)
 add_library(DreamscapesReviewGalleryNative STATIC
+    src/App/Views/Result/NativeReviewContext.h
+    src/App/Views/Result/NativeReviewContext.cpp
+    src/App/Views/Result/NativeReviewGrid.h
+    src/App/Views/Result/NativeReviewGrid.cpp
+    src/App/Views/Result/NativeReviewGridImages.h
+    src/App/Views/Result/NativeReviewGridImages.cpp
+    src/App/Views/Result/NativeReviewGridView.h
+    src/App/Views/Result/NativeReviewGridView.cpp
     src/App/Views/Result/NativeReviewGallery.h
     src/App/Views/Result/NativeReviewGallery.cpp
     src/App/Views/Result/NativeReviewGalleryView.h
     src/App/Views/Result/NativeReviewGalleryView.cpp
-    "${_native_review_gallery}")
+    "${_native_review_gallery}" "${_native_review_grid}")
 set_target_properties(DreamscapesReviewGalleryNative PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
 target_compile_features(DreamscapesReviewGalleryNative PUBLIC cxx_std_23)
 target_include_directories(DreamscapesReviewGalleryNative PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(DreamscapesReviewGalleryNative PUBLIC DreamscapesReviewNavigationNative iiGUI::iiGUI)
+
+lvui_generate(NAME NativeReviewQueue SOURCE src/App/Views/Result/NativeReviewQueue.lvui
+    FRAMEWORK iiGUI INCLUDES App/Views/Result/NativeReviewQueue.h OUTPUT_VARIABLE _native_review_queue)
+add_library(DreamscapesReviewQueueNative STATIC
+    src/App/Views/Result/NativeReviewQueueView.h
+    src/App/Views/Result/NativeReviewQueueView.cpp
+    "${_native_review_queue}")
+set_target_properties(DreamscapesReviewQueueNative PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+target_compile_features(DreamscapesReviewQueueNative PUBLIC cxx_std_23)
+target_include_directories(DreamscapesReviewQueueNative PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+target_link_libraries(DreamscapesReviewQueueNative PUBLIC DreamscapesViewModelsNative LVUI::Native iiGUI::iiGUI)
+
+add_library(DreamscapesReviewInspectorNative STATIC
+    src/App/Views/Result/NativeReviewInspector.h
+    src/App/Views/Result/NativeReviewInspector.cpp
+    src/App/Views/Result/NativeReviewInspectorViewModel.h
+    src/App/Views/Result/NativeReviewInspectorViewModel.cpp)
+set_target_properties(DreamscapesReviewInspectorNative PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+target_compile_features(DreamscapesReviewInspectorNative PUBLIC cxx_std_23)
+target_link_libraries(DreamscapesReviewInspectorNative PUBLIC DreamscapesViewModelsNative LVUI::Native iiGUI::iiGUI)
+
+lvui_generate(NAME NativeReviewInspector SOURCE src/App/Views/Result/NativeReviewInspector.lvui
+    FRAMEWORK iiGUI INCLUDES App/Views/Result/NativeReviewInspectorView.h OUTPUT_VARIABLE _native_review_inspector)
+add_library(DreamscapesReviewInspectorView STATIC
+    src/App/Views/Result/NativeReviewInspectorView.h
+    src/App/Views/Result/NativeReviewInspectorView.cpp
+    "${_native_review_inspector}")
+set_target_properties(DreamscapesReviewInspectorView PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+target_compile_features(DreamscapesReviewInspectorView PUBLIC cxx_std_23)
+target_include_directories(DreamscapesReviewInspectorView PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+target_link_libraries(DreamscapesReviewInspectorView PUBLIC DreamscapesReviewInspectorNative)
+
+lvui_generate(NAME NativeReviewMedia SOURCE src/App/Views/Result/NativeReviewMedia.lvui
+    FRAMEWORK iiGUI INCLUDES App/Views/Result/NativeReviewMediaView.h OUTPUT_VARIABLE _native_review_media)
+add_library(DreamscapesReviewMediaNative STATIC
+    src/App/Views/Result/NativeReviewMedia.h src/App/Views/Result/NativeReviewMedia.cpp
+    src/App/Views/Result/NativeReviewMediaView.h src/App/Views/Result/NativeReviewMediaView.cpp
+    "${_native_review_media}")
+set_target_properties(DreamscapesReviewMediaNative PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+target_compile_features(DreamscapesReviewMediaNative PUBLIC cxx_std_23)
+target_include_directories(DreamscapesReviewMediaNative PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src" PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+target_link_libraries(DreamscapesReviewMediaNative PUBLIC LVUI::Native iiGUI::iiGUI)
+if(TARGET Qt6::Multimedia)
+    add_library(DreamscapesReviewQtPlayback STATIC
+        src/App/Views/Result/NativeReviewQtPlayback.h src/App/Views/Result/NativeReviewQtPlayback.cpp)
+    set_target_properties(DreamscapesReviewQtPlayback PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+    target_compile_features(DreamscapesReviewQtPlayback PUBLIC cxx_std_23)
+    target_link_libraries(DreamscapesReviewQtPlayback PUBLIC DreamscapesReviewMediaNative Qt6::Multimedia Qt6::Concurrent)
+endif()
 
 option(DREAMSCAPES_NATIVE_REVIEW_IMAGES "Build the native result-preview provider" ON)
 if(DREAMSCAPES_NATIVE_REVIEW_IMAGES)
@@ -34,6 +93,19 @@ if(DREAMSCAPES_NATIVE_REVIEW_IMAGES)
         "$ENV{HOME}/.local/SDK/iiFileProvider" "$ENV{HOME}/.local/SDK/iiFileProviderNative")
     include(CheckCXXSourceCompiles)
     include(CMakePushCheckState)
+    # Older 0.1 packages lack the ICC conversion entry point used by current
+    # iiSharedCanvas. Detect the header and binary together before app linking.
+    cmake_push_check_state(RESET)
+    set(CMAKE_REQUIRED_LIBRARIES iiImageCodec::iiImageCodec)
+    unset(DREAMSCAPES_IMAGECODEC_SRGB_API CACHE)
+    check_cxx_source_compiles([=[
+        #include <iiImageCodec/ImageCodec.h>
+        int main() { auto value = ii::image::to_srgb(ii::image::Image{}); return value ? 0 : 0; }
+    ]=] DREAMSCAPES_IMAGECODEC_SRGB_API)
+    cmake_pop_check_state()
+    if(NOT DREAMSCAPES_IMAGECODEC_SRGB_API)
+        message(FATAL_ERROR "The selected iiImageCodec package must provide the to_srgb API and implementation required by iiSharedCanvas Native")
+    endif()
     cmake_push_check_state(RESET)
     set(CMAKE_REQUIRED_LIBRARIES iiSDKCore::Runtime)
     unset(DREAMSCAPES_IISDKCORE_SIGNAL_API CACHE)
@@ -67,13 +139,14 @@ if(DREAMSCAPES_NATIVE_REVIEW_IMAGES)
         dreamscapes_add_image_adapter()
         set_target_properties(ApplicationImageIOAdapter PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
     endif()
-    add_library(DreamscapesReviewImagesNative STATIC
-        src/App/Views/Result/NativeReviewImages.h
-        src/App/Views/Result/NativeReviewImages.cpp)
-    set_target_properties(DreamscapesReviewImagesNative PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
-    target_compile_features(DreamscapesReviewImagesNative PUBLIC cxx_std_23)
-    target_include_directories(DreamscapesReviewImagesNative PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
-    target_link_libraries(DreamscapesReviewImagesNative PUBLIC LVUI::ImageIO iiGUI::iiGUI
+    add_library(DreamscapesNativeFileImages STATIC
+        src/App/Native/NativeFileImages.h src/App/Native/NativeFileImages.cpp
+        src/App/Views/Result/NativeReviewImages.h)
+    add_library(DreamscapesReviewImagesNative ALIAS DreamscapesNativeFileImages)
+    set_target_properties(DreamscapesNativeFileImages PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+    target_compile_features(DreamscapesNativeFileImages PUBLIC cxx_std_23)
+    target_include_directories(DreamscapesNativeFileImages PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_link_libraries(DreamscapesNativeFileImages PUBLIC LVUI::ImageIO iiGUI::iiGUI
         PRIVATE ApplicationImageIOAdapter iiSharedCanvas::Native iiVisualCodec::Image iiNetwork::iiNetwork iiFileProvider::Native)
 endif()
 
@@ -82,13 +155,45 @@ endif()
 if(TARGET DreamscapesViewModels)
     add_library(DreamscapesReviewGenerationBridge STATIC
         src/App/Views/Result/NativeReviewGenerationBridge.h
-        src/App/Views/Result/NativeReviewGenerationBridge.cpp)
+        src/App/Views/Result/NativeReviewGenerationBridge.cpp
+        src/App/Views/Result/NativeReviewQueueBridge.h
+        src/App/Views/Result/NativeReviewQueueBridge.cpp)
     set_target_properties(DreamscapesReviewGenerationBridge PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
     target_compile_features(DreamscapesReviewGenerationBridge PUBLIC cxx_std_23)
     target_link_libraries(DreamscapesReviewGenerationBridge PUBLIC DreamscapesReviewGalleryNative DreamscapesViewModels)
 endif()
 
 if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+    add_executable(DreamscapesNativeReviewInspectorTests tests/tst_native_review_inspector.cpp)
+    set_target_properties(DreamscapesNativeReviewInspectorTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+    target_link_libraries(DreamscapesNativeReviewInspectorTests PRIVATE DreamscapesReviewInspectorNative)
+    add_test(NAME Dreamscapes.NativeReviewInspector COMMAND DreamscapesNativeReviewInspectorTests)
+    add_executable(DreamscapesNativeReviewInspectorViewTests tests/tst_native_review_inspector_view.cpp)
+    set_target_properties(DreamscapesNativeReviewInspectorViewTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+    target_link_libraries(DreamscapesNativeReviewInspectorViewTests PRIVATE DreamscapesReviewInspectorView)
+    if(DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR AND EXISTS "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}/iiGUI/WidgetState.h")
+        target_include_directories(DreamscapesNativeReviewInspectorViewTests PRIVATE "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}")
+        target_compile_definitions(DreamscapesNativeReviewInspectorViewTests PRIVATE DREAMSCAPES_REVIEW_INSPECTOR_WIDGET_TEST=1)
+    endif()
+    add_test(NAME Dreamscapes.NativeReviewInspectorView COMMAND DreamscapesNativeReviewInspectorViewTests)
+    add_executable(DreamscapesNativeReviewMediaTests tests/tst_native_review_media.cpp)
+    set_target_properties(DreamscapesNativeReviewMediaTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+    target_link_libraries(DreamscapesNativeReviewMediaTests PRIVATE DreamscapesReviewMediaNative)
+    if(DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR AND EXISTS "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}/iiGUI/WidgetState.h")
+        target_include_directories(DreamscapesNativeReviewMediaTests PRIVATE "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}")
+        target_compile_definitions(DreamscapesNativeReviewMediaTests PRIVATE DREAMSCAPES_REVIEW_MEDIA_WIDGET_TEST=1)
+    endif()
+    add_test(NAME Dreamscapes.NativeReviewMedia COMMAND DreamscapesNativeReviewMediaTests)
+    if(TARGET DreamscapesReviewQtPlayback)
+        add_executable(DreamscapesNativeReviewQtPlaybackTests tests/tst_native_review_qt_playback.cpp)
+        set_target_properties(DreamscapesNativeReviewQtPlaybackTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+        target_link_libraries(DreamscapesNativeReviewQtPlaybackTests PRIVATE DreamscapesReviewQtPlayback)
+        add_test(NAME Dreamscapes.NativeReviewQtPlayback COMMAND DreamscapesNativeReviewQtPlaybackTests)
+    endif()
+    add_executable(DreamscapesNativeReviewQueueTests tests/tst_native_review_queue.cpp)
+    set_target_properties(DreamscapesNativeReviewQueueTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+    target_link_libraries(DreamscapesNativeReviewQueueTests PRIVATE DreamscapesViewModelsNative)
+    add_test(NAME Dreamscapes.NativeReviewQueue COMMAND DreamscapesNativeReviewQueueTests)
     add_executable(DreamscapesNativeReviewNavigationTests tests/tst_native_review_navigation.cpp)
     set_target_properties(DreamscapesNativeReviewNavigationTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
     target_link_libraries(DreamscapesNativeReviewNavigationTests PRIVATE DreamscapesReviewNavigationNative)
@@ -97,15 +202,36 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     set_target_properties(DreamscapesNativeReviewGalleryTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
     target_link_libraries(DreamscapesNativeReviewGalleryTests PRIVATE DreamscapesReviewGalleryNative)
     add_test(NAME Dreamscapes.NativeReviewGallery COMMAND DreamscapesNativeReviewGalleryTests)
+    add_executable(DreamscapesNativeReviewGridTests tests/tst_native_review_grid.cpp)
+    set_target_properties(DreamscapesNativeReviewGridTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+    target_link_libraries(DreamscapesNativeReviewGridTests PRIVATE DreamscapesReviewGalleryNative)
+    if(DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR AND EXISTS "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}/iiGUI/WidgetState.h")
+        target_include_directories(DreamscapesNativeReviewGridTests PRIVATE "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}")
+        target_compile_definitions(DreamscapesNativeReviewGridTests PRIVATE DREAMSCAPES_REVIEW_GRID_WIDGET_TEST=1)
+    endif()
+    add_test(NAME Dreamscapes.NativeReviewGrid COMMAND DreamscapesNativeReviewGridTests)
     add_executable(DreamscapesNativeReviewGalleryLinkTests tests/tst_native_review_gallery_link.cpp)
     set_target_properties(DreamscapesNativeReviewGalleryLinkTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
     target_link_libraries(DreamscapesNativeReviewGalleryLinkTests PRIVATE DreamscapesReviewGalleryNative)
     add_test(NAME Dreamscapes.NativeReviewGalleryLink COMMAND DreamscapesNativeReviewGalleryLinkTests)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME Dreamscapes.NativeReviewInspectorRendererBoundary
+        COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_review_renderer_boundary.py"
+            "${_native_review_inspector}" "$<TARGET_FILE:DreamscapesNativeReviewInspectorViewTests>" text-editor)
+    add_test(NAME Dreamscapes.NativeReviewMediaRendererBoundary
+        COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_review_renderer_boundary.py"
+            "${_native_review_media}" "$<TARGET_FILE:DreamscapesNativeReviewMediaTests>")
+    add_test(NAME Dreamscapes.NativeReviewGridRendererBoundary
+        COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_review_renderer_boundary.py"
+            "${_native_review_grid}" "$<TARGET_FILE:DreamscapesNativeReviewGridTests>" grid)
     add_test(NAME Dreamscapes.NativeReviewRendererBoundary
         COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_review_renderer_boundary.py"
             "${_native_review_gallery}" "$<TARGET_FILE:DreamscapesNativeReviewGalleryLinkTests>")
     if(TARGET DreamscapesReviewGenerationBridge)
+        add_executable(DreamscapesNativeReviewQueueBridgeTests tests/tst_native_review_queue_bridge.cpp)
+        set_target_properties(DreamscapesNativeReviewQueueBridgeTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+        target_link_libraries(DreamscapesNativeReviewQueueBridgeTests PRIVATE DreamscapesReviewGenerationBridge)
+        add_test(NAME Dreamscapes.NativeReviewQueueBridge COMMAND DreamscapesNativeReviewQueueBridgeTests)
         add_executable(DreamscapesNativeReviewGenerationBridgeTests tests/tst_native_review_generation_bridge.cpp)
         set_target_properties(DreamscapesNativeReviewGenerationBridgeTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
         target_link_libraries(DreamscapesNativeReviewGenerationBridgeTests PRIVATE DreamscapesReviewGenerationBridge)
@@ -130,7 +256,9 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
         target_link_libraries(DreamscapesNativeFailurePresenterMacTests PRIVATE DreamscapesFailurePresenter
             DreamscapesGeneration "-framework AppKit")
         add_test(NAME Dreamscapes.NativeFailurePresenterMac COMMAND DreamscapesNativeFailurePresenterMacTests)
-        set_tests_properties(Dreamscapes.NativeFailurePresenterMac PROPERTIES TIMEOUT 45
+        # The in-process watchdog bounds the host interaction. Leave time for
+        # loading the many native SDK libraries before that watchdog starts.
+        set_tests_properties(Dreamscapes.NativeFailurePresenterMac PROPERTIES TIMEOUT 90
             ENVIRONMENT "TMPDIR=${CMAKE_CURRENT_SOURCE_DIR}/resources;SOCIETY_DISABLE_SESSION_RESTORE=1;IILOCALLLM_DISABLE_APP_MCP=1")
     endif()
     # The private harness must match the selected iiGUI binary. It is opt-in
@@ -138,6 +266,22 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     set(DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR "" CACHE PATH
         "Matching iiGUI build/include directory for the optional headless widget test")
     if(DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR AND EXISTS "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}/iiGUI/WidgetState.h")
+        add_executable(DreamscapesNativeReviewQueueWidgetTests tests/tst_native_review_queue_widget.cpp)
+        set_target_properties(DreamscapesNativeReviewQueueWidgetTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+        target_include_directories(DreamscapesNativeReviewQueueWidgetTests PRIVATE "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}")
+        target_link_libraries(DreamscapesNativeReviewQueueWidgetTests PRIVATE DreamscapesReviewQueueNative)
+        add_test(NAME Dreamscapes.NativeReviewQueueWidget COMMAND DreamscapesNativeReviewQueueWidgetTests)
+        add_test(NAME Dreamscapes.NativeReviewQueueRendererBoundary
+            COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_review_renderer_boundary.py"
+                "${_native_review_queue}" "$<TARGET_FILE:DreamscapesNativeReviewQueueWidgetTests>")
+        if(TARGET DreamscapesReviewGenerationBridge)
+            add_executable(DreamscapesNativeReviewQueueConnectedTests tests/tst_native_review_queue_connected.cpp)
+            set_target_properties(DreamscapesNativeReviewQueueConnectedTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+            target_include_directories(DreamscapesNativeReviewQueueConnectedTests PRIVATE "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}")
+            target_link_libraries(DreamscapesNativeReviewQueueConnectedTests PRIVATE
+                DreamscapesReviewQueueNative DreamscapesReviewGenerationBridge)
+            add_test(NAME Dreamscapes.NativeReviewQueueConnected COMMAND DreamscapesNativeReviewQueueConnectedTests)
+        endif()
         add_executable(DreamscapesNativeFailureDetailsTests tests/tst_native_failure_details.cpp)
         set_target_properties(DreamscapesNativeFailureDetailsTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
         target_include_directories(DreamscapesNativeFailureDetailsTests PRIVATE "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}")
