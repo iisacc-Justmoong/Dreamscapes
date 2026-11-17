@@ -19,3 +19,11 @@ JSON은 절, 줄 범위, 원문 블록, 명령·링크·표·규칙 후보를 �
 
 원본 Markdown을 수정한 뒤 agent JSON과 색인을 함께 재생성하고 검증한다. 외부 원본과 라이선스는 보존한다. 기존 경로가 필요한 이동 문서는 안내 파일로 연결하며 실제 내용은 하위 문서에 둔다.
 <!-- workspace-docs:blueprint:end -->
+
+## 라이선스
+
+이 저장소의 자체 코드와 문서는 `AGPL-3.0-or-later`이다. 전문은
+[LICENSE](../LICENSE)이고, 한국어 정책은 [LICENSING.md](../LICENSING.md)이다.
+iiSDK(SDK)는 Apache-2.0이며 AGPL과 양립하므로 제품이 SDK를 링크할 수 있다.
+제3자 라이선스 본문은 바꾸지 않는다.
+
