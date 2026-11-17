@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "LICENSING.md",
-    "sha256": "629af7be7391f3cda4d302ef93b8f164fde800b301464da5aadcd13f3c1d0082",
-    "bytes": 483,
-    "line_count": 9,
+    "sha256": "5a909f6577f7319cc59dc6df661c4e182ce3f31365bc48a1f909fc029ccfe239",
+    "bytes": 567,
+    "line_count": 13,
     "encoding": "utf-8",
     "language": "ko"
   },
@@ -43,7 +43,7 @@
       "kind": "paragraph",
       "start_line": 3,
       "end_line": 3,
-      "raw": "SPDX-License-Identifier: AGPL-3.0-only\n"
+      "raw": "SPDX-License-Identifier: AGPL-3.0-or-later\n"
     },
     {
       "id": "b000004",
@@ -57,7 +57,7 @@
       "kind": "paragraph",
       "start_line": 5,
       "end_line": 6,
-      "raw": "이 저장소의 자체 애플리케이션 코드와 문서는 GNU Affero General Public License\n버전 3만을 적용하여 배포한다. 전체 조건은 [LICENSE](LICENSE)에 명시되어 있다.\n"
+      "raw": "iisacc 제품은 GNU Affero General Public License 3판 또는 그 이후 버전\n(`AGPL-3.0-or-later`)으로 배포한다. 전문은 [LICENSE](LICENSE)에 있다.\n"
     },
     {
       "id": "b000006",
@@ -71,7 +71,21 @@
       "kind": "paragraph",
       "start_line": 8,
       "end_line": 9,
-      "raw": "독립적으로 관리되는 공개 iiSDK 라이브러리는 각 저장소의 MIT 라이선스를 따른다.\n제3자 코드, 라이브러리, 폰트, 도구와 모델 가중치는 각각의 라이선스를 유지한다.\n"
+      "raw": "iiSDK(SDK)는 Apache-2.0이다. Apache-2.0은 AGPL과 양립하므로 제품이 SDK를\n링크할 수 있다.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 10,
+      "end_line": 10,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 11,
+      "end_line": 13,
+      "raw": "이 저장소에서 별도의 라이선스 파일을 두지 않는 자체 폴더는 루트 라이선스를\n따른다. 제3자 코드, 라이브러리, 폰트, 도구와 모델 가중치는 원래 라이선스를\n유지한다.\n"
     }
   ],
   "outline": [

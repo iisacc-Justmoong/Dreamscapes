@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "README.md",
-    "sha256": "036ede2ed9a1fe2a2495c79eeb120323d601d561a927007b5d216b7458307478",
-    "bytes": 128763,
-    "line_count": 802,
+    "sha256": "d273c02b9fda2c2413b2dcf7a4656f005d00bb6288510867fd87b49e88458b5f",
+    "bytes": 129222,
+    "line_count": 814,
     "encoding": "utf-8",
     "language": "ko"
   },
@@ -4533,32 +4533,90 @@
     },
     {
       "id": "b000612",
-      "kind": "html",
+      "kind": "heading",
       "start_line": 795,
       "end_line": 795,
-      "raw": "<!-- workspace-docs:readme:start -->\n"
+      "raw": "## License\n",
+      "level": 2,
+      "title": "License"
     },
     {
       "id": "b000613",
-      "kind": "heading",
+      "kind": "blank",
       "start_line": 796,
       "end_line": 796,
+      "raw": "\n"
+    },
+    {
+      "id": "b000614",
+      "kind": "paragraph",
+      "start_line": 797,
+      "end_line": 797,
+      "raw": "SPDX-License-Identifier: AGPL-3.0-or-later\n"
+    },
+    {
+      "id": "b000615",
+      "kind": "blank",
+      "start_line": 798,
+      "end_line": 798,
+      "raw": "\n"
+    },
+    {
+      "id": "b000616",
+      "kind": "paragraph",
+      "start_line": 799,
+      "end_line": 801,
+      "raw": "iisacc products are licensed under the GNU Affero General Public License\nversion 3, or any later version. The terms are in [LICENSE](LICENSE). The\nKorean policy is [LICENSING.md](LICENSING.md).\n"
+    },
+    {
+      "id": "b000617",
+      "kind": "blank",
+      "start_line": 802,
+      "end_line": 802,
+      "raw": "\n"
+    },
+    {
+      "id": "b000618",
+      "kind": "paragraph",
+      "start_line": 803,
+      "end_line": 805,
+      "raw": "The iiSDK (SDK) is Apache-2.0, which is compatible for products to link.\nFirst-party folders in this repository that do not carry a license file use\nthe root license. Third-party code keeps its own license.\n"
+    },
+    {
+      "id": "b000619",
+      "kind": "blank",
+      "start_line": 806,
+      "end_line": 806,
+      "raw": "\n"
+    },
+    {
+      "id": "b000620",
+      "kind": "html",
+      "start_line": 807,
+      "end_line": 807,
+      "raw": "<!-- workspace-docs:readme:start -->\n"
+    },
+    {
+      "id": "b000621",
+      "kind": "heading",
+      "start_line": 808,
+      "end_line": 808,
       "raw": "## Documentation entry points\n",
       "level": 2,
       "title": "Documentation entry points"
     },
     {
-      "id": "b000614",
+      "id": "b000622",
       "kind": "blank",
-      "start_line": 797,
-      "end_line": 797,
+      "start_line": 809,
+      "end_line": 809,
       "raw": "\n"
     },
     {
-      "id": "b000615",
+      "id": "b000623",
       "kind": "list",
-      "start_line": 798,
-      "end_line": 801,
+      "start_line": 810,
+      "end_line": 813,
       "raw": "- Human overview: this English `README.md`.\n- Agent instructions: [AGENT.md](AGENT.md).\n- Human documentation: [documentation index](docs/README.md).\n- Structured agent documentation: [agent index](docs/agent-index.json).\n",
       "items": [
         {
@@ -4584,10 +4642,10 @@
       ]
     },
     {
-      "id": "b000616",
+      "id": "b000624",
       "kind": "html",
-      "start_line": 802,
-      "end_line": 802,
+      "start_line": 814,
+      "end_line": 814,
       "raw": "<!-- workspace-docs:readme:end -->\n"
     }
   ],
@@ -4913,12 +4971,20 @@
       "start_line": 791
     },
     {
-      "block_id": "b000613",
+      "block_id": "b000612",
+      "parent_id": "b000513",
+      "level": 2,
+      "title": "License",
+      "anchor": "license",
+      "start_line": 795
+    },
+    {
+      "block_id": "b000621",
       "parent_id": "b000513",
       "level": 2,
       "title": "Documentation entry points",
       "anchor": "documentation-entry-points",
-      "start_line": 796
+      "start_line": 808
     }
   ],
   "indexes": {
@@ -5284,6 +5350,13 @@
         "block_id": "b000604",
         "line": 786,
         "text": "rendering do not retain that access. Changed source data invalidates in-flight",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000618",
+        "line": 804,
+        "text": "First-party folders in this repository that do not carry a license file use",
         "basis": "lexical_match",
         "context": "paragraph"
       }
@@ -5867,25 +5940,39 @@
         "line": 793
       },
       {
-        "block_id": "b000615",
-        "label": "AGENT.md",
-        "target": "AGENT.md",
-        "kind": "relative",
-        "line": 799
-      },
-      {
-        "block_id": "b000615",
-        "label": "documentation index",
-        "target": "docs/README.md",
+        "block_id": "b000616",
+        "label": "LICENSE",
+        "target": "LICENSE",
         "kind": "relative",
         "line": 800
       },
       {
-        "block_id": "b000615",
+        "block_id": "b000616",
+        "label": "LICENSING.md",
+        "target": "LICENSING.md",
+        "kind": "relative",
+        "line": 801
+      },
+      {
+        "block_id": "b000623",
+        "label": "AGENT.md",
+        "target": "AGENT.md",
+        "kind": "relative",
+        "line": 811
+      },
+      {
+        "block_id": "b000623",
+        "label": "documentation index",
+        "target": "docs/README.md",
+        "kind": "relative",
+        "line": 812
+      },
+      {
+        "block_id": "b000623",
         "label": "agent index",
         "target": "docs/agent-index.json",
         "kind": "relative",
-        "line": 801
+        "line": 813
       }
     ],
     "tables": [

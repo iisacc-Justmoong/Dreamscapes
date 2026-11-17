@@ -792,6 +792,18 @@ The compact desktop Home follows Figma node `1467:4554`: a growing prompt, full-
 
 Screen state, parameter validation, command planning and list projections use the C++23 native view-model target backed by iiSDKCore typed QueryPort contracts and a bounded Runtime for file-list work. QML binds these models and owns layout, drawing, focus, scrolling and popup presentation. Production JavaScript state stores are removed; frozen references remain test-only. The native core does not link Qt; the current GUI and existing backend adapters still do. See [Native view-model contracts](docs/NativeViewModels.md) for ownership, catalog maintenance and validation.
 
+## License
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+
+iisacc products are licensed under the GNU Affero General Public License
+version 3, or any later version. The terms are in [LICENSE](LICENSE). The
+Korean policy is [LICENSING.md](LICENSING.md).
+
+The iiSDK (SDK) is Apache-2.0, which is compatible for products to link.
+First-party folders in this repository that do not carry a license file use
+the root license. Third-party code keeps its own license.
+
 <!-- workspace-docs:readme:start -->
 ## Documentation entry points
 
