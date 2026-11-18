@@ -1,6 +1,6 @@
 #pragma once
 #include <algorithm>
-#include <iiSDKCore/Runtime/Query.h>
+#include <iiSDKCore>
 
 namespace dreamscapes::vm {
 enum class ReviewKey { other, escape, all, shortlist, reject, compare, space, enter, left, right, up, down, home, end };

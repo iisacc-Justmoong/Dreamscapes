@@ -138,6 +138,12 @@ void contextActions() {
     require(menu->invoke(ReviewContextAction::saveFile) && saved==std::vector<Value>{entries[0]} &&
             menu->invoke(ReviewContextAction::savePhotos) && photos==saved,
             "Saving from the context menu did not use only the clicked result");
+    bool saveAllowed=true;int guardedSaves=0;
+    menu->setSaveFileHandler([&](auto){++guardedSaves;},[&](const auto &values){return saveAllowed && values.size()==1 && values.front()==entries[0];});
+    require(menu->open(session->keyAt(0)) && menu->context.get().canSaveFile,"Eligible original was not offered for saving");
+    saveAllowed=false;
+    require(!menu->invoke(ReviewContextAction::saveFile) && guardedSaves==0,"Stale save eligibility was not rechecked");
+    menu->setSaveFileHandler([&](auto values){saved=std::move(values);});
     session->selectAt(0); session->selectAt(1,false,true);
     require(menu->open(session->keyAt(2)),"The unselected result context did not open");
     require(menu->context.get().targets==std::vector<Value>{entries[2]} && !menu->context.get().canCompare,

@@ -77,7 +77,7 @@ The generation canvas is centered horizontally and vertically in the left canvas
 
 ### 생산 QML 등록
 
-`Dreamscapes.Storage` 는 정적 `NO_PLUGIN` QML 모듈입니다. 공개 타입은 `src/main.cpp` 에 명시적으로 등록되어 있으며, 프로덕션 목록에는 `AdvancedImageParameters` 뿐만 아니라 `GenerationController` 와 파일 익스포터가 포함되어야 합니다. 소스 GUI 테스트는 파생 픽스처 문서를 등록하므로, 성공만으로는 패키징된 앱이 실제 문서 타입을 노출한다는 것을 증명할 수 없습니다.
+과거 Qt 앱은 `Dreamscapes.Storage` 정적 `NO_PLUGIN` QML 모듈과 `src/main.cpp`의 타입 등록을 사용했다. 해당 진입점은 제거됐으며, 이 이력은 현재 네이티브 앱의 타입 등록이나 기능 검증을 의미하지 않는다.
 
 격리된 2026-09-29 시작 관찰은 이전 시간 초과를 넘어 계속되었으며, 터미널 QML 오류를 재현했습니다: `AdvancedImageParameters is not a type` , 이로 인해 `AdvancedGenerate` , `ImageGenerationWorkspace` 그리고 마지막으로 `Main` 가 사용 불가능해졌습니다. `build/startup-observation-kUrQzm/app.log` 는 붉은 증거를 유지합니다. 생산 등록에 이제 명시적으로 매개변수 문서가 포함됩니다. `packagedApplicationStarts` 또한 명시적인 루트 로딩 실패 시 발견을 중지하고 누락된 완료 마커와 별도로 해당 진단을 보고합니다. 시작/발견 마감일은 변경되지 않았습니다. 다시 빌드된 표준 번들이 `packagedApplicationStarts` 를 통과한 후, 고급 문서 및 워크스페이스 스크롤/초안 GUI 회귀가 발생했습니다: 5 회의 설정/정리 포함 통과, 실패 없음, 14.892 초 ( `build/startup-registration-tests.log` ). 패키지 테스트는 실제 프로덕션 진입점 및 번들된 의존성을 사용하며, 루트 로딩, 하나의 창 및 상호 보조 도구 발견을 확인하고, 오직 자신의 자식만 중지합니다. 소스 픽스처 는 별도의 확인 사항이며, 이 프로덕션 등록 테스트의 대용이 아닙니다. 이것은 오프스크린 패키징 시작을 확인하며, 설치된 앱 교체 또는 실제 모델 생성을 확인하지 않습니다. 메인 전 MLX / Torch 초기화는 여전히 존재하며, 이 통과 실행에서 일반적인 시작 성능 주장은 제기되지 않습니다.
 

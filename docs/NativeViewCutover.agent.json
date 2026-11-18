@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/NativeViewCutover.md",
-    "sha256": "80a5b5056a35839728d34b264d053e75083812a54365c3252af249453b5c7b4f",
-    "bytes": 2623,
-    "line_count": 40,
+    "sha256": "3e8310a7e97431142c2eb22d2688b54762a388ffd93c2e81f2825b67da148135",
+    "bytes": 2705,
+    "line_count": 41,
     "encoding": "utf-8",
     "language": "en"
   },
@@ -42,50 +42,50 @@
       "id": "b000003",
       "kind": "paragraph",
       "start_line": 3,
-      "end_line": 17,
-      "raw": "Dreamscapes is being switched to an iiGUI application window and LVUI views.\nThe native Home composer, Image and Video parameter screens, and the result\nreview route bind to session-local C++ view models. Their controls and review\nstate update dynamically; details and validation are documented in\n[Native generation view models](NativeDynamicGeneration.md). The editor,\nstorage, publishing, preferences and New Canvas routes also have native models; see\n[Native editor and workspace view models](NativeDynamicWorkspaces.md) for the\nconnected file, canvas and in-memory behavior and the absent providers. Many other migrated\nviews remain minimal static LVUI presentations retaining identifiable text.\nThe cutover is not functionally equivalent to the former application:\ngeneration, audio playback, publication transport and other product integrations\nhave not been reconnected. Local Society file browsing, native `.iisc`\nopen/save, bounded canvas frame rendering and visual frame playback are connected, with the limits\ndocumented there. No action on an\nunavailable backend should be represented as successful.\n"
+      "end_line": 18,
+      "raw": "Dreamscapes is being switched to an iiGUI application window and LVUI views.\nThe native Home composer, Image and Video parameter screens, and the result\nreview route bind to session-local C++ view models. Their controls and review\nstate update dynamically; details and validation are documented in\n[Native generation view models](NativeDynamicGeneration.md). The editor,\nstorage, publishing, preferences and New Canvas routes also have native models; see\n[Native editor and workspace view models](NativeDynamicWorkspaces.md) for the\nconnected file, canvas and in-memory behavior and the absent providers. Many other migrated\nviews remain minimal static LVUI presentations retaining identifiable text.\nThe cutover is not functionally equivalent to the former application:\nsome editing tools, interactive social authorization and other product integrations\nhave not been reconnected. Local Society file browsing, native `.iisc`\nopen/save, canvas rendering, timeline audio/visual playback, Image/Video generation and\nsession-authorized publication are connected, with the limits\ndocumented there. No action on an\nunavailable backend should be represented as successful.\n"
     },
     {
       "id": "b000004",
       "kind": "blank",
-      "start_line": 18,
-      "end_line": 18,
+      "start_line": 19,
+      "end_line": 19,
       "raw": "\n"
     },
     {
       "id": "b000005",
       "kind": "paragraph",
-      "start_line": 19,
-      "end_line": 28,
-      "raw": "`resources/migration/view-manifest.json` records each removed QML view, its\ncontent hash, and its LVUI replacement. These views use only LVUI components\nand tokens and are compiled ahead of time against iiGUI. The application's\nnative entry point must not instantiate a QML engine or link a Qt Quick view.\nLegacy backend source is retained separately; it is not evidence that the new\nnative application can execute the prior product workflows. Setting\n`DREAMSCAPES_NATIVE_VIEW_APP=OFF` without the foundation-only option is rejected:\nthe old Qt Quick view target cannot be built from the retired view sources.\nThe macOS build re-signs its generated bundle ad hoc after linking, so a\nsignature left by an older build cannot describe the new native executable.\n"
+      "start_line": 20,
+      "end_line": 29,
+      "raw": "`resources/migration/view-manifest.json` records each removed QML view, its\ncontent hash, and its LVUI replacement. No QML files remain in the source tree.\nThe replacement views use LVUI components and tokens and compile for iiGUI. The\nnative entry point must not instantiate a QML engine or link a Qt Quick view.\nLegacy backend source is retained separately; it is not evidence that the new\nnative application can execute the prior product workflows. Setting\n`DREAMSCAPES_NATIVE_VIEW_APP=OFF` without the foundation-only option is rejected:\nthe old Qt Quick view target cannot be built from the retired view sources.\nThe macOS build re-signs its generated bundle ad hoc after linking, so a\nsignature left by an older build cannot describe the new native executable.\n"
     },
     {
       "id": "b000006",
       "kind": "blank",
-      "start_line": 29,
-      "end_line": 29,
+      "start_line": 30,
+      "end_line": 30,
       "raw": "\n"
     },
     {
       "id": "b000007",
       "kind": "paragraph",
-      "start_line": 30,
-      "end_line": 35,
+      "start_line": 31,
+      "end_line": 36,
       "raw": "The app's `--help` and `--list-views` commands expose the view inventory to\nagents without opening a window; `--view image` or `--view video` selects the\ninitial native view. Any replacement path returned by `--list-views` can also\nbe supplied to `--view`. `src/App/Native/dreamscapes_views.py` provides\nthe same source inventory to Python; neither interface performs generation or\naccesses a user's files. The native Home shows unavailable services as such.\n"
     },
     {
       "id": "b000008",
       "kind": "blank",
-      "start_line": 36,
-      "end_line": 36,
+      "start_line": 37,
+      "end_line": 37,
       "raw": "\n"
     },
     {
       "id": "b000009",
       "kind": "paragraph",
-      "start_line": 37,
-      "end_line": 40,
-      "raw": "The build and windowless tests check the native app target, the replacement\ninventory and the compiled widget tree. An actual launch, visual parity,\ndevice behavior and previously available product functions are separate\nclaims and are not established by these tests.\n"
+      "start_line": 38,
+      "end_line": 41,
+      "raw": "The build and windowless tests check the source tree and native bundle for QML, the replacement\ninventory and the compiled widget tree. An actual launch, visual parity,\ndevice behavior and previously available product functions are separate\nclaims and are not established by these tests.\n"
     }
   ],
   "outline": [
@@ -102,14 +102,14 @@
     "directive_candidates": [
       {
         "block_id": "b000003",
-        "line": 17,
+        "line": 18,
         "text": "unavailable backend should be represented as successful.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000005",
-        "line": 22,
+        "line": 23,
         "text": "native entry point must not instantiate a QML engine or link a Qt Quick view.",
         "basis": "lexical_match",
         "context": "paragraph"

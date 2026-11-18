@@ -98,7 +98,7 @@ ii::core::Result<void> FramePresenter::setVisible(bool value) {
     if (visible_==value) return {};
     visible_=value;
     if (visible_) request();
-    else {queue_->cancel(); request_=0; (void)busy.set(false);}
+    else {queue_->cancel(); request_=0; (void)current.set(false); (void)busy.set(false);}
     return {};
 }
 ii::core::Result<void> FramePresenter::setViewport(double w,double h) {
@@ -111,9 +111,11 @@ ii::core::Result<void> FramePresenter::setViewport(double w,double h) {
 void FramePresenter::documentChanged() {
     if (!active_) return;
     queue_->cancel(); request_=0;
-    (void)image.set({}); (void)busy.set(false); (void)status.set({});
+    (void)current.set(false); (void)image.set({}); (void)busy.set(false); (void)status.set({});
 }
 void FramePresenter::request() {
+    if (!active_ || !visible_ || !document_->hasDocument.get()) return;
+    (void)current.set(false);
     if (!active_ || !visible_ || !document_->hasDocument.get()) return;
     auto snapshot=document_->snapshot();
     if (!snapshot) return;
@@ -138,10 +140,14 @@ void FramePresenter::deliver() {
     std::optional<Bridge::Result> result;
     {std::lock_guard lock(bridge_->mutex); result=std::move(bridge_->completed); bridge_->completed.reset();}
     if (!result || result->id!=request_ || !visible_) return;
-    (void)busy.set(false);
-    if (!result->error.empty()) {(void)status.set(result->error); return;}
-    if (!result->image) {(void)status.set("Canvas renderer produced no image"); return;}
-    (void)image.set(std::move(result->image)); (void)status.set({});
+    if (!result->error.empty()) {(void)busy.set(false);(void)status.set(result->error); return;}
+    if (!result->image) {(void)busy.set(false);(void)status.set("Canvas renderer produced no image"); return;}
+    const auto delivered=result->id;
+    (void)image.set(std::move(result->image));
+    if (!active_ || !visible_ || request_!=delivered) return;
+    (void)current.set(true);
+    if (!active_ || !visible_ || request_!=delivered) return;
+    (void)busy.set(false); (void)status.set({});
 }
 void FramePresenter::close() {
     if (owner_!=std::this_thread::get_id()) throw std::logic_error("Canvas renderer requires its owner thread");
@@ -150,6 +156,6 @@ void FramePresenter::close() {
     frameObserver_={}; revisionObserver_={}; identityObserver_={};
     if (bridge_) {std::lock_guard lock(bridge_->mutex); bridge_->closed=true; bridge_->completed.reset();}
     (void)sender_.cancel(wake_); if (queue_) queue_->cancel(); queue_.reset(); executor_.reset();
-    (void)busy.set(false); (void)image.set({}); (void)status.set({});
+    (void)current.set(false); (void)busy.set(false); (void)image.set({}); (void)status.set({});
 }
 }

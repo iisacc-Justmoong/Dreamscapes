@@ -24,6 +24,16 @@ void exercise() {
     rejected = false; try { (void)homeComposerPanelSource({}); } catch (const std::invalid_argument &) { rejected = true; }
     check(rejected, "missing panel source was accepted");
     panel->close(); check(composer->active(), "closing the constructed panel closed the shared generation draft");
+    auto compactSpec=spec;compactSpec.compactControls=true;compactSpec.topPreferred[5]=71;
+    auto compact=createHomeComposerPanel(composer,labels(),compactSpec,metrics);
+    check(bool(compact->setViewport(1227,400)),"factory compact panel failed to lay out");
+    auto before=compact->layout.get();
+    auto draft=composer->snapshot.get();draft.modelLabel="A significantly longer model name";
+    check(bool(composer->setSnapshot(draft)),"factory draft update failed");
+    auto after=compact->layout.get();
+    check(after.settings[0].width>before.settings[0].width && after.settings[9].width==22 &&
+          after.settings[10].width==71,"factory did not connect live label sizing and fixed actions");
+    compact->close();
     composer->close();
 }
 }

@@ -1,6 +1,6 @@
 #pragma once
 #include "NativeHomeComposerAction.h"
-#include <iiGUI/NativeWidgets.h>
+#include <iiGUI>
 
 namespace dreamscapes::home {
 [[nodiscard]] ii::core::Result<void> buildHomeComposerAction(ii::gui::WidgetBuilder &, ii::gui::Widget parent,

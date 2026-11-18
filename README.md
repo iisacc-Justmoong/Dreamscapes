@@ -4,15 +4,15 @@
 > migration. Home, Image, Video and session-local result review use dynamic
 > C++ view models. New Canvas, editor, files, publishing and preferences have native
 > view models. Local Society file browsing, `.iisc` open/save and bounded
-> canvas frame rendering and visual timeline playback are connected; many former views remain minimal
-> static LVUI presentations. Generation, licensing, publication transport,
-> audio playback, remote-only files and other former product
-> integrations are not connected in this build. The application has not been launched or
+> canvas frame rendering, timeline playback, Image/Video generation and session-authorized
+> publication are connected. License verification is temporarily disabled by default; many former views remain minimal
+> static LVUI presentations. Interactive social authorization, remote-only files
+> and other former product integrations are not connected in this build. The application has not been launched or
 > visually verified as part of this change. See [Native view cutover](docs/NativeViewCutover.md)
 > [Native generation view models](docs/NativeDynamicGeneration.md), and
 > [Native editor and workspace view models](docs/NativeDynamicWorkspaces.md).
 
-Build with `cmake -S . -B build` and `cmake --build build --target Dreamscapes`.
+Build with `cmake -S . -B build` and `cmake --build build --target Dreamscapes`. The default native build requires `iiSharedCanvasNative` 0.35.39 and `iiGraphicAdjust` 0.6.2 or compatible newer packages.
 The native executable accepts `--help` and `--list-views` as non-GUI agent
 commands and `--view image` to select an initial view. Its Python inventory is available from
 `src/App/Native/dreamscapes_views.py`.
@@ -103,7 +103,7 @@ Use the following native SDK packages with `find_package(... CONFIG REQUIRED)` a
 | iiUpdateManager | `iiUpdateManager::iiUpdateManager` |
 | LVRS | `LVRS::LVRS` |
 
-The native editor also requires `iiSharedCanvas 0.31.2` and `iiGraphicAdjust 0.4.0`
+The retained Qt editor CMake declarations select `iiSharedCanvas 0.35.39 EXACT` (Quick) and `iiGraphicAdjust 0.6.2 EXACT`
 (`iiGraphicAdjust::iiGraphicAdjust`). The Color, Adjust, Mask and Effects panels
 use the installed Qt-free C++23 adjustment SDK through a product-side QImage
 adapter. The shared LVRS renderer covers the requested 381 detailed Figma views;
@@ -141,9 +141,9 @@ geometry does not edit the document. See [Compact editor layout](docs/EditorComp
 
 ## Source structure
 
-It uses the project root, `src/App`, `src/App/Views`, and the `src/App/Generation` dedicated to the creation queue. QWidget is not used.
+The first entry describes the current native application; the remaining legacy paths and behavior are historical references and do not establish current feature parity.
 
-- `src/main.cpp`: Initializes LVRS runtime and always keeps `Main.qml` open.
+- `src/App/Native/NativeMain.cpp`: Attaches the LVUI/iiGUI window and services to the iiSDKCore application lifecycle.
 - `src/App/Main.qml`: A single `LV.ApplicationWindow` used by all platforms connects the top/bottom placement of creation completion and go back and QuickGenerate.
 - `src/App/Views/Home/QuickGenerate.qml`: A common creation panel combining LVRS input fields, buttons, menus, and a responsive stack layout.
 - `src/App/Views/Result/GenerationResult.qml` : Generation progress/review workspace with a virtualized result grid, independent selection/shortlist/reject states, queue failure details, Inspector, synchronized comparison and original export.

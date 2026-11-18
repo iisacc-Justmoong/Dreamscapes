@@ -1,5 +1,5 @@
 #include "App/Views/Home/NativeHomeSelectedFileSession.h"
-#include <iiSharedCanvas/Serialization/IiscCodec.h>
+#include <iiSharedCanvas>
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QFile>

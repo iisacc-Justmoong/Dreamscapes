@@ -1,5 +1,5 @@
 #pragma once
-#include <iiSharedCanvas/Document/Document.h>
+#include <iiSharedCanvas>
 #include <atomic>
 #include <filesystem>
 #include <functional>

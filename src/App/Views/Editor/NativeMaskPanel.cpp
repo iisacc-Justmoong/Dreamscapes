@@ -48,6 +48,8 @@ void MaskPanelModel::setVisible(bool value) {
         (void)canAdd.set(false);
         if (visible_) return;
         (void)canEdit.set(false);
+        if (visible_) return;
+        (void)canLasso.set(false);if (!visible_) (void)lassoActive.set(false);
     }
 }
 void MaskPanelModel::synchronize() {
@@ -64,6 +66,12 @@ void MaskPanelModel::synchronize() {
             const auto snapshot=document_->snapshot();const auto *doc=snapshot.get();
             const auto *layer=doc?findLayer(*doc,id):nullptr;
             const bool eligible=layer && layerRole(*layer)==LayerRole::Artwork;
+            const auto kind=layer?layerKind(*layer):std::nullopt;
+            const auto *properties=eligible?&layerProperties(*layer):nullptr;
+            const auto determinant=properties?properties->transform.m11*properties->transform.m22-
+                properties->transform.m12*properties->transform.m21:0;
+            const bool lasso=properties && kind && (*kind==LayerKind::StaticBitmap || *kind==LayerKind::StaticVector) &&
+                properties->motion.empty() && !properties->artboardId && std::isfinite(determinant) && std::abs(determinant)>=1e-12;
             const auto name=layer?layerProperties(*layer).name:std::string{};
             auto chosen=(layer_==id && layerGeneration_==generation)?selectedMask.get():std::string{};
             const auto *stack=eligible?&layerProperties(*layer).appearance.maskStack:nullptr;
@@ -95,6 +103,8 @@ void MaskPanelModel::synchronize() {
             (void)empty.set(rows.get().empty());if (pending_) continue;
             updateListHeight();if (pending_) continue;
             (void)canAdd.set(eligible);if (pending_) continue;
+            (void)canLasso.set(lasso);if (pending_) continue;
+            if (!lasso) (void)lassoActive.set(false);if (pending_) continue;
             (void)canEdit.set(bool(selected));if (pending_) continue;
             (void)layerName.set(name);if (pending_) continue;
             const auto *appearance=eligible?&layerProperties(*layer).appearance:nullptr;
@@ -129,6 +139,23 @@ ii::core::Result<void> MaskPanelModel::createMask() {
         return ii::core::fail(ErrorCode::closed,"Select an artwork layer first");
     const auto layer=layer_;const auto generation=layerGeneration_;
     auto created=document_->createLayerMask(layer);
+    if (!created) {(void)status.set(created.error().message);return std::unexpected(created.error());}
+    if (visible_ && layer_==layer && layerGeneration_==generation && document_->hasCurrentLayerSelection() &&
+        document_->selectedLayer.get()==layer) (void)select(*created);
+    (void)status.set({});return {};
+}
+ii::core::Result<void> MaskPanelModel::setLassoActive(bool value) {
+    if (auto valid=writable();!valid) return valid;
+    if (value && (!visible_ || !canLasso.get())) return ii::core::fail(ErrorCode::unsupported,"Select a static artwork layer for a lasso mask");
+    (void)lassoActive.set(value);return {};
+}
+ii::core::Result<void> MaskPanelModel::createLasso(std::vector<iiSharedCanvas::Point> points) {
+    if (auto valid=writable();!valid) return valid;
+    if (!visible_ || !canLasso.get() || !document_->hasCurrentLayerSelection() || layer_!=document_->selectedLayer.get() ||
+        layerGeneration_!=document_->documentGeneration.get())
+        return ii::core::fail(ErrorCode::closed,"Select a static artwork layer for a lasso mask");
+    const auto layer=layer_;const auto generation=layerGeneration_;
+    auto created=document_->createLassoMask(layer,std::move(points));
     if (!created) {(void)status.set(created.error().message);return std::unexpected(created.error());}
     if (visible_ && layer_==layer && layerGeneration_==generation && document_->hasCurrentLayerSelection() &&
         document_->selectedLayer.get()==layer) (void)select(*created);

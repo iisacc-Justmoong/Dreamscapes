@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/NativeFailureDetails.md",
-    "sha256": "fc5b6ad78fe813378d9937fc5388762c6ea88779b76da0b38ca260b77a0012c6",
-    "bytes": 5488,
-    "line_count": 60,
+    "sha256": "ad47ec634642bcc2162d20b127a8d07314bddf89373ede18ef698560fcfe759a",
+    "bytes": 3143,
+    "line_count": 37,
     "encoding": "utf-8",
     "language": "ko"
   },
@@ -43,7 +43,7 @@
       "kind": "paragraph",
       "start_line": 3,
       "end_line": 6,
-      "raw": "생성 실패의 상세 정보는 기존 `FailureDetails.qml`의 필드 순서와 원문을 보존한다.\n분석 중 안내, `details` 또는 `rawError`, 모델 미가용 사유, 에이전트 오류, 저장 오류,\n보고서 경로를 순서대로 표시한다. 없는 필드는 추측하지 않는다. 표시와 복사는 생성\n작업이나 보고서 파일을 변경하지 않는다.\n"
+      "raw": "생성 실패 상세는 `NativeFailureDetails.lvui`와 `FailureDetailsModel`을 사용한다.\n모델은 제공된 `details` 또는 `rawError`, 모델 미가용 사유, 에이전트 오류, 저장 오류,\n보고서 경로를 표시한다. 없는 필드를 추측하지 않으며 표시와 복사는 생성 작업이나\n보고서 파일을 변경하지 않는다.\n"
     },
     {
       "id": "b000004",
@@ -56,64 +56,64 @@
       "id": "b000005",
       "kind": "paragraph",
       "start_line": 8,
-      "end_line": 15,
-      "raw": "`NativeFailureDetails.lvui`는 LVUI 모달과 읽기 전용 텍스트 뷰를 사용한다.\n`FailureDetailsModel`은 원문과 문서 리비전, 열림과 오류 상태를 소유한다. 호출자는\n가용 창 크기, 번역 문자열, 선택적인 클립보드 함수를 제공할 수 있다. 기본 클립보드\n함수는 iiGUI를 사용한다. 텍스트 선택은 원문을 수정하지 않으며 전체 보고서 복사는\n기존 선택을 바꾸지 않는다. 클립보드 쓰기와 텍스트 갱신의 실패는 화면 상태로 표시한다.\n보고서 변경과 위젯 상태 변경은 소유 스레드에서만 수행해야 한다.\n보고서 갱신 알림 안에서 재진입하는 갱신은 거절한다. 복사할 때는 보고서와 클립보드\n함수의 스냅샷을 사용하므로 복사 중 원본이 갱신되어도 접수한 텍스트를 보존한다.\n"
+      "end_line": 13,
+      "raw": "`NativeFailurePresenter`와 `NativeFailureDetailsBridge`는 Qt 객체가 아닌 C++ 객체다.\n실제 네이티브 생성 큐의 실패와 복구 정보가 있는 취소를 소유 스레드에서 뷰모델로\n전달한다. 실패는 iiMultimodalAgent `FailureDiagnostics`의 근거 보고서를 사용하고,\n취소는 별도 제목과 복구 정보로 표시한다. 작업 상태나 원본 오류는 변경하지 않는다.\n생성 큐의 완료 이벤트보다 먼저 분리된 워커 오류, 로그와 확인된 종료 정보를 게시한다.\n해당 정보가 없는 공급자의 종료 코드와 시간 초과 여부는 확인되지 않았다고 표시한다.\n"
     },
     {
       "id": "b000006",
       "kind": "blank",
-      "start_line": 16,
-      "end_line": 16,
+      "start_line": 14,
+      "end_line": 14,
       "raw": "\n"
     },
     {
       "id": "b000007",
       "kind": "paragraph",
-      "start_line": 17,
-      "end_line": 26,
-      "raw": "네이티브 문서와 iiGUI 기본 클립보드의 텍스트 한도는 UTF-8 기준 64 MiB이며,\nNUL을 포함한 텍스트는 거절한다. 이전 1 MiB 클립보드 한도는 제거했다.\n입력 및 레이아웃의 UTF-8 바이트 한도와 4096개 문단 한도에 맞는 보고서는 실제 폭과\n글꼴로 자동 줄바꿈을 시도한다. LVUI의 `onWrappingFallbackChanged`는 iiGUI의 실제\n시각 행 예산 초과를 알리므로, 긴 텍스트라도 현재 폭에서 줄바꿈할 수 있다면 네이티브\n화면에 남는다. 창 폭이 좁아져 배치가 한도를 넘으면 기존 QML 화면으로 복귀한다.\n그보다 큰 보고서는 문서 기반 `CodeEditor`로 표시하며 아직 자동\n줄바꿈하지 않는다. 원문은 잘라내지 않는다. 갱신된 LVUI 코드 편집기는 선택\n범위를 64 MiB까지 조각으로 읽어 복사하지만, 이 기능을 사용하려면 해당 LVUI와 iiGUI\n빌드를 함께 사용해야 한다.\n"
+      "start_line": 15,
+      "end_line": 20,
+      "raw": "실패 뷰는 네이티브 검토 작업 공간에 장착되며 LVUI 모달과 읽기 전용 텍스트 뷰를\n사용한다. `FailureDetailsModel`은 원문과 문서 리비전, 열림과 오류 상태를 소유한다.\n텍스트 선택은 원문을 수정하지 않으며 전체 보고서 복사는 기존 선택을 바꾸지 않는다.\n기본 클립보드는 iiGUI를 사용하고, 쓰기와 텍스트 갱신 실패는 화면 상태로 표시한다.\n보고서와 위젯 상태는 소유 스레드에서 갱신하며 갱신 알림 중의 재진입은 거절한다.\n복사할 때 보고서와 클립보드 함수의 스냅샷을 사용한다.\n"
     },
     {
       "id": "b000008",
+      "kind": "blank",
+      "start_line": 21,
+      "end_line": 21,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
+      "kind": "paragraph",
+      "start_line": 22,
+      "end_line": 26,
+      "raw": "네이티브 문서와 iiGUI 기본 클립보드의 한도는 UTF-8 기준 64 MiB이며 NUL은 거절한다.\n텍스트와 문단 한도 안에서는 실제 폭과 글꼴로 자동 줄바꿈을 시도한다. 배치가 줄바꿈\n한도를 넘으면 같은 모달의 문서 기반 `CodeEditor`로 전환하며 원문을 자르지 않는다.\n그 경로는 아직 자동 줄바꿈하지 않는다. 선택 범위 복사에는 호환되는 LVUI와 iiGUI가\n필요하다.\n"
+    },
+    {
+      "id": "b000010",
       "kind": "blank",
       "start_line": 27,
       "end_line": 27,
       "raw": "\n"
     },
     {
-      "id": "b000009",
-      "kind": "paragraph",
-      "start_line": 28,
-      "end_line": 31,
-      "raw": "기존 Qt 생성 컨트롤러와의 전환용 `NativeFailureDetailsBridge`는 백엔드 계층에 두며,\n열린 작업의 보고서와 완료 알림만 네이티브 모델에 전달한다. 다른 작업의 늦은 알림은\n무시하고 갱신 실패 시 기존 보고서를 보존한다. 뷰와 뷰모델은 Qt·QML·LVRS를 포함하지\n않는다. 브리지는 당분간 Qt 컨트롤러의 이벤트를 사용한다.\n"
-    },
-    {
-      "id": "b000010",
-      "kind": "blank",
-      "start_line": 32,
-      "end_line": 32,
-      "raw": "\n"
-    },
-    {
       "id": "b000011",
       "kind": "paragraph",
-      "start_line": 33,
-      "end_line": 41,
-      "raw": "`DreamscapesFailureDetailsNative`는 테스트 활성화와 관계없이 빌드할 수 있는 독립 뷰\n라이브러리이며 `DreamscapesFailureDetailsBridge`는 기존 생성 컨트롤러가 있는 구성에서만\n만든다. macOS 제품 창의 실패 상세 명령은 `NativeFailurePresenter`를 통해 실제 생성\n컨트롤러와 iiGUI 임베딩 표면을 연결한다. 기존 애플리케이션의 창과 이벤트 루프는\n소유자가 유지하며 투명 합성으로 모달 뒤의 창을 보존한다. 창을 닫거나 앱이 종료될 때\n표면도 정리한다. 표면 장착이 실패하거나\n보고서가 줄바꿈 편집기의 바이트·문단 한도를 넘거나 실제 배치가 실패하면 기존 QML 보고서 뷰로 돌아간다.\n다른 플랫폼은 아직 기존 뷰를 사용한다. 이 브리지는 전환 경계이며 앱의 다른 QML\n화면이나 LVRS 의존성이 제거되었다는 뜻은 아니다.\n"
+      "start_line": 28,
+      "end_line": 30,
+      "raw": "현재 연결된 진단은 결정론적인 근거 분석이다. 구 Qt 에이전트의 로컬 언어 모델을 통한\n추가 해석, 비동기 완료 알림 및 보고서 영속화는 이 네이티브 경로에 연결되지 않았다.\n나머지 옛 Qt 호환 소스와 다른 화면의 기능 이전 여부는 별도로 확인해야 한다.\n"
     },
     {
       "id": "b000012",
       "kind": "blank",
-      "start_line": 42,
-      "end_line": 42,
+      "start_line": 31,
+      "end_line": 31,
       "raw": "\n"
     },
     {
       "id": "b000013",
       "kind": "paragraph",
-      "start_line": 43,
-      "end_line": 60,
-      "raw": "`Dreamscapes.NativeFailureDetails`는 창 없는 iiGUI 트리에서 드래그 선택, 복사 대상,\n선택 보존, 보고서 갱신과 오류, 짧은 보고서의 줄바꿈·스크롤과 긴 텍스트 대체 경로,\n작은 뷰포트 및 스레드 경계를 검사한다. 한글·보조 평면 문자와 긴 보고서의 선택·복사,\n실제 폭에 따른 줄바꿈 실패도 검사한다.\n모달 기하는 LVUI 값 계약을 사용하는 iiGUI 모델에서 계산하며, 줄바꿈 가능\n범위는 iiGUI가 소유한 텍스트 배치와 입력 한도를 사용한다.\n`Dreamscapes.NativeFailureRendererBoundary`는 생성된 뷰와 테스트 바이너리의 Qt·LVRS\n의존성을 검사한다. `Dreamscapes.NativeFailureBridge`는 실제 컨트롤러의 신호에 테스트\n보고서를 발행하여 해당 작업에만 반영되는지 검사한다. 실제 에이전트 실행은 포함하지\n않는다. `Dreamscapes.NativeFailureClipboardMac`은 사용자의 클립보드가 아닌 고유한\nmacOS 페이스트보드에서 2 MiB 넘는 보고서를 실제 iiGUI 구현으로 복사·읽기 한다.\n창 없는 위젯 검사는 iiGUI 내부 `WidgetState`를 사용하므로 해당 헤더와 같은 빌드의\n정적 iiGUI가 필요하다. 배포용 공유 라이브러리는 이 내부 심볼을 공개하지 않는다.\n모델·화면 및 제품 연결부를 빌드할 때 선택한 iiGUI, LVUI, iiSDKCore의 ABI도 일치해야 한다.\n`Dreamscapes.NativeFailurePresenterMac`은 표시하지 않는 별도 AppKit 창에서 실제 생성\n컨트롤러 신호, 장착·닫기·긴 보고서 복귀 및 종료 정리를 검사한다. 이는 설치된 제품의\n실행 검증이나 실제 창에서의 시각적 동등성 검증과는 다르다. 비동기 표면 장착과 해제는\n고정된 지연 시간 대신 관찰된 상태와 제한 시간으로 확인한다.\n"
+      "start_line": 32,
+      "end_line": 37,
+      "raw": "`Dreamscapes.NativeFailureDiagnostics`는 분류, 종료 상태, 긴 UTF-8 원문과 취소를\n검사한다. `Dreamscapes.NativeFailureBridge`는 네이티브 모델 연결, 복사, 스레드 경계와\n취소를 검사한다. `Dreamscapes.NativeGenerationShell`은 실제 셸의 생성 큐에서 실패\n상세까지의 연결을 합성 공급자로 검사한다. 이들은 실제 모델 추론을 수행하지 않는다.\n`Dreamscapes.NativeFailureDetails`와 `Dreamscapes.NativeFailureRendererBoundary`는 뷰\n계약과 링크 경계를 검사하며, macOS 클립보드 검사는 별도의 페이스트보드를 사용한다.\n"
     }
   ],
   "outline": [
@@ -131,49 +131,77 @@
       {
         "block_id": "b000003",
         "line": 5,
-        "text": "보고서 경로를 순서대로 표시한다. 없는 필드는 추측하지 않는다. 표시와 복사는 생성",
+        "text": "보고서 경로를 표시한다. 없는 필드를 추측하지 않으며 표시와 복사는 생성 작업이나",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000003",
         "line": 6,
-        "text": "작업이나 보고서 파일을 변경하지 않는다.",
+        "text": "보고서 파일을 변경하지 않는다.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000005",
-        "line": 13,
-        "text": "보고서 변경과 위젯 상태 변경은 소유 스레드에서만 수행해야 한다.",
+        "line": 11,
+        "text": "취소는 별도 제목과 복구 정보로 표시한다. 작업 상태나 원본 오류는 변경하지 않는다.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000007",
+        "line": 17,
+        "text": "텍스트 선택은 원문을 수정하지 않으며 전체 보고서 복사는 기존 선택을 바꾸지 않는다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000007",
+        "line": 19,
+        "text": "보고서와 위젯 상태는 소유 스레드에서 갱신하며 갱신 알림 중의 재진입은 거절한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000009",
+        "line": 22,
+        "text": "네이티브 문서와 iiGUI 기본 클립보드의 한도는 UTF-8 기준 64 MiB이며 NUL은 거절한다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000009",
         "line": 24,
-        "text": "줄바꿈하지 않는다. 원문은 잘라내지 않는다. 갱신된 LVUI 코드 편집기는 선택",
+        "text": "한도를 넘으면 같은 모달의 문서 기반 `CodeEditor`로 전환하며 원문을 자르지 않는다.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000007",
+        "block_id": "b000009",
+        "line": 25,
+        "text": "그 경로는 아직 자동 줄바꿈하지 않는다. 선택 범위 복사에는 호환되는 LVUI와 iiGUI가",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000009",
         "line": 26,
-        "text": "빌드를 함께 사용해야 한다.",
+        "text": "필요하다.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000011",
+        "line": 30,
+        "text": "나머지 옛 Qt 호환 소스와 다른 화면의 기능 이전 여부는 별도로 확인해야 한다.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000013",
-        "line": 55,
-        "text": "정적 iiGUI가 필요하다. 배포용 공유 라이브러리는 이 내부 심볼을 공개하지 않는다.",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000013",
-        "line": 56,
-        "text": "모델·화면 및 제품 연결부를 빌드할 때 선택한 iiGUI, LVUI, iiSDKCore의 ABI도 일치해야 한다.",
+        "line": 35,
+        "text": "상세까지의 연결을 합성 공급자로 검사한다. 이들은 실제 모델 추론을 수행하지 않는다.",
         "basis": "lexical_match",
         "context": "paragraph"
       }
@@ -183,7 +211,7 @@
     "tables": []
   },
   "provenance": {
-    "generator": "workspace-docs",
+    "generator": "codex-synchronized",
     "version": "1.0.0",
     "profile": "lossless-blocks-v1",
     "derived": true

@@ -3,8 +3,7 @@
 #include "App/Generation/GenerationController.h"
 #include "App/Views/Home/NativeHomeProductSession.h"
 #include "App/ViewModels/WorkspaceSession.h"
-#include <Container.h>
-#include <SocietyDrive.h>
+#include <iiSocietyContainer>
 #include <QCoreApplication>
 #include <QFile>
 #include <QImage>
@@ -13,7 +12,7 @@
 #include <stdexcept>
 #ifdef DREAMSCAPES_HOME_PRODUCT_WIDGET_TEST
 #include "iiGUI/WidgetState.h"
-#include <iiSDKCore/Runtime/FrameLoop.h>
+#include <iiSDKCore>
 #endif
 
 namespace {

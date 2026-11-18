@@ -1,9 +1,6 @@
 #include "App/Views/Editor/EditorImageImport.h"
-#include <iiSharedCanvas/Bitmap/BitmapCodec.h>
-#include <iiSharedCanvas/File/DocumentFile.h>
-#include <iiSharedCanvas/Render/FrameRenderer.h>
-#include <iiSharedCanvas/Validation/Validation.h>
-#include <SocietyDrive.h>
+#include <iiSharedCanvas>
+#include <iiSocietyContainer>
 #include <QDir>
 #include <QImage>
 #include <QTemporaryDir>

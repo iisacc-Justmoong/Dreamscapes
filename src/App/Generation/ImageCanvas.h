@@ -1,5 +1,5 @@
 #pragma once
-#include <iiSharedCanvas/Media/MediaIo.h>
+#include <iiSharedCanvas>
 #include <QString>
 #include <QUrl>
 

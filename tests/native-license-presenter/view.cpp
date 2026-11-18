@@ -1,6 +1,6 @@
 #include "App/Native/NativeLicenseBridge.h"
 #include "SocietyLicenseGate.generated.h"
-#include <iiGUI/PaintView.h>
+#include <iiGUI>
 #include <memory>
 #include <stdexcept>
 

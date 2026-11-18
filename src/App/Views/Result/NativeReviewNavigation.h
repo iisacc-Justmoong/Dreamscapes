@@ -1,8 +1,8 @@
 #pragma once
 
 #include "NativeReviewSession.h"
-#include <LVUI/NativeCollectionNavigation.h>
-#include <iiGUI/CollectionNavigation.h>
+#include <LVUI>
+#include <iiGUI>
 #include <cstdint>
 #include <memory>
 #include <string>

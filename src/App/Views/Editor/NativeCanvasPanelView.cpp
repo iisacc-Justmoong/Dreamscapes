@@ -1,6 +1,6 @@
 #include "NativeCanvasPanelView.h"
 #include "NativeCanvasPanel.generated.h"
-#include <iiGUI/CompiledViewSource.h>
+#include <iiGUI>
 
 std::function<void(double,double)> NativeCanvasPanelBackend::sizeHandler(double inset) {
     return [weak=std::weak_ptr(model),inset](double width,double height) {

@@ -6,8 +6,8 @@
 #include "NativeHomeNegativePrompt.h"
 #include "NativeHomePresetSave.h"
 #include "NativeHomeAttachments.h"
-#include <LVUI/NativeImageResolver.h>
-#include <iiGUI/Image.h>
+#include <LVUI>
+#include <iiGUI>
 
 namespace dreamscapes::home {
 struct HomeComposerComponents final {

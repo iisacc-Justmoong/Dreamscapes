@@ -9,7 +9,7 @@
 #include "App/Generation/AdvancedImageParameters.h"
 #include "App/Generation/GenerationComposerModel.h"
 #include "iiGUI/WidgetState.h"
-#include <iiSDKCore/Runtime/FrameLoop.h>
+#include <iiSDKCore>
 #include <QCoreApplication>
 #include <QTemporaryDir>
 #include <algorithm>

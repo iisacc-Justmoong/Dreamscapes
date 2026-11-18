@@ -55,7 +55,7 @@ class MacSurface final : public native::NativePresentationSurface {
 bool installNativeHomeRecentGenerationsPresenter(QObject *root, QObject *lifetime, ApplicationShutdownCoordinator *shutdown) {
     auto *window = qobject_cast<QQuickWindow *>(root);
     if (!window || !lifetime || !shutdown || shutdown->isClosing() || window->thread() != QThread::currentThread() ||
-        lifetime->thread() != QThread::currentThread() || shutdown->thread() != QThread::currentThread()) return false;
+        lifetime->thread() != QThread::currentThread() || !shutdown->isOwnerThread()) return false;
     try {
         const QPointer<QQuickWindow> nativeWindow(window);
         auto presenter = std::make_unique<NativeHomeRecentGenerationsPresenter>(window,
@@ -65,7 +65,7 @@ bool installNativeHomeRecentGenerationsPresenter(QObject *root, QObject *lifetim
             }, lifetime);
         if (!presenter->valid()) return false;
         const QPointer<NativeHomeRecentGenerationsPresenter> guard(presenter.get());
-        shutdown->add([guard](std::function<void()> done) { if (guard) guard->shutdown(std::move(done)); else if (done) done(); });
+        if (!shutdown->add([guard](std::function<void()> done) { if (guard) guard->shutdown(std::move(done)); else if (done) done(); })) return false;
         presenter->begin(); presenter.release(); return true;
     } catch (...) { return false; }
 }

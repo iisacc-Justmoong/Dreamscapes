@@ -3,8 +3,7 @@
 #include <QVariantMap>
 #include <QImage>
 #include <memory>
-#include <iiSharedCanvas/Document/Document.h>
-#include <iiSharedCanvas/Audio/AudioCodec.h>
+#include <iiSharedCanvas>
 class QCamera;
 class QImageCapture;
 class QMediaCaptureSession;

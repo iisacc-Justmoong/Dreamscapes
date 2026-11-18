@@ -1,6 +1,6 @@
 #pragma once
 #include "ViewValue.h"
-#include <iiSDKCore/Runtime/Query.h>
+#include <iiSDKCore>
 
 namespace dreamscapes::vm {
 enum class TimelineAction {

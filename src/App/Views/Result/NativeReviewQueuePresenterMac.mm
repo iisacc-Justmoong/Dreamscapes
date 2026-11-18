@@ -55,7 +55,7 @@ bool installNativeReviewQueuePresenter(QObject *root, QObject *lifetime, Applica
     auto *review = root ? root->findChild<GenerationReviewModel *>(QStringLiteral("generationReviewModel")) : nullptr;
     if (!window || !workspace || !review || !lifetime || !shutdown || shutdown->isClosing() ||
         window->thread() != QThread::currentThread() || lifetime->thread() != QThread::currentThread() ||
-        shutdown->thread() != QThread::currentThread()) return false;
+        !shutdown->isOwnerThread()) return false;
     try {
         const QPointer<QQuickWindow> nativeWindow(window);
         auto presenter = std::make_unique<NativeReviewQueuePresenter>(window, workspace, review,
@@ -65,7 +65,7 @@ bool installNativeReviewQueuePresenter(QObject *root, QObject *lifetime, Applica
             }, lifetime);
         if (!presenter->valid()) return false;
         const QPointer<NativeReviewQueuePresenter> guard(presenter.get());
-        shutdown->add([guard](std::function<void()> done) { if (guard) guard->shutdown(std::move(done)); else if (done) done(); });
+        if (!shutdown->add([guard](std::function<void()> done) { if (guard) guard->shutdown(std::move(done)); else if (done) done(); })) return false;
         presenter->begin(); presenter.release(); return true;
     } catch (...) { return false; }
 }

@@ -1,10 +1,11 @@
 #pragma once
-#include <iiSDKCore/Core/Property/Observable.h>
-#include <iiSDKCore/Core/Result/Result.h>
+#include <iiSDKCore>
 #include <functional>
+#include <initializer_list>
 #include <memory>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 namespace dreamscapes::home {
@@ -13,12 +14,40 @@ struct HomeComposerChoice final {
     bool enabled = true;
     bool operator==(const HomeComposerChoice &) const = default;
 };
+// Draft snapshots share the immutable lists, including during synchronous
+// observer delivery. A catalogue replacement gives existing readers a stable
+// view of the previous entries until they release that snapshot.
+class HomeComposerChoiceList final {
+  public:
+    HomeComposerChoiceList() = default;
+    HomeComposerChoiceList(std::vector<HomeComposerChoice> entries)
+        : entries_(entries.empty() ? nullptr : std::make_shared<const std::vector<HomeComposerChoice>>(std::move(entries))) {}
+    HomeComposerChoiceList(std::initializer_list<HomeComposerChoice> entries)
+        : HomeComposerChoiceList(std::vector<HomeComposerChoice>(entries)) {}
+
+    [[nodiscard]] const std::vector<HomeComposerChoice> &entries() const noexcept {
+        static const std::vector<HomeComposerChoice> empty;
+        return entries_ ? *entries_ : empty;
+    }
+    auto begin() const noexcept { return entries().begin(); }
+    auto end() const noexcept { return entries().end(); }
+    auto data() const noexcept { return entries().data(); }
+    auto size() const noexcept { return entries().size(); }
+    bool empty() const noexcept { return entries().empty(); }
+    const HomeComposerChoice &front() const noexcept { return entries().front(); }
+    const HomeComposerChoice &operator[](std::size_t index) const noexcept { return entries()[index]; }
+    bool operator==(const HomeComposerChoiceList &other) const {
+        return entries_ == other.entries_ || entries() == other.entries();
+    }
+  private:
+    std::shared_ptr<const std::vector<HomeComposerChoice>> entries_;
+};
 struct HomeComposerAttachment final {
     std::string key, name, preview, detail;
     bool operator==(const HomeComposerAttachment &) const = default;
 };
 struct HomeComposerChoices final {
-    std::vector<HomeComposerChoice> media, models, ratios, resolutions, counts, durations, frameRates, presets;
+    HomeComposerChoiceList media, models, ratios, resolutions, counts, durations, frameRates, presets;
     bool operator==(const HomeComposerChoices &) const = default;
 };
 // All values are supplied by the real generation and file controllers.

@@ -1,6 +1,4 @@
-#include <iiFileProviderDevice.h>
-#include <File.h>
-#include <iiFileProviderNative.h>
+#include <iiFileProvider>
 #include "EditorCameraPhoto.h"
 #include "../../ViewModels/ViewData.h"
 #include "EditorPhotoImageNative.h"

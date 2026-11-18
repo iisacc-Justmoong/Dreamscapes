@@ -1,6 +1,6 @@
 #include "NativeGenerationWork.h"
-#include <iiFileProviderNative.h>
-#include <iiImageCodec/ImageCodec.h>
+#include <iiFileProvider>
+#include <iiVisualCodec>
 #include <exception>
 
 namespace dreamscapes {

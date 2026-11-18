@@ -10,8 +10,7 @@
 #include <atomic>
 #include <semaphore>
 #include <QTimer>
-#include <iiSharedCanvas/File/DocumentFile.h>
-#include <iiSharedCanvas/Serialization/IiscCodec.h>
+#include <iiSharedCanvas>
 
 class PhotoLibraryExporterTests : public QObject
 {

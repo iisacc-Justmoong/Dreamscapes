@@ -3,7 +3,7 @@
 #include <QObject>
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
-#include <iiSocialPublish/Review.h>
+#include <iiSocialIntegration>
 #include <memory>
 
 // QObject is only the product's GUI boundary. HTTP, validation and provider

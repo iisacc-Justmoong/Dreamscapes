@@ -1,11 +1,9 @@
 #include "../src/App/Publishing/PublishDraft.h"
 #include "../src/App/Publishing/PublishReview.h"
-#include <iiSharedCanvas/Serialization/IiscCodec.h>
-#include <iiSharedCanvas/File/DocumentFile.h>
-#include <iiFileProviderNative.h>
-#include <FileCatalog.h>
-#include <iiJson/Json.h>
-#include <SocietyDrive.h>
+#include <iiSharedCanvas>
+#include <iiFileProvider>
+#include <iiJson>
+#include <iiSocietyContainer>
 #include <QImage>
 #include <QTemporaryDir>
 #include <QFile>

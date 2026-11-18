@@ -5,7 +5,7 @@
 #include "AdvancedImageInputs.h"
 #include "SocietyGenerationStorage.h"
 #include "ImageCanvas.h"
-#include <File.h>
+#include <iiFileProvider>
 #include <Generation/NativePose.hpp>
 #include <QDateTime>
 #include <QFileInfo>
@@ -24,9 +24,9 @@ QSize imageSize(const QString &ratio, int extent)
 {
     const auto unit = std::max(8, extent / 8 * 8);
     if (unit > 4096) return {};
-    // Keep the shorter side fixed; round the expanded side to the nearest latent-grid unit.
+    // Keep the shorter side fixed; use the 16px grid required by MOSS as well.
     const auto expanded = [unit](int numerator, int denominator) {
-        return ((unit * numerator + 4 * denominator) / (8 * denominator)) * 8;
+        return ((unit * numerator + 8 * denominator) / (16 * denominator)) * 16;
     };
     if (ratio == "1:1") return {unit, unit};
     if (ratio == "4:3") return {expanded(4, 3), unit};
@@ -155,7 +155,7 @@ QString GenerationController::enqueueAdvanced(const QVariantMap &parameters)
 QString GenerationController::enqueueHomeCanvas(const QVariantMap &parameters, const QString &aspectRatio, bool explicitControls)
 {
     if (!requireLicense()) return {};
-    const auto size = imageSize(aspectRatio, 1024);
+    const auto size = imageSize(aspectRatio, dreamscapes::vm::defaultImageShortSide);
     if (!explicitControls && size != QSize(parameters.value("width").toInt(), parameters.value("height").toInt())) {
         fail(tr("The canvas dimensions do not match the selected ratio.")); return {};
     }
@@ -375,7 +375,7 @@ QString GenerationController::enqueueRequest(const QString &prompt, const QSize 
             const bool upscaler = key == "upscalerModel";
             const bool refiner = key == "refinerModel";
             const bool active = upscaler
-                ? advanced.value("hiresFix").toBool() && advanced.value("upscaler").toString() == "4x-ultra"
+                ? dreamscapes::imageHiresEnabled(advanced) && advanced.value("upscaler").toString() == "4x-ultra"
                 : advanced.value(refiner ? "refiner" : "detailer").toBool();
             if (!active) continue;
             const auto label = upscaler ? tr("4x ESRGAN")

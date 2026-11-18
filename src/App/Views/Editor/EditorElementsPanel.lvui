@@ -5,6 +5,22 @@ EventListener(id: "elementsPanelSurface", width: 0, height: 0, flex: 1, onSizeCh
     VStack(id: "elementsPanel", width: vm.width, spacing: Metric.space8,
            padding: Metric.space8, alignment: .stretch) {
         Label(text: "Elements", style: .body)
+        HStack(width: vm.contentWidth, spacing: Metric.space4, alignment: .center) {
+            IconButton(id: "shapeRectangle", iconName: "rectangle", width: Metric.size22, height: Metric.size22,
+                       tone: .default, checkable: false, checked: vm.rectangle, selectionStyle: .segmented,
+                       accessibilityName: "Rectangle", onClick: vm.chooseRectangle)
+            IconButton(id: "shapeEllipse", iconName: "ellipse", width: Metric.size22, height: Metric.size22,
+                       tone: .default, checkable: false, checked: vm.ellipse, selectionStyle: .segmented,
+                       accessibilityName: "Ellipse", onClick: vm.chooseEllipse)
+            IconButton(id: "shapePolygon", iconName: "polygon", width: Metric.size22, height: Metric.size22,
+                       tone: .default, checkable: false, checked: vm.polygon, selectionStyle: .segmented,
+                       accessibilityName: "Polygon", onClick: vm.choosePolygon)
+            IconButton(id: "shapeLine", iconName: "line", width: Metric.size22, height: Metric.size22,
+                       tone: .default, checkable: false, checked: vm.line, selectionStyle: .segmented,
+                       accessibilityName: "Line / Arrow", onClick: vm.chooseLine)
+        }
+        Label(text: "Drag on the canvas to create a shape", style: .caption)
+        if (vm.shapeStatus != "") { Label(id: "shapeToolStatus", text: vm.shapeStatus, style: .caption) }
         if (vm.editable) {
             Label(id: "elementsSelectedName", text: vm.selectedName, style: .caption)
         }

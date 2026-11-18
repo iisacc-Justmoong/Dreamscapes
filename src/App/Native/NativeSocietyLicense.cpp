@@ -1,5 +1,5 @@
 #include "NativeSocietyLicense.h"
-#include <iiAccountManager/SocietySession.h>
+#include <iiAccountManager>
 #include <exception>
 #include <mutex>
 #include <optional>
@@ -35,6 +35,7 @@ class SocietyProbe final : public LicenseProbe,public std::enable_shared_from_th
         if (!admitted) return ii::core::fail(ErrorCode::busy,"Cannot receive device identity");
         wake_=admitted.token;mailbox_=std::make_shared<DeviceMailbox>();mailbox_->sender=sender_;mailbox_->wake=wake_;
         auto detect=[mailbox=mailbox_,version] {
+            {std::lock_guard lock(mailbox->mutex);if (mailbox->closed || mailbox->ready) return;}
             std::optional<AppDevice> device;
             try {device=detected_device("com.iisacc.dreamscapes",version,"");} catch (...) {}
             {
@@ -88,7 +89,7 @@ class SocietyProbe final : public LicenseProbe,public std::enable_shared_from_th
                 if (auto self=weak.lock();self && !value.checking)
                     self->finish({value.connected,value.licensed,std::move(value.code),std::move(value.subject)});
             };
-            session_->refresh(true);
+            session_->refresh(false);
         } catch (...) {finish({false,false,"society_unavailable",{}});}
     }
     const std::thread::id owner_=std::this_thread::get_id();

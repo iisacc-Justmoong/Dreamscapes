@@ -12,7 +12,7 @@
 #include <QDesktopServices>
 #include <QRegularExpression>
 #include <QScopedValueRollback>
-#include <iiSocietyHelper/FileDownload.h>
+#include <iiSocietyHelper>
 
 namespace dreamscapes {
 WorkspaceSession::WorkspaceSession(QObject *parent)

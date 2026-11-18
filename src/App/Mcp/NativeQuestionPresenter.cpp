@@ -3,9 +3,8 @@
 #include "App/Native/ExternalOverlaySurface.h"
 #include "App/ApplicationShutdownCoordinator.h"
 #include "UserQuestionsSheet.generated.h"
-#include <iiMultimodalAgent/agent/NativeQuestionBridge.h>
-#include <iiMultimodalAgent/agent/NativeQuestionViewModel.h>
-#include <iiGUI/Host.h>
+#include <iiMultimodalAgent>
+#include <iiGUI>
 #include <QCoreApplication>
 #include <QEvent>
 #include <QMetaMethod>
@@ -115,12 +114,12 @@ bool installNativeQuestionPresenter(QObject* root,iiMultimodalAgent::agent::Ques
     auto* window=qobject_cast<QWindow*>(root);
     if(!window||!inbox||!lifetime||!shutdown||window->thread()!=QThread::currentThread()||
        inbox->thread()!=QThread::currentThread()||lifetime->thread()!=QThread::currentThread()||
-       shutdown->thread()!=QThread::currentThread()||shutdown->isClosing())return false;
+       !shutdown->isOwnerThread()||shutdown->isClosing())return false;
     try{
         auto presenter=std::make_unique<NativeQuestionPresenter>(window,inbox,lifetime);
         if(!presenter->connectLicenseProperty())return false;
         const QPointer<NativeQuestionPresenter> guard(presenter.get());
-        shutdown->add([guard](std::function<void()> done){if(guard)guard->shutdown(std::move(done));else if(done)done();});
+        if (!shutdown->add([guard](std::function<void()> done){if(guard)guard->shutdown(std::move(done));else if(done)done();})) return false;
         presenter->begin();
         presenter.release();return true;
     }catch(...){return false;}

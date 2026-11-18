@@ -1,7 +1,7 @@
 #include "App/Views/Editor/EditorCanvas.h"
 #include "App/Views/Editor/EditorTimelineModel.h"
-#include <iiSharedCanvas.h>
-#include <SocietyDrive.h>
+#include <iiSharedCanvas>
+#include <iiSocietyContainer>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QSignalSpy>

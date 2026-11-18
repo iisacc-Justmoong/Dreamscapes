@@ -5,9 +5,10 @@ EventListener(id: "publishSurface", width: 0, height: 0, flex: 1, onSizeChanged:
         HStack(spacing: Metric.space8, alignment: .center) {
             Label(text: "Publish", style: .header2, flex: 1)
             LabelButton(id: "publishSaveDraft", text: "Save draft", tone: .default, enabled: vm.canSaveDraft, onClick: vm.saveDraft)
-            LabelButton(text: "Publish", tone: .default, enabled: vm.canPublish)
+            LabelButton(id: "publishAction", text: "Publish", tone: .default, enabled: vm.canPublish, onClick: vm.publish)
         }
         if (vm.draftMessage != "") { Label(id: "publishDraftMessage", text: vm.draftMessage, style: .caption) }
+        if (vm.publicationStatus != "") { Label(id: "publicationStatus", text: vm.publicationStatus, style: .caption) }
         HStack(height: 0, flex: 1, spacing: Metric.space8, alignment: .stretch) {
             VStack(width: vm.contentWidth, spacing: Metric.space8, alignment: .stretch) {
                 Label(text: "Title", style: .caption)
@@ -29,7 +30,6 @@ EventListener(id: "publishSurface", width: 0, height: 0, flex: 1, onSizeChanged:
                         }
                     }
                 }
-                Label(text: "Connect an account and prepare media to publish", style: .caption)
                 Label(id: "publishPlan", text: vm.planText, style: .caption)
             }
             VStack(width: vm.panelWidth, spacing: Metric.space4, alignment: .stretch) {
@@ -40,15 +40,50 @@ EventListener(id: "publishSurface", width: 0, height: 0, flex: 1, onSizeChanged:
                     Label(text: "Thread", style: .caption, flex: 1)
                     ToggleSwitch(id: "publishThread", checked: vm.threaded, enabled: vm.canThread, onToggled: vm.setThreaded)
                 }
-                for (item in vm.targets, key: item.id, id: "publishTargets", itemHeight: Metric.size44, measureHeight: true,
-                     width: vm.panelWidth, height: 0, flex: 1, overscan: 1) {
-                    VStack(spacing: Metric.space2, alignment: .stretch) {
-                        HStack(spacing: Metric.space4, alignment: .center) {
-                            CheckBox(id: "publishInclude", text: item.name, checked: item.included,
-                                     enabled: vm.hasDocument, onToggled: item.setIncluded, flex: 1)
-                            LabelButton(id: "publishTarget", text: "Review", tone: .default, onClick: item.choose)
+                EventListener(id: "publishListSurface", width: 0, height: 0, flex: 1, onSizeChanged: vm.listSizeChanged) {
+                    if (vm.reviewOpen) {
+                        VStack(width: vm.listWidth, height: vm.listHeight, spacing: Metric.space4, alignment: .stretch) {
+                            LabelButton(id: "publishReviewBack", text: "Targets", tone: .default, onClick: vm.closeReview)
+                            for (item in vm.reviewFields, key: item.id, id: "publishReviewFields", itemHeight: Metric.size44,
+                                 measureHeight: true, width: vm.listWidth, height: 0, flex: 1, overscan: 1) {
+                                VStack(spacing: Metric.space2, alignment: .stretch) {
+                                    HStack(spacing: Metric.space4, alignment: .center) {
+                                        Label(text: item.label, style: .caption, flex: 1)
+                                        Label(text: item.origin, style: .caption)
+                                        LabelButton(id: "publishReviewReset", text: "Reset", tone: .borderless,
+                                                    enabled: item.editable && item.overridden, onClick: item.resetOverride)
+                                    }
+                                    if (item.isToggle) {
+                                        ToggleSwitch(id: "publishReviewToggle", checked: item.checked, enabled: item.editable,
+                                                     onToggled: item.toggled)
+                                    } else if (item.isChoice) {
+                                        ListItemSelector(id: "publishReviewChoice", options: item.options, currentIndex: item.index,
+                                                         enabled: item.editable, accessibilityName: item.label,
+                                                         onCurrentIndexChanged: item.selected)
+                                    } else {
+                                        InputField(id: "publishReviewInput", text: item.text, enabled: item.editable,
+                                                   accessibilityName: item.label, onEdited: item.edited)
+                                    }
+                                    if (item.status != "") { Label(text: item.status, style: .caption) }
+                                }
+                            }
                         }
-                        if (item.selectionStatus != "") { Label(text: item.selectionStatus, style: .caption) }
+                    } else {
+                        VStack(width: vm.listWidth, height: vm.listHeight, spacing: 0, alignment: .stretch) {
+                            for (item in vm.targets, key: item.id, id: "publishTargets", itemHeight: Metric.size44, measureHeight: true,
+                                 width: vm.listWidth, height: 0, flex: 1, overscan: 1) {
+                                VStack(spacing: Metric.space2, alignment: .stretch) {
+                                    HStack(spacing: Metric.space4, alignment: .center) {
+                                        CheckBox(id: "publishInclude", text: item.name, checked: item.included,
+                                                 enabled: vm.hasDocument, onToggled: item.setIncluded, flex: 1)
+                                        LabelButton(id: "publishTarget", text: "Review", tone: .default, onClick: item.choose)
+                                    }
+                                    if (item.selectionStatus != "") { Label(text: item.selectionStatus, style: .caption) }
+                                    if (item.accountStatus != "") { Label(text: item.accountStatus, style: .caption) }
+                                    if (item.resultStatus != "") { Label(text: item.resultStatus, style: .caption) }
+                                }
+                            }
+                        }
                     }
                 }
             }

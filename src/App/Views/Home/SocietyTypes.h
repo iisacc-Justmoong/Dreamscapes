@@ -1,7 +1,5 @@
 #pragma once
-#include <iiSocietyContainer/DashboardFiles.h>
-#include <iiSocietyContainer/SocietyApplication.h>
-#include <Container.h>
+#include <iiSocietyContainer>
 #include <QtQml/qqmlregistration.h>
 #include "../../ViewModels/ViewData.h"
 #include "../../ViewModels/WorkspaceSession.h"

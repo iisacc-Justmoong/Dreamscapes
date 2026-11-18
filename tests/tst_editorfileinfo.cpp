@@ -1,9 +1,7 @@
 #include "App/Views/Editor/EditorProject.h"
-#include <iiSharedCanvas/File/DocumentFile.h>
-#include <iiSharedCanvas/Serialization/IiscCodec.h>
-#include <iiFileProvider.h>
-#include <SocietyDrive.h>
-#include <SharedStorage.h>
+#include <iiSharedCanvas>
+#include <iiFileProvider>
+#include <iiSocietyContainer>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>

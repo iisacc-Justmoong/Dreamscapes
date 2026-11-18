@@ -1,6 +1,6 @@
 #pragma once
 
-#include <iiGUI/Desktop.h>
+#include <iiGUI>
 #include <QObject>
 #include <QPointer>
 #include <functional>

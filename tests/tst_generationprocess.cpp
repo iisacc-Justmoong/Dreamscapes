@@ -1,6 +1,6 @@
 #include "App/Generation/GenerationProcess.h"
 #include "App/Generation/GenerationController.h"
-#include <SocietyDrive.h>
+#include <iiSocietyContainer>
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
@@ -137,18 +137,6 @@ private slots:
         auto controller=std::make_unique<GenerationController>(runtime);QVERIFY(controller->connectStorage(root.path()));const auto id=controller->enqueue("cancel then remove");QVERIFY(!id.isEmpty());controller->setForeground(true);QTRY_VERIFY(entered->load());
         connect(controller.get(),&GenerationController::inferenceStatusChanged,this,[&]{if(controller&&controller->inferenceStatus().value("state")=="cancelling")controller.reset();});
         auto *target=controller.get();QVERIFY(target->cancel(id));QVERIFY(!controller);
-    }
-    // This is last: quit closes process admission for this application lifetime.
-    void applicationShutdownRetiresOwnedProcesses() {
-        GenerationProcess process;QByteArray bytes;connect(&process,&GenerationProcess::outputAvailable,this,[&](const QByteArray &data){bytes+=data;});launch(process,{"hold"});QTRY_VERIFY(bytes.contains("ready"));const auto pid=process.processId();QVERIFY(pid>1&&!gone(pid));
-        auto entered=std::make_shared<std::atomic_bool>(false);auto gate=std::make_shared<std::binary_semaphore>(0);
-        bool released=false;const auto release=qScopeGuard([&]{if(!released)gate->release();});bool complete=false, heartbeat=false;
-        QElapsedTimer elapsed;elapsed.start();
-        GenerationProcess::shutdownAsync(this,[&]{complete=true;},[entered,gate]{*entered=true;gate->acquire();});
-        QVERIFY(elapsed.elapsed()<250);QTRY_VERIFY(entered->load());
-        QTimer::singleShot(0,this,[&]{heartbeat=true;});QTRY_VERIFY(heartbeat);QVERIFY(!complete);QVERIFY(!gone(pid));
-        released=true;gate->release();QTRY_VERIFY_WITH_TIMEOUT(complete,10000);QVERIFY(gone(pid));
-        elapsed.restart();QVERIFY(QMetaObject::invokeMethod(QCoreApplication::instance(),"aboutToQuit",Qt::DirectConnection));QVERIFY(elapsed.elapsed()<250);
     }
 };
 QTEST_GUILESS_MAIN(GenerationProcessTests)

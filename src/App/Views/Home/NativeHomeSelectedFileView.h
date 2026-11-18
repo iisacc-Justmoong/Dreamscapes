@@ -1,9 +1,8 @@
 #pragma once
 
 #include "NativeHomeSelectedFile.h"
-#include <LVUI/NativeImageResolver.h>
-#include <iiGUI/Image.h>
-#include <iiGUI/NativeWidgets.h>
+#include <LVUI>
+#include <iiGUI>
 #include <memory>
 
 namespace dreamscapes::home {

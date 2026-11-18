@@ -1,0 +1,33 @@
+cmake_minimum_required(VERSION 3.31)
+project(DreamscapesGraphicHelperCTest LANGUAGES CXX)
+include(CTest)
+find_package(Qt6 6.8.3 EXACT REQUIRED COMPONENTS Core Gui)
+# Qt 6.8 advertises AGL on macOS even though recent SDKs removed it.
+if(APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    foreach(qt_target WrapOpenGL::WrapOpenGL Qt6::Gui)
+        foreach(link_property INTERFACE_LINK_LIBRARIES INTERFACE_LINK_OPTIONS)
+            get_target_property(qt_links ${qt_target} ${link_property})
+            if(qt_links)
+                list(FILTER qt_links EXCLUDE REGEX "(^|[ /])AGL($|[ /.])|AGL\\.framework")
+                set_target_properties(${qt_target} PROPERTIES ${link_property} "${qt_links}")
+            endif()
+        endforeach()
+    endforeach()
+endif()
+find_package(iiGraphicAdjust 0.6.2 EXACT CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiGraphicAdjust")
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+get_filename_component(DREAMSCAPES_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+add_executable(DreamscapesGraphicHelperValuesTests
+    "${DREAMSCAPES_ROOT}/tests/tst_graphichelpervalues.cpp"
+    "${DREAMSCAPES_ROOT}/src/App/Views/Editor/EditorGraphicHelperValues.cpp"
+    "${DREAMSCAPES_ROOT}/src/App/Views/Editor/EditorGraphicAdjust.cpp")
+target_compile_features(DreamscapesGraphicHelperValuesTests PRIVATE cxx_std_23)
+target_include_directories(DreamscapesGraphicHelperValuesTests PRIVATE "${DREAMSCAPES_ROOT}/src")
+target_link_libraries(DreamscapesGraphicHelperValuesTests PRIVATE Qt6::Core Qt6::Gui iiGraphicAdjust::iiGraphicAdjust)
+add_test(NAME Dreamscapes.GraphicHelperValues COMMAND DreamscapesGraphicHelperValuesTests)
+add_test(NAME Dreamscapes.GraphicHelperValuesInvalidParameters COMMAND DreamscapesGraphicHelperValuesTests malformedParametersAreRejected)
+add_executable(DreamscapesCTestSupportTests "${DREAMSCAPES_ROOT}/tests/ctest_support.cpp")
+target_compile_features(DreamscapesCTestSupportTests PRIVATE cxx_std_23)
+add_test(NAME Dreamscapes.CTestSupport COMMAND DreamscapesCTestSupportTests)
+add_test(NAME Dreamscapes.GraphicHelperCTestContract COMMAND "${Python3_EXECUTABLE}" -B
+    "${DREAMSCAPES_ROOT}/tests/test_ctest_graphic_helpers.py")

@@ -220,53 +220,6 @@ QtObject {
                 QCOMPARE(actual.toDouble(), expected.toNumber());
         }
     }
-    void nativeTimelineMatchesLegacyCommands() {
-        QQmlEngine engine;
-        QFile file(
-            QStringLiteral(DREAMSCAPES_TEST_SOURCE_DIR "/tests/fixtures/legacy-viewmodels/VideoTimelineState.qml"));
-        QVERIFY(file.open(QIODevice::ReadOnly));
-        QQmlComponent component(&engine);
-        component.setData(file.readAll(), {});
-        QScopedPointer<QObject> item(component.create());
-        QVERIFY2(item, qPrintable(component.errorString()));
-        auto old = engine.newQObject(item.data());
-        VideoTimelineModel model;
-        auto native = engine.newQObject(&model);
-        const auto compare = [&] {
-            QCOMPARE(json(model.snapshot()), json(old.property("snapshot").call().toVariant()));
-        };
-        auto command = [&](QString method, QJSValueList args = {}) {
-            auto a = old.property(method).call(args), b = native.property(method).call(args);
-            QVERIFY2(!a.isError(), qPrintable(a.toString()));
-            QVERIFY2(!b.isError(), qPrintable(b.toString()));
-            compare();
-        };
-        command("reset", {120, 24});
-        command("seek", {55});
-        command("addTrack", {"Audio", "Music", -1});
-        command("addTrack", {"Shots", "Scenes", -1});
-        command("addShot");
-        command("seek", {60});
-        command("split");
-        command("changeShot", {"shot-2", "prompt", "test"});
-        command("duplicateShot");
-        command("nudgeShot", {2});
-        command("addKey", {"file:///a.iisc", 5});
-        command("addKey", {"file:///b.iisc", 6});
-        command("resizeComposition", {4, 24});
-        command("undo");
-        command("redo");
-        command("copyKey");
-        command("seek", {20});
-        command("pasteKey");
-        command("selectShot", {"shot-1", false});
-        command("toggleExclude");
-        command("rippleDelete");
-        command("undo");
-        command("reset", {240, 30});
-        QVERIFY(!model.canUndo());
-        QVERIFY(model.tracks().isEmpty());
-    }
 };
 QTEST_MAIN(NativeViewModelBridgeTests)
 #include "tst_viewmodelbridge.moc"

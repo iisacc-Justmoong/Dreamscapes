@@ -1,0 +1,36 @@
+import vm NativeLightPanelBackend
+@Static let resizeLight: (Double, Double) -> Void = vm.sizeHandler(Metric.space16, Metric.size44, Metric.size44, Metric.space16)
+EventListener(id: "lightSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizeLight) {
+    ScrollView(width: vm.width, height: vm.height) {
+        VStack(width: vm.width, spacing: Metric.space8, padding: Metric.space8, alignment: .stretch) {
+            HStack(spacing: Metric.space8, alignment: .center) {
+                IconButton(iconName: "adjustment", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, enabled: false, accessibilityName: "Light adjustment")
+                Label(text: "Adjust · Light", style: .body, flex: 1)
+            }
+            if (vm.layerName != "") { Label(id: "lightTarget", text: vm.layerName, style: .caption) }
+            for (item in vm.fields, key: item.key, id: "lightFields", itemHeight: Metric.size44, measureHeight: true,
+                 width: vm.contentWidth, height: vm.listHeight, overscan: 1) {
+                VStack(width: vm.contentWidth, spacing: 0, alignment: .stretch) {
+                    Label(text: item.label, style: .caption)
+                    HStack(spacing: Metric.space8, alignment: .center) {
+                        Slider(id: "lightSlider", from: item.minimum, to: item.maximum, stepSize: item.step, value: item.value,
+                               width: vm.sliderWidth, size: .mini, enabled: vm.available && !vm.busy,
+                               accessibilityName: item.label, onMoved: item.moved)
+                        InputField(id: "lightInput", text: item.text, width: Metric.size44, enabled: vm.available && !vm.busy,
+                                   accessibilityName: item.label, onEdited: item.edited, onSubmit: item.submitted)
+                    }
+                    Label(text: item.range, style: .caption)
+                }
+            }
+            if (vm.availability != "") { Label(id: "lightAvailability", text: vm.availability, style: .caption) }
+            if (vm.status != "") { Label(id: "lightStatus", text: vm.status, style: .caption) }
+            HStack(spacing: Metric.space8, alignment: .center) {
+                LabelButton(id: "lightAuto", text: "Auto", tone: .default, enabled: vm.available && !vm.busy, onClick: vm.autoLight)
+                LabelButton(id: "lightReset", text: "Reset", tone: .default, enabled: vm.available && !vm.busy, onClick: vm.reset)
+                LabelButton(id: "lightPreview", text: "Preview", tone: .default, enabled: vm.canPreview, onClick: vm.preview)
+                LabelButton(id: "lightApply", text: "Apply", tone: .default, enabled: vm.canApply, onClick: vm.apply)
+            }
+        }
+    }
+}

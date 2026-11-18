@@ -1,6 +1,6 @@
 #include "NativeHomeReferencePicker.h"
 #include "App/Generation/NativeHomeReferenceInputs.h"
-#include <iiSDKCore/Core/Text/Utf8.h>
+#include <iiSDKCore>
 #include <QThread>
 #include <QUrl>
 #include <limits>

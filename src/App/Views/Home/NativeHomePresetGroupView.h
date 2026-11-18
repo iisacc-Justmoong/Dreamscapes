@@ -1,6 +1,6 @@
 #pragma once
 #include "NativeHomePresetGroup.h"
-#include <iiGUI/NativeWidgets.h>
+#include <iiGUI>
 #include <functional>
 
 namespace dreamscapes::home {

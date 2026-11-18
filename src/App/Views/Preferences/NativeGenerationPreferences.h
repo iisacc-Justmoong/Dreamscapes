@@ -1,6 +1,6 @@
 #pragma once
 #include "NativePreferencesWorkspace.h"
-#include <iiSDKCore/Runtime/EventLoop.h>
+#include <iiSDKCore>
 #include <filesystem>
 #include <functional>
 #include <memory>

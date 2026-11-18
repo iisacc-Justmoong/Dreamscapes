@@ -6,7 +6,7 @@
 #include <vector>
 #include <optional>
 #include "EditorGraphicHelperValues.h"
-#include <iiGraphicAdjust/Masks.h>
+#include <iiGraphicAdjust>
 
 // Product boundary only. iiGraphicAdjust remains a Qt-free C++23 leaf SDK.
 namespace EditorGraphicAdjust {

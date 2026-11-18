@@ -4,8 +4,8 @@
 #include "NativeHomeRecentFilesView.h"
 #include "NativeHomeRecentGenerationsView.h"
 #include "NativeHomeSelectedFileView.h"
-#include <LVUI/NativeImageResolver.h>
-#include <iiGUI/Image.h>
+#include <LVUI>
+#include <iiGUI>
 
 namespace dreamscapes::home {
 struct HomeWorkspaceComponents final {

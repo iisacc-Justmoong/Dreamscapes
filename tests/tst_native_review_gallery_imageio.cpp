@@ -1,8 +1,7 @@
 #include "App/Views/Result/NativeReviewGalleryView.h"
 #include "App/Views/Result/NativeReviewImages.h"
 #include <iiGUI/WidgetState.h>
-#include <iiSDKCore/Runtime/EventLoop.h>
-#include <iiSDKCore/Runtime/Runtime.h>
+#include <iiSDKCore>
 #include <chrono>
 #include <iostream>
 #include <stdexcept>

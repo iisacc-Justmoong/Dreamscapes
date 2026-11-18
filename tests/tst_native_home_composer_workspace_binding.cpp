@@ -1,5 +1,5 @@
 #include "App/Views/Home/NativeHomeComposerWorkspaceBinding.h"
-#include <iiGUI/CompiledViewSource.h>
+#include <iiGUI>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>

@@ -14,7 +14,7 @@ struct HomeComposerActionLabels final {
 class HomeComposerActionModel final : public std::enable_shared_from_this<HomeComposerActionModel> {
   public:
     static std::shared_ptr<HomeComposerActionModel> create(std::shared_ptr<HomeComposerModel>, HomeComposerActionRole,
-                                                           HomeComposerActionLabels);
+                                                           HomeComposerActionLabels, bool fixedGenerateLabel = false);
     ~HomeComposerActionModel();
     HomeComposerActionModel(const HomeComposerActionModel &) = delete;
     HomeComposerActionModel &operator=(const HomeComposerActionModel &) = delete;
@@ -30,7 +30,7 @@ class HomeComposerActionModel final : public std::enable_shared_from_this<HomeCo
     ii::core::Observable<bool> enabled{false};
     ii::core::Observable<double> viewportWidth{1}, viewportHeight{1};
   private:
-    HomeComposerActionModel(std::shared_ptr<HomeComposerModel>, HomeComposerActionRole, HomeComposerActionLabels);
+    HomeComposerActionModel(std::shared_ptr<HomeComposerModel>, HomeComposerActionRole, HomeComposerActionLabels, bool);
     void start();
     void synchronize();
     [[nodiscard]] ii::core::Result<void> writable() const;
@@ -38,6 +38,7 @@ class HomeComposerActionModel final : public std::enable_shared_from_this<HomeCo
     std::shared_ptr<HomeComposerModel> composer_;
     HomeComposerActionRole role_;
     HomeComposerActionLabels labels_;
+    bool fixedGenerateLabel_ = false;
     ii::core::ObservableSubscription snapshotObservation_, commandsObservation_, canSubmitObservation_;
     bool active_ = true, publishing_ = false, pending_ = false;
 };

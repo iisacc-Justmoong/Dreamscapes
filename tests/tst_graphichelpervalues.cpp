@@ -1,7 +1,9 @@
 #include "App/Views/Editor/EditorGraphicHelperValues.h"
 #include "App/Views/Editor/EditorGraphicAdjust.h"
-#include <iiGraphicAdjust/iiGraphicAdjust.h>
-#include <QtTest>
+#include <iiGraphicAdjust>
+#include "CTestSupport.h"
+#include <QCoreApplication>
+#include <vector>
 #include <limits>
 
 namespace GA = iiGraphicAdjust;
@@ -19,80 +21,97 @@ GA::Image native(const QImage &source) {
     return *GA::fromArgb32(source.width(), source.height(), pixels);
 }
 }
-class GraphicHelperValuesTests : public QObject {
-    Q_OBJECT
-private slots:
-    void everyExistingHelperRetainsItsSettings_data() {
-        QTest::addColumn<QString>("operation"); QTest::addColumn<QVariantMap>("parameters");
-        QTest::newRow("light") << QString("autoDevelopLight") << QVariantMap{};
-        QTest::newRow("white") << QString("autoWhiteBalance") << QVariantMap{{"asShotTemperature", 5600.0}, {"asShotTint", 8.0}};
-        QTest::newRow("sample-white") << QString("sampledWhiteBalance") << QVariantMap{{"sample", QVariantList{.6, .5, .4, 1.0}}, {"asShotTemperature", 5600.0}, {"asShotTint", 8.0}};
-        QTest::newRow("preset") << QString("whiteBalancePreset") << QVariantMap{{"preset", "Tungsten"}};
-        QTest::newRow("mix") << QString("autoBlackAndWhiteMix") << QVariantMap{};
-        QTest::newRow("point") << QString("samplePointColor") << QVariantMap{{"sample", "#DD6633"}};
-        QTest::newRow("lens-scale") << QString("autoLensScale") << QVariantMap{{"distortion", -12.0}, {"vertical", 3.0}};
-        QTest::newRow("chromatic") << QString("estimateChromaticAberration") << QVariantMap{};
+struct TestRow { const char* name; QString operation; QVariantMap parameters; };
+
+class GraphicHelperValuesTests {
+public:
+    static std::vector<TestRow> everyExistingHelperRetainsItsSettingsRows() {
+        return {
+            {"light", QString("autoDevelopLight"), QVariantMap{}},
+            {"white", QString("autoWhiteBalance"), QVariantMap{{"asShotTemperature", 5600.0}, {"asShotTint", 8.0}}},
+            {"sample-white", QString("sampledWhiteBalance"), QVariantMap{{"sample", QVariantList{.6, .5, .4, 1.0}}, {"asShotTemperature", 5600.0}, {"asShotTint", 8.0}}},
+            {"preset", QString("whiteBalancePreset"), QVariantMap{{"preset", "Tungsten"}}},
+            {"mix", QString("autoBlackAndWhiteMix"), QVariantMap{}},
+            {"point", QString("samplePointColor"), QVariantMap{{"sample", "#DD6633"}}},
+            {"lens-scale", QString("autoLensScale"), QVariantMap{{"distortion", -12.0}, {"vertical", 3.0}}},
+            {"chromatic", QString("estimateChromaticAberration"), QVariantMap{}},
+        };
     }
-    void everyExistingHelperRetainsItsSettings() {
-        QFETCH(QString, operation); QFETCH(QVariantMap, parameters);
-        const auto source = fixture(); const auto input = native(source); const auto before = GA::toArgb32(input.view()); QVERIFY(before);
-        const auto oracle = EditorGraphicAdjust::process(source, operation, parameters); QVERIFY2(oracle.ok(), qPrintable(oracle.error));
-        const auto prepared = EditorGraphicAdjust::prepareHelper(operation, parameters); QVERIFY2(prepared.ok(), qPrintable(prepared.error));
+    void everyExistingHelperRetainsItsSettings(const QString& operation, const QVariantMap& parameters) {
+        const auto source = fixture(); const auto input = native(source); const auto before = GA::toArgb32(input.view()); CTEST_CHECK(before);
+        const auto oracle = EditorGraphicAdjust::process(source, operation, parameters); CTEST_CHECK_MESSAGE(oracle.ok(), qPrintable(oracle.error));
+        const auto prepared = EditorGraphicAdjust::prepareHelper(operation, parameters); CTEST_CHECK_MESSAGE(prepared.ok(), qPrintable(prepared.error));
         const auto view = input.view(); const auto result = H::calculate(*prepared.request, &view);
-        QVERIFY2(result.ok(), result.error.c_str()); QCOMPARE(EditorGraphicAdjust::helperParameters(result), oracle.parameters);
-        QCOMPARE(*GA::toArgb32(input.view()), *before); QCOMPARE(source, fixture());
+        CTEST_CHECK_MESSAGE(result.ok(), result.error.c_str()); CTEST_COMPARE(EditorGraphicAdjust::helperParameters(result), oracle.parameters);
+        CTEST_COMPARE(*GA::toArgb32(input.view()), *before); CTEST_COMPARE(source, fixture());
     }
-    void pureHelpersNeedNoRasterInput_data() {
-        QTest::addColumn<QString>("operation"); QTest::addColumn<QVariantMap>("parameters");
-        QTest::newRow("point") << QString("samplePointColor") << QVariantMap{{"sample", QVariantList{.2, .4, .6, 1.0}}};
-        QTest::newRow("white") << QString("sampledWhiteBalance") << QVariantMap{{"sample", "#CCCCCC"}};
-        QTest::newRow("preset") << QString("whiteBalancePreset") << QVariantMap{{"preset", "Daylight"}};
+    static std::vector<TestRow> pureHelpersNeedNoRasterInputRows() {
+        return {
+            {"point", QString("samplePointColor"), QVariantMap{{"sample", QVariantList{.2, .4, .6, 1.0}}}},
+            {"white", QString("sampledWhiteBalance"), QVariantMap{{"sample", "#CCCCCC"}}},
+            {"preset", QString("whiteBalancePreset"), QVariantMap{{"preset", "Daylight"}}},
+        };
     }
-    void pureHelpersNeedNoRasterInput() {
-        QFETCH(QString, operation); QFETCH(QVariantMap, parameters);
-        const auto prepared = EditorGraphicAdjust::prepareHelper(operation, parameters); QVERIFY(prepared.ok());
-        QVERIFY(!H::needsImage(*prepared.request)); QVERIFY(H::calculate(*prepared.request, nullptr).ok());
+    void pureHelpersNeedNoRasterInput(const QString& operation, const QVariantMap& parameters) {
+        const auto prepared = EditorGraphicAdjust::prepareHelper(operation, parameters); CTEST_CHECK(prepared.ok());
+        CTEST_CHECK(!H::needsImage(*prepared.request)); CTEST_CHECK(H::calculate(*prepared.request, nullptr).ok());
     }
     void imageHelpersRejectMissingInput() {
         for (const auto *operation : {"autoDevelopLight", "autoWhiteBalance", "autoBlackAndWhiteMix", "autoLensScale", "estimateChromaticAberration"}) {
-            const auto prepared = EditorGraphicAdjust::prepareHelper(operation, {}); QVERIFY(prepared.ok());
-            QVERIFY(H::needsImage(*prepared.request)); const auto result = H::calculate(*prepared.request, nullptr);
-            QVERIFY(!result.ok()); QVERIFY(!result.error.empty()); QVERIFY(result.parameters.empty());
+            const auto prepared = EditorGraphicAdjust::prepareHelper(operation, {}); CTEST_CHECK(prepared.ok());
+            CTEST_CHECK(H::needsImage(*prepared.request)); const auto result = H::calculate(*prepared.request, nullptr);
+            CTEST_CHECK(!result.ok()); CTEST_CHECK(!result.error.empty()); CTEST_CHECK(result.parameters.empty());
         }
     }
-    void malformedParametersAreRejected_data() {
-        QTest::addColumn<QString>("operation"); QTest::addColumn<QVariantMap>("parameters");
-        QTest::newRow("not-helper") << QString("invert") << QVariantMap{};
-        QTest::newRow("unknown-light") << QString("autoDevelopLight") << QVariantMap{{"unknown", 1.0}};
-        QTest::newRow("unknown-wb") << QString("autoWhiteBalance") << QVariantMap{{"unknown", 1.0}};
-        QTest::newRow("no-sample") << QString("samplePointColor") << QVariantMap{};
-        QTest::newRow("invalid-sample") << QString("sampledWhiteBalance") << QVariantMap{{"sample", QVariantList{.2, .4}}};
-        QTest::newRow("boolean-temperature") << QString("autoWhiteBalance") << QVariantMap{{"temperature", true}};
-        QTest::newRow("preset") << QString("whiteBalancePreset") << QVariantMap{{"preset", "Unknown"}};
-        QTest::newRow("nan") << QString("autoLensScale") << QVariantMap{{"angle", std::numeric_limits<double>::quiet_NaN()}};
-        QTest::newRow("extra-mix") << QString("autoBlackAndWhiteMix") << QVariantMap{{"amount", 3}};
-        QTest::newRow("extra-ca") << QString("estimateChromaticAberration") << QVariantMap{{"amount", 3}};
+    static std::vector<TestRow> malformedParametersAreRejectedRows() {
+        return {
+            {"not-helper", QString("invert"), QVariantMap{}},
+            {"unknown-light", QString("autoDevelopLight"), QVariantMap{{"unknown", 1.0}}},
+            {"unknown-wb", QString("autoWhiteBalance"), QVariantMap{{"unknown", 1.0}}},
+            {"no-sample", QString("samplePointColor"), QVariantMap{}},
+            {"invalid-sample", QString("sampledWhiteBalance"), QVariantMap{{"sample", QVariantList{.2, .4}}}},
+            {"boolean-temperature", QString("autoWhiteBalance"), QVariantMap{{"temperature", true}}},
+            {"preset", QString("whiteBalancePreset"), QVariantMap{{"preset", "Unknown"}}},
+            {"nan", QString("autoLensScale"), QVariantMap{{"angle", std::numeric_limits<double>::quiet_NaN()}}},
+            {"extra-mix", QString("autoBlackAndWhiteMix"), QVariantMap{{"amount", 3}}},
+            {"extra-ca", QString("estimateChromaticAberration"), QVariantMap{{"amount", 3}}},
+        };
     }
-    void malformedParametersAreRejected() {
-        QFETCH(QString, operation); QFETCH(QVariantMap, parameters);
+    void malformedParametersAreRejected(const QString& operation, const QVariantMap& parameters) {
         const auto prepared = EditorGraphicAdjust::prepareHelper(operation, parameters);
-        QVERIFY(!prepared.ok()); QVERIFY(!prepared.error.isEmpty());
+        CTEST_CHECK(!prepared.ok()); CTEST_CHECK(!prepared.error.isEmpty());
     }
     void cancellationAndSdkValidationReturnNoParameters() {
-        const auto prepared = EditorGraphicAdjust::prepareHelper("samplePointColor", {{"sample", "#123456"}}); QVERIFY(prepared.ok());
+        const auto prepared = EditorGraphicAdjust::prepareHelper("samplePointColor", {{"sample", "#123456"}}); CTEST_CHECK(prepared.ok());
         std::stop_source stop; stop.request_stop(); const auto retired = H::calculate(*prepared.request, nullptr, stop.get_token());
-        QVERIFY(retired.cancelled); QVERIFY(!retired.ok()); QVERIFY(retired.error.empty()); QVERIFY(retired.parameters.empty());
-        const auto invalid = EditorGraphicAdjust::prepareHelper("sampledWhiteBalance", {{"sample", "#000000"}}); QVERIFY(invalid.ok());
-        const auto result = H::calculate(*invalid.request, nullptr); QVERIFY(!result.ok()); QVERIFY(!result.error.empty());
+        CTEST_CHECK(retired.cancelled); CTEST_CHECK(!retired.ok()); CTEST_CHECK(retired.error.empty()); CTEST_CHECK(retired.parameters.empty());
+        const auto invalid = EditorGraphicAdjust::prepareHelper("sampledWhiteBalance", {{"sample", "#000000"}}); CTEST_CHECK(invalid.ok());
+        const auto result = H::calculate(*invalid.request, nullptr); CTEST_CHECK(!result.ok()); CTEST_CHECK(!result.error.empty());
     }
     void catalogAndCanonicalNamesAreComplete() {
         const QStringList expected{"autoBlackAndWhiteMix", "autoDevelopLight", "autoLensScale", "autoWhiteBalance", "estimateChromaticAberration", "samplePointColor", "sampledWhiteBalance", "whiteBalancePreset"};
-        QCOMPARE(EditorGraphicAdjust::helpers(), expected);
+        CTEST_COMPARE(EditorGraphicAdjust::helpers(), expected);
         for (const auto &name : expected) {
-            QVERIFY(EditorGraphicAdjust::isHelper(name)); QVERIFY(EditorGraphicAdjust::isHelper("  " + name + "  "));
+            CTEST_CHECK(EditorGraphicAdjust::isHelper(name)); CTEST_CHECK(EditorGraphicAdjust::isHelper("  " + name + "  "));
         }
-        QVERIFY(!EditorGraphicAdjust::isHelper("invert"));
+        CTEST_CHECK(!EditorGraphicAdjust::isHelper("invert"));
     }
 };
-QTEST_GUILESS_MAIN(GraphicHelperValuesTests)
-#include "tst_graphichelpervalues.moc"
+int main(int argc, char** argv) {
+    QCoreApplication application(argc, argv);
+    dreamscapes_ctest::Runner runner(argc == 2 ? argv[1] : "");
+    GraphicHelperValuesTests test;
+    for (const auto& row : test.everyExistingHelperRetainsItsSettingsRows())
+        runner.run(std::string("everyExistingHelperRetainsItsSettings:") + row.name,
+                   [&] { test.everyExistingHelperRetainsItsSettings(row.operation, row.parameters); });
+    for (const auto& row : test.pureHelpersNeedNoRasterInputRows())
+        runner.run(std::string("pureHelpersNeedNoRasterInput:") + row.name,
+                   [&] { test.pureHelpersNeedNoRasterInput(row.operation, row.parameters); });
+    runner.run("imageHelpersRejectMissingInput", [&] { test.imageHelpersRejectMissingInput(); });
+    for (const auto& row : test.malformedParametersAreRejectedRows())
+        runner.run(std::string("malformedParametersAreRejected:") + row.name,
+                   [&] { test.malformedParametersAreRejected(row.operation, row.parameters); });
+    runner.run("cancellationAndSdkValidationReturnNoParameters", [&] { test.cancellationAndSdkValidationReturnNoParameters(); });
+    runner.run("catalogAndCanonicalNamesAreComplete", [&] { test.catalogAndCanonicalNamesAreComplete(); });
+    return runner.result();
+}

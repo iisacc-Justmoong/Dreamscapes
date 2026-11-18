@@ -1,8 +1,8 @@
 #include "EditorFrameExporter.h"
 #include "EditorToolUtils.h"
-#include <iiSharedCanvas/Render/FrameRenderer.h>
-#include <iiSocietyHelper/MediaExport.h>
-#include <File.h>
+#include <iiSharedCanvas>
+#include <iiSocietyHelper>
+#include <iiFileProvider>
 #include <QImageWriter>
 #include <QPointer>
 #include <QtConcurrentRun>

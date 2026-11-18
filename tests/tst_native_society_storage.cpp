@@ -1,6 +1,6 @@
 #include "App/Native/NativeSocietyStorage.h"
-#include <iiFileProviderNative.h>
-#include <iiJson/Json.h>
+#include <iiFileProvider>
+#include <iiJson>
 #include <filesystem>
 #include <chrono>
 #include <ctime>
@@ -37,7 +37,8 @@ int main() {
         put(selection,vm::Value(vm::Object{{"schemaVersion",vm::Value(1)},{"path",vm::Value(root.string())},{"containerId",vm::Value(id)}}));
         auto result=native::browseSociety(selection,"files","","");
         check(bool(result),"valid local container did not open");
-        check(result->root==root && vm::array(result->aliases).size()==3,"root listing lost files or empty directories, or included symlinks");
+        check(result->root==root && result->sectionPath==root/"Files" && vm::array(result->aliases).size()==3,
+              "root listing lost its verified section path, files or empty directories, or included symlinks");
         check(!native::browseSociety(selection,"files","","",root/"other"),
               "a conflicting explicit root silently opened the selected container");
         check(bool(native::browseSociety(selection,"files","","",root)),

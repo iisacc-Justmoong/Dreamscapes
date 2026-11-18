@@ -1,10 +1,10 @@
 #include "NativeFileImages.h"
 #include <NativeImageLoader.h>
 #include <Render/DocumentPreview.h>
-#include <iiFileProviderNative.h>
-#include <iiNetwork/Wire.h>
-#include <iiSDKCore/Core/Text/Utf8.h>
-#include <iiVisualCodec/ImageCodec.h>
+#include <iiFileProvider>
+#include <iiNetwork>
+#include <iiSDKCore>
+#include <iiVisualCodec>
 #include <algorithm>
 #include <cctype>
 #include <filesystem>

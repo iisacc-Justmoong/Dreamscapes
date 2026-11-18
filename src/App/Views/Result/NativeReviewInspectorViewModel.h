@@ -1,8 +1,8 @@
 #pragma once
 
 #include "NativeReviewInspector.h"
-#include <LVUI/CodeDocument.h>
-#include <iiSDKCore/Core/Result/Result.h>
+#include <LVUI>
+#include <iiSDKCore>
 #include <functional>
 #include <memory>
 #include <string>

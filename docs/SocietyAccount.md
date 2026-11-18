@@ -1,6 +1,13 @@
 # Dreamscapes account and licensing
 
-A signed, device-bound grant is checked in the background after the workspace becomes visible and remains
+The native Dreamscapes app temporarily defaults to
+`DREAMSCAPES_ENABLE_LICENSE_VERIFICATION=OFF`. In this mode it does not start
+a Society license check, display the license gate, or claim a verified grant.
+Configure `build/` with `-DDREAMSCAPES_ENABLE_LICENSE_VERIFICATION=ON` and
+rebuild and reinstall to restore the policy described below. Running processes
+must be restarted to use a changed build.
+
+When enabled, a signed, device-bound grant is checked in the background after the workspace becomes visible and remains
 valid for the lifetime of that application run. A later daemon disconnect or
 token expiry does not relock an already authorized workspace; each new launch
 must obtain and verify a new decision. The local broker is hosted by the Society

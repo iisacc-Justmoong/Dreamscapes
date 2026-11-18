@@ -1,8 +1,6 @@
 #pragma once
 
-#include <iiGraphicAdjust/DevelopColor.h>
-#include <iiGraphicAdjust/DevelopTone.h>
-#include <iiGraphicAdjust/LensFilter.h>
+#include <iiGraphicAdjust>
 #include <array>
 #include <map>
 #include <stop_token>

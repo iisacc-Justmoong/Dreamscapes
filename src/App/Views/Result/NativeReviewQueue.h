@@ -1,8 +1,7 @@
 #pragma once
 
 #include "NativeReviewSession.h"
-#include <iiSDKCore/Core/Property/Observable.h>
-#include <iiSDKCore/Core/Result/Result.h>
+#include <iiSDKCore>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -21,7 +20,7 @@ struct QueueSnapshot final {
 };
 struct QueueStrings final {
     std::string heading{"GENERATION"}, allJobs{"All jobs"}, empty{"No generation jobs"}, preview{"Live preview"};
-    std::string cancel{"Cancel job"}, failure{"Failure details"};
+    std::string cancel{"Cancel job"}, failure{"Failure details"}, details{"Details"};
     std::string job{"Job "}, unavailable{"Unavailable"}, modelUnavailable{"Model unavailable"}, preparing{"Preparing"};
     std::string running{"Running"}, queued{"Queued"}, completed{"Completed"}, failed{"Failed"}, canceled{"Canceled"};
     std::string interrupted{"Interrupted"}, connecting{"Connecting"}, downloading{"Downloading"};
@@ -35,7 +34,7 @@ class QueueModel;
 class QueueItem final {
   public:
     const std::string id, token;
-    ii::core::Observable<std::string> title, stateLabel, modelLabel, detail;
+    ii::core::Observable<std::string> title, stateLabel, modelLabel, detail, detailsLabel;
     ii::core::Observable<bool> selected{false}, isFailed{false}, showProgress{false}, canCancel{false}, canInspectFailure{false};
     ii::core::Observable<int> step{0}, total{0};
     void select();
@@ -47,6 +46,7 @@ class QueueItem final {
     QueueItem(std::string id, std::string token, std::weak_ptr<QueueModel> owner);
     std::weak_ptr<QueueModel> owner_;
     std::string state_;
+    bool hasDiagnostic_=false;
 };
 
 // Presentation state only. Commands are delegated to host-owned services.

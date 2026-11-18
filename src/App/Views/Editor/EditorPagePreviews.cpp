@@ -1,6 +1,6 @@
 #include "EditorPagePreviews.h"
 #include "EditorToolUtils.h"
-#include <iiSharedCanvas/Render/FrameRenderer.h>
+#include <iiSharedCanvas>
 #include <QtConcurrentRun>
 #include <algorithm>
 #include <exception>

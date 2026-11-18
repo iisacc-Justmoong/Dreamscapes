@@ -1,0 +1,75 @@
+import vm NativeAudioPanelBackend
+@Static let resizeAudio: (Double, Double) -> Void = vm.sizeHandler(Metric.space16, Metric.size140)
+EventListener(id: "audioPanelSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizeAudio) {
+    ScrollView(id: "audioPanelScroll", width: vm.width, height: vm.height) {
+        VStack(id: "audioPanel", width: vm.width, spacing: Metric.space8, padding: Metric.space8, alignment: .stretch) {
+            Label(text: "Audio Track", style: .body)
+            HStack(spacing: Metric.space2, alignment: .center) {
+                IconButton(id: "audioImportTab", iconName: "panel-audio-import", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, checked: vm.importMode, checkable: false, selectionStyle: .segmented,
+                           accessibilityName: "Import", onClick: vm.showImport)
+                IconButton(id: "audioTrimTab", iconName: "panel-audio-trim", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, checked: vm.trimMode, checkable: false, selectionStyle: .segmented,
+                           accessibilityName: "Trim", onClick: vm.showTrim)
+                IconButton(id: "audioMixTab", iconName: "panel-audio-mix", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, checked: vm.mixMode, checkable: false, selectionStyle: .segmented,
+                           accessibilityName: "Mix", onClick: vm.showMix)
+                IconButton(iconName: "panel-audio-sync", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, enabled: false, accessibilityName: "Sync unavailable")
+            }
+            HStack(spacing: Metric.space4, alignment: .center) {
+                ListItemSelector(id: "audioTrackSelector", options: vm.trackNames, currentIndex: vm.selectedTrack,
+                                 flex: 1, accessibilityName: "Audio track", onCurrentIndexChanged: vm.selectTrack)
+                IconButton(id: "audioCreateTrack", iconName: "new-layer", width: Metric.size22, height: Metric.size22,
+                           tone: .default, enabled: vm.canCreate, accessibilityName: "New audio track", onClick: vm.createTrack)
+            }
+            Label(id: "audioTrackSummary", text: vm.summary, style: .caption, elideRight: true)
+            if (vm.importMode) {
+                VStack(width: vm.contentWidth, spacing: Metric.space8, alignment: .stretch) {
+                    Label(text: "Import", style: .body)
+                    HStack(spacing: Metric.space8, alignment: .center) {
+                        Label(text: "PCM16 WAV", style: .caption, flex: 1)
+                        LabelButton(id: "audioChooseFile", text: "Choose", tone: .default,
+                                    enabled: vm.canChoose, onClick: vm.chooseFile)
+                    }
+                }
+            } else if (vm.trimMode) {
+                VStack(width: vm.contentWidth, spacing: Metric.space8, alignment: .stretch) {
+                    Label(text: "Trim", style: .body)
+                    ListItemSelector(id: "audioClipSelector", options: vm.clipNames, currentIndex: vm.selectedClip,
+                                     enabled: vm.editable, accessibilityName: "Audio clip", onCurrentIndexChanged: vm.selectClip)
+                    Label(text: "Range (seconds)", style: .caption)
+                    InputField(id: "audioTrimRange", text: vm.trimRange, enabled: vm.clipEditable,
+                               accessibilityName: "Clip range in timeline seconds", onEdited: vm.editTrim, onSubmit: vm.applyTrim)
+                    Label(text: "Waveform and fades unavailable", style: .caption)
+                    HStack(spacing: Metric.space8, alignment: .center) {
+                        LabelButton(id: "audioTrimReset", text: "Reset", tone: .default, enabled: vm.clipEditable, onClick: vm.resetTrim)
+                        LabelButton(id: "audioTrimApply", text: "Apply", tone: .default, enabled: vm.canTrim, onClick: vm.applyTrim)
+                    }
+                }
+            } else {
+                VStack(width: vm.contentWidth, spacing: Metric.space8, alignment: .stretch) {
+                    Label(text: "Mix", style: .body)
+                    HStack(spacing: Metric.space8, alignment: .center) {
+                        Label(text: "Mute", style: .caption, flex: 1)
+                        ToggleSwitch(id: "audioMuted", checked: vm.muted, enabled: vm.editable,
+                                     accessibilityName: "Mute audio track", onToggled: vm.setMuted)
+                    }
+                    HStack(spacing: Metric.space8, alignment: .center) {
+                        Label(text: "Gain (dB)", style: .caption, flex: 1)
+                        InputField(id: "audioGain", text: vm.gainText, width: vm.fieldWidth, enabled: vm.editable,
+                                   accessibilityName: "Audio track gain in decibels", onEdited: vm.editGain, onSubmit: vm.applyTrack)
+                    }
+                    Slider(id: "audioGainSlider", from: vm.minimumGain, to: vm.maximumGain, stepSize: 1,
+                           value: vm.gainValue, width: vm.contentWidth, size: .mini, enabled: vm.editable,
+                           accessibilityName: "Audio track gain", onMoved: vm.moveGain)
+                    HStack(spacing: Metric.space8, alignment: .center) {
+                        LabelButton(id: "audioReset", text: "Reset", tone: .default, enabled: vm.editable, onClick: vm.resetTrack)
+                        LabelButton(id: "audioApply", text: "Apply", tone: .default, enabled: vm.canApply, onClick: vm.applyTrack)
+                    }
+                }
+            }
+            if (vm.status != "") { Label(id: "audioStatus", text: vm.status, style: .caption) }
+        }
+    }
+}

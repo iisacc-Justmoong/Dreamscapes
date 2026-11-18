@@ -1,8 +1,8 @@
 #pragma once
 #include "App/Native/NativeDocumentSession.h"
-#include <iiSDKCore/Core/Property/Observable.h>
-#include <LVUI/ComboBox.h>
-#include <LVUI/Slider.h>
+#include "NativeHistogram.h"
+#include <iiSDKCore>
+#include <LVUI>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -30,9 +30,16 @@ class LayerPanelModel final : public std::enable_shared_from_this<LayerPanelMode
     [[nodiscard]] ii::core::Result<void> removeSelected();
     [[nodiscard]] ii::core::Result<void> showLayer();
     [[nodiscard]] ii::core::Result<void> showInformation();
+    [[nodiscard]] ii::core::Result<void> showHistogram();
+    [[nodiscard]] ii::core::Result<void> selectHistogram(HistogramChannel);
+    void setHistogram(std::shared_ptr<HistogramModel>);
+    void setVisible(bool);
     void sizeChanged(double,double,double horizontalInset);
     std::shared_ptr<native::DocumentSession> document() const {return document_;}
-    ii::core::Observable<bool> hasSelection{false},canDuplicate{false},layerMode{true},informationMode{false};
+    ii::core::Observable<bool> hasSelection{false},canDuplicate{false},layerMode{true},informationMode{false},histogramMode{false};
+    ii::core::Observable<bool> histogramHasPlot{false},histogramBusy{false},histogramRgb{true},histogramRed{false},histogramGreen{false},histogramBlue{false};
+    ii::core::Observable<std::shared_ptr<const ii::gui::RasterImage>> histogramPlot;
+    ii::core::Observable<std::string> histogramSummary,histogramStatus;
     ii::core::Observable<double> width{lvui::SliderConfiguration{}.width},height{1},
         contentWidth{lvui::SliderConfiguration{}.width},fieldWidth{lvui::ComboBoxConfiguration{}.width},
         blendWidth{lvui::ComboBoxConfiguration{}.width},opacity{0};
@@ -47,8 +54,10 @@ class LayerPanelModel final : public std::enable_shared_from_this<LayerPanelMode
     const std::thread::id owner_=std::this_thread::get_id();
     std::shared_ptr<native::DocumentSession> document_;
     ii::core::ObservableSubscription selectionObserver_,revisionObserver_,generationObserver_,frameObserver_;
+    std::vector<ii::core::ObservableSubscription> histogramObservers_;
+    std::shared_ptr<HistogramModel> histogram_;
     std::string currentId_;
     double acceptedOpacity_=0;
-    bool editing_=false,synchronizing_=false,pending_=false;
+    bool editing_=false,synchronizing_=false,pending_=false,visible_=false;
 };
 }

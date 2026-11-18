@@ -1,6 +1,7 @@
 #pragma once
 #include "App/Native/NativeDocumentSession.h"
-#include <iiSDKCore/Core/Property/Observable.h>
+#include "NativeShapeTool.h"
+#include <iiSDKCore>
 #include <memory>
 #include <string>
 #include <thread>
@@ -19,6 +20,7 @@ class ElementsPanelModel final : public std::enable_shared_from_this<ElementsPan
     [[nodiscard]] ii::core::Result<void> applyFill();
     void setVisible(bool);
     void sizeChanged(double,double,double,double);
+    std::shared_ptr<ShapeToolModel> shapeTool() const {return shapeTool_;}
     ii::core::Observable<bool> editable{false},constrained{true},fillEditable{false};
     ii::core::Observable<double> elementWidth{0},elementHeight{0},width{1},height{1},contentWidth{1},fieldWidth{1};
     ii::core::Observable<std::string> widthText,heightText,fillText,selectedName,status;
@@ -29,6 +31,7 @@ class ElementsPanelModel final : public std::enable_shared_from_this<ElementsPan
     [[nodiscard]] ii::core::Result<void> writable() const;
     const std::thread::id owner_=std::this_thread::get_id();
     std::shared_ptr<native::DocumentSession> document_;
+    std::shared_ptr<ShapeToolModel> shapeTool_;
     ii::core::ObservableSubscription selection_,revision_,generation_;
     std::string currentId_;
     std::uint64_t currentGeneration_=0;

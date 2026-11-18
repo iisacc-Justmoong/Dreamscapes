@@ -2,8 +2,8 @@
 #include "App/Views/Home/NativeHomeComposerChoiceView.h"
 #include "App/Views/Home/NativeHomePresetSaveView.h"
 #include "iiGUI/WidgetState.h"
-#include <iiGUI/CompiledViewSource.h>
-#include <iiSDKCore/Runtime/FrameLoop.h>
+#include <iiGUI>
+#include <iiSDKCore>
 #include <iostream>
 #include <stdexcept>
 

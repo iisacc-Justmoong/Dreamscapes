@@ -19,7 +19,7 @@ void good(ii::core::Result<void> value) {if (!value) throw std::runtime_error(va
 int main() {
     try {
         auto document=dreamscapes::native::DocumentSession::create();
-        iiSharedCanvas::Document canvas; canvas.extent={8,8};
+        iiSharedCanvas::Document canvas; canvas.extent={8,8};canvas.timeline.frameCount=2;
         canvas.assets.emplace_back(iiSharedCanvas::RasterAsset{"pixels",makeRasterLayer(8,8,0xff123456)});
         canvas.layers.emplace_back(iiSharedCanvas::StaticBitmapLayer{{"paint","Paint"},iiSharedCanvas::StaticSource{"pixels"}});
         canvas.publicationMetadata=iiSharedCanvas::PublicationMetadata{.title="Inherited",.description="Original",
@@ -65,11 +65,47 @@ int main() {
         iiSocialIntegration::ReviewSource source; source.post.text="caption";
         source.post.media.resize(20); source.captions.resize(20);
         source.captions[0]="First canvas caption";
-        good(publish->setReviewSource(std::move(source)));
+        auto frameSource=source;good(publish->setReviewSource(std::move(source)));
+        good(document->seek(1));
+        check(publish->plannedPosts.get()==0 && publish->planText.get()=="Media not prepared",
+              "seeking retained media prepared from another canvas frame");
+        good(document->seek(0));good(publish->setReviewSource(std::move(frameSource)));
         check(publish->plannedPosts.get()==5 && publish->plan().posts.size()==5 &&
               publish->plan().posts[1].replyTo==std::optional<std::size_t>{0} &&
               publish->plan().posts[0].post.text.find("Destination text")!=std::string::npos,
               "twenty X images were not planned as a five-post thread");
+        auto titleField=publish->reviewField("title"),textField=publish->reviewField("text");
+        auto countField=publish->reviewField("mediaPerPost"),captionField=publish->reviewField("includeCaptions");
+        check(titleField && textField && countField && captionField && titleField->text.get()=="Updated" &&
+              !titleField->overridden.get() && textField->text.get()=="Destination text" && textField->overridden.get(),
+              "destination review fields did not reflect shared and overridden metadata");
+        good(titleField->edit("X title"));
+        check(publish->plan().posts[0].post.title=="X title" && document->publicationTitle.get()=="Updated",
+              "destination title modified the common title or not the plan");
+        good(titleField->reset());
+        check(publish->plan().posts[0].post.title=="Updated" &&
+              !document->document()->publicationMetadata->settings.contains("publish.destination.x.title"),
+              "reset did not restore the shared title");
+        const auto beforeReset=document->revision.get();
+        good(titleField->reset());
+        check(document->revision.get()==beforeReset,"resetting an inherited field modified the document");
+        const auto choices=countField->options.get();
+        const auto two=std::ranges::find(choices,std::string("2"));
+        check(two!=choices.end(),"platform policy omitted an allowed attachment count");
+        good(countField->select(int(two-choices.begin())));
+        good(captionField->toggle(false));
+        check(publish->plannedPosts.get()==10 &&
+              publish->plan().posts[0].post.text.find("First canvas caption")==std::string::npos,
+              "review field edits did not update grouping and captions");
+        good(countField->reset());good(captionField->reset());
+        check(publish->plannedPosts.get()==5 &&
+              publish->plan().posts[0].post.text.find("First canvas caption")!=std::string::npos,
+              "reset did not restore automatic grouping and captions");
+        good(publish->select("facebook"));
+        check(!textField->edit("stale change") &&
+              std::get<std::string>(document->document()->publicationMetadata->settings.at("publish.destination.x.text"))=="Destination text",
+              "a retired field edited a different destination");
+        good(publish->select("x"));
         good(document->editPublicationSetting("publish.destination.x.mediaPerPost",std::string("2")));
         check(publish->plannedPosts.get()==10,"saved destination media grouping was ignored");
         good(document->editPublicationSetting("publish.destination.x.mediaPerPost",std::string("Automatic")));
@@ -122,11 +158,14 @@ int main() {
         good(document->setLayerOpacity("paint",0.5));
         check(publish->plannedPosts.get()==0 && publish->planText.get()=="Media not prepared",
               "a visual canvas change retained stale prepared publication media");
+        auto previousDocumentField=publish->reviewField("title");
         iiSharedCanvas::Document other; other.extent={8,8};
         good(document->attach(other,"other.iisc"));
         check(publish->plannedPosts.get()==0 && publish->planText.get()=="Media not prepared" && !publish->hasFrame.get() &&
               publish->threaded.get() && !document->dirty.get(),
               "switching documents retained another document's prepared media");
+        check(previousDocumentField && !previousDocumentField->edit("stale document") && !document->dirty.get(),
+              "a field from the previous document edited the replacement");
         auto unknown=canvas;
         unknown.publicationMetadata->settings["publish.destination.x.sequence"]=false;
         unknown.publicationMetadata->settings["publish.destination.x.selected"]=std::string("unknown");
@@ -139,6 +178,10 @@ int main() {
         check(publish->planText.get()=="Saved publish structure is not recognized" &&
               std::holds_alternative<bool>(document->document()->publicationMetadata->settings.at("publish.destination.x.sequence")) &&
               !document->dirty.get(),"an unknown saved setting was silently replaced or used");
+        auto invalidSequence=publish->reviewField("sequence");
+        check(invalidSequence && !invalidSequence->status.get().empty() &&
+              !invalidSequence->select(int(invalidSequence->options.get().size()-1)) && !document->dirty.get(),
+              "an invalid saved sequence was silently selected or overwritten");
         good(publish->setTargetIncluded("x",true));
         check(x->included.get() && x->selectionStatus.get().empty() &&
               std::get<bool>(document->document()->publicationMetadata->settings.at("publish.destination.x.selected")),
@@ -147,5 +190,43 @@ int main() {
         check(publish->threaded.get() && publish->plannedPosts.get()==1 &&
               std::get<std::string>(document->document()->publicationMetadata->settings.at("publish.destination.x.sequence"))=="Thread",
               "an explicit thread selection did not replace the unknown setting");
+        auto reply=publish->reviewField("replyControl"),disclosure=publish->reviewField("madeWithAi");
+        check(reply && disclosure,"X-specific controls are missing");
+        const auto replyChoices=reply->options.get();
+        const auto following=std::ranges::find(replyChoices,std::string("following"));
+        check(following!=replyChoices.end(),"X reply policy is missing");
+        good(reply->select(int(following-replyChoices.begin())));good(disclosure->toggle(true));
+        check(publish->plan().posts[0].post.replyControl=="following" && publish->plan().posts[0].post.madeWithAi,
+              "X-specific review settings did not reach the publication plan");
+        good(publish->select("mastodon"));
+        auto warning=publish->reviewField("contentWarning"),sensitive=publish->reviewField("sensitive");
+        check(warning && sensitive,"Mastodon-specific controls are missing");
+        good(warning->edit("Sensitive illustration"));good(sensitive->toggle(true));
+        check(publish->plan().posts[0].post.contentWarning=="Sensitive illustration" && publish->plan().posts[0].post.sensitive,
+              "Mastodon-specific review settings did not reach the publication plan");
+        iiSocialIntegration::ReviewSource video;video.post.title="Video";video.post.media.resize(1);
+        video.post.media[0].kind=iiSocialIntegration::MediaKind::Video;
+        good(publish->setReviewSource(std::move(video)));good(publish->select("youtube"));
+        auto category=publish->reviewField("categoryId"),kids=publish->reviewField("madeForKids");
+        auto synthetic=publish->reviewField("syntheticMedia"),notify=publish->reviewField("notifySubscribers");
+        check(category && kids && synthetic && notify,"YouTube-specific controls are missing");
+        good(category->edit("28"));
+        const auto kidsChoices=kids->options.get();const auto no=std::ranges::find(kidsChoices,std::string("No"));
+        check(no!=kidsChoices.end(),"YouTube audience choice is missing");
+        good(kids->select(int(no-kidsChoices.begin())));good(synthetic->toggle(true));good(notify->toggle(false));
+        check(!publish->plan().posts.empty() && publish->plan().posts[0].post.youtube.categoryId=="28" &&
+              publish->plan().posts[0].post.youtube.madeForKids==std::optional<bool>{false} &&
+              publish->plan().posts[0].post.youtube.containsSyntheticMedia==std::optional<bool>{true} &&
+              !publish->plan().posts[0].post.youtube.notifySubscribers,
+              "YouTube-specific review settings did not reach the publication plan");
+        const auto optionsBytes=iiSharedCanvas::encodeIisc(*document->document());
+        check(optionsBytes.ok(),"platform review settings could not be encoded");
+        const auto optionsReloaded=iiSharedCanvas::decodeIisc(optionsBytes.bytes);
+        check(optionsReloaded.ok() &&
+              std::get<std::string>(optionsReloaded.document.publicationMetadata->settings.at("publish.destination.x.replyControl"))=="following" &&
+              std::get<bool>(optionsReloaded.document.publicationMetadata->settings.at("publish.destination.mastodon.sensitive")) &&
+              std::get<std::string>(optionsReloaded.document.publicationMetadata->settings.at("publish.destination.youtube.categoryId"))=="28" &&
+              !std::get<bool>(optionsReloaded.document.publicationMetadata->settings.at("publish.destination.youtube.notifySubscribers")),
+              "platform review settings did not survive an IISC round trip");
     } catch (const std::exception &error) {std::cerr << error.what() << '\n'; return 1;}
 }

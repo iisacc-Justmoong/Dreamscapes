@@ -17,11 +17,17 @@ class GalleryImageResolver final : public lvui::native::ImageResolver<ii::gui::R
 
 std::shared_ptr<const lvui::native::ImageResolver<ii::gui::RasterImage>>
 galleryImageResolver(const std::shared_ptr<ReviewGalleryModel> &model) {return std::make_shared<GalleryImageResolver>(model);}
-ii::gui::WidgetInputHandler galleryShortcuts(std::shared_ptr<std::weak_ptr<ReviewGalleryModel>> model) {
-    return [model=std::move(model)](const ii::gui::WidgetInput &event) -> ii::core::Result<bool> {
+ii::gui::WidgetInputHandler galleryShortcuts(std::shared_ptr<std::weak_ptr<ReviewGalleryModel>> model,
+                                             std::shared_ptr<std::weak_ptr<CompareModel>> comparison) {
+    return [model=std::move(model),comparison=std::move(comparison)](const ii::gui::WidgetInput &event) -> ii::core::Result<bool> {
         if (event.kind != ii::gui::WidgetInputKind::key_down || event.text_input_active ||
-            event.native_control_active || event.native_navigation_active || event.alt || event.control || event.meta)
+            event.native_navigation_active || event.alt || event.control || event.meta)
             return false;
+        if (comparison) if (auto c=comparison->lock();c && c->visible.get()) {
+            if (event.key==ii::gui::WidgetKey::escape) {c->close();return true;}
+            return false;
+        }
+        if (event.native_control_active) return false;
         const auto owner = model->lock();
         if (!owner || !owner->active() || event.key != ii::gui::WidgetKey::character) return false;
         if (event.text == "f" || event.text == "F") return owner->session()->key({.key = vm::ReviewKey::shortlist}, false).accepted;
@@ -40,7 +46,11 @@ ii::core::Result<void> buildReviewGallery(ii::gui::WidgetBuilder &widgets, ii::g
     if (auto flex = wrapper->set_flex(1); !flex)
         return flex;
     auto model = std::make_shared<std::weak_ptr<ReviewGalleryModel>>();
-    auto input = wrapper->set_input_handler(galleryShortcuts(model));
+    auto comparison = std::make_shared<std::weak_ptr<CompareModel>>();
+    if (auto escape=wrapper->set_escape_action([comparison] {
+            if (auto c=comparison->lock();c && c->visible.get()) c->close();
+        });!escape) return escape;
+    auto input = wrapper->set_input_handler(galleryShortcuts(model,comparison));
     if (!input)
         return input;
     auto factories = lvui::native::BackendFactories{};
@@ -51,6 +61,7 @@ ii::core::Result<void> buildReviewGallery(ii::gui::WidgetBuilder &widgets, ii::g
         scope.backend_1.bindNavigation(scope.backend_0.shared());
         (void)scope.image_services->resolver.set(galleryImageResolver(scope.backend_1.model));
         *model = scope.backend_1.model;
+        *comparison = scope.backend_1.comparison;
         scope.backend_0.setDetailHandler([weak = *model] {
             if (auto owner = weak.lock())
                 owner->detail();

@@ -1,6 +1,6 @@
 #pragma once
 #include "NativeHomeComposerPanel.h"
-#include <iiGUI/NativeWidgets.h>
+#include <iiGUI>
 #include <functional>
 
 namespace dreamscapes::home {

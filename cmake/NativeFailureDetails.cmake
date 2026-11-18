@@ -13,23 +13,4 @@ target_include_directories(DreamscapesFailureDetailsNative PUBLIC "${CMAKE_CURRE
     PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(DreamscapesFailureDetailsNative PUBLIC DreamscapesViewModelsNative LVUI::Native iiGUI::iiGUI)
 
-# The Qt transport remains a backend-only transition layer and is not linked
-# into the independent view. A future native app host owns the bridge.
-if(TARGET DreamscapesGeneration)
-    add_library(DreamscapesFailureDetailsBridge STATIC
-        src/App/Generation/NativeFailureDetailsBridge.h src/App/Generation/NativeFailureDetailsBridge.cpp)
-    set_target_properties(DreamscapesFailureDetailsBridge PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
-    target_compile_features(DreamscapesFailureDetailsBridge PUBLIC cxx_std_23)
-    target_link_libraries(DreamscapesFailureDetailsBridge PUBLIC DreamscapesFailureDetailsNative
-        PRIVATE DreamscapesGeneration)
-    if(APPLE AND NOT IOS AND TARGET Dreamscapes)
-        add_library(DreamscapesFailurePresenter STATIC
-            src/App/Generation/NativeFailurePresenter.h src/App/Generation/NativeFailurePresenter.cpp)
-        set_target_properties(DreamscapesFailurePresenter PROPERTIES AUTOMOC ON AUTOUIC OFF AUTORCC OFF)
-        target_compile_features(DreamscapesFailurePresenter PUBLIC cxx_std_23)
-        target_link_libraries(DreamscapesFailurePresenter PUBLIC DreamscapesFailureDetailsBridge Qt6::Core
-            PRIVATE DreamscapesGeneration Qt6::Gui)
-        target_link_libraries(Dreamscapes PRIVATE DreamscapesFailurePresenter)
-        target_compile_definitions(Dreamscapes PRIVATE DREAMSCAPES_NATIVE_FAILURE_PRESENTER=1)
-    endif()
-endif()
+# The application host and queue projection are compiled by NativeViewApp.

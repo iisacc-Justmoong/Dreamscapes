@@ -73,7 +73,7 @@ ii::core::Result<void> DocumentSession::attach(iiSharedCanvas::Document document
 }
 ii::core::Result<void> DocumentSession::selectLayer(std::string_view id) {
     if (auto valid=writable(); !valid) return valid;
-    if (!document_ || std::ranges::none_of(layers.get(),[&](const auto &row){return row->id==id;}))
+    if (!document_ || (!id.empty() && std::ranges::none_of(layers.get(),[&](const auto &row){return row->id==id;})))
         return ii::core::fail(ErrorCode::invalid_argument,"Layer is unavailable");
     const bool outer=!reconcilingSelection_;
     if (outer) reconcilingSelection_=true;
@@ -784,6 +784,20 @@ ii::core::Result<void> DocumentSession::editPublicationSetting(std::string key,i
     const auto found=metadata.settings.find(key);
     if (found!=metadata.settings.end() && found->second==value) return {};
     metadata.settings[std::move(key)]=std::move(value);
+    const auto generation=documentGeneration.get();
+    if (auto result=detachForEdit(false); !result) return result;
+    iiSharedCanvas::DocumentEditor editor(*document_);
+    const auto result=editor.setPublicationMetadata(std::move(metadata));
+    if (!result.ok()) return ii::core::fail(ErrorCode::failed,result.message);
+    return result.changed?changed(generation,false):ii::core::Result<void>{};
+}
+ii::core::Result<void> DocumentSession::removePublicationSetting(std::string_view key) {
+    if (auto valid=writable(); !valid) return valid;
+    if (!document_) return ii::core::fail(ErrorCode::closed,"No canvas document is open");
+    if (key.empty()) return ii::core::fail(ErrorCode::invalid_argument,"Publication setting requires a key");
+    if (!document_->publicationMetadata || !document_->publicationMetadata->settings.contains(std::string(key))) return {};
+    auto metadata=*document_->publicationMetadata;
+    metadata.settings.erase(std::string(key));
     const auto generation=documentGeneration.get();
     if (auto result=detachForEdit(false); !result) return result;
     iiSharedCanvas::DocumentEditor editor(*document_);

@@ -7,15 +7,15 @@
 
 namespace dreamscapes::home {
 HomeComposerSeedModel::HomeComposerSeedModel(std::shared_ptr<HomeComposerModel> composer, std::string title,
-        std::string random, std::string apply)
-    : heading(std::move(title)), randomLabel(std::move(random)), applyLabel(std::move(apply)), composer_(std::move(composer)) {
+        std::string random, std::string apply, bool show)
+    : heading(std::move(title)), randomLabel(std::move(random)), applyLabel(std::move(apply)), showHeading(show), composer_(std::move(composer)) {
     if (!composer_ || !composer_->active() || heading.empty() || randomLabel.empty() || applyLabel.empty())
         throw std::invalid_argument("Seed editor requires an active model and accessible labels");
 }
 std::shared_ptr<HomeComposerSeedModel> HomeComposerSeedModel::create(std::shared_ptr<HomeComposerModel> composer,
-        std::string heading, std::string random, std::string apply) {
+        std::string heading, std::string random, std::string apply, bool show) {
     auto result = std::shared_ptr<HomeComposerSeedModel>(new HomeComposerSeedModel(std::move(composer),
-        std::move(heading), std::move(random), std::move(apply)));
+        std::move(heading), std::move(random), std::move(apply), show));
     result->start(); return result;
 }
 HomeComposerSeedModel::~HomeComposerSeedModel() { if (active_ && owner_ == std::this_thread::get_id()) try { close(); } catch (...) {} }

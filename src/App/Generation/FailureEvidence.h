@@ -1,5 +1,5 @@
 #pragma once
-#include <iiMultimodalAgent/diagnostics/FailureReport.h>
+#include <iiMultimodalAgent>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>

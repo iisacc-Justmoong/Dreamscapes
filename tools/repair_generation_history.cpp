@@ -1,10 +1,8 @@
 #include "App/Generation/ImageCanvas.h"
-#include <SharedStorage.h>
-#include <FileOperations.h>
-#include <iiSocietyHelper.h>
-#include <File.h>
-#include <iiFileProviderDevice.h>
-#include <iiSharedCanvas/Bitmap/BitmapCodec.h>
+#include <iiSocietyContainer>
+#include <iiSocietyHelper>
+#include <iiFileProvider>
+#include <iiSharedCanvas>
 #include <QCoreApplication>
 #include <QCryptographicHash>
 #include <QDir>

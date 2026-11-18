@@ -53,7 +53,7 @@ QString SocietyAccount::code() const { return !error_.isEmpty() ? error_ : QStri
 void SocietyAccount::refresh() {
     if (!session_ || requestStarted_ || decisionMade_) return;
     requestStarted_ = true;
-    session_->refresh(true);
+    session_->refresh(false);
 }
 bool SocietyAccount::openSociety() { return QDesktopServices::openUrl(QUrl(QStringLiteral("society://"))); }
 void SocietyAccount::invalidate() { if (!decisionMade_ && session_) session_->cancel(); }

@@ -10,8 +10,8 @@
   },
   "source": {
     "path": "README.md",
-    "sha256": "036ede2ed9a1fe2a2495c79eeb120323d601d561a927007b5d216b7458307478",
-    "bytes": 128763,
+    "sha256": "91aa6e48ccfc1815697489c077ad9c294d5bbe75cfc8f8367990fc98960c2a78",
+    "bytes": 129076,
     "line_count": 802,
     "encoding": "utf-8",
     "language": "ko"
@@ -43,7 +43,7 @@
       "kind": "quote",
       "start_line": 3,
       "end_line": 13,
-      "raw": "> **Current build:** the default application is a simplified LVUI/iiGUI view\n> migration. Home, Image, Video and session-local result review use dynamic\n> C++ view models. New Canvas, editor, files, publishing and preferences have native\n> view models. Local Society file browsing, `.iisc` open/save and bounded\n> canvas frame rendering and visual timeline playback are connected; many former views remain minimal\n> static LVUI presentations. Generation, licensing, publication transport,\n> audio playback, remote-only files and other former product\n> integrations are not connected in this build. The application has not been launched or\n> visually verified as part of this change. See [Native view cutover](docs/NativeViewCutover.md)\n> [Native generation view models](docs/NativeDynamicGeneration.md), and\n> [Native editor and workspace view models](docs/NativeDynamicWorkspaces.md).\n"
+      "raw": "> **Current build:** the default application is a simplified LVUI/iiGUI view\n> migration. Home, Image, Video and session-local result review use dynamic\n> C++ view models. New Canvas, editor, files, publishing and preferences have native\n> view models. Local Society file browsing, `.iisc` open/save and bounded\n> canvas frame rendering, timeline playback, Image/Video generation and session-authorized\n> publication are connected. License verification is temporarily disabled by default; many former views remain minimal\n> static LVUI presentations. Interactive social authorization, remote-only files\n> and other former product integrations are not connected in this build. The application has not been launched or\n> visually verified as part of this change. See [Native view cutover](docs/NativeViewCutover.md)\n> [Native generation view models](docs/NativeDynamicGeneration.md), and\n> [Native editor and workspace view models](docs/NativeDynamicWorkspaces.md).\n"
     },
     {
       "id": "b000004",
@@ -57,7 +57,7 @@
       "kind": "paragraph",
       "start_line": 15,
       "end_line": 18,
-      "raw": "Build with `cmake -S . -B build` and `cmake --build build --target Dreamscapes`.\nThe native executable accepts `--help` and `--list-views` as non-GUI agent\ncommands and `--view image` to select an initial view. Its Python inventory is available from\n`src/App/Native/dreamscapes_views.py`.\n"
+      "raw": "Build with `cmake -S . -B build` and `cmake --build build --target Dreamscapes`. The default native build requires `iiSharedCanvasNative` 0.35.39 and `iiGraphicAdjust` 0.6.2 or compatible newer packages.\nThe native executable accepts `--help` and `--list-views` as non-GUI agent\ncommands and `--view image` to select an initial view. Its Python inventory is available from\n`src/App/Native/dreamscapes_views.py`.\n"
     },
     {
       "id": "b000006",
@@ -463,7 +463,7 @@
       "kind": "paragraph",
       "start_line": 106,
       "end_line": 112,
-      "raw": "The native editor also requires `iiSharedCanvas 0.31.2` and `iiGraphicAdjust 0.4.0`\n(`iiGraphicAdjust::iiGraphicAdjust`). The Color, Adjust, Mask and Effects panels\nuse the installed Qt-free C++23 adjustment SDK through a product-side QImage\nadapter. The shared LVRS renderer covers the requested 381 detailed Figma views;\nsee [graphic panel definitions and validation](docs/EditorGraphicPanels.md) and\n[actual image processing and Undo](docs/EditorGraphicAdjust.md). Configure\n`iiGraphicAdjust_DIR` when the SDK is installed outside `$HOME/.local/SDK`.\n"
+      "raw": "The retained Qt editor CMake declarations select `iiSharedCanvas 0.35.39 EXACT` (Quick) and `iiGraphicAdjust 0.6.2 EXACT`\n(`iiGraphicAdjust::iiGraphicAdjust`). The Color, Adjust, Mask and Effects panels\nuse the installed Qt-free C++23 adjustment SDK through a product-side QImage\nadapter. The shared LVRS renderer covers the requested 381 detailed Figma views;\nsee [graphic panel definitions and validation](docs/EditorGraphicPanels.md) and\n[actual image processing and Undo](docs/EditorGraphicAdjust.md). Configure\n`iiGraphicAdjust_DIR` when the SDK is installed outside `$HOME/.local/SDK`.\n"
     },
     {
       "id": "b000058",
@@ -593,7 +593,7 @@
       "kind": "paragraph",
       "start_line": 144,
       "end_line": 144,
-      "raw": "It uses the project root, `src/App`, `src/App/Views`, and the `src/App/Generation` dedicated to the creation queue. QWidget is not used.\n"
+      "raw": "The first entry describes the current native application; the remaining legacy paths and behavior are historical references and do not establish current feature parity.\n"
     },
     {
       "id": "b000076",
@@ -607,11 +607,11 @@
       "kind": "list",
       "start_line": 146,
       "end_line": 156,
-      "raw": "- `src/main.cpp`: Initializes LVRS runtime and always keeps `Main.qml` open.\n- `src/App/Main.qml`: A single `LV.ApplicationWindow` used by all platforms connects the top/bottom placement of creation completion and go back and QuickGenerate.\n- `src/App/Views/Home/QuickGenerate.qml`: A common creation panel combining LVRS input fields, buttons, menus, and a responsive stack layout.\n- `src/App/Views/Result/GenerationResult.qml` : Generation progress/review workspace with a virtualized result grid, independent selection/shortlist/reject states, queue failure details, Inspector, synchronized comparison and original export.\n- `src/App/Views/Editor/CanvasEditor.qml` : Common editor entry screen for Home/Creation results and Back/Escape return.\n- Generated images are stored as PNG originals in Society Generation History. Opening an image in the editor persists a self-contained `.iisc` fill canvas in Society Files without changing its PNG; see [image canvas storage](docs/ImageCanvasStorage.md).\n- Home opens local `.iisc` documents, `.iiscp` projects and image originals through the shared editor. Cmd/Ctrl and Shift select generated images for independent artboards in one `.iisc` document. The editor presents a horizontal page sequence with a focused native editing page, distance-based depth, blur and darkening, and a small bottom preview strip. Clicking a page or preview navigates without changing persisted artboard coordinates. Legacy `.iiscp` projects migrate on open. Returning preserves the prompt draft and selection. See [multi-canvas projects](docs/MultiCanvasProject.md) and [Home-to-editor routes](docs/HomeEditorRoutes.md).\n- QuickGenerate and Home queue indicators use shared LVRS icons and semantic color roles.\n- `src/App/tst_Gui.cpp` : Maintains status on Main entry point/window count/screen size change, common panel layout, input and menu selection, and request delivery verification.\n- `src/App/Generation/GenerationController.h/.cpp` : Manages app memory queue with fixed Society model reference and existing iiLocalDiffusion executor connection.\n- `src/App/Generation/tst_Generation.cpp` : Checks queue isolation, termination on re-run, model change, sequential execution, result verification, cancellation, concurrent windows, and boundary exit.\n",
+      "raw": "- `src/App/Native/NativeMain.cpp`: Attaches the LVUI/iiGUI window and services to the iiSDKCore application lifecycle.\n- `src/App/Main.qml`: A single `LV.ApplicationWindow` used by all platforms connects the top/bottom placement of creation completion and go back and QuickGenerate.\n- `src/App/Views/Home/QuickGenerate.qml`: A common creation panel combining LVRS input fields, buttons, menus, and a responsive stack layout.\n- `src/App/Views/Result/GenerationResult.qml` : Generation progress/review workspace with a virtualized result grid, independent selection/shortlist/reject states, queue failure details, Inspector, synchronized comparison and original export.\n- `src/App/Views/Editor/CanvasEditor.qml` : Common editor entry screen for Home/Creation results and Back/Escape return.\n- Generated images are stored as PNG originals in Society Generation History. Opening an image in the editor persists a self-contained `.iisc` fill canvas in Society Files without changing its PNG; see [image canvas storage](docs/ImageCanvasStorage.md).\n- Home opens local `.iisc` documents, `.iiscp` projects and image originals through the shared editor. Cmd/Ctrl and Shift select generated images for independent artboards in one `.iisc` document. The editor presents a horizontal page sequence with a focused native editing page, distance-based depth, blur and darkening, and a small bottom preview strip. Clicking a page or preview navigates without changing persisted artboard coordinates. Legacy `.iiscp` projects migrate on open. Returning preserves the prompt draft and selection. See [multi-canvas projects](docs/MultiCanvasProject.md) and [Home-to-editor routes](docs/HomeEditorRoutes.md).\n- QuickGenerate and Home queue indicators use shared LVRS icons and semantic color roles.\n- `src/App/tst_Gui.cpp` : Maintains status on Main entry point/window count/screen size change, common panel layout, input and menu selection, and request delivery verification.\n- `src/App/Generation/GenerationController.h/.cpp` : Manages app memory queue with fixed Society model reference and existing iiLocalDiffusion executor connection.\n- `src/App/Generation/tst_Generation.cpp` : Checks queue isolation, termination on re-run, model change, sequential execution, result verification, cancellation, concurrent windows, and boundary exit.\n",
       "items": [
         {
           "marker": "-",
-          "text": "`src/main.cpp`: Initializes LVRS runtime and always keeps `Main.qml` open.",
+          "text": "`src/App/Native/NativeMain.cpp`: Attaches the LVUI/iiGUI window and services to the iiSDKCore application lifecycle.",
           "checked": null
         },
         {

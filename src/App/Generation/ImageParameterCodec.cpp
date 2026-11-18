@@ -56,6 +56,12 @@ bool collection(const QVariant &value, const std::map<std::string, ImageParamete
     return true;
 }
 }
+bool imageHiresEnabled(const QJsonObject &saved)
+{
+    // QJsonValue only accepts a JSON boolean here. Missing, null and values of
+    // any other type must not be mistaken for an explicit false.
+    return saved.value("hiresFix").toBool(true);
+}
 QVariantMap imageParametersToMap(const ImageParameters &p)
 {
     QVariantMap result;
@@ -79,6 +85,7 @@ bool imageParametersFromMap(const QVariantMap &map, ImageParameters *parameters,
     auto next = ImageParameters::defaults();
     for (auto it = map.cbegin(); it != map.cend(); ++it) {
         if (it.key() == "referenceImages" || it.key() == "controlNets" || it.key() == "loras") continue;
+        if (it.key() == "hiresFix" && (!it.value().isValid() || it.value().metaType().id() == QMetaType::Nullptr)) continue;
         const auto field = next.values.find(it.key().toStdString());
         if (field == next.values.end() || !convert(it.value(), &field->second)) {
             *error = "Unknown parameter or incorrect type: " + it.key(); return false;

@@ -1,17 +1,19 @@
 #pragma once
 #include "NativeHomeComposerSeed.h"
-#include <iiGUI/NativeWidgets.h>
+#include "NativeHomeComposerPopups.h"
+#include <iiGUI>
 
 namespace dreamscapes::home {
 [[nodiscard]] ii::core::Result<void> buildHomeComposerSeed(ii::gui::WidgetBuilder &, ii::gui::Widget parent,
-                                                           std::shared_ptr<HomeComposerSeedModel>);
+    std::shared_ptr<HomeComposerSeedModel>, std::shared_ptr<HomeComposerPopups> = {});
 }
 class NativeHomeComposerSeedBackend final {
   public:
     using Model = dreamscapes::home::HomeComposerSeedModel;
-    explicit NativeHomeComposerSeedBackend(std::shared_ptr<Model>);
+    NativeHomeComposerSeedBackend(std::shared_ptr<Model>, std::shared_ptr<dreamscapes::home::HomeComposerPopups>);
     std::shared_ptr<Model> model;
     std::string heading, randomLabel, applyLabel;
+    bool showHeading;
     ii::core::Observable<std::string> &value, &draft;
     ii::core::Observable<bool> &enabled;
     ii::core::Observable<double> &viewportWidth;
@@ -22,5 +24,6 @@ class NativeHomeComposerSeedBackend final {
     void apply();
     void randomize();
   private:
+    std::shared_ptr<dreamscapes::home::HomeComposerPopups> popups_;
     ii::gui::Widget popup_, anchor_;
 };

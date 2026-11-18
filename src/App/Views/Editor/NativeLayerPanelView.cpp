@@ -1,6 +1,6 @@
 #include "NativeLayerPanelView.h"
 #include "NativeLayerPanel.generated.h"
-#include <iiGUI/CompiledViewSource.h>
+#include <iiGUI>
 
 std::function<void(double,double)> NativeLayerPanelBackend::sizeHandler(double inset) {
     return [weak=std::weak_ptr(model),inset](double width,double height) {

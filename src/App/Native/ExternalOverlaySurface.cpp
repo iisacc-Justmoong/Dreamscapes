@@ -1,5 +1,5 @@
 #include "ExternalOverlaySurface.h"
-#include <iiGUI/Host.h>
+#include <iiGUI>
 #include <QCoreApplication>
 #include <QTimer>
 #include <utility>

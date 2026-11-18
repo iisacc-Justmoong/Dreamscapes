@@ -1,6 +1,6 @@
 #include "NativeMaskPanelView.h"
 #include "NativeMaskPanel.generated.h"
-#include <iiGUI/CompiledViewSource.h>
+#include <iiGUI>
 
 std::function<void(double,double)> NativeMaskPanelBackend::sizeHandler(double inset,double rowHeight,double maximumListHeight) {
     return [weak=std::weak_ptr(model),inset,rowHeight,maximumListHeight](double width,double height) {

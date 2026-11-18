@@ -14,7 +14,7 @@
       "document_id": "urn:iisacc:document:8cfc9d8a7589190597322d973c2b2fecb5c3dc57efad048e8b4b7ea6f238046c",
       "source": "AGENT.md",
       "agent_json": "docs/entrypoints/AGENT.agent.json",
-      "source_sha256": "30913b6cf796fc359a8433289701e2db8dc76e96c633883c866e32f74ac46de9",
+      "source_sha256": "d23561462950e4f2008d96c535af594de155eeaab74ac329f0386589e850880a",
       "role": "instructions"
     },
     {
@@ -28,21 +28,21 @@
       "document_id": "urn:iisacc:document:047887459d0d4d3b49222e75488254321571556918c4f0489c848d9d649831d3",
       "source": "README.md",
       "agent_json": "docs/entrypoints/README.agent.json",
-      "source_sha256": "036ede2ed9a1fe2a2495c79eeb120323d601d561a927007b5d216b7458307478",
+      "source_sha256": "91aa6e48ccfc1815697489c077ad9c294d5bbe75cfc8f8367990fc98960c2a78",
       "role": "overview"
     },
     {
       "document_id": "urn:iisacc:document:f0e8b437d0c763b80b86b8ad2072fa9bc7beed99b9d0d10f4dafc0fea2a728c9",
       "source": "docs/AdvancedImageParameters.md",
       "agent_json": "docs/AdvancedImageParameters.agent.json",
-      "source_sha256": "bd15f5b2336bf3c564f2718417726b319f91578f6010f8073d0e86f8cd286817",
+      "source_sha256": "e4bc02ae1ee986ea8cab218ebac809b98aa89671596185ff627ff6788012a4ba",
       "role": "guide"
     },
     {
       "document_id": "urn:iisacc:document:852731a119c69ff0850f1930417be19529ab84c5e2827f4af348d62e7d8bfce0",
       "source": "docs/ApplicationLifetime.md",
       "agent_json": "docs/ApplicationLifetime.agent.json",
-      "source_sha256": "42a397e00ab6fda5bf2e0bf08f75f5b20f4e577434bb60c06a40702add0e6cdb",
+      "source_sha256": "878cac9ace59c7d9431a56c026397b9d98c2079378248950ab23673e084cd3dc",
       "role": "guide"
     },
     {
@@ -70,7 +70,7 @@
       "document_id": "urn:iisacc:document:dd695d4502282f5d562421fc11c5c3c3bd4077c27beef02d3219ebac1a7344b6",
       "source": "docs/ColorPicker.md",
       "agent_json": "docs/ColorPicker.agent.json",
-      "source_sha256": "63cd1a5452f7a64fe41384950e300ea81b45ce4c6a4cc1378a9494d0829f96bc",
+      "source_sha256": "208c58cb02125be8d113820e34058f976771df6a8636245417f784a4ef5717ba",
       "role": "guide"
     },
     {
@@ -273,7 +273,7 @@
       "document_id": "urn:iisacc:document:f6b72b1eba9ccb7ba9a13b8568f26738683b269f0b0665db8e490a94c1e9dc17",
       "source": "docs/FailureAgent.md",
       "agent_json": "docs/FailureAgent.agent.json",
-      "source_sha256": "9ef107f0701925ecc23002cab649de0e4edaa1f13dc8698a4aa14e491c2c25db",
+      "source_sha256": "074ca7504abf132931822f9a0cc969363eed0d6a09c46473476510dd003d2d88",
       "role": "guide"
     },
     {
@@ -315,7 +315,7 @@
       "document_id": "urn:iisacc:document:0818e047a374e8d749acf5e2f63fecaa1e6bf9c0ebdf3e16a85b0266c2338ba5",
       "source": "docs/GraphicParameterHelpers.md",
       "agent_json": "docs/GraphicParameterHelpers.agent.json",
-      "source_sha256": "ee7aa53604371afd748234ae8513ad5daabd7370e91b480d97ab101013501305",
+      "source_sha256": "657f0254086790dab81f8a786ab4a25df124cda3edb2119ce95d241bdaec6bf5",
       "role": "guide"
     },
     {
@@ -392,21 +392,21 @@
       "document_id": "urn:iisacc:document:0c66a30b177d3a17a38eedd1366c20a9e4c8c5ff0a2326de0aeb3cbc9d577907",
       "source": "docs/NativeApplicationWindow.md",
       "agent_json": "docs/NativeApplicationWindow.agent.json",
-      "source_sha256": "2a26820deb50cb6affbbeb9b63c500816da5ead851e24bf92e134488c490afde",
+      "source_sha256": "5721888b7cbe30ce7e02af17c30eb6b05ab18b72f92c668a46ec06059fa43684",
       "role": "guide"
     },
     {
       "document_id": "urn:iisacc:document:384e07f3667ee719ccd79bc6c8fd3cbaf3df0f261dfc994363b05ddca447d146",
       "source": "docs/NativeDynamicGeneration.md",
       "agent_json": "docs/NativeDynamicGeneration.agent.json",
-      "source_sha256": "e6a5d5dc1c9ba1bf1cbb97a6c0d7f716c1b3b74c105f516b693a0f0aadabd13e",
+      "source_sha256": "fb6dd7c413e309613f5acb8eb06d04321eb73928cacd910f273a411b506000af",
       "role": "guide"
     },
     {
       "document_id": "urn:iisacc:document:65cd8f883e731adcb069ba71fc56d644cd1308038a2660a6513355236e16ff8d",
       "source": "docs/NativeDynamicWorkspaces.md",
       "agent_json": "docs/NativeDynamicWorkspaces.agent.json",
-      "source_sha256": "9058b81b663a38b5069c9f61a3869531128b79e1dc976931b60ec373be6e9cbe",
+      "source_sha256": "63dcaa232412a0d708c60efdc82d05e98823eed23816190d0acd579943772edf",
       "role": "guide"
     },
     {
@@ -420,7 +420,7 @@
       "document_id": "urn:iisacc:document:e4f43c2609886d72f05ec8f2964f9ae35297ee6b5a4e8b8e701be77bfa3f92aa",
       "source": "docs/NativeFailureDetails.md",
       "agent_json": "docs/NativeFailureDetails.agent.json",
-      "source_sha256": "fc5b6ad78fe813378d9937fc5388762c6ea88779b76da0b38ca260b77a0012c6",
+      "source_sha256": "ad47ec634642bcc2162d20b127a8d07314bddf89373ede18ef698560fcfe759a",
       "role": "guide"
     },
     {
@@ -448,7 +448,7 @@
       "document_id": "urn:iisacc:document:e7aacfa99ebe4494bc2e9aa7f2ddf9cd212a2f40ea5a14651f0c702cd08c91e8",
       "source": "docs/NativeHomeComposer.md",
       "agent_json": "docs/NativeHomeComposer.agent.json",
-      "source_sha256": "f8c95bb85e305345b4e4aa980db894826c69cd0f148fcd8a83762dd9566a46fb",
+      "source_sha256": "0e2f12507a73ca15e4555a5ca1d69b78058f1c4f4caeba583688e5c0cb953bb8",
       "role": "guide"
     },
     {
@@ -483,14 +483,14 @@
       "document_id": "urn:iisacc:document:4cf23c1856081d359aa75847363892c47fa37c2d0c1e216e73883c741e1f3990",
       "source": "docs/NativeHomeSidebar.md",
       "agent_json": "docs/NativeHomeSidebar.agent.json",
-      "source_sha256": "f2ecb65d06d167ef6a36b756e80b1437bdd9dcf2b333b0fc27fe201faa93fdfe",
+      "source_sha256": "54e36fd4addade84e7e099746db5050a2bb58f15f8719d455faa85e701410973",
       "role": "guide"
     },
     {
       "document_id": "urn:iisacc:document:de62f0b4fc5c542600a8c4b5cd38281185c0e5670aa3e4ed8e5c2fd09d9f0948",
       "source": "docs/NativeHomeWorkspace.md",
       "agent_json": "docs/NativeHomeWorkspace.agent.json",
-      "source_sha256": "022d09e7bd10ed321fb66eb173592b0f483d8a8dc1607b81b0bf36fcbfc77400",
+      "source_sha256": "3d49502b0474a503168479f3be5e50c61b7fe7d674dfc61723066fbfc351d440",
       "role": "guide"
     },
     {
@@ -532,21 +532,21 @@
       "document_id": "urn:iisacc:document:11f978458fd7fa15fd808de8c52fee2c11dfc78f14f22e16cd81ed0173cbb5b2",
       "source": "docs/NativeReviewSession.md",
       "agent_json": "docs/NativeReviewSession.agent.json",
-      "source_sha256": "4f3f0178450ba3e42444c5e5a1b5214203544693cce116ca23fe5ddecca334b9",
+      "source_sha256": "d5315c80d836860691e964afda9c543f96a411a42806c3e99db9f4bea104fe72",
       "role": "guide"
     },
     {
       "document_id": "urn:iisacc:document:4e718be37447ea411a589e787fa7176178293b26949a613ca979d74b10953c28",
       "source": "docs/NativeViewCutover.md",
       "agent_json": "docs/NativeViewCutover.agent.json",
-      "source_sha256": "80a5b5056a35839728d34b264d053e75083812a54365c3252af249453b5c7b4f",
+      "source_sha256": "3e8310a7e97431142c2eb22d2688b54762a388ffd93c2e81f2825b67da148135",
       "role": "guide"
     },
     {
       "document_id": "urn:iisacc:document:e4807bc90f628af976d375c3ff01692385c8aff9fcb3ad952276834c57a5e1b1",
       "source": "docs/NativeViewModels.md",
       "agent_json": "docs/NativeViewModels.agent.json",
-      "source_sha256": "b0a1cbe76d28bb40bee49f66ee40498d6000630c76b14841e1688d45b85af334",
+      "source_sha256": "6d3c30f856d6552f88a147f33e3b056f3f4c2ca33e9907d45c57b7a763dff2a6",
       "role": "guide"
     },
     {
@@ -679,7 +679,7 @@
       "document_id": "urn:iisacc:document:a0b24bdce66a30ea973a8d5f96011b5e784ba0537ece18af63b4187fab1fa339",
       "source": "docs/SocietyAccount.md",
       "agent_json": "docs/SocietyAccount.agent.json",
-      "source_sha256": "3532836316edda4b2de398ec4daf68044df0cb402a59716fe0c75d0b90c82d3f",
+      "source_sha256": "8ba16d81cc5f0a6d3431f2a65e3a263b098c4ff6369a7660fab1e1c4ec202699",
       "role": "guide"
     },
     {

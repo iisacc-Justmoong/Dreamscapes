@@ -1,5 +1,5 @@
 #include "App/Views/Result/NativeReviewGalleryView.h"
-#include <LVUI/NativeImageResolver.h>
+#include <LVUI>
 #include "iiGUI/WidgetState.h"
 #include <algorithm>
 #include <iostream>
@@ -198,10 +198,67 @@ void exercise() {
           "The native filter lost the shortlist or selection");
     state->close();
 }
+
+void compareWorkspace() {
+    auto state=std::make_shared<ii::gui::detail::WidgetState>([](ii::runtime::Task task) {task();});
+    auto root=take(state->content_host({},"compareRoot",{960,600}));
+    std::shared_ptr<review::ReviewGalleryModel> gallery;
+    auto resolver=std::make_shared<PreviewResolver>();std::vector<vm::Value> entries;
+    for (int i=0;i<80;++i) entries.push_back(entry(i));
+    good(root.set_content([&](ii::gui::WidgetBuilder &builder) {
+        return review::buildReviewGallery(builder,{},[&](const auto &model) {
+            gallery=model;model->setImageResolver(resolver);model->session()->replaceEntries(entries);
+        });
+    }));
+    (void)take(state->drawing_snapshot({960,600}));
+    gallery->session()->selectAt(0);gallery->session()->selectAt(1,false,true);
+    auto scroll=take(root.content_item("results/viewport"));good(scroll.set_scroll_offset(400));
+    const auto offset=take(scroll.snapshot()).scroll_offset;
+    check(offset>0,"Comparison test needs a scrolled gallery");
+    const auto focused=gallery->session()->focusedKey();
+    good(take(root.content_item("compare")).activate());
+    (void)take(state->drawing_snapshot({960,600}));
+    check(resolver->requested.contains("file:///review/0.iisc") && resolver->requested.contains("file:///review/1.iisc"),
+          "Comparison did not resolve both selected original sources");
+    auto pixels=take(ii::gui::rgba_image(4,4,std::vector<std::uint8_t>(4*4*4,255)));
+    (void)resolver->ready.set(pixels);
+    const auto frame=take(state->drawing_snapshot({960,600}));
+    std::size_t images=frame.images.size();
+    for (const auto &layer:frame.overlays) images+=layer.images.size();
+    for (const auto &scene:frame.scenes) for (const auto &layer:scene.layers) images+=layer.images.size();
+    check(images>=2,"Comparison did not render the loaded previews");
+    const auto beforeFocus=gallery->session()->focusedKey();
+    good(state->input({.kind=ii::gui::WidgetInputKind::pointer_down,.x=500,.y=300,.buttons=1}));
+    good(state->input({.kind=ii::gui::WidgetInputKind::pointer_move,.x=510,.y=310,.buttons=1}));
+    good(state->input({.kind=ii::gui::WidgetInputKind::pointer_up,.x=510,.y=310,.buttons=1}));
+    check(gallery->session()->focusedKey()==beforeFocus && gallery->session()->selectedCount()==2,
+          "Pointer interaction in comparison reached the obscured gallery");
+    entries.push_back(entry(80));gallery->session()->replaceEntries(entries);
+    check(gallery->session()->selectedCount()==2 && gallery->session()->focusedKey()==focused,
+          "An arriving result changed the active comparison selection");
+    good(take(root.content_item("compareActual")).activate());
+    good(take(root.content_item("compareSync")).activate());
+    check(take(take(root.content_item("compareSync")).snapshot()).text=="Sync off",
+          "Comparison synchronization control did not update");
+    good(take(root.content_item("compareActual")).focus());
+    good(state->input({.kind=ii::gui::WidgetInputKind::key_down,.key=ii::gui::WidgetKey::escape}));
+    check(!take(take(root.content_item("compareSurface")).snapshot()).visible,
+          "Escape did not close comparison from a focused control");
+    good(take(root.content_item("compare")).activate());
+    (void)take(state->drawing_snapshot({960,600}));
+    good(take(root.content_item("compareBack")).activate());
+    const auto finalOffset=take(scroll.snapshot()).scroll_offset;
+    if (gallery->session()->selectedCount()!=2 || gallery->session()->focusedKey()!=focused || finalOffset!=offset)
+        throw std::runtime_error("Closing comparison changed selection, focus or gallery scroll: selected="+
+            std::to_string(gallery->session()->selectedCount())+" focus="+std::to_string(gallery->session()->focusedKey()==focused)+
+            " offset="+std::to_string(offset)+" -> "+std::to_string(finalOffset));
+    state->close();
+}
 } // namespace
 int main() {
     try {
         exercise();
+        compareWorkspace();
     } catch (const std::exception &error) {
         std::cerr << error.what() << '\n';
         return 1;

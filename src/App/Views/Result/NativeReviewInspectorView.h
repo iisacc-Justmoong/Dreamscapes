@@ -1,9 +1,7 @@
 #pragma once
 #include "NativeReviewInspectorViewModel.h"
-#include <LVUI/NativeImageResolver.h>
-#include <iiGUI/CompiledViewSource.h>
-#include <iiGUI/Image.h>
-#include <iiGUI/NativeWidgets.h>
+#include <LVUI>
+#include <iiGUI>
 #include <memory>
 
 namespace dreamscapes::review {

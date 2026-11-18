@@ -1,7 +1,7 @@
 #pragma once
-#include <SharedStorage.h>
+#include <iiSocietyContainer>
 #include <atomic>
-#include <iiSocietyHelper.h>
+#include <iiSocietyHelper>
 
 namespace dreamscapes {
 namespace detail {

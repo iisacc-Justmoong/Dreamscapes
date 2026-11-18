@@ -5,4 +5,6 @@ inline constexpr auto queueReadySvg=R"DREAMSCAPES_SVG(@DREAMSCAPES_QUEUE_READY_S
 inline constexpr auto preferencesCatalog=R"PREFS(@DREAMSCAPES_PREFERENCES_CATEGORIES@)PREFS";
 inline constexpr auto canvasCatalog=R"CANVAS(@DREAMSCAPES_CANVAS_CATALOG@)CANVAS";
 inline constexpr auto filePanelCatalog=R"FILEPANEL(@DREAMSCAPES_FILE_PANEL_CATALOG@)FILEPANEL";
+inline constexpr auto toolCatalog=R"TOOLS(@DREAMSCAPES_TOOL_CATALOG@)TOOLS";
+inline constexpr auto backgroundCatalog=R"BACKGROUND(@DREAMSCAPES_BACKGROUND_CATALOG@)BACKGROUND";
 }

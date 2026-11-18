@@ -1,5 +1,5 @@
 #include "ImageCanvas.h"
-#include <iiSocietyHelper.h>
+#include <iiSocietyHelper>
 #include <QUrlQuery>
 
 namespace dreamscapes {

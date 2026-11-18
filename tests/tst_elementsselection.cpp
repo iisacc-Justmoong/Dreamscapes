@@ -1,6 +1,6 @@
 #include "App/Views/Editor/EditorCanvas.h"
-#include <SocietyDrive.h>
-#include <iiSharedCanvas.h>
+#include <iiSocietyContainer>
+#include <iiSharedCanvas>
 #include <QImage>
 #include <QMouseEvent>
 #include <QSignalSpy>

@@ -1,7 +1,7 @@
 #import <AppKit/AppKit.h>
 #include "NativeEmbeddedSurface.h"
-#include <iiGUI/Host.h>
-#include <iiSDKCore/Runtime/Runtime.h>
+#include <iiGUI>
+#include <iiSDKCore>
 #include <cmath>
 #include <exception>
 #include <thread>

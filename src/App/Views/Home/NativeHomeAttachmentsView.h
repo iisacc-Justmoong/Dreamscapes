@@ -1,8 +1,7 @@
 #pragma once
 #include "NativeHomeAttachments.h"
-#include <LVUI/NativeImageResolver.h>
-#include <iiGUI/Image.h>
-#include <iiGUI/NativeWidgets.h>
+#include <LVUI>
+#include <iiGUI>
 
 namespace dreamscapes::home {
 [[nodiscard]] ii::core::Result<void> buildHomeAttachments(ii::gui::WidgetBuilder &, ii::gui::Widget parent,

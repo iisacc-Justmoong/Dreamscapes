@@ -1,6 +1,6 @@
 #include "App/Views/Home/CanvasPreview.h"
 #include "App/Views/Home/HomeFileDetails.h"
-#include <iiSharedCanvas.h>
+#include <iiSharedCanvas>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -11,7 +11,7 @@
 #include <QQuickImageProvider>
 #include <QTemporaryDir>
 #include <QtTest>
-#include <iiFileProviderPresentation.h>
+#include <iiFileProvider>
 #include <filesystem>
 #include <memory>
 

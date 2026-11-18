@@ -1,5 +1,5 @@
 #pragma once
-#include <iiSharedCanvas.h>
+#include <iiSharedCanvas>
 #include <QBuffer>
 #include <QImage>
 #include <QPainterPath>

@@ -1,6 +1,6 @@
 #include "App/ViewModels/LvuiStyleTokens.h"
 
-#include <LVUI/StyleTokens.h>
+#include <LVUI>
 #include <QColor>
 #include <QDirIterator>
 #include <QFile>

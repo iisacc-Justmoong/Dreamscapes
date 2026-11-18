@@ -1,8 +1,8 @@
 #include "App/Views/Editor/EditorCanvas.h"
 #include "App/Views/ColorManagerModel.h"
 #include "App/StorageViewTypes.h"
-#include <iiSharedCanvas.h>
-#include <SocietyDrive.h>
+#include <iiSharedCanvas>
+#include <iiSocietyContainer>
 #include <QtTest>
 #include <QApplication>
 #include <QClipboard>

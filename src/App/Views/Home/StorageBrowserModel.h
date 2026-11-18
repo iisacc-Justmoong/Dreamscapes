@@ -1,6 +1,6 @@
 #pragma once
 #include "../../ViewModels/Native/StorageProjection.h"
-#include <Container.h>
+#include <iiSocietyContainer>
 #include <QPointer>
 class StorageBrowserModel : public QObject {
     Q_OBJECT

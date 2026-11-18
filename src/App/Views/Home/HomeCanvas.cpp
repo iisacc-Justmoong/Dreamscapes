@@ -1,4 +1,4 @@
-#include <iiFileProviderDevice.h>
+#include <iiFileProvider>
 #include "HomeCanvas.h"
 #include "App/Generation/ImageParameterCodec.h"
 #include "App/Generation/ImageCanvas.h"

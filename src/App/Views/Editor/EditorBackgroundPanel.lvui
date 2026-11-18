@@ -10,17 +10,22 @@ EventListener(id: "maskPanelSurface", width: 0, height: 0, flex: 1, onSizeChange
             Label(text: "Background", style: .body, flex: 1)
         }
         HStack(spacing: Metric.space2, alignment: .center) {
-            IconButton(iconName: "panel-background-color", width: Metric.size22, height: Metric.size22,
-                       tone: .borderless, enabled: false, accessibilityName: "Color unavailable")
+            IconButton(id: "maskColorTab", iconName: "panel-background-color", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, enabled: vm.colorAvailable, accessibilityName: "Color", onClick: vm.showColor)
             IconButton(iconName: "panel-background-remove", width: Metric.size22, height: Metric.size22,
                        tone: .borderless, enabled: false, accessibilityName: "Remove unavailable")
             IconButton(iconName: "panel-background-mask", width: Metric.size22, height: Metric.size22,
                        tone: .borderless, checked: true, checkable: false, selectionStyle: .segmented,
                        accessibilityName: "Mask")
-            IconButton(iconName: "panel-background-replace", width: Metric.size22, height: Metric.size22,
-                       tone: .borderless, enabled: false, accessibilityName: "Replace unavailable")
+            IconButton(id: "maskReplaceTab", iconName: "panel-background-replace", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, enabled: vm.replaceAvailable, accessibilityName: "Replace", onClick: vm.showReplace)
         }
         Label(text: "Mask", style: .body)
+        HStack(spacing: Metric.space4, alignment: .center) {
+            IconButton(id: "maskLasso", iconName: "panel-select-lasso", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, enabled: vm.canLasso, checked: vm.lassoActive, checkable: false,
+                       selectionStyle: .segmented, accessibilityName: "New lasso mask", onClick: vm.toggleLasso)
+        }
         if (vm.canAdd) { Label(id: "maskLayerName", text: vm.layerName, style: .caption, elideRight: true) }
         else { Label(id: "maskNoLayer", text: "Select an artwork layer", style: .caption) }
         HStack(spacing: Metric.space8, alignment: .center) {

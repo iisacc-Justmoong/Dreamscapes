@@ -8,7 +8,7 @@
 #include <QFile>
 #include <QJSValue>
 #include <QQmlEngine>
-#include <iiJson/Json.h>
+#include <iiJson>
 #include <regex>
 
 static void initializeNativeViewCatalogs() {

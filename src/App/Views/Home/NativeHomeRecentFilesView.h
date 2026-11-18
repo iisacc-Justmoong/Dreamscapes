@@ -1,11 +1,8 @@
 #pragma once
 
 #include "NativeHomeRecentFiles.h"
-#include <LVUI/NativeCollectionNavigation.h>
-#include <LVUI/NativeImageResolver.h>
-#include <iiGUI/CollectionNavigation.h>
-#include <iiGUI/Image.h>
-#include <iiGUI/NativeWidgets.h>
+#include <LVUI>
+#include <iiGUI>
 #include <memory>
 #include <utility>
 

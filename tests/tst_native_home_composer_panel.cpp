@@ -1,5 +1,5 @@
 #include "App/Views/Home/NativeHomeComposerPanel.h"
-#include <iiGUI/CompiledViewSource.h>
+#include <iiGUI>
 #include <iostream>
 #include <stdexcept>
 

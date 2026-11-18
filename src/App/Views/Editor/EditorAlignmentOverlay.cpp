@@ -1,6 +1,6 @@
 #include "EditorAlignmentOverlay.h"
 #include "EditorToolUtils.h"
-#include <iiSharedCanvas/Document/CanvasSampling.h>
+#include <iiSharedCanvas>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>

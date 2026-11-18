@@ -1,8 +1,7 @@
 #include "App/Views/Editor/EditorCanvas.h"
-#include <iiSharedCanvas/Render/FrameRenderer.h>
-#include <iiSharedCanvas/Serialization/IiscCodec.h>
-#include <iiFileProvider.h>
-#include <SocietyDrive.h>
+#include <iiSharedCanvas>
+#include <iiFileProvider>
+#include <iiSocietyContainer>
 #include <Stroke/Rasterizer.h>
 #include <QImage>
 #include <QTemporaryDir>

@@ -71,6 +71,69 @@ ii::core::Result<std::string> DocumentSession::createLayerMask(std::string_view 
         return id;
     } catch (...) {return ii::core::fail(ErrorCode::failed,"Cannot create the mask",std::current_exception());}
 }
+ii::core::Result<std::string> DocumentSession::createLassoMask(std::string_view requested,std::vector<iiSharedCanvas::Point> points) {
+    using namespace iiSharedCanvas;
+    if (auto valid=writable();!valid) return std::unexpected(valid.error());
+    if (!document_) return ii::core::fail(ErrorCode::closed,"No canvas document is open");
+    if (editingStructure_) return ii::core::fail(ErrorCode::busy,"Another canvas operation is in progress");
+    if (points.size()<3 || points.size()>4096) return ii::core::fail(ErrorCode::invalid_argument,"A lasso needs 3 to 4096 points");
+    if (revision.get()==std::numeric_limits<std::uint64_t>::max() || visualRevision.get()==std::numeric_limits<std::uint64_t>::max())
+        return ii::core::fail(ErrorCode::out_of_range,"Document revision is exhausted");
+    const std::string layerId(requested);const auto *layer=findLayer(*document_,layerId);
+    const auto kind=layer?layerKind(*layer):std::nullopt;
+    if (!layer || layerRole(*layer)!=LayerRole::Artwork || !kind ||
+        (*kind!=LayerKind::StaticBitmap && *kind!=LayerKind::StaticVector))
+        return ii::core::fail(ErrorCode::unsupported,"Select a static artwork layer for a lasso mask");
+    const auto &properties=layerProperties(*layer);const auto t=properties.transform;
+    const auto determinant=t.m11*t.m22-t.m12*t.m21;
+    if (!properties.motion.empty() || properties.artboardId || !std::isfinite(determinant) || std::abs(determinant)<1e-12)
+        return ii::core::fail(ErrorCode::unsupported,"Lasso masks require an unanimated, invertible layer without artboard clipping");
+    try {
+        double left=std::numeric_limits<double>::infinity(),top=left,right=-left,bottom=-left;
+        for (auto &p:points) {
+            if (!std::isfinite(p.x)||!std::isfinite(p.y)) return ii::core::fail(ErrorCode::invalid_argument,"Lasso coordinates must be finite");
+            const auto x=p.x-t.translationX,y=p.y-t.translationY;
+            p={(t.m22*x-t.m21*y)/determinant,(-t.m12*x+t.m11*y)/determinant};
+            if (!std::isfinite(p.x)||!std::isfinite(p.y)) return ii::core::fail(ErrorCode::out_of_range,"Lasso is outside the supported coordinate range");
+            left=std::min(left,p.x);top=std::min(top,p.y);right=std::max(right,p.x);bottom=std::max(bottom,p.y);
+        }
+        bool noncollinear=false;
+        for (std::size_t i=2;i<points.size();++i) {
+            const auto a=points[i-1].x-points[0].x,b=points[i-1].y-points[0].y;
+            const auto c=points[i].x-points[0].x,d=points[i].y-points[0].y;
+            if (std::isfinite(a*d-b*c) && std::abs(a*d-b*c)>1e-6) {noncollinear=true;break;}
+        }
+        if (!noncollinear) return ii::core::fail(ErrorCode::invalid_argument,"The lasso does not enclose an area");
+        left=std::floor(left)-1;top=std::floor(top)-1;right=std::ceil(right)+1;bottom=std::ceil(bottom)+1;
+        const auto width=right-left,height=bottom-top;
+        if (!std::isfinite(width)||!std::isfinite(height)||width<1||height<1||width>65536||height>65536||width*height>67108864)
+            return ii::core::fail(ErrorCode::out_of_range,"The lasso mask exceeds the supported size");
+        VectorPath path;path.fill=SolidPaint{0xffffffff};
+        for (std::size_t i=0;i<points.size();++i) {
+            const Point p{points[i].x-left,points[i].y-top};
+            if (i==0) path.commands.emplace_back(MoveTo{p});else path.commands.emplace_back(LineTo{p});
+        }
+        path.commands.emplace_back(ClosePath{});
+        const auto generation=documentGeneration.get(),before=revision.get();Guard guard(editingStructure_);
+        auto candidate=std::make_shared<Document>(*document_);
+        auto appearance=layerProperties(*findLayer(*candidate,layerId)).appearance;
+        const auto id=maskId(appearance),name=maskName(appearance),asset=assetId(*candidate);
+        DocumentEditor editor(*candidate);
+        auto inserted=editor.insertVectorAsset(asset,{static_cast<std::int32_t>(width),static_cast<std::int32_t>(height)},{std::move(path)});
+        if (!inserted.ok()) return ii::core::fail(ErrorCode::invalid_argument,inserted.message);
+        LayerMaskEntry entry;entry.id=id;entry.name=name;entry.mask.assetId=asset;
+        entry.mask.outsideCoverage=0;entry.mask.transform.translationX=left;entry.mask.transform.translationY=top;
+        appearance.maskStack.push_back(std::move(entry));
+        inserted=editor.setLayerAppearance(layerId,std::move(appearance));
+        if (!inserted.ok()) return ii::core::fail(ErrorCode::invalid_argument,inserted.message);
+        const auto checked=validate(*candidate);
+        if (!checked.ok()) return ii::core::fail(ErrorCode::invalid_argument,checked.issues.front().message);
+        if (generation!=documentGeneration.get() || before!=revision.get()) return ii::core::fail(ErrorCode::cancelled,"The canvas changed while preparing the mask");
+        document_=std::move(candidate);
+        if (auto changedResult=changed(generation);!changedResult) return std::unexpected(changedResult.error());
+        return id;
+    } catch (...) {return ii::core::fail(ErrorCode::failed,"Cannot create the lasso mask",std::current_exception());}
+}
 ii::core::Result<std::string> DocumentSession::duplicateLayerMask(std::string_view requested,std::string_view requestedMask) {
     using namespace iiSharedCanvas;
     if (auto valid=writable();!valid) return std::unexpected(valid.error());

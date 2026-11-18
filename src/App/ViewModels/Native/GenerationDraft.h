@@ -1,9 +1,11 @@
 #pragma once
 #include "ViewValue.h"
 #include <functional>
-#include <iiSDKCore/Runtime/Query.h>
+#include <iiSDKCore>
 
 namespace dreamscapes::vm {
+inline constexpr int defaultImageShortSide = 1536;
+inline constexpr int maximumImageDimension = 4096;
 struct ValidityEdit {
     std::string key;
     bool valid = true, clear = false, clearCollections = false;
@@ -39,6 +41,8 @@ class InputValidity final {
 };
 Value videoDefaults(const Value &prompts);
 bool videoCameraValid(const Value &parameters);
+bool videoSeedSequenceValid(const Value &parameters);
+bool videoExecutionValid(const Value &parameters);
 std::string aspectRatio(double width, double height);
 struct VideoEdit {
     std::string key;
@@ -79,7 +83,7 @@ class VideoDraft final {
         return invalid_;
     }
     bool invalid() const {
-        return !object(invalid_).empty() || !videoCameraValid(values_);
+        return !object(invalid_).empty() || !videoCameraValid(values_) || !videoSeedSequenceValid(values_) || !videoExecutionValid(values_);
     }
     void replace(Value values, bool clearValidity = true) {
         values_ = std::move(values);

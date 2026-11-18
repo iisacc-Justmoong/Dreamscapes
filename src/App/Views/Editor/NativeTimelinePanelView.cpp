@@ -1,5 +1,5 @@
 #include "NativeTimelinePanelView.h"
-#include <iiGUI/CompiledViewSource.h>
+#include <iiGUI>
 
 namespace dreamscapes::editor {
 namespace {

@@ -1,8 +1,8 @@
 #include "NativeCanvasFiles.h"
 #include <File/DocumentFile.h>
 #include <Media/MediaIo.h>
-#include <iiFileProviderNative.h>
-#include <iiVisualCodec/ImageCodec.h>
+#include <iiFileProvider>
+#include <iiVisualCodec>
 #include <algorithm>
 #include <cctype>
 #include <exception>

@@ -1,8 +1,8 @@
 #include "App/Views/Editor/EditorImageImportRequest.h"
 #include "App/Views/Editor/EditorProject.h"
 #include "App/StorageViewTypes.h"
-#include <SocietyDrive.h>
-#include <iiSharedCanvas/File/DocumentFile.h>
+#include <iiSocietyContainer>
+#include <iiSharedCanvas>
 #include <QImage>
 #include <QDir>
 #include <QElapsedTimer>

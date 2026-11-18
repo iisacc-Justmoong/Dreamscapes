@@ -1,7 +1,7 @@
 #pragma once
 #include "NativeLaunchLicense.h"
 #include "NativeLicenseBridge.h"
-#include <iiGUI/NativeWidgets.h>
+#include <iiGUI>
 #include <memory>
 
 namespace dreamscapes::native {

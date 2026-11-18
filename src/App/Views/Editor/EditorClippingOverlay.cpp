@@ -1,6 +1,6 @@
 #include "EditorClippingOverlay.h"
 #include "EditorCanvas.h"
-#include <iiSharedCanvas/Render/FrameRenderer.h>
+#include <iiSharedCanvas>
 #include <QPainter>
 #include <QQuickWindow>
 #include <QTimer>

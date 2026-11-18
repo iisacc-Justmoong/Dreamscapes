@@ -1,10 +1,8 @@
 #include "App/Generation/ImageCanvas.h"
 #include "App/Views/Editor/EditorProject.h"
 #include "App/Views/Home/HomeCanvas.h"
-#include <SocietyDrive.h>
-#include <iiSocietyContainer/DashboardFiles.h>
-#include <iiSharedCanvas/Render/FrameRenderer.h>
-#include <iiSharedCanvas/Serialization/IiscCodec.h>
+#include <iiSocietyContainer>
+#include <iiSharedCanvas>
 #include <QFile>
 #include <QDir>
 #include <QImage>

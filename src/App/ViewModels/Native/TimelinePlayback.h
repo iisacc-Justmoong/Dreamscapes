@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <iiSDKCore/Runtime/Query.h>
+#include <iiSDKCore>
 
 namespace dreamscapes::vm {
 enum class PlaybackAction { start, tick, stop, seek };

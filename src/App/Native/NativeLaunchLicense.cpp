@@ -1,8 +1,13 @@
 #include "NativeLaunchLicense.h"
+#include <chrono>
 #include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <utility>
+
+#ifndef DREAMSCAPES_ENABLE_LICENSE_VERIFICATION
+#define DREAMSCAPES_ENABLE_LICENSE_VERIFICATION 1
+#endif
 
 namespace dreamscapes::native {
 using ii::core::ErrorCode;
@@ -20,6 +25,16 @@ LaunchLicense::LaunchLicense(ii::runtime::EventLoop::Sender sender,std::shared_p
 std::shared_ptr<LaunchLicense> LaunchLicense::create(ii::runtime::EventLoop &loop,std::shared_ptr<LicenseProbe> probe) {
     return std::shared_ptr<LaunchLicense>(new LaunchLicense(loop.sender(),std::move(probe)));
 }
+std::shared_ptr<LaunchLicense> LaunchLicense::createIfEnabled(ii::runtime::EventLoop &loop,bool enabled,
+    const std::function<std::shared_ptr<LicenseProbe>()> &factory) {
+    if (!enabled) return {};
+    if (!factory) throw std::invalid_argument("Enabled launch license requires a probe factory");
+    return create(loop,factory());
+}
+std::shared_ptr<LaunchLicense> LaunchLicense::createForApplication(ii::runtime::EventLoop &loop,
+    const std::function<std::shared_ptr<LicenseProbe>()> &factory) {
+    return createIfEnabled(loop,DREAMSCAPES_ENABLE_LICENSE_VERIFICATION != 0,factory);
+}
 LaunchLicense::~LaunchLicense() {retireBridge();if (probe_) probe_->stop();}
 ii::core::Result<void> LaunchLicense::start() {
     if (owner_!=std::this_thread::get_id()) return ii::core::fail(ErrorCode::wrong_executor,"License session requires its owner thread");
@@ -34,6 +49,19 @@ ii::core::Result<void> LaunchLicense::start() {
         return ii::core::fail(ErrorCode::busy,"Cannot receive the Society license decision");
     }
     wake_=admitted.token;bridge_=std::make_shared<Bridge>();bridge_->sender=sender_;bridge_->wake=wake_;
+    // Include device detection and queue admission in the launch decision's
+    // deadline, rather than bounding only the later socket exchange.
+    auto deadline=sender_.after(std::chrono::milliseconds(900),[weak] {
+        if (auto owner=weak.lock()) {
+            owner->deliver();
+            if (!owner->decisionMade_) owner->complete({false,false,"verification_unavailable",{}});
+        }
+    });
+    if (!deadline) {
+        complete({false,false,"verification_unavailable",{}});
+        return ii::core::fail(ErrorCode::busy,"Cannot reserve the license decision deadline");
+    }
+    deadline_=deadline.token;
     auto deliver=[bridge=bridge_](LicenseDecision result) {
         {
             std::lock_guard lock(bridge->mutex);
@@ -62,6 +90,7 @@ void LaunchLicense::retireBridge() noexcept {
     try {if (bridge_) {std::lock_guard lock(bridge_->mutex);bridge_->closed=true;bridge_->decision.reset();}}
     catch (...) {}
     (void)sender_.cancel(wake_);
+    (void)sender_.cancel(deadline_);
 }
 void LaunchLicense::complete(LicenseDecision value) {
     if (owner_!=std::this_thread::get_id() || !active_ || decisionMade_) return;

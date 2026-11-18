@@ -1,8 +1,8 @@
 #include "App/Views/Editor/EditorCanvas.h"
 #include "App/Views/Editor/EditorCameraPhoto.h"
 #include "App/Views/Editor/EditorPhotoImportCommand.h"
-#include <SocietyDrive.h>
-#include <iiFileProviderNative.h>
+#include <iiSocietyContainer>
+#include <iiFileProvider>
 #include <QDir>
 #include <QSignalSpy>
 #include <QTemporaryDir>

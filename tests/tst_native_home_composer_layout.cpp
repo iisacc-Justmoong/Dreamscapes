@@ -50,6 +50,44 @@ void exercise() {
         for (const auto &item : layout.settings) inside(item, layout.contentWidth, layout.settingsHeight);
         noOverlap(layout.top); noOverlap(layout.settings);
     }
+    auto compactSpec=spec;
+    compactSpec.compactControls=true;
+    compactSpec.topPreferred[0]=65;
+    compactSpec.topPreferred[5]=71;
+    compactSpec.settingsPreferred={67,54,96,83,77,228,152};
+    auto compact=take(calculateHomeComposerLayout(1227,22,false,false,0,compactSpec,metrics));
+    check(compact.requestedHeight==106 && compact.topHeight==52 && compact.settingsHeight==22 &&
+          compact.top[0]==HomeComposerRect{0,0,65,22,true} &&
+          compact.top[1]==HomeComposerRect{73,0,1130,22,true} &&
+          compact.top[2]==HomeComposerRect{0,30,1203,22,true},
+          "QuickGenerate did not match the three rows of Figma 1756:75057");
+    check(compact.settings[9]==HomeComposerRect{0,0,22,22,true} &&
+          compact.settings[10]==HomeComposerRect{1132,0,71,22,true} &&
+          compact.settings[0].x==30 && compact.settings[0].width==67 &&
+          compact.settings[4].x==362 && compact.settings[4].width==77 &&
+          compact.settings[9].y==compact.settings[10].y && compact.settings[0].y==compact.settings[9].y,
+          "compact generation controls did not retain their fixed and content widths");
+    check(!compact.settings[5].visible && !compact.settings[6].visible,
+          "QuickGenerate rendered settings outside the Figma row");
+    auto longerSpec=compactSpec;longerSpec.settingsPreferred[0]+=80;
+    auto longer=take(calculateHomeComposerLayout(1227,22,false,false,0,longerSpec,metrics));
+    check(longer.settings[0].width==compact.settings[0].width+80 && longer.settings[10].width==71,
+          "a longer dropdown label did not change only its natural width");
+    const auto video = take(calculateHomeComposerLayout(1227,22,true,false,0,compactSpec,metrics));
+    longerSpec.settingsPreferred[1] += 30;
+    const auto videoWithLongerLabels = take(calculateHomeComposerLayout(1227,22,true,false,0,longerSpec,metrics));
+    check(videoWithLongerLabels.settings[7].width == video.settings[7].width &&
+          videoWithLongerLabels.settings[8].width == video.settings[8].width,
+          "unrelated labels resized the duration and frame-rate controls");
+    for (const auto width:{200.,320.,600.,1227.}) {
+        auto wrapped=take(calculateHomeComposerLayout(width,22,true,false,0,compactSpec,metrics));
+        check(wrapped.settings[9].width==22 && wrapped.settings[10].width==71 &&
+              wrapped.settings[7].visible && wrapped.settings[8].visible,
+              "compact actions or video controls changed at a narrow width");
+        for (const auto &item:wrapped.top) inside(item,wrapped.contentWidth,wrapped.topHeight);
+        for (const auto &item:wrapped.settings) inside(item,wrapped.contentWidth,wrapped.settingsHeight);
+        noOverlap(wrapped.top);noOverlap(wrapped.settings);
+    }
     check(!calculateHomeComposerLayout(std::numeric_limits<double>::quiet_NaN(),22,false,false,0,spec,metrics) &&
           !calculateHomeComposerLayout(320,22,false,false,-1,spec,metrics), "invalid composer geometry was accepted");
 }

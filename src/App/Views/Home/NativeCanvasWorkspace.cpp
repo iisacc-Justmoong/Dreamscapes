@@ -1,5 +1,5 @@
 #include "NativeCanvasWorkspace.h"
-#include <iiJson/Json.h>
+#include <iiJson>
 #include <algorithm>
 #include <cctype>
 #include <cmath>

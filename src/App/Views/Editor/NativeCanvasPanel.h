@@ -1,7 +1,7 @@
 #pragma once
 #include "App/Native/NativeDocumentSession.h"
-#include <LVUI/Slider.h>
-#include <iiSDKCore/Core/Property/Observable.h>
+#include <LVUI>
+#include <iiSDKCore>
 #include <memory>
 #include <string>
 #include <thread>

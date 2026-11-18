@@ -1,6 +1,7 @@
 #include "NativeGenerationWorkspace.h"
 #include "App/ViewModels/Native/GenerationDraft.h"
 #include <Generation/ImageParameters.hpp>
+#include <iiSDKCore>
 #include <algorithm>
 #include <charconv>
 #include <cmath>
@@ -15,6 +16,8 @@ namespace dreamscapes::generation {
 namespace {
 using ii::core::ErrorCode;
 std::string label(std::string_view key) {
+    if (key=="firstFrame") return "First frame image";
+    if (key=="lastFrame") return "Last frame image";
     std::string result;
     for (char c : key) {
         if (c>='A' && c<='Z' && !result.empty()) result.push_back(' ');
@@ -53,6 +56,7 @@ const std::map<std::string,std::vector<std::string>,std::less<>> videoChoices{
 const std::vector<std::pair<std::string,std::string>> videoOrder{
     {"prompt","Essentials"},{"negativePrompt","Essentials"},{"model","Essentials"},{"width","Essentials"},
     {"height","Essentials"},{"duration","Essentials"},{"fps","Essentials"},{"outputCount","Essentials"},
+    {"firstFrame","Image conditions"},{"lastFrame","Image conditions"},
     {"camera1","Camera"},{"camera2","Camera"},{"camera3","Camera"},
     {"steps","Sampling"},{"cfgScale","Sampling"},{"randomSeed","Sampling"},{"seed","Sampling"},
     {"interpolationFactor","Frame interpolation"},{"decodeTimestep","Temporal decoding"},
@@ -67,14 +71,28 @@ bool unavailable(std::string_view key) {
 }
 struct GenerationWorkspaceModel::Impl final {
     explicit Impl(std::shared_ptr<home::HomeComposerModel> value)
-        : home(std::move(value)),image(iiLocalDiffusion::ImageParameters::defaults()),videoDraft({}) {}
+        : home(std::move(value)),image(iiLocalDiffusion::ImageParameters::defaults()),videoDraft({}) {
+        const auto state=home->snapshot.get();
+        if (!state.video && state.width>=64 && state.height>=64 && state.width<=4096 && state.height<=4096 &&
+            state.width%8==0 && state.height%8==0) {
+            image.values["width"]=std::int64_t(state.width);
+            image.values["height"]=std::int64_t(state.height);
+        } else {
+            image.values["width"]=std::int64_t(vm::defaultImageShortSide);
+            image.values["height"]=std::int64_t(vm::defaultImageShortSide);
+        }
+    }
     std::shared_ptr<home::HomeComposerModel> home;
     iiLocalDiffusion::ImageParameters image;
     vm::VideoDraft videoDraft;
     ii::core::ObservableSubscription homeObserver;
-    std::vector<home::HomeComposerChoice> modelChoices;
-    std::string selectedModel;
+    home::HomeComposerChoiceList modelChoices;
+    std::string selectedModel, sharedModelLabel;
+    bool sharedMediaIsVideo = false;
     std::optional<home::HomeComposerSnapshot> adoptedQuick;
+    std::function<ii::core::Result<void>(vm::Value)> submit;
+    std::function<ii::core::Result<void>(std::string_view)> referencePicker;
+    std::uint64_t referenceRevision=0;
     const std::thread::id owner=std::this_thread::get_id();
 };
 GenerationWorkspaceModel::GenerationWorkspaceModel(bool isVideo,std::shared_ptr<home::HomeComposerModel> home)
@@ -91,11 +109,13 @@ void GenerationWorkspaceModel::start() {
         auto field=std::make_shared<GenerationField>();
         field->key=std::move(key); field->label=label(field->key); field->section=std::move(section);
         field->showSection=entries.empty() || entries.back()->section!=field->section;
+        field->isFile=video && (field->key=="firstFrame" || field->key=="lastFrame");
+        if (field->isFile) {field->chooseAccessibility="Choose "+field->label;field->clearAccessibility="Clear "+field->label;}
         field->isToggle=initial.kind()==ii::core::ValueKind::boolean;
-        field->isChoice=field->key=="model" || !options.empty(); field->isText=!field->isToggle && !field->isChoice && initial.kind()==ii::core::ValueKind::text;
-        field->isNumber=!field->isToggle && !field->isChoice && !field->isText;
+        field->isChoice=field->key=="model" || !options.empty(); field->isText=!field->isFile && !field->isToggle && !field->isChoice && initial.kind()==ii::core::ValueKind::text;
+        field->isNumber=!field->isFile && !field->isToggle && !field->isChoice && !field->isText;
         field->options=std::move(options); field->owner=shared_from_this();
-        (void)field->enabled.set(!unavailable(field->key));
+        (void)field->enabled.set(field->key != "model" && !unavailable(field->key));
         entries.push_back(std::move(field));
     };
     if (!video) {
@@ -128,6 +148,12 @@ vm::Value GenerationWorkspaceModel::parameters() const {
 void GenerationWorkspaceModel::publishField(const Field &entry) {
     const auto values=parameters(); const auto &value=vm::get(values,entry->key);
     (void)entry->text.set(stringValue(value));
+    if (entry->isFile) {
+        const auto path=stringValue(value);
+        const auto native=ii::core::path_from_utf8(path);
+        (void)entry->fileName.set(native?ii::core::path_to_utf8(native->filename()).value_or(path):path);
+        (void)entry->hasFile.set(!path.empty());
+    }
     if (entry->isToggle) (void)entry->checked.set(vm::boolean(value));
     if (entry->isChoice) {
         const auto selected=std::ranges::find(entry->options,stringValue(value));
@@ -137,9 +163,17 @@ void GenerationWorkspaceModel::publishField(const Field &entry) {
 }
 void GenerationWorkspaceModel::syncShared(const home::HomeComposerSnapshot &state) {
     if (std::this_thread::get_id()!=impl_->owner) return;
+    bool changed = impl_->sharedMediaIsVideo != state.video;
+    impl_->sharedMediaIsVideo = state.video;
     if (state.video==video) {
         const bool choicesChanged=impl_->modelChoices!=state.choices.models;
-        impl_->modelChoices=state.choices.models;impl_->selectedModel=state.modelId;
+        const bool selectionChanged = impl_->selectedModel != state.modelId || impl_->sharedModelLabel != state.modelLabel;
+        if (choicesChanged || selectionChanged) changed = true;
+        if (choicesChanged) impl_->modelChoices = state.choices.models;
+        if (selectionChanged) {
+            impl_->selectedModel = state.modelId;
+            impl_->sharedModelLabel = state.modelLabel;
+        }
         auto row=field("model");
         if (row && choicesChanged) {
             auto replacement=std::make_shared<GenerationField>();
@@ -150,17 +184,52 @@ void GenerationWorkspaceModel::syncShared(const home::HomeComposerSnapshot &stat
             for (auto &entry:next) if (entry->key=="model") {entry=replacement;break;}
             row=std::move(replacement);(void)fields.set(std::move(next));
         }
-        if (row) {
+        if (row && (choicesChanged || selectionChanged)) {
             const auto found=std::ranges::find_if(impl_->modelChoices,[&](const auto &choice){return choice.key==state.modelId;});
             (void)row->text.set(state.modelLabel);(void)row->index.set(found==impl_->modelChoices.end()?0:int(found-impl_->modelChoices.begin()));
             (void)row->enabled.set(!impl_->modelChoices.empty());
         }
     }
-    for (const auto &[key,text] : {std::pair{"prompt",state.prompt},std::pair{"negativePrompt",state.negativePrompt}}) {
+    for (const auto *key : {"prompt", "negativePrompt"}) {
+        const auto &text = std::string_view(key) == "prompt" ? state.prompt : state.negativePrompt;
+        const auto row = field(key);
+        if (!row || (row->text.get() == text && !row->invalid.get())) continue;
         if (video) (void)impl_->videoDraft.edits().send({key,vm::Value(text)});
         else impl_->image.values[key]=text;
-        if (auto row=field(key)) {publishField(row); (void)row->invalid.set(false); (void)row->error.set({});}
+        (void)row->text.set(text);
+        (void)row->invalid.set(false);
+        (void)row->error.set({});
+        changed = true;
     }
+    if (changed) updateCanGenerate();
+}
+void GenerationWorkspaceModel::setSubmitHandler(std::function<ii::core::Result<void>(vm::Value)> handler) {
+    if (std::this_thread::get_id()!=impl_->owner) return;
+    impl_->submit=std::move(handler);
+    (void)serviceStatus.set(impl_->submit?std::string{}:"Generation service unavailable");
+    updateCanGenerate();
+}
+void GenerationWorkspaceModel::updateCanGenerate() {
+    const auto &state=impl_->home->snapshot.get();
+    std::string issue;
+    if (video && impl_->submit) {
+        const auto values=impl_->videoDraft.values();
+        if (!vm::videoCameraValid(values)) issue="Conflicting camera motions";
+        else if (!vm::videoSeedSequenceValid(values)) issue="The seed sequence exceeds the allowed range";
+        else if (!vm::videoExecutionValid(values)) issue="Sequential offload requires CPU text encoding and VAE tiling";
+    }
+    (void)validationStatus.set(std::move(issue));
+    const bool valid=bool(impl_->submit) && state.video==video && !impl_->selectedModel.empty() &&
+        !vm::trim(state.prompt).empty() && (!video || !impl_->videoDraft.invalid()) &&
+        std::ranges::none_of(fields.get(),[](const auto &row){return row->invalid.get();});
+    (void)canGenerate.set(valid);
+}
+ii::core::Result<void> GenerationWorkspaceModel::submit() {
+    if (std::this_thread::get_id()!=impl_->owner) return ii::core::fail(ErrorCode::wrong_executor,"Generation view requires its owner thread");
+    if (!canGenerate.get() || !impl_->submit) return ii::core::fail(ErrorCode::unsupported,"Generation inputs or service are unavailable");
+    auto handler=impl_->submit;auto result=handler(parameters());
+    (void)serviceStatus.set(result?std::string{}:result.error().message);
+    return result;
 }
 ii::core::Result<void> GenerationWorkspaceModel::apply(std::string_view key,const vm::Value &value,const std::string *raw) {
     if (std::this_thread::get_id()!=impl_->owner) return ii::core::fail(ErrorCode::wrong_executor,"Generation view requires its owner thread");
@@ -189,8 +258,10 @@ ii::core::Result<void> GenerationWorkspaceModel::apply(std::string_view key,cons
     if (raw) (void)row->text.set(*raw);
     (void)row->invalid.set(!accepted);
     (void)row->error.set(accepted?std::string{}:"Invalid value");
+    updateCanGenerate();
     if (!accepted) return ii::core::fail(ErrorCode::invalid_argument,"Invalid generation parameter");
-    if (!raw || row->isChoice) publishField(row);
+    if (row->isFile) ++impl_->referenceRevision;
+    if (!raw || row->isChoice || row->isFile) publishField(row);
     if (video && key=="randomSeed") if (auto seed=field("seed")) publishField(seed);
     return {};
 }
@@ -211,7 +282,7 @@ ii::core::Result<void> GenerationWorkspaceModel::edit(std::string_view key,std::
         double number=0; const auto parsed=std::from_chars(input.data(),input.data()+input.size(),number);
         if (parsed.ec==std::errc{} && parsed.ptr==input.data()+input.size() && std::isfinite(number)) return apply(key,vm::Value(number),&input);
     }
-    (void)row->text.set(std::move(input)); (void)row->invalid.set(true); (void)row->error.set("Invalid value");
+    (void)row->text.set(std::move(input)); (void)row->invalid.set(true); (void)row->error.set("Invalid value");updateCanGenerate();
     return ii::core::fail(ErrorCode::invalid_argument,"Invalid generation input");
 }
 ii::core::Result<void> GenerationWorkspaceModel::toggle(std::string_view key,bool value) {
@@ -238,6 +309,28 @@ ii::core::Result<void> GenerationWorkspaceModel::selectModelAt(int index) {
     if (index<0 || std::size_t(index)>=impl_->modelChoices.size()) return ii::core::fail(ErrorCode::invalid_argument,"Unknown generation model");
     return select("model",impl_->modelChoices[std::size_t(index)].key);
 }
+void GenerationWorkspaceModel::setReferencePicker(std::function<ii::core::Result<void>(std::string_view)> picker) {
+    if (std::this_thread::get_id()!=impl_->owner) return;
+    impl_->referencePicker=std::move(picker);
+    for (const auto key:{"firstFrame","lastFrame"}) if (auto row=field(key))
+        (void)row->canChooseFile.set(bool(impl_->referencePicker));
+}
+ii::core::Result<void> GenerationWorkspaceModel::chooseReference(std::string_view key) {
+    if (std::this_thread::get_id()!=impl_->owner) return ii::core::fail(ErrorCode::wrong_executor,"Generation view requires its owner thread");
+    auto row=field(key);
+    if (!video || !row || !row->isFile || !impl_->referencePicker)
+        return ii::core::fail(ErrorCode::unsupported,"Video image picker is unavailable");
+    auto picker=impl_->referencePicker;auto result=picker(key);
+    if (!result) (void)serviceStatus.set(result.error().message);
+    return result;
+}
+ii::core::Result<void> GenerationWorkspaceModel::clearReference(std::string_view key) {
+    if (std::this_thread::get_id()!=impl_->owner) return ii::core::fail(ErrorCode::wrong_executor,"Generation view requires its owner thread");
+    auto row=field(key);
+    if (!row || !row->isFile) return ii::core::fail(ErrorCode::invalid_argument,"Not a video image condition");
+    return edit(key,{});
+}
+std::uint64_t GenerationWorkspaceModel::referenceRevision() const {return impl_->referenceRevision;}
 ii::core::Result<void> GenerationWorkspaceModel::adoptQuickSettings(const home::HomeComposerSnapshot &state) {
     if (std::this_thread::get_id()!=impl_->owner) return ii::core::fail(ErrorCode::wrong_executor,"Generation view requires its owner thread");
     if (state.video!=video || !std::isfinite(state.seed) || std::floor(state.seed)!=state.seed ||
@@ -289,6 +382,7 @@ ii::core::Result<void> GenerationWorkspaceModel::adoptQuickSettings(const home::
         publishField(seed);
         if (state.seed<0) {(void)seed->invalid.set(false); (void)seed->error.set({});}
     }
+    updateCanGenerate();
     return {};
 }
 void GenerationWorkspaceModel::sizeChanged(double width,double height,double maximumPanel,double minimumPreview) {
@@ -309,4 +403,6 @@ void GenerationField::selected(int value) {
         if (key=="model") (void)model->selectModelAt(value); else (void)model->select(key,options[std::size_t(value)]);
     }
 }
+void GenerationField::chooseFile() {if (auto model=owner.lock()) (void)model->chooseReference(key);}
+void GenerationField::clearFile() {if (auto model=owner.lock()) (void)model->clearReference(key);}
 }

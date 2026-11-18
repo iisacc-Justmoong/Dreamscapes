@@ -1,6 +1,6 @@
 #pragma once
 #include "ViewValue.h"
-#include <iiSDKCore/Runtime/Query.h>
+#include <iiSDKCore>
 #include <set>
 
 namespace dreamscapes::vm {

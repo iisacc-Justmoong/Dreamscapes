@@ -11,9 +11,8 @@
 #include "App/Views/Home/NativeHomeWorkspaceSources.h"
 #include "App/Views/Home/NativeHomeWorkspaceView.h"
 #include "iiGUI/WidgetState.h"
-#include <Container.h>
-#include <SocietyDrive.h>
-#include <iiSDKCore/Runtime/FrameLoop.h>
+#include <iiSocietyContainer>
+#include <iiSDKCore>
 #include <QCoreApplication>
 #include <QImage>
 #include <QTemporaryDir>

@@ -28,6 +28,8 @@ add_library(DreamscapesReviewGalleryNative STATIC
     src/App/Views/Result/NativeReviewGallery.cpp
     src/App/Views/Result/NativeReviewGalleryView.h
     src/App/Views/Result/NativeReviewGalleryView.cpp
+    src/App/Views/Result/NativeReviewCompare.h src/App/Views/Result/NativeReviewCompare.cpp
+    src/App/Views/Result/NativeReviewCompareView.h src/App/Views/Result/NativeReviewCompareView.cpp
     "${_native_review_gallery}" "${_native_review_grid}")
 set_target_properties(DreamscapesReviewGalleryNative PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
 target_compile_features(DreamscapesReviewGalleryNative PUBLIC cxx_std_23)
@@ -86,7 +88,7 @@ endif()
 option(DREAMSCAPES_NATIVE_REVIEW_IMAGES "Build the native result-preview provider" ON)
 if(DREAMSCAPES_NATIVE_REVIEW_IMAGES)
     find_package(LVUI 0.1 CONFIG REQUIRED COMPONENTS ImageIO HINTS "$ENV{HOME}/.local/SDK/LVUI")
-    find_package(iiSharedCanvasNative 0.35 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSharedCanvas")
+    find_package(iiSharedCanvasNative 0.35.39 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSharedCanvas")
     find_package(iiVisualCodec CONFIG REQUIRED COMPONENTS Image HINTS "$ENV{HOME}/.local/SDK/iiVisualCodec")
     find_package(iiNetwork CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiNetwork")
     find_package(iiFileProviderNative CONFIG REQUIRED HINTS
@@ -202,6 +204,9 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     set_target_properties(DreamscapesNativeReviewGalleryTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
     target_link_libraries(DreamscapesNativeReviewGalleryTests PRIVATE DreamscapesReviewGalleryNative)
     add_test(NAME Dreamscapes.NativeReviewGallery COMMAND DreamscapesNativeReviewGalleryTests)
+    add_executable(DreamscapesNativeReviewCompareTests tests/tst_native_review_compare.cpp)
+    target_link_libraries(DreamscapesNativeReviewCompareTests PRIVATE DreamscapesReviewGalleryNative)
+    add_test(NAME Dreamscapes.NativeReviewCompare COMMAND DreamscapesNativeReviewCompareTests)
     add_executable(DreamscapesNativeReviewGridTests tests/tst_native_review_grid.cpp)
     set_target_properties(DreamscapesNativeReviewGridTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
     target_link_libraries(DreamscapesNativeReviewGridTests PRIVATE DreamscapesReviewGalleryNative)
@@ -236,30 +241,6 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
         set_target_properties(DreamscapesNativeReviewGenerationBridgeTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
         target_link_libraries(DreamscapesNativeReviewGenerationBridgeTests PRIVATE DreamscapesReviewGenerationBridge)
         add_test(NAME Dreamscapes.NativeReviewGenerationBridge COMMAND DreamscapesNativeReviewGenerationBridgeTests)
-    endif()
-    if(TARGET DreamscapesFailureDetailsBridge)
-        qt_add_executable(DreamscapesNativeFailureBridgeTests tests/tst_native_failure_bridge.cpp)
-        target_compile_definitions(DreamscapesNativeFailureBridgeTests PRIVATE
-            DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/resources")
-        target_link_libraries(DreamscapesNativeFailureBridgeTests PRIVATE DreamscapesFailureDetailsBridge DreamscapesGeneration)
-        add_test(NAME Dreamscapes.NativeFailureBridge COMMAND DreamscapesNativeFailureBridgeTests)
-        set_tests_properties(Dreamscapes.NativeFailureBridge PROPERTIES
-            ENVIRONMENT "TMPDIR=${CMAKE_CURRENT_SOURCE_DIR}/resources;SOCIETY_DISABLE_SESSION_RESTORE=1;IILOCALLLM_DISABLE_APP_MCP=1")
-    endif()
-    if(TARGET DreamscapesFailurePresenter AND CMAKE_OBJCXX_COMPILER)
-        qt_add_executable(DreamscapesNativeFailurePresenterMacTests tests/tst_native_failure_presenter_mac.mm)
-        set_target_properties(DreamscapesNativeFailurePresenterMacTests PROPERTIES MACOSX_BUNDLE OFF
-            OBJCXX_STANDARD 23 OBJCXX_STANDARD_REQUIRED YES)
-        target_compile_options(DreamscapesNativeFailurePresenterMacTests PRIVATE -fobjc-arc)
-        target_compile_definitions(DreamscapesNativeFailurePresenterMacTests PRIVATE
-            DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/resources")
-        target_link_libraries(DreamscapesNativeFailurePresenterMacTests PRIVATE DreamscapesFailurePresenter
-            DreamscapesGeneration "-framework AppKit")
-        add_test(NAME Dreamscapes.NativeFailurePresenterMac COMMAND DreamscapesNativeFailurePresenterMacTests)
-        # The in-process watchdog bounds the host interaction. Leave time for
-        # loading the many native SDK libraries before that watchdog starts.
-        set_tests_properties(Dreamscapes.NativeFailurePresenterMac PROPERTIES TIMEOUT 90
-            ENVIRONMENT "TMPDIR=${CMAKE_CURRENT_SOURCE_DIR}/resources;SOCIETY_DISABLE_SESSION_RESTORE=1;IILOCALLLM_DISABLE_APP_MCP=1")
     endif()
     # The private harness must match the selected iiGUI binary. It is opt-in
     # because installed iiGUI packages intentionally omit internal headers.

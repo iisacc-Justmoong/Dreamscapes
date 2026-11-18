@@ -90,9 +90,9 @@ endif()
 if(TARGET iiMultimodalAgent::ImageTypes)
     set_target_properties(iiMultimodalAgent::ImageTypes PROPERTIES SYSTEM FALSE)
 endif()
-find_package(iiSharedCanvas 0.32.0 EXACT CONFIG REQUIRED COMPONENTS Quick HINTS
+find_package(iiSharedCanvas 0.35.39 EXACT CONFIG REQUIRED COMPONENTS Quick HINTS
     "${CMAKE_CURRENT_SOURCE_DIR}/../../SDK/iiSharedCanvas/build/install" "$ENV{HOME}/.local/SDK/iiSharedCanvas")
-find_package(iiGraphicAdjust 0.4.0 EXACT CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiGraphicAdjust")
+find_package(iiGraphicAdjust 0.6.2 EXACT CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiGraphicAdjust")
 find_package(iiColorManager 0.1.1 CONFIG REQUIRED COMPONENTS iiColorManager Values
     HINTS "$ENV{HOME}/.local/SDK/iiColorManager" "${CMAKE_CURRENT_BINARY_DIR}/runtime-sdk/iiColorManager")
 find_package(LVUI 0.1 CONFIG REQUIRED COMPONENTS Compiler HINTS "$ENV{HOME}/.local/SDK/LVUI")
@@ -431,105 +431,7 @@ foreach(_app_resource IN LISTS _app_source_resources)
     set_source_files_properties("${_app_resource}" PROPERTIES QT_RESOURCE_ALIAS "${_app_resource_alias}")
 endforeach()
 
-lvrs_add_qml_app(
-    TARGET Dreamscapes
-    URI Dreamscapes
-    VERSION 1.0
-    SOURCES src/main.cpp src/App/ApplicationShutdownCoordinator.h
-    QML_FILES
-        src/App/Main.qml
-        src/App/Views/FailureDetails.qml
-        src/App/Views/PanelRow.qml
-        src/App/Views/PanelFrame.qml
-        src/App/Views/TimelinePlayhead.qml
-        src/App/Views/PanelSheet.qml
-        src/App/Views/ColorPicker.qml
-        src/App/Views/Preferences/PreferencesWindow.qml
-        src/App/Views/Preferences/ModelPreferenceCombo.qml
-        src/App/Views/Preferences/PreferenceList.qml
-        src/App/Views/Preferences/SocietyFolderPicker.qml
-        src/App/Views/Home/QuickGenerate.qml
-        src/App/Views/Home/DesktopGenerationComposer.qml
-        src/App/Views/Home/HomeQueueBar.qml
-        src/App/Views/Home/PromptField.qml
-        src/App/Views/Home/NewCanvasDialog.qml
-        src/App/Views/Home/CanvasSizePreview.qml
-        src/App/Views/Home/HomePaintCanvas.qml
-        src/App/Views/Home/QuickActionCard.qml
-        src/App/Views/Home/FileCarousel.qml
-        src/App/Views/Home/PublishedList.qml
-        src/App/Views/Home/MobileHome.qml
-
-        src/App/Views/Home/HomeRecentFiles.qml
-        src/App/Views/Home/HomeSelectedFile.qml
-        src/App/Views/Home/HomeRecentGenerations.qml
-        src/App/Views/Home/StorageBrowser.qml
-
-        src/App/Views/Home/ImageSelectionBar.qml
-
-        src/App/Views/Home/DesktopHome.qml
-        src/App/Views/Home/DesktopHomeSidebar.qml
-        src/App/Views/Home/DesktopHomeToolbar.qml
-        src/App/Views/Home/AdvancedGenerate.qml
-        src/App/Views/Home/ImageGenerationWorkspace.qml
-        src/App/Views/Video/VideoGenerationWorkspace.qml
-        src/App/Views/Video/VideoParameterPanel.qml
-        src/App/Views/Video/VideoTimeline.qml
-        src/App/Views/Result/GenerationResult.qml
-        src/App/Views/Result/ReviewQueue.qml
-        src/App/Views/Result/ReviewInspector.qml
-        src/App/Views/Result/ReviewMediaView.qml
-        src/App/Views/Result/ReviewCompare.qml
-        src/App/Views/Editor/CanvasEditor.qml
-        src/App/Views/Editor/EditorTimeline.qml
-        src/App/Views/Editor/EditorPageDeck.qml
-        src/App/Views/Editor/EditorPageStrip.qml
-        src/App/Views/Editor/EditorToolbar.qml
-
-        src/App/Views/Editor/EditorToolControl.qml
-        src/App/Views/Editor/EditorCompactPanel.qml
-
-        src/App/Views/Editor/EditorButtonState.qml
-        src/App/Views/Editor/EditorViewBar.qml
-        src/App/Views/Editor/EditorViewOptionsPanel.qml
-        src/App/Views/Editor/EditorViewOptionRow.qml
-
-        src/App/Views/Editor/EditorCanvasRulers.qml
-        src/App/Views/Editor/EditorBackgroundPanel.qml
-        src/App/Views/Editor/EditorBackgroundParameter.qml
-        src/App/Views/Editor/EditorBackgroundSection.qml
-        src/App/Views/Editor/EditorBackgroundGradient.qml
-        src/App/Views/Editor/EditorBackgroundColorPanel.qml
-        src/App/Views/Editor/EditorBackgroundRemovePanel.qml
-        src/App/Views/Editor/EditorBackgroundReplacePanel.qml
-        src/App/Views/Editor/EditorToolPanel.qml
-
-        src/App/Views/Editor/EditorFilePanel.qml
-        src/App/Views/Editor/EditorDesktopPanel.qml
-        src/App/Views/Editor/EditorCameraPhotoPanel.qml
-        src/App/Views/Editor/EditorCaptureRegion.qml
-
-        src/App/Views/Editor/EditorElementsPanel.qml
-        src/App/Views/Editor/EditorElementTransform.qml
-
-        src/App/Views/Editor/LvrsEditorIcons.js
-        src/App/Views/Editor/EditorLayersPanel.qml
-        src/App/Views/Editor/EditorTextPanel.qml
-
-
-        src/App/Views/Editor/EditorGraphicPanel.qml
-        src/App/Views/Editor/EditorGraphicRow.qml
-        src/App/Views/Editor/EditorDocumentControls.qml
-        src/App/Views/Editor/EditorToolSheet.qml
-        src/App/Views/Publishing/PublishWorkspace.qml
-        src/App/Views/Publishing/PublishInspector.qml
-        src/App/Views/Publishing/PublishField.qml
-        src/App/Views/Publishing/PublishChoice.qml
-        src/App/Views/Publishing/PublishCanvasPreview.qml
-        src/App/Views/Publishing/PublishDestinationReview.qml
-    NO_PLATFORM_RUNTIME_TARGETS
-)
-dreamscapes_embed_license_view(Dreamscapes)
+# The Qt Quick app entry point was retired; the native target is defined above.
 file(GLOB home_direction_assets CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/App/Views/Home/Assets/Directions/*.svg")
 qt_add_resources(Dreamscapes home_direction_assets
     PREFIX "/qt/qml/Dreamscapes" FILES ${home_direction_assets})
@@ -760,12 +662,6 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_executable(DreamscapesHistoryRepair tools/repair_generation_history.cpp)
     set_target_properties(DreamscapesHistoryRepair PROPERTIES MACOSX_BUNDLE FALSE)
     target_link_libraries(DreamscapesHistoryRepair PRIVATE DreamscapesGeneration)
-    add_executable(DreamscapesApplicationLifetimeTests tests/tst_applicationlifetime.cpp)
-    set_target_properties(DreamscapesApplicationLifetimeTests PROPERTIES MACOSX_BUNDLE FALSE)
-    target_link_libraries(DreamscapesApplicationLifetimeTests PRIVATE Qt6::Gui Qt6::Qml Qt6::Quick)
-    add_test(NAME Dreamscapes.ApplicationLifetime COMMAND DreamscapesApplicationLifetimeTests)
-    set_tests_properties(Dreamscapes.ApplicationLifetime PROPERTIES
-        ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 30)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     add_test(NAME Dreamscapes.SharedLVRSStyle COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_shared_lvrs_style.py")
     qt_add_executable(DreamscapesLvuiStyleTests tests/tst_lvuistyle.cpp)
@@ -778,14 +674,6 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_test(NAME Dreamscapes.NativeViewBoundary COMMAND "${Python3_EXECUTABLE}" -B -m unittest discover -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p test_native_view_boundary.py)
     set_tests_properties(Dreamscapes.NativeViewBoundary PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" TIMEOUT 30)
 
-    get_property(dreamscapes_directory_links DIRECTORY PROPERTY LINK_LIBRARIES)
-    file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/DreamscapesTargetLinks-$<CONFIG>.txt"
-        CONTENT "directory=${dreamscapes_directory_links}\ngeneration=$<JOIN:$<TARGET_PROPERTY:DreamscapesGeneration,LINK_LIBRARIES>,|>\nlifetime=$<JOIN:$<TARGET_PROPERTY:DreamscapesApplicationLifetimeTests,LINK_LIBRARIES>,|>\npackaged=$<JOIN:$<TARGET_PROPERTY:DreamscapesPackagedApplicationTests,LINK_LIBRARIES>,|>\n")
-    add_test(NAME Dreamscapes.DependencyBoundary
-        COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/verify_link_dependencies.py"
-            "${CMAKE_CURRENT_BINARY_DIR}/DreamscapesTargetLinks-$<CONFIG>.txt"
-            "$<TARGET_FILE:DreamscapesApplicationLifetimeTests>"
-            "$<TARGET_FILE:DreamscapesPackagedApplicationTests>")
     if(APPLE)
         add_test(NAME Dreamscapes.MacRuntimeProfile
             COMMAND "${Python3_EXECUTABLE}" -B -m unittest discover
@@ -1154,9 +1042,15 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     qt_add_executable(DreamscapesEditorToolsTests tests/tst_editortools.cpp)
     qt_add_executable(DreamscapesGraphicHelperValuesTests tests/tst_graphichelpervalues.cpp)
     set_target_properties(DreamscapesGraphicHelperValuesTests PROPERTIES MACOSX_BUNDLE FALSE)
-    target_link_libraries(DreamscapesGraphicHelperValuesTests PRIVATE DreamscapesGeneration Qt6::Test)
+    target_link_libraries(DreamscapesGraphicHelperValuesTests PRIVATE DreamscapesGeneration)
     target_include_directories(DreamscapesGraphicHelperValuesTests PRIVATE src)
     add_test(NAME Dreamscapes.GraphicHelperValues COMMAND DreamscapesGraphicHelperValuesTests)
+    add_test(NAME Dreamscapes.GraphicHelperValuesInvalidParameters COMMAND DreamscapesGraphicHelperValuesTests malformedParametersAreRejected)
+    add_executable(DreamscapesCTestSupportTests tests/ctest_support.cpp)
+    target_compile_features(DreamscapesCTestSupportTests PRIVATE cxx_std_23)
+    add_test(NAME Dreamscapes.CTestSupport COMMAND DreamscapesCTestSupportTests)
+    add_test(NAME Dreamscapes.GraphicHelperCTestContract COMMAND "${Python3_EXECUTABLE}" -B
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_ctest_graphic_helpers.py")
     qt_add_executable(DreamscapesGraphicHelperTests tests/tst_graphichelper.cpp)
     set_target_properties(DreamscapesGraphicHelperTests PROPERTIES MACOSX_BUNDLE FALSE)
     target_link_libraries(DreamscapesGraphicHelperTests PRIVATE DreamscapesGeneration Qt6::Test)
@@ -1378,6 +1272,13 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
 
     qt_add_executable(DreamscapesGenerationTests src/App/Generation/tst_Generation.cpp)
     qt_add_executable(DreamscapesAdvancedParametersTests tests/tst_advancedparameters.cpp)
+    add_executable(DreamscapesImageParameterCodecTests
+        tests/tst_image_parameter_codec.cpp src/App/Generation/ImageParameterCodec.cpp)
+    set_target_properties(DreamscapesImageParameterCodecTests PROPERTIES MACOSX_BUNDLE FALSE AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+    target_compile_features(DreamscapesImageParameterCodecTests PRIVATE cxx_std_23)
+    target_include_directories(DreamscapesImageParameterCodecTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_link_libraries(DreamscapesImageParameterCodecTests PRIVATE Qt6::Core iiLocalDiffusion::iiLocalDiffusion)
+    add_test(NAME Dreamscapes.ImageParameterCodec COMMAND DreamscapesImageParameterCodecTests)
     target_link_libraries(DreamscapesAdvancedParametersTests PRIVATE DreamscapesGeneration Qt6::Test)
     target_compile_definitions(DreamscapesAdvancedParametersTests PRIVATE
         DREAMSCAPES_TEST_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
@@ -1480,7 +1381,8 @@ if(WIN32 OR (APPLE AND NOT IOS))
 endif()
 
 if(NOT IOS AND NOT ANDROID AND NOT EMSCRIPTEN)
-add_executable(DreamscapesFailureAgent src/App/Generation/failure_agent_main.cpp)
+add_executable(DreamscapesFailureAgent src/App/Generation/failure_agent_main.cpp
+    src/App/Generation/FailureAgentCli.h src/App/Generation/FailureAgentCli.cpp)
 target_link_libraries(DreamscapesFailureAgent PRIVATE iiMultimodalAgent::iiMultimodalAgent iiMultimodalAgent::FailureDiagnostics)
 target_link_libraries(DreamscapesFailureAgent PRIVATE iiFileProvider::CoreIO iiFileProvider::Native)
 target_include_directories(DreamscapesFailureAgent PRIVATE src/App/Generation)

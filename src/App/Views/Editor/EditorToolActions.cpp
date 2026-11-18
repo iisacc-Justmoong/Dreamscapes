@@ -1,5 +1,4 @@
-#include <File.h>
-#include <iiFileProviderDevice.h>
+#include <iiFileProvider>
 #include "EditorCanvas.h"
 #include "App/Generation/ImageCanvas.h"
 #include "EditorToolUtils.h"

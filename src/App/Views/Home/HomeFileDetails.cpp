@@ -1,5 +1,5 @@
 #include "HomeFileDetails.h"
-#include <iiSharedCanvas/File/DocumentFile.h>
+#include <iiSharedCanvas>
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QImageReader>

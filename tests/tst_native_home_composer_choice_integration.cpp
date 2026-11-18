@@ -3,8 +3,8 @@
 #include "App/Generation/GenerationComposerModel.h"
 #include "App/Generation/GenerationController.h"
 #include "iiGUI/WidgetState.h"
-#include <iiSDKCore/Runtime/FrameLoop.h>
-#include <SharedStorage.h>
+#include <iiSDKCore>
+#include <iiSocietyContainer>
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>

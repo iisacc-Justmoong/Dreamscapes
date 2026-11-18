@@ -1,8 +1,8 @@
 #pragma once
 
 #include "NativeHomeRecentGenerations.h"
-#include <LVUI/NativeImageResolver.h>
-#include <iiGUI/Image.h>
+#include <LVUI>
+#include <iiGUI>
 #include <QObject>
 #include <QPointer>
 #include <QStringList>

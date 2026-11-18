@@ -1,5 +1,5 @@
 #include "EditorGraphicHelperValues.h"
-#include <iiGraphicAdjust/Optics.h>
+#include <iiGraphicAdjust>
 #include <type_traits>
 
 namespace graphicHelper {

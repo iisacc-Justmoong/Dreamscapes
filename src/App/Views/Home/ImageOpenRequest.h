@@ -1,6 +1,6 @@
 #pragma once
-#include <Container.h>
-#include <iiSocietyHelper/FileDownload.h>
+#include <iiSocietyContainer>
+#include <iiSocietyHelper>
 #include <QObject>
 #include <QPointer>
 #include <QUrl>

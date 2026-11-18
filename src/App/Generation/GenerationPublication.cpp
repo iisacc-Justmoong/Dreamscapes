@@ -1,10 +1,8 @@
 #include "GenerationPublication.h"
 #include "AdvancedImageOutput.h"
 #include "VideoGeneration.h"
-#include <iiFileProvider.h>
-#include <iiFileProviderNative.h>
-#include <iiFileProviderStorage.h>
-#include <SharedStorage.h>
+#include <iiFileProvider>
+#include <iiSocietyContainer>
 #include <QFileInfo>
 #include <QImageReader>
 #include <QJsonArray>

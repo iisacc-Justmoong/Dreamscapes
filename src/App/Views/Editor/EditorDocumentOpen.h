@@ -1,6 +1,6 @@
 #pragma once
-#include <iiSharedCanvas/Document/Document.h>
-#include <iiSocietyHelper.h>
+#include <iiSharedCanvas>
+#include <iiSocietyHelper>
 #include <array>
 #include <atomic>
 #include <filesystem>

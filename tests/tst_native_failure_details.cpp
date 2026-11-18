@@ -1,6 +1,7 @@
 #include "App/Views/Failure/NativeFailureDetails.h"
 #include "App/Views/Failure/NativeFailureDetailsView.h"
-#include <iiGUI/NativeTextLayout.h>
+#include "NativeFailureTestHelpers.h"
+#include <iiGUI>
 #include <iiGUI/WidgetState.h>
 #include <iostream>
 #include <stdexcept>
@@ -94,8 +95,8 @@ void exercise() {
     auto modal = take(root.content_item("failureDetails"));
     model->show();
     (void)take(tree->drawing_snapshot({900, 700}));
-    auto reportBranch = take(modal.popup_content("@lvui/conditional/3"));
-    auto editor = take(reportBranch.content_item("failureExplanationText"));
+    auto branch = take(failureReportBranch(modal,"failureExplanationText"));
+    auto editor = take(branch.content_item("failureExplanationText"));
     auto snapshot = take(editor.snapshot());
     check(snapshot.read_only && take(editor.text_content({0, snapshot.text_length})).text == expected,
           "Native failure text was not readable or retained");
@@ -142,8 +143,8 @@ void exercise() {
     check(model->usesWrappedText.get(), "A normal report did not use the wrapped viewer");
     model->show();
     (void)take(tree->drawing_snapshot({900, 700}));
-    reportBranch = take(modal.popup_content("@lvui/conditional/3"));
-    auto wrapped = take(reportBranch.content_item("failureExplanationText"));
+    branch = take(failureReportBranch(modal,"failureExplanationText"));
+    auto wrapped = take(branch.content_item("failureExplanationText"));
     const auto wrappedBounds = take(wrapped.snapshot()).bounds;
     const auto topHit = take(wrapped.text_position(wrappedBounds.x + 12, wrappedBounds.y + 12));
     const auto lowerHit = take(wrapped.text_position(wrappedBounds.x + 12, wrappedBounds.y + 35));
@@ -159,8 +160,8 @@ void exercise() {
     check(model->usesWrappedText.get(), "A byte-heavy Korean report did not use the native viewer");
     model->show();
     (void)take(tree->drawing_snapshot({900, 700}));
-    reportBranch = take(modal.popup_content("@lvui/conditional/3"));
-    auto koreanEditor = take(reportBranch.content_item("failureExplanationText"));
+    branch = take(failureReportBranch(modal,"failureExplanationText"));
+    auto koreanEditor = take(branch.content_item("failureExplanationText"));
     auto koreanSnapshot = take(koreanEditor.snapshot());
     check(take(koreanEditor.text_content({0, koreanSnapshot.text_length})).text == koreanReport,
           "The wrapped native viewer lost Korean report text");
@@ -184,8 +185,8 @@ void exercise() {
     good(model->setViewport(17,700));
     good(root.set_extent({17,700}));
     (void)take(tree->drawing_snapshot({17,700}));
-    if (auto branch=modal.popup_content("@lvui/conditional/3")) {
-        if (auto field=branch->content_item("failureExplanationText")) {
+    if (auto narrowBranch=failureReportBranch(modal,"failureExplanationText")) {
+        if (auto field=narrowBranch->content_item("failureExplanationText")) {
             if (auto geometry=field->snapshot())
                 (void)field->text_position(geometry->bounds.x+1,geometry->bounds.y+1);
         }
@@ -202,8 +203,8 @@ void exercise() {
           "Long failure report was truncated or exceeded the wrapped editor budget");
     model->show();
     (void)take(tree->drawing_snapshot({900, 700}));
-    reportBranch = take(modal.popup_content("@lvui/conditional/3"));
-    auto longEditor = take(reportBranch.content_item("failureExplanationLongText"));
+    branch = take(failureReportBranch(modal,"failureExplanationLongText"));
+    auto longEditor = take(branch.content_item("failureExplanationLongText"));
     auto longSnapshot = take(longEditor.snapshot());
     std::string longExposed;
     for (std::size_t offset = 0; offset < longSnapshot.text_length;) {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "NativeReviewQueue.h"
-#include <iiGUI/NativeWidgets.h>
+#include <iiGUI>
 #include <functional>
 #include <memory>
 #include <optional>

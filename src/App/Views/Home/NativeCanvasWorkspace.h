@@ -1,6 +1,6 @@
 #pragma once
 #include "App/ViewModels/Native/CanvasDraft.h"
-#include <iiSDKCore/Core/Property/Observable.h>
+#include <iiSDKCore>
 #include <functional>
 #include <memory>
 #include <optional>

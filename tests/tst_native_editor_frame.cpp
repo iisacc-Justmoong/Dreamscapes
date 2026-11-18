@@ -1,7 +1,7 @@
 #include "App/Views/Editor/NativeEditorFrame.h"
 #include "App/Views/Editor/NativeLayerPanel.h"
 #include <Document/Document.h>
-#include <iiSDKCore/Runtime/EventLoop.h>
+#include <iiSDKCore>
 #include <iostream>
 #include <condition_variable>
 #include <mutex>
@@ -42,13 +42,13 @@ int main() {
         doc.frames={{0,{{"paint","red"}}},{1,{{"paint","blue"}}}};
         good(session->attach(doc,"animated.iisc"));
         const auto snapshot=session->snapshot();
-        check(frame->busy.get() && !frame->image.get(),"initial frame was not scheduled");
+        check(frame->busy.get() && !frame->current.get() && !frame->image.get(),"initial frame was not scheduled");
         worker->drain(); (void)loop.poll();
         auto first=frame->image.get();
-        check(first && first->rgba()[0]==255 && first->rgba()[2]==0 && first->rgba()[3]==255,
+        check(frame->current.get() && first && first->rgba()[0]==255 && first->rgba()[2]==0 && first->rgba()[3]==255,
               "first frame did not render its actual pixels");
         good(session->seek(1));
-        check(frame->busy.get() && frame->image.get()==first && session->snapshot()==snapshot,
+        check(frame->busy.get() && !frame->current.get() && frame->image.get()==first && session->snapshot()==snapshot,
               "frame seek cleared pixels or copied the document");
         good(session->seek(0)); good(session->seek(1));
         worker->drain(); (void)loop.poll();
@@ -69,7 +69,7 @@ int main() {
         good(panel->moveOpacity(100)); worker->drain(); (void)loop.poll();
         second=frame->image.get();
         worker->reject=true; good(session->seek(0)); (void)loop.poll();
-        check(frame->image.get()==second && !frame->busy.get() && !frame->status.get().empty(),
+        check(frame->image.get()==second && !frame->current.get() && !frame->busy.get() && !frame->status.get().empty(),
               "a renderer failure removed the preceding frame or hid the error");
         worker->reject=false; good(session->seek(1)); worker->drain(); (void)loop.poll();
         second=frame->image.get();

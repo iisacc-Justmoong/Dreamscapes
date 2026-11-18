@@ -1,6 +1,6 @@
 #include "GenerationReviewExport.h"
-#include <iiSocietyHelper/MediaExport.h>
-#include <iiFileProviderStorage.h>
+#include <iiSocietyHelper>
+#include <iiFileProvider>
 #include <QDateTime>
 #include <QFileInfo>
 #include <QPointer>

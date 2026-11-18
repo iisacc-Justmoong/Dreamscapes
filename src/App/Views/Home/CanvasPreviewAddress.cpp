@@ -1,6 +1,6 @@
 #include "CanvasPreviewAddress.h"
 #include "App/Generation/ImageCanvas.h"
-#include <iiFileProviderPresentation.h>
+#include <iiFileProvider>
 #include <QFileInfo>
 #include <exception>
 #include <filesystem>

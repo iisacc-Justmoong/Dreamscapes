@@ -1,4 +1,5 @@
 #include "NativeApplicationWindow.h"
+#include <iiGUI>
 #include <exception>
 #include <thread>
 #include <utility>
@@ -15,7 +16,7 @@ struct NativeApplicationWindow::Impl final {
     ii::gui::HostOptions options;
     Factory factory;
     Callbacks callbacks;
-    std::unique_ptr<ii::gui::Host> host;
+    std::shared_ptr<ii::gui::Host> host;
     std::optional<Content> content;
     std::optional<ii::gui::WidgetMount> mount;
     std::optional<Error> error;
@@ -41,7 +42,7 @@ ii::core::Result<void> NativeApplicationWindow::prepare() {
         return ii::core::fail(ErrorCode::invalid_argument, "Native application window requires a content factory");
     state.error.reset();
     try {
-        state.host = std::make_unique<ii::gui::Host>(state.options);
+        state.host = std::make_shared<ii::gui::Host>(state.options);
         const std::weak_ptr<NativeApplicationWindow> weak = shared_from_this();
         auto configured = state.host->set_failure_handler([weak](const Error &error) {
             if (auto self = weak.lock()) self->fail(error);
@@ -52,6 +53,42 @@ ii::core::Result<void> NativeApplicationWindow::prepare() {
         return ii::core::fail(ErrorCode::failed, "Cannot create native application window", std::current_exception());
     }
     return {};
+}
+
+ii::core::Result<void> NativeApplicationWindow::attach(ii::runtime::Application &application) {
+    auto &state=*impl_;
+    if (state.owner!=std::this_thread::get_id())
+        return ii::core::fail(ErrorCode::wrong_executor,"Native application window requires its owner thread");
+    if (state.started || state.finished)
+        return ii::core::fail(ErrorCode::busy,"Native application window is single use");
+    if (!state.factory)
+        return ii::core::fail(ErrorCode::invalid_argument,"Native application window requires a content factory");
+    const auto self=shared_from_this();
+    const std::weak_ptr<NativeApplicationWindow> weak=self;
+    auto configured=application.configure_atomically([self,weak](ii::runtime::Application &owner) -> ii::core::Result<void> {
+        auto &value=*self->impl_;
+        auto host=ii::gui::attach_application(owner,value.options,{
+            .resized=[weak](ii::gui::Size size) {if (auto window=weak.lock()) window->resized(size);},
+            .close_requested=[weak] {if (auto window=weak.lock()) return window->mayClose();return true;},
+            .closed=[weak] {if (auto window=weak.lock()) window->retired();}});
+        if (!host) return std::unexpected(host.error());
+        auto failure=(*host)->set_failure_handler([weak](const Error &error) {
+            if (auto window=weak.lock()) window->fail(error);
+        });
+        if (!failure) return std::unexpected(failure.error());
+        value.host=std::move(*host);value.started=true;value.standalone=true;
+        return owner.attach({"Dreamscapes.window",
+            [self](ii::runtime::Application &) -> ii::core::Result<void> {
+                self->opened();
+                if (self->impl_->error) return std::unexpected(*self->impl_->error);
+                if (!self->impl_->content)
+                    return ii::core::fail(ErrorCode::failed,"Native application content did not open");
+                return {};
+            },
+            [self]() -> ii::core::Result<void> {self->finish();return {};}});
+    });
+    if (!configured) {state.started=false;state.standalone=false;state.host.reset();}
+    return configured;
 }
 
 ii::core::Result<void> NativeApplicationWindow::showExternal() {
@@ -151,6 +188,14 @@ ii::core::Result<void> NativeApplicationWindow::close() {
         return ii::core::fail(ErrorCode::closed, "Native application window is not open");
     // A close policy may veto the request. The view stays usable in that case.
     return state.host->request_close();
+}
+ii::core::Result<void> NativeApplicationWindow::beginWindowDrag() {
+    auto &state=*impl_;
+    if (state.owner!=std::this_thread::get_id())
+        return ii::core::fail(ErrorCode::wrong_executor,"Native application window requires its owner thread");
+    if (!state.started || state.retired || state.finished || !state.host)
+        return ii::core::fail(ErrorCode::closed,"Native application window is not open");
+    return state.host->begin_window_drag();
 }
 ii::core::Result<void> NativeApplicationWindow::chooseFile(ii::gui::FileDialogOptions options,
                                                            ii::gui::FileDialogCompletion completion) {

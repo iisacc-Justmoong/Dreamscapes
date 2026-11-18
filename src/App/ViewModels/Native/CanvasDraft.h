@@ -1,7 +1,7 @@
 #pragma once
 #include "ViewValue.h"
 #include <functional>
-#include <iiSDKCore/Runtime/Query.h>
+#include <iiSDKCore>
 
 namespace dreamscapes::vm {
 enum class CanvasDraftAction { write, choose, chooseCategory, search, customSize, begin, changeUnit, create };

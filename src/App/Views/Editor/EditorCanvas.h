@@ -1,11 +1,11 @@
 #pragma once
-#include <iiSharedCanvas/QtAdapter/CanvasItem.h>
+#include <iiSharedCanvas>
 #include <QVariantMap>
 #include <QUrl>
 #include <QtQml/qqmlregistration.h>
-#include <iiSharedCanvas/Bitmap/BitmapProcessing.h>
+#include <iiSharedCanvas>
 #include <QSet>
-#include <iiSocietyHelper.h>
+#include <iiSocietyHelper>
 #include <QPainterPath>
 #include <QImage>
 #include <QElapsedTimer>

@@ -1,8 +1,8 @@
 #pragma once
 #include "NativeReviewMedia.h"
 #include "App/Native/NativePreviewStatus.h"
-#include <LVUI/NativeImageResolver.h>
-#include <iiGUI/NativeWidgets.h>
+#include <LVUI>
+#include <iiGUI>
 #include <functional>
 #include <memory>
 

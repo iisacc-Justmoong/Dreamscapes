@@ -1,8 +1,7 @@
-"""Prevent executable QML reducers from returning to the migrated boundaries."""
+"""Keep the migrated view and native-model boundaries free of QML files."""
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from collections import Counter
-import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,50 +31,27 @@ class NativeViewBoundary(unittest.TestCase):
         cls.sources = SourceSnapshot(APP)
 
     def test_data_reducers_execute_in_native_models(self):
-        # Only calculations over rendered UI-item geometry stay in QML.
-        # These three expressions cannot inspect files, jobs or draft values.
-        geometry = {
-            "Views/Editor/EditorToolControl.qml": ("items: widths.map(",),
-            "Views/Editor/EditorTimeline.qml": ("row.children.filter(", "items.reduce("),
-        }
-        reducer = re.compile(r"\.(?:map|filter|sort|reduce|findIndex)\s*\(|Object\.assign|Array\.prototype")
-        for path, source in self.sources.qml.items():
-            name = path.relative_to(APP).as_posix()
-            for line in source.splitlines():
-                if reducer.search(line):
-                    self.assertTrue(any(allowed in line for allowed in geometry.get(name, ())),
-                                    f"QML data reducer must be native: {name}: {line.strip()}")
+        self.assertFalse(self.sources.qml, "QML views must not return to the application source")
 
     def test_video_playback_uses_the_native_clock(self):
-        source = self.sources.qml[APP / "Views/Video/VideoTimeline.qml"]
-        self.assertIn("NativeTimelinePlayback", source)
+        source = self.sources.native[APP / "ViewModels/Native/TimelinePlayback.h"]
+        self.assertIn("std::chrono::steady_clock", source)
         self.assertNotIn("Date.now", source)
-        self.assertNotRegex(source, r"\bTimer\s*\{")
 
     def test_numeric_validation_is_not_javascript(self):
-        for path, source in self.sources.qml.items():
-            self.assertNotRegex(source,r"\b(?:parseInt|parseFloat)\s*\(|Number\.NaN|\.match\s*\(",str(path))
+        source = self.sources.native[APP / "ViewModels/Native/NumberInputs.h"]
+        self.assertIn("std::from_chars", source)
+        self.assertIn("parseNumber", source)
 
     def test_production_has_no_javascript_state_modules(self):
-        self.assertEqual(self.sources.js, ())
-        for path, source in self.sources.qml.items():
-            self.assertNotRegex(source, r'import[^\n]+["\'][^"\']+\.js["\']', str(path))
+        # This legacy icon-name table has no mutable view-model state and is not
+        # part of the native application target.
+        allowed = {APP / "Views/Editor/LvrsEditorIcons.js"}
+        self.assertFalse(set(self.sources.js) - allowed)
 
     def test_domain_stores_are_native_forwards(self):
-        files = ["Main.qml", "Views/Editor/EditorToolSheet.qml", "Views/Editor/EditorGraphicPanel.qml",
-                 "Views/Home/NewCanvasDialog.qml", "Views/Home/StorageBrowser.qml", "Views/Home/ImageSelectionBar.qml",
-                 "Views/Home/QuickGenerate.qml", "Views/Home/DesktopGenerationComposer.qml"]
-        for name in files:
-            source = self.sources.qml[APP / name]
-            self.assertNotIn("Object.assign", source, name)
-            self.assertNotIn("JSON.parse", source, name)
-            self.assertNotIn("JSON.stringify", source, name)
-        self.assertNotIn(APP / "Views/Video/VideoTimelineState.qml", self.sources.qml)
-        self.assertIn('"VideoTimelineState"', self.sources.cpp[APP / "ViewModels/ViewData.cpp"])
-        for name in ["Views/Home/HomeRecentFiles.qml", "Views/Home/HomeQueueBar.qml", "Views/Home/HomeSelectedFile.qml"]:
-            source = self.sources.qml[APP / name]
-            for reducer in (".filter(", ".find(", ".some(", "Object.assign"):
-                self.assertNotIn(reducer, source, name)
+        for name in ("GenerationDraft.cpp", "StorageProjection.h", "VideoTimeline.cpp", "ViewCatalog.cpp"):
+            self.assertIn(APP / "ViewModels/Native" / name, self.sources.native)
 
     def test_native_core_cannot_include_gui_or_product_backends(self):
         for path, source in self.sources.native.items():

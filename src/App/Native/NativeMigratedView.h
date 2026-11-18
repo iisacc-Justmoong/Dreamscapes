@@ -1,6 +1,6 @@
 #pragma once
-#include <iiGUI/NativeWidgets.h>
-#include <iiSDKCore/Core/Property/Observable.h>
+#include <iiGUI>
+#include <iiSDKCore>
 #include <memory>
 #include <string_view>
 #include <vector>

@@ -1,7 +1,7 @@
 #pragma once
 #include <Document/Document.h>
-#include <ObjectSource.h>
-#include <iiSDKCore/Core/Result/Result.h>
+#include <iiFileProvider>
+#include <iiSDKCore>
 #include <cstdint>
 #include <filesystem>
 

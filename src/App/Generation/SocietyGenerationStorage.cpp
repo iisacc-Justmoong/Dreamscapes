@@ -1,5 +1,5 @@
 #include "SocietyGenerationStorage.h"
-#include <iiSocietyHelper.h>
+#include <iiSocietyHelper>
 
 namespace dreamscapes {
 bool openGenerationStorage(iiSocietyHelper::FileSystem &files, const QString &selection) {

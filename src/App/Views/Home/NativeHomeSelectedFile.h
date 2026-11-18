@@ -1,8 +1,7 @@
 #pragma once
 
 #include "App/ViewModels/Native/ViewCatalog.h"
-#include <iiSDKCore/Core/Property/Observable.h>
-#include <iiSDKCore/Core/Result/Result.h>
+#include <iiSDKCore>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -41,6 +40,7 @@ class HomeSelectedFileModel final : public std::enable_shared_from_this<HomeSele
 
   private:
     explicit HomeSelectedFileModel(HomeSelectedFileStrings);
+    void requireActiveOwner() const;
     void requireOwner() const;
     void publish();
     vm::Value query(vm::Read, std::vector<vm::Value>) const;

@@ -1,6 +1,6 @@
 #pragma once
 #include "NativeReviewGallery.h"
-#include <iiSDKCore/Core/Property/Observable.h>
+#include <iiSDKCore>
 #include <memory>
 #include <thread>
 

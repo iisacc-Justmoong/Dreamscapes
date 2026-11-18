@@ -1,11 +1,11 @@
 #pragma once
 
-#include <iiGUI/Host.h>
-#include <iiGUI/NativeWidgets.h>
+#include <iiGUI>
 #include <functional>
 #include <memory>
 #include <optional>
 
+namespace ii::runtime { class Application; }
 namespace dreamscapes::native {
 // Owns an iiGUI top-level window, independent of QML and any borrowed window.
 // All operations and callbacks run on the creating UI thread. The external
@@ -32,10 +32,13 @@ class NativeApplicationWindow final : public std::enable_shared_from_this<Native
 
     // Own the native event loop until the window closes.
     [[nodiscard]] ii::core::Result<void> run();
+    // Register the native driver and window content with Core's application.
+    [[nodiscard]] ii::core::Result<void> attach(ii::runtime::Application &);
     // Nonblocking transition path for a running external OS event loop.
     [[nodiscard]] ii::core::Result<void> showExternal();
     // Requests a close; closeRequested may veto it without retiring the view.
     [[nodiscard]] ii::core::Result<void> close();
+    [[nodiscard]] ii::core::Result<void> beginWindowDrag();
     [[nodiscard]] ii::core::Result<void> chooseFile(ii::gui::FileDialogOptions, ii::gui::FileDialogCompletion);
     [[nodiscard]] std::optional<ii::gui::WidgetMount> widgets() const;
 

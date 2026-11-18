@@ -1,7 +1,7 @@
 #include "App/Views/Editor/NativeFilePanel.h"
 #include "App/ViewModels/Native/ViewValue.h"
-#include <iiFileProviderNative.h>
-#include <iiJson/Json.h>
+#include <iiFileProvider>
+#include <iiJson>
 #include <Document/Document.h>
 #include <filesystem>
 #include <iostream>

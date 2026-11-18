@@ -1,5 +1,5 @@
 #include "NativeReviewMedia.h"
-#include <iiSDKCore/Core/Text/Utf8.h>
+#include <iiSDKCore>
 #include <algorithm>
 #include <cmath>
 #include <limits>

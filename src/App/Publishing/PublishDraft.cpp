@@ -1,11 +1,8 @@
 #include "PublishDraft.h"
-#include <iiFileProviderNative.h>
-#include <FileCatalog.h>
-#include <iiJson/Json.h>
-#include <iiSharedCanvas/File/DocumentFile.h>
-#include <iiSharedCanvas/Serialization/IiscCodec.h>
-#include <iiSharedCanvas/Validation/Validation.h>
-#include <iiSocialPublish/Publishing.h>
+#include <iiFileProvider>
+#include <iiJson>
+#include <iiSharedCanvas>
+#include <iiSocialIntegration>
 #include <QSet>
 #include <algorithm>
 #include <filesystem>

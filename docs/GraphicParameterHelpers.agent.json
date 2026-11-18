@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/GraphicParameterHelpers.md",
-    "sha256": "ee7aa53604371afd748234ae8513ad5daabd7370e91b480d97ab101013501305",
-    "bytes": 5696,
-    "line_count": 42,
+    "sha256": "657f0254086790dab81f8a786ab4a25df124cda3edb2119ce95d241bdaec6bf5",
+    "bytes": 6139,
+    "line_count": 44,
     "encoding": "utf-8",
     "language": "ko"
   },
@@ -148,7 +148,7 @@
       "kind": "paragraph",
       "start_line": 20,
       "end_line": 20,
-      "raw": "현재 앱은 설치된 `iiGraphicAdjust 0.4.0`을 사용한다. SDK 소스 디렉터리의 다른 버전을 앱의 실제 연결 패키지로 간주하지 않는다. 이 변경은 선택한 패키지의 기존 공개 분석 API를 사용하며 SDK 소스나 전역 설치를 바꾸지 않는다. 이 패키지의 `autoLensScale`은 유효한 ImageView를 요구하므로 해당 입력 변환도 작업 스레드에 둔다. 크기만 받는 SDK 인터페이스의 도입은 별도의 모듈 작업이다.\n"
+      "raw": "과거 Qt 편집기의 매개변수 보조값 테스트는 설치된 `iiGraphicAdjust 0.6.2 EXACT`의 공개 분석 API를 사용한다. 이 패키지의 `autoLensScale`에는 유효한 ImageView를 전달하므로 해당 입력 변환도 작업 스레드에 둔다.\n"
     },
     {
       "id": "b000012",
@@ -309,6 +309,20 @@
       "start_line": 42,
       "end_line": 42,
       "raw": "보조 계산이 기존 보정 원본을 재사용할 때는 도구·작업·레이어·리비전뿐 아니라 문서 세대와 현재 해석된 애셋도 확인한다. 실제 앱의 동적 레이어 선택과 미리보기·적용·Reset은 [동적 래스터 편집 계약](DynamicRasterEditing.md)을 따른다.\n"
+    },
+    {
+      "kind": "blank",
+      "raw": "\n",
+      "id": "b000034",
+      "start_line": 43,
+      "end_line": 43
+    },
+    {
+      "kind": "paragraph",
+      "raw": "과거 Qt 편집기의 GraphicHelperValues 검사는 QtTest 대신 CTest 실행기를 사용한다. 기존 보조값 보존 8행, 래스터 불필요 3행, 잘못된 매개변수 10행과 세 독립 사례를 유지하며 각 데이터 행과 그룹을 이름으로 선택할 수 있다. 보존 검사는 입력 이미지가 변경되지 않는지도 확인한다. 현행 네이티브 앱 빌드는 이 과거 테스트를 포함하지 않으므로, 검증하려면 `cmake -S tests/graphic_helpers -B build/graphic-helpers-ctest`로 별도 구성하고 해당 build 디렉터리에서 빌드와 CTest를 실행한다. 이 검사는 네이티브 앱의 실행 검증이 아니다.\n",
+      "id": "b000035",
+      "start_line": 44,
+      "end_line": 44
     }
   ],
   "outline": [
@@ -365,7 +379,7 @@
       {
         "block_id": "b000011",
         "line": 20,
-        "text": "현재 앱은 설치된 `iiGraphicAdjust 0.4.0`을 사용한다. SDK 소스 디렉터리의 다른 버전을 앱의 실제 연결 패키지로 간주하지 않는다. 이 변경은 선택한 패키지의 기존 공개 분석 API를 사용하며 SDK 소스나 전역 설치를 바꾸지 않는다. 이 패키지의 `autoLensScale`은 유효한 ImageView를 요구하므로 해당 입력 변환도 작업 스레드에 둔다. 크기만 받는 SDK 인터페이스의 도입은 별도의 모듈 작업이다.",
+        "text": "과거 Qt 편집기의 매개변수 보조값 테스트는 설치된 `iiGraphicAdjust 0.6.2 EXACT`의 공개 분석 API를 사용한다. 이 패키지의 `autoLensScale`에는 유효한 ImageView를 전달하므로 해당 입력 변환도 작업 스레드에 둔다.",
         "basis": "lexical_match",
         "context": "paragraph"
       },

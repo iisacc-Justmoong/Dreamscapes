@@ -1,6 +1,6 @@
 #pragma once
 #include "NativePreferencesWorkspace.h"
-#include <iiGUI/NativeWidgets.h>
+#include <iiGUI>
 
 namespace dreamscapes::preferences {
 [[nodiscard]] ii::core::Result<void> buildWorkspace(ii::gui::WidgetBuilder &,ii::gui::Widget,std::shared_ptr<WorkspaceModel>);

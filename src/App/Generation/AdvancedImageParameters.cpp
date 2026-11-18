@@ -1,4 +1,4 @@
-#include <iiFileProviderDevice.h>
+#include <iiFileProvider>
 #include "AdvancedImageParameters.h"
 #include "GenerationController.h"
 #include "../ViewModels/ViewData.h"

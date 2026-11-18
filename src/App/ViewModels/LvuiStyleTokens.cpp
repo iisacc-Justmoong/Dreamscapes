@@ -1,6 +1,6 @@
 #include "LvuiStyleTokens.h"
 
-#include <LVUI/StyleTokens.h>
+#include <LVUI>
 #include <QDebug>
 #include <QtQml/qqml.h>
 #include <limits>

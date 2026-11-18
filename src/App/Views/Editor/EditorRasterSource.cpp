@@ -1,5 +1,5 @@
 #include "EditorRasterSource.h"
-#include <iiSharedCanvas.h>
+#include <iiSharedCanvas>
 #include <algorithm>
 #include <cmath>
 namespace editorRaster {

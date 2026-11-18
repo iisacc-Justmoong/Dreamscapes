@@ -1,7 +1,6 @@
 #pragma once
 
-#include <iiSDKCore/Core/Property/Observable.h>
-#include <iiSDKCore/Core/Result/Result.h>
+#include <iiSDKCore>
 #include <functional>
 #include <memory>
 #include <string>

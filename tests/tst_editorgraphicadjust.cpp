@@ -1,5 +1,5 @@
 #include "App/Views/Editor/EditorGraphicAdjust.h"
-#include <iiGraphicAdjust/iiGraphicAdjust.h>
+#include <iiGraphicAdjust>
 #include <QColorSpace>
 #include <QtTest>
 #include <algorithm>

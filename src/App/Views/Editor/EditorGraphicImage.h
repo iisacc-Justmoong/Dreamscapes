@@ -1,6 +1,6 @@
 #pragma once
 #include "EditorRasterSource.h"
-#include <iiSharedCanvas.h>
+#include <iiSharedCanvas>
 #include <QImage>
 #include <QPointF>
 #include <QVariantMap>

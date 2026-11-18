@@ -1,6 +1,5 @@
 #include "NativeReviewInspectorViewModel.h"
-#include <iiGUI/NativeTextLayout.h>
-#include <iiGUI/TextInputModel.h>
+#include <iiGUI>
 #include <algorithm>
 #include <cmath>
 #include <limits>

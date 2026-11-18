@@ -2,7 +2,7 @@
 #include "App/Native/NativeCanvasFiles.h"
 #include <Document/Document.h>
 #include <Render/FrameRenderer.h>
-#include <iiFileProviderNative.h>
+#include <iiFileProvider>
 #include <cmath>
 #include <filesystem>
 #include <iostream>

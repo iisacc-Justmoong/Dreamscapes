@@ -10,8 +10,8 @@
   },
   "source": {
     "path": "docs/AdvancedImageParameters.md",
-    "sha256": "bd15f5b2336bf3c564f2718417726b319f91578f6010f8073d0e86f8cd286817",
-    "bytes": 47933,
+    "sha256": "e4bc02ae1ee986ea8cab218ebac809b98aa89671596185ff627ff6788012a4ba",
+    "bytes": 47723,
     "line_count": 197,
     "encoding": "utf-8",
     "language": "ko"
@@ -559,7 +559,7 @@
       "kind": "paragraph",
       "start_line": 80,
       "end_line": 80,
-      "raw": "`Dreamscapes.Storage` 는 정적 `NO_PLUGIN` QML 모듈입니다. 공개 타입은 `src/main.cpp` 에 명시적으로 등록되어 있으며, 프로덕션 목록에는 `AdvancedImageParameters` 뿐만 아니라 `GenerationController` 와 파일 익스포터가 포함되어야 합니다. 소스 GUI 테스트는 파생 픽스처 문서를 등록하므로, 성공만으로는 패키징된 앱이 실제 문서 타입을 노출한다는 것을 증명할 수 없습니다.\n"
+      "raw": "과거 Qt 앱은 `Dreamscapes.Storage` 정적 `NO_PLUGIN` QML 모듈과 `src/main.cpp`의 타입 등록을 사용했다. 해당 진입점은 제거됐으며, 이 이력은 현재 네이티브 앱의 타입 등록이나 기능 검증을 의미하지 않는다.\n"
     },
     {
       "id": "b000076",

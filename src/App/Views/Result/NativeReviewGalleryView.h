@@ -1,7 +1,7 @@
 #pragma once
 
 #include "NativeReviewGallery.h"
-#include <iiGUI/NativeWidgets.h>
+#include <iiGUI>
 #include <functional>
 
 namespace dreamscapes::review {
@@ -10,7 +10,8 @@ namespace dreamscapes::review {
 using GalleryConfigure = std::function<void(const std::shared_ptr<ReviewGalleryModel> &)>;
 [[nodiscard]] std::shared_ptr<const lvui::native::ImageResolver<ii::gui::RasterImage>>
 galleryImageResolver(const std::shared_ptr<ReviewGalleryModel> &);
-[[nodiscard]] ii::gui::WidgetInputHandler galleryShortcuts(std::shared_ptr<std::weak_ptr<ReviewGalleryModel>>);
+[[nodiscard]] ii::gui::WidgetInputHandler galleryShortcuts(std::shared_ptr<std::weak_ptr<ReviewGalleryModel>>,
+    std::shared_ptr<std::weak_ptr<CompareModel>> comparison = {});
 [[nodiscard]] ii::core::Result<void> buildReviewGallery(ii::gui::WidgetBuilder &, ii::gui::Widget parent = {},
                                                         const GalleryConfigure &configure = {},
                                                         std::shared_ptr<Session> session = {});

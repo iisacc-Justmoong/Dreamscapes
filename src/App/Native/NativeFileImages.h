@@ -1,8 +1,8 @@
 #pragma once
 
 #include "NativePreviewStatus.h"
-#include <LVUI/NativeImageResolver.h>
-#include <iiGUI/Image.h>
+#include <LVUI>
+#include <iiGUI>
 #include <memory>
 #include <string_view>
 

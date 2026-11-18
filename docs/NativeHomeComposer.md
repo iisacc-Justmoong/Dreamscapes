@@ -1,13 +1,11 @@
 # Native Home generation composer contract
 
-The native Home composer is based on the existing Dreamscapes Home Figma
-composer `1467:4971` and `DesktopGenerationComposer.qml`. It must retain the
-prompt and negative prompt, Image/Video/Audio/Board navigation, reference
-attachments and paint canvas, model selection, aspect ratio, resolution,
-output count, seed, preset load and save, advanced parameters, video duration
-and frame rate, generation submission, validation and errors. The actual
-options, model IDs, file references, values and localized labels come from
-application services, not from Figma examples.
+The native Home QuickGenerate layout follows Dreamscapes Figma `1756:75057`.
+It uses the shared composer models for prompts, model selection, aspect ratio,
+resolution, output count, seed, references, video timing, submission and
+validation. The full composer also supports paint, preset and advanced actions
+through its host. The actual options, model IDs, file references, values and
+localized labels come from application services.
 
 The native presentation model is a snapshot and command boundary. It does not
 edit files, select a model on its own, start generation during a view update,
@@ -26,21 +24,28 @@ presets and submission through those controllers and receives attachment,
 paint and advanced-panel commands from its host. It supplies no invented
 models or choice lists. A controller or session that retires during a command
 or snapshot update cannot leave an enabled command behind.
-Model and preset choices are refreshed on their respective controller
-notifications rather than being fetched again for each prompt keystroke.
+The native app's `NativeHomeLocalDraft` maintains image and video model lists
+from the catalogue. The draft snapshot shares immutable choice lists. Text
+edits reuse those lists and the draft presentation returned by the edit
+command. A choice view projects its rows when its options, selection,
+availability, or font changes. The Image and Video workspaces update shared
+prompt and model fields when their corresponding values change.
 
 The model and session tests cover stable choice and attachment IDs, draft
 updates, video controls, invalid seed, a temporary preset round trip, busy
 submission, the existing submission signal and retirement. They do not run
 inference or alter the user's files. An isolated Society fixture with two
 small dummy files verifies that the existing model inventory, model selection,
-and image/video reclassification reach the native snapshot. The tests do not
-yet exercise the complete native composer or its connection to the running app.
+and image/video reclassification reach the native snapshot. The composed
+Home widget test exercises the same LVUI controls used by the app with
+fixtures for the draft and file panels.
 
-This is a migration step. The current composer and its paint canvas remain
-QML/Qt views until the complete LVUI composer, native attachment and canvas
-interfaces, dialogs, shortcuts and generation/navigation path are connected
-and tested. A snapshot model and session alone do not provide the UI.
+The native Home route mounts QuickGenerate with its C++ draft and LVUI controls.
+Selecting the matching Image or Video destination in the sidebar carries
+compatible QuickGenerate settings into the advanced workspace. Returning to
+Home and reopening that workspace preserves edits to advanced fields whose
+Home values are unchanged. A closed Home view releases its widget handles
+while the session draft remains available.
 
 The first composer subview is the plain-text prompt field. It reads the shared
 draft, forwards only user edits, exposes an accessible clear action for a
@@ -56,17 +61,21 @@ replaces the application's current prompt.
 
 Model, media, aspect ratio, resolution, count, duration, frame rate and preset
 menus share one LVUI choice view. The host supplies localized labels and menu
-options; the view projects the authoritative selection and dispatches a stable
-option key. A popup action whose option was removed or disabled before the
-click must be rejected. Menu interaction must not load a model or begin
-generation except through the existing controller's explicit selection path.
-The Qt-free model and LVUI/iiGUI menu are implemented. Headless tests cover
-keyed menu reordering, disabled and removed options, responsive controller
-updates and the existing image/video model selection using an isolated Society
-fixture. The complete composer layout and platform popup behavior remain to be
-connected and verified. LVUI's current keyed menu has a 4,096-item limit and
-does not virtualize; inventories larger than that need an accessible search or
-paging path before the native composer can replace the existing one.
+options; the view dispatches a stable option key. The popup measures the widest
+label with LVUI text metrics and updates its width when options or fonts change.
+Removed or disabled options must be rejected. QuickGenerate shares one open
+popup across its dropdowns and popover editors. Activating a second control
+dismisses the previous popup. Activating the same open control dismisses it.
+A successful choice closes its popup after synchronous refresh. Generation
+starts through an explicit submission command. iiGUI routes pointer input to
+the portion of a popup that extends beyond the composer. An outside click
+dismisses the popup and reaches the underlying control.
+Headless tests cover keyed menu reordering, disabled and removed options,
+content width updates, controller updates and image/video model selection.
+The composed Home test sends pointer input to move from Aspect ratio to
+Resolution and select an option. It also checks switching to Seed, dismissing
+by the anchor or Escape, and returning focus to the prompt with an outside
+click. LVUI's current keyed menu supports up to 4,096 items.
 
 The Seed setting is an editable draft, separate from the applied generation
 seed. Opening the editor copies the current seed, using an empty field for
@@ -108,8 +117,9 @@ does not claim that the native list is connected to the actual Home canvas or
 that image decoding and platform rendering were verified.
 
 Attach, Paint canvas, Advanced parameters and Generate use the existing
-composer commands. Generate's label reflects the current media type and
-output count, and is disabled while submission or generation is pending.
+composer commands. QuickGenerate uses a fixed-width Generate action with a
+stable label. The full composer can show the media type and output count.
+Generate is disabled while submission or generation is pending.
 Neither layout nor a controller state refresh may start a generation. The
 attachment picker, painting surface and advanced settings are provided by the
 host and are not replaced by placeholder actions.
@@ -118,32 +128,28 @@ Its widget tests exercise all four commands and the pending state. A
 controller integration test verifies the existing submission signal and
 host callbacks without starting an inference job or opening a file picker.
 
-The negative-prompt button opens the same native plain-text editing boundary
-with its own draft and Done action. Closing the popover preserves the edited
-negative prompt and does not submit a generation. The popover must remain
-within the window on narrow layouts.
-The native popup is composed from the shared prompt editor and tested at a
-narrow viewport; a controller integration test confirms that it only edits
-the negative prompt and never submits a generation.
+QuickGenerate puts the Negative prompt editor on the full-width second row.
+Both editors grow with measured multiline content and update separate fields
+of the shared draft. The full composer can use the same negative-prompt editor
+in its popover with a Done action. The layout and controller tests cover
+multiline input, preserved focus and independent edits. Only the main prompt
+has a submission shortcut.
 
-The complete composer uses two responsive control grids. At the existing
-desktop breakpoint the first grid shows its six controls on one row and the
-settings grid shows seven columns. Smaller widths use the existing one/two
-and two/three-column arrangements. Video adds duration and frame-rate
-settings; preset and advanced controls span two narrow columns. Moving between
-layouts must retain the mounted editors, popovers and their local state. The
-layout receives breakpoints and preferred widths from the composition boundary.
-The LVUI view supplies spacing, padding, control height, caption line height
-and attachment height from the shared LVUI metrics; it does not change
-generation or file state.
-The responsive grid and LVUI parent now mount supplied controls without
-rebuilding them. Headless tests exercise wide and narrow layouts, prompt focus,
-and visibility of video-only settings. Some tests still use fixture controls;
-the running Home connection is not complete. A source factory assembles the
-actual LVUI controls and checks that they belong to one generation draft and
-are assigned to their matching roles. The panel renders the controller error
-as wrapped LVUI text and measures its height; the current iiGUI label limit of
-64 KiB remains a limitation for an unusually long error message.
+At the reference width of 1227 points, QuickGenerate has three 22-point rows,
+8-point gaps, and 12-point insets. The first row has a 65-point media dropdown
+and a fill-width Prompt editor. The second row is the full-width Negative
+prompt. The third row groups Add, Model, Aspect ratio, Resolution, Batch size
+and Seed at the leading edge and pins Generate to the trailing edge. Add is
+22 by 22 points and Generate is 71 by 22 points. The settings dropdown widths
+follow their selected labels. Video also shows Duration and Frame rate in
+that group. Settings wrap as needed on narrower surfaces while keeping the
+action sizes. The full composer retains the Preset, Paint canvas and
+Advanced parameters controls for its other composition.
+Shared LVUI metrics supply spacing, padding and control height. A text edit
+updates the panel layout only when a measured height or another layout input
+changes. The panel renders actual attachments and wrapped generation errors
+when present. Headless tests verify the reference geometry, resize behavior,
+focus, native popup input and sidebar handoff to advanced settings.
 
 A construction boundary receives translated labels, formatting callbacks,
 layout requirements and the application's image resolver. It creates the

@@ -8,7 +8,7 @@
 
 namespace dreamscapes::home {
 namespace {
-template<class Entry> bool uniqueKeys(const std::vector<Entry> &items) {
+template<class Range> bool uniqueKeys(const Range &items) {
     std::set<std::string, std::less<>> seen;
     for (const auto &item : items) if (item.key.empty() || !seen.insert(item.key).second) return false;
     return true;
@@ -21,7 +21,7 @@ bool validSnapshot(const HomeComposerSnapshot &previous, const HomeComposerSnaps
         validChange(a.durations, b.durations) && validChange(a.frameRates, b.frameRates) &&
         validChange(a.presets, b.presets) && validChange(previous.attachments, state.attachments);
 }
-bool choiceAllowed(const std::vector<HomeComposerChoice> &choices, const std::string &value) {
+bool choiceAllowed(const HomeComposerChoiceList &choices, const std::string &value) {
     return std::ranges::any_of(choices, [&](const auto &choice) { return choice.key == value && choice.enabled; });
 }
 bool blank(const std::string &value) {

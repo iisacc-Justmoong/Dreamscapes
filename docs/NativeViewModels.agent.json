@@ -10,8 +10,8 @@
   },
   "source": {
     "path": "docs/NativeViewModels.md",
-    "sha256": "b0a1cbe76d28bb40bee49f66ee40498d6000630c76b14841e1688d45b85af334",
-    "bytes": 25805,
+    "sha256": "6d3c30f856d6552f88a147f33e3b056f3f4c2ca33e9907d45c57b7a763dff2a6",
+    "bytes": 25650,
     "line_count": 192,
     "encoding": "utf-8",
     "language": "ko"
@@ -609,7 +609,7 @@
       "kind": "paragraph",
       "start_line": 138,
       "end_line": 138,
-      "raw": "QML에 남은 Canvas/Shape 그리기, 좌표·색상·너비 바인딩, 화면 크기에 따른 레이아웃, 포커스·스크롤·팝업 전환은 뷰의 책임이다. 이것을 없애기 위해 GUI 객체를 하위 순수 모델로 넘기지 않는다. ViewModel의 판단이 필요한 이벤트는 C++로 전달하고, 반환된 표시 명령으로 화면을 연다.\n"
+      "raw": "과거 QML이 담당하던 Canvas/Shape 그리기, 좌표·색상·너비 바인딩, 화면 크기에 따른 레이아웃, 포커스·스크롤·팝업 전환은 뷰의 책임이다. 이것을 없애기 위해 GUI 객체를 하위 순수 모델로 넘기지 않는다. ViewModel의 판단이 필요한 이벤트는 C++로 전달하고, 반환된 표시 명령으로 화면을 연다.\n"
     },
     {
       "id": "b000070",
@@ -684,7 +684,7 @@
       "kind": "paragraph",
       "start_line": 150,
       "end_line": 150,
-      "raw": "이전 JS와 타임라인 상태 구현은 `tests/fixtures/legacy-viewmodels/`에 동결되어 있다. 앱 QML 자원에 포함하거나 새 기능을 이 자료에 구현하지 않는다. 데이터 카탈로그 변경은 독립 Figma/SDK 계약 테스트와 네이티브 기본값 테스트를 갱신해야 한다.\n"
+      "raw": "이전 JS 정의는 `tests/fixtures/legacy-viewmodels/`에 동결되어 있다. 이전 타임라인 QML 픽스처는 제거했으며 타임라인 명령과 편집 이력은 네이티브 뷰모델 테스트로 검증한다. 데이터 카탈로그 변경은 독립 Figma/SDK 계약 테스트와 네이티브 기본값 테스트를 갱신해야 한다.\n"
     },
     {
       "id": "b000080",
@@ -728,9 +728,9 @@
       "kind": "fenced_code",
       "start_line": 156,
       "end_line": 159,
-      "raw": "```sh\ncmake --build build --target DreamscapesNativeViewModelTests DreamscapesViewModelBridgeTests DreamscapesViewModelAdapterTests DreamscapesReviewModelTests DreamscapesAdvancedParametersTests --parallel 4\nctest --test-dir build -R 'Dreamscapes\\.(NativeViewModels|ViewModelBridge|ViewModelAdapters|NativeViewBoundary|ReviewModel|AdvancedParameters)$' --output-on-failure\n```\n",
+      "raw": "```sh\ncmake --build build --target DreamscapesNativeViewModelTests Dreamscapes --parallel 4\nctest --test-dir build -R 'Dreamscapes\\.(NativeViewModels|NativeViewConversion|NativeViewAppBinary)$' --output-on-failure\n```\n",
       "language": "sh",
-      "code": "cmake --build build --target DreamscapesNativeViewModelTests DreamscapesViewModelBridgeTests DreamscapesViewModelAdapterTests DreamscapesReviewModelTests DreamscapesAdvancedParametersTests --parallel 4\nctest --test-dir build -R 'Dreamscapes\\.(NativeViewModels|ViewModelBridge|ViewModelAdapters|NativeViewBoundary|ReviewModel|AdvancedParameters)$' --output-on-failure\n",
+      "code": "cmake --build build --target DreamscapesNativeViewModelTests Dreamscapes --parallel 4\nctest --test-dir build -R 'Dreamscapes\\.(NativeViewModels|NativeViewConversion|NativeViewAppBinary)$' --output-on-failure\n",
       "closed": true
     },
     {
@@ -745,7 +745,7 @@
       "kind": "list",
       "start_line": 161,
       "end_line": 165,
-      "raw": "- NativeViewModels: Qt 없이 값 경로·검증·타임라인·초안·선택·명령 계획·행 차이·실제 iiSDK 작업 풀을 검증한다.\n- 표시 조회·재생·팔레트: 숫자 표현이 다른 선택값, 음수 범위, 원본 스냅샷 유지, 단조 시계의 지연·반복·종료·스냅, 잘못된 입력 거부, 단색 그레디언트를 검증한다. GUI 연결 검사는 URL·날짜 형식 보존, 실제 타이머 진행, 화면 중단·소유자 파괴와 문서 변경 없음도 확인한다.\n- ViewModelBridge: 동결한 이전 구현과 전체 그래픽 카탈로그·기본값·중첩 경로·숫자 입력·타임라인 명령의 결과를 비교한다.\n- ViewModelAdapters: 초기화 순서, Undo 초안 보존, 캔버스 생성 입력, 공유 소유권, 없는 런타임 거부 및 QML 네이티브 등록을 검증한다.\n- 기존 GUI/생성/타임라인/그래픽/저장소 회귀 검사는 연결된 실제 화면 동작을 검증한다. 단위 테스트 성공을 앱 전체 또는 설치본의 성공으로 대체해서 보고하지 않는다.\n",
+      "raw": "- NativeViewModels: Qt 없이 값 경로·검증·타임라인·초안·선택·명령 계획·행 차이·실제 iiSDK 작업 풀을 검증한다.\n- 표시 조회·재생·팔레트: 숫자 표현이 다른 선택값, 음수 범위, 원본 스냅샷 유지, 단조 시계의 지연·반복·종료·스냅, 잘못된 입력 거부, 단색 그레디언트를 검증한다. GUI 연결 검사는 URL·날짜 형식 보존, 실제 타이머 진행, 화면 중단·소유자 파괴와 문서 변경 없음도 확인한다.\n- NativeViewConversion: 생성 산출물과 Git 저장소를 제외한 프로젝트 전체에 QML 파일이 없는지, LVUI 뷰와 뷰모델이 연결되는지 검사한다.\n- NativeViewAppBinary: macOS 네이티브 앱 번들에 QML 파일과 Qt Quick·LVRS 링크가 없는지 검사한다.\n- 기존 GUI/생성/타임라인/그래픽/저장소 회귀 검사는 연결된 실제 화면 동작을 검증한다. 단위 테스트 성공을 앱 전체 또는 설치본의 성공으로 대체해서 보고하지 않는다.\n",
       "items": [
         {
           "marker": "-",
@@ -759,12 +759,12 @@
         },
         {
           "marker": "-",
-          "text": "ViewModelBridge: 동결한 이전 구현과 전체 그래픽 카탈로그·기본값·중첩 경로·숫자 입력·타임라인 명령의 결과를 비교한다.",
+          "text": "NativeViewConversion: 생성 산출물과 Git 저장소를 제외한 프로젝트 전체에 QML 파일이 없는지, LVUI 뷰와 뷰모델이 연결되는지 검사한다.",
           "checked": null
         },
         {
           "marker": "-",
-          "text": "ViewModelAdapters: 초기화 순서, Undo 초안 보존, 캔버스 생성 입력, 공유 소유권, 없는 런타임 거부 및 QML 네이티브 등록을 검증한다.",
+          "text": "NativeViewAppBinary: macOS 네이티브 앱 번들에 QML 파일과 Qt Quick·LVRS 링크가 없는지 검사한다.",
           "checked": null
         },
         {
@@ -1192,7 +1192,7 @@
       {
         "block_id": "b000079",
         "line": 150,
-        "text": "이전 JS와 타임라인 상태 구현은 `tests/fixtures/legacy-viewmodels/`에 동결되어 있다. 앱 QML 자원에 포함하거나 새 기능을 이 자료에 구현하지 않는다. 데이터 카탈로그 변경은 독립 Figma/SDK 계약 테스트와 네이티브 기본값 테스트를 갱신해야 한다.",
+        "text": "이전 JS 정의는 `tests/fixtures/legacy-viewmodels/`에 동결되어 있다. 이전 타임라인 QML 픽스처는 제거했으며 타임라인 명령과 편집 이력은 네이티브 뷰모델 테스트로 검증한다. 데이터 카탈로그 변경은 독립 Figma/SDK 계약 테스트와 네이티브 기본값 테스트를 갱신해야 한다.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
@@ -1269,7 +1269,7 @@
       {
         "block_id": "b000085",
         "language": "sh",
-        "code": "cmake --build build --target DreamscapesNativeViewModelTests DreamscapesViewModelBridgeTests DreamscapesViewModelAdapterTests DreamscapesReviewModelTests DreamscapesAdvancedParametersTests --parallel 4\nctest --test-dir build -R 'Dreamscapes\\.(NativeViewModels|ViewModelBridge|ViewModelAdapters|NativeViewBoundary|ReviewModel|AdvancedParameters)$' --output-on-failure\n"
+        "code": "cmake --build build --target DreamscapesNativeViewModelTests Dreamscapes --parallel 4\nctest --test-dir build -R 'Dreamscapes\\.(NativeViewModels|NativeViewConversion|NativeViewAppBinary)$' --output-on-failure\n"
       }
     ],
     "links": [],

@@ -4,7 +4,7 @@
 #include "NativeOverlayCoordinator.h"
 #include "App/ApplicationShutdownCoordinator.h"
 #include "SocietyLicenseGate.generated.h"
-#include <iiGUI/Host.h>
+#include <iiGUI>
 #include <QCoreApplication>
 #include <QEvent>
 #include <QMetaMethod>
@@ -125,12 +125,12 @@ bool installNativeLicensePresenter(QObject* root,QObject* account,QObject* lifet
     auto* window=qobject_cast<QWindow*>(root);
     if(!window||!account||!lifetime||!shutdown||window->thread()!=QThread::currentThread()||
        account->thread()!=QThread::currentThread()||lifetime->thread()!=QThread::currentThread()||
-       shutdown->thread()!=QThread::currentThread()||shutdown->isClosing())return false;
+       !shutdown->isOwnerThread()||shutdown->isClosing())return false;
     try{
         auto presenter=std::make_unique<NativeLicensePresenter>(window,account,lifetime);
         if(!presenter->connectState())return false;
         const QPointer<NativeLicensePresenter> guard(presenter.get());
-        shutdown->add([guard](std::function<void()> done){if(guard)guard->shutdown(std::move(done));else if(done)done();});
+        if (!shutdown->add([guard](std::function<void()> done){if(guard)guard->shutdown(std::move(done));else if(done)done();})) return false;
         presenter->begin();presenter.release();return true;
     }catch(...){return false;}
 }

@@ -1,5 +1,5 @@
 #include "App/ViewModels/Native/ViewCatalog.h"
-#include <iiJson/Json.h>
+#include <iiJson>
 #include <chrono>
 #include <fstream>
 #include <iostream>

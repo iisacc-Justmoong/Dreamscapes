@@ -1,4 +1,5 @@
 #include "GenerationDraft.h"
+#include <algorithm>
 #include <charconv>
 #include <limits>
 #include <set>
@@ -8,6 +9,8 @@ namespace dreamscapes::vm {
 Value videoDefaults(const Value &prompts) {
     return Value(Object{{"prompt", Value(text(get(prompts, "prompt")))},
                         {"negativePrompt", Value(text(get(prompts, "negativePrompt")))},
+                        {"firstFrame", Value("")},
+                        {"lastFrame", Value("")},
                         {"width", Value(1024)},
                         {"height", Value(576)},
                         {"duration", Value(5)},
@@ -56,6 +59,17 @@ bool videoCameraValid(const Value &values) {
         if (motions.contains(a) && motions.contains(b))
             return false;
     return true;
+}
+bool videoSeedSequenceValid(const Value &values) {
+    if (boolean(get(values,"randomSeed"))) return true;
+    const auto invalid=std::numeric_limits<double>::quiet_NaN();
+    const auto seed=number(get(values,"seed"),invalid),count=number(get(values,"outputCount"),invalid);
+    return std::isfinite(seed) && std::isfinite(count) && std::floor(seed)==seed && std::floor(count)==count &&
+        seed>=0 && count>=1 && count<=1000 && seed<=4294967295.0-(count-1);
+}
+bool videoExecutionValid(const Value &values) {
+    return text(get(values,"offload"))!="sequential" ||
+        (boolean(get(values,"cpuTextEncoding")) && boolean(get(values,"vaeTiling")));
 }
 VideoEditPlan planVideoEdit(const Value &values, const Value &invalid, const VideoEdit &edit) {
     auto errors = object(invalid);
@@ -134,10 +148,11 @@ Value imageSize(std::string_view ratio, int shorter) {
             x = y = 0;
     }
     if (!std::isfinite(x) || !std::isfinite(y) || x <= 0 || y <= 0 || shorter <= 0)
-        return Value(Object{{"width", Value(1024)}, {"height", Value(1024)}});
-    const auto scale = shorter / std::min(x, y);
-    return Value(Object{{"width", Value(std::floor(x * scale / 8 + .5) * 8)},
-                        {"height", Value(std::floor(y * scale / 8 + .5) * 8)}});
+        return Value(Object{{"width", Value(defaultImageShortSide)}, {"height", Value(defaultImageShortSide)}});
+    const auto scale = std::min(shorter / std::min(x, y), maximumImageDimension / std::max(x, y));
+    // The 16-pixel grid also satisfies still-image models that require it.
+    return Value(Object{{"width", Value(std::floor(x * scale / 16 + .5) * 16)},
+                        {"height", Value(std::floor(y * scale / 16 + .5) * 16)}});
 }
 ComposerState::ComposerState()
     : edits_([this](const ComposerEdit &edit) {
@@ -153,7 +168,7 @@ ComposerState::ComposerState()
                {"generationCount", Value(1)},
                {"videoDuration", Value(5)},
                {"videoFps", Value(24)},
-               {"shortSide", Value(1024)},
+               {"shortSide", Value(defaultImageShortSide)},
                {"seed", Value(-1)},
                {"negativePrompt", Value("")},
                {"appliedNegativePrompt", Value("")},
@@ -194,7 +209,7 @@ Value ComposerState::presentation() const {
     }
     result["outputSize"] = size;
     result["usesExplicitParameters"] =
-        Value(boolean(values_.at("loadedPreset")) || number(values_.at("shortSide")) != 1024 ||
+        Value(boolean(values_.at("loadedPreset")) || number(values_.at("shortSide")) != defaultImageShortSide ||
               values_.at("negativePrompt") != values_.at("appliedNegativePrompt"));
     return Value(result);
 }

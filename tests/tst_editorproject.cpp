@@ -1,10 +1,9 @@
 #include "App/Views/Editor/EditorProject.h"
-#include <SocietyDrive.h>
+#include <iiSocietyContainer>
 #include "App/Views/Editor/EditorProjectCodec.h"
 #include "App/Generation/ImageCanvas.h"
-#include <iiFileProvider.h>
-#include <iiFileProviderPresentation.h>
-#include <iiSharedCanvas/Render/FrameRenderer.h>
+#include <iiFileProvider>
+#include <iiSharedCanvas>
 #include <QImage>
 #include <QByteArray>
 #include <QMouseEvent>

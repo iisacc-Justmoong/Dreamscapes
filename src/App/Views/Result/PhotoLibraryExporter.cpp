@@ -1,8 +1,7 @@
 #include "PhotoLibraryExporter.h"
 #include "PhotoLibraryNative.h"
-#include <iiSocietyHelper/MediaExport.h>
-#include <iiFileProviderNative.h>
-#include <File.h>
+#include <iiSocietyHelper>
+#include <iiFileProvider>
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QImageReader>

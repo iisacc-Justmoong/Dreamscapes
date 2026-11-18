@@ -1,8 +1,8 @@
-#include <iiFileProviderDevice.h>
+#include <iiFileProvider>
 #pragma once
 #include "App/Generation/HomeGenerationInputs.h"
 #include "App/Generation/HomeReferenceStore.h"
-#include <iiSharedCanvas/QtAdapter/CanvasItem.h>
+#include <iiSharedCanvas>
 #include <QUrl>
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <iiGUI/NativeWidgets.h>
-#include <iiSDKCore/Core/Result/Result.h>
+#include <iiGUI>
+#include <iiSDKCore>
 #include <functional>
 #include <memory>
 #include <optional>

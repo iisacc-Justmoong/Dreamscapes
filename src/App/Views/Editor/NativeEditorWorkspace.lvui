@@ -1,5 +1,6 @@
 import vm NativeEditorWorkspaceBackend
 @Static let resizeEditor: (Double, Double) -> Void = vm.sizeHandler(Metric.size280, Metric.size22, Metric.space8)
+@Static let resizeEditorCanvas: (Double, Double) -> Void = vm.canvasSizeHandler(Metric.space8)
 EventListener(id: "editorSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizeEditor) {
     VStack(id: "editorWorkspace", width: vm.width, height: vm.height, spacing: Metric.space4, alignment: .stretch) {
         HStack(spacing: Metric.space8, padding: Metric.space8, alignment: .center) {
@@ -24,13 +25,36 @@ EventListener(id: "editorSurface", width: 0, height: 0, flex: 1, onSizeChanged: 
                     Label(id: "editorDimensions", text: vm.dimensions, style: .caption)
                 }
                 EventListener(id: "editorCanvasSurface", width: 0, height: 0, flex: 1,
-                              onSizeChanged: vm.canvasSizeChanged) {
+                              onSizeChanged: resizeEditorCanvas) {
                     ZStack(width: vm.previewWidth, height: vm.previewHeight, alignment: .center) {
                         if (vm.hasDocument) {
                             ZStack(width: vm.previewWidth, height: vm.previewHeight, alignment: .center) {
                                 if (vm.hasFrame) {
-                                    Image(id: "editorCanvasFrame", source: vm.renderedFrame,
-                                          width: vm.previewWidth, height: vm.previewHeight, fit: .Contain)
+                                    ZStack(width: vm.previewWidth, height: vm.previewHeight, alignment: .center) {
+                                        Image(id: "editorCanvasFrame", source: vm.renderedFrame,
+                                              width: vm.previewWidth, height: vm.previewHeight, fit: .Contain)
+                                        if (vm.elementsPanelActive) {
+                                            if (vm.selectingTool) {
+                                                NativeView(id: "editorSelectionOverlay", source: vm.selectionView,
+                                                           width: vm.previewWidth, height: vm.previewHeight)
+                                            } else {
+                                                NativeView(id: "editorShapeOverlay", source: vm.shapeView,
+                                                           width: vm.previewWidth, height: vm.previewHeight)
+                                            }
+                                        }
+                                        if (vm.textPanelActive) {
+                                            NativeView(id: "editorTextOverlay", source: vm.textView,
+                                                       width: vm.previewWidth, height: vm.previewHeight)
+                                        }
+                                        if (vm.maskPanelActive && vm.maskLassoActive) {
+                                            NativeView(id: "editorMaskLassoOverlay", source: vm.maskLassoView,
+                                                       width: vm.previewWidth, height: vm.previewHeight)
+                                        }
+                                        if (vm.brushPanelActive) {
+                                            NativeView(id: "editorBrushOverlay", source: vm.brushView,
+                                                       width: vm.previewWidth, height: vm.previewHeight)
+                                        }
+                                    }
                                 }
                                 if (vm.renderStatus != "") {
                                     Label(id: "editorCanvasStatus", text: vm.renderStatus, style: .caption)
@@ -41,17 +65,32 @@ EventListener(id: "editorSurface", width: 0, height: 0, flex: 1, onSizeChanged: 
                         }
                     }
                 }
+                if (vm.elementsPanelActive && vm.selectingTool && vm.selectionStatus != "") {
+                    Label(id: "editorSelectionStatus", text: vm.selectionStatus, style: .caption)
+                }
             }
             VStack(id: "editorLayersSlot", width: vm.panelWidth, spacing: 0, alignment: .stretch) {
                 NativeView(id: "editorPanelView", source: vm.panelView, width: vm.panelWidth, height: 0, flex: 1)
             }
             VStack(id: "editorToolBar", width: Metric.size22, spacing: Metric.space2, alignment: .center) {
+                IconButton(id: "editorBrushTool", iconName: "brush", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, enabled: vm.brushAvailable, checkable: false, checked: vm.brushPanelActive,
+                           selectionStyle: .segmented, accessibilityName: "Brush", onClick: vm.showBrushPanel)
                 IconButton(id: "editorElementsTool", iconName: "rectangle", width: Metric.size22, height: Metric.size22,
-                           tone: .borderless, checkable: false, checked: vm.elementsPanelActive, selectionStyle: .segmented,
+                           tone: .borderless, checkable: false, checked: vm.elementsPanelActive && !vm.selectingTool, selectionStyle: .segmented,
                            accessibilityName: "Elements", onClick: vm.showElementsPanel)
+                IconButton(id: "editorTextTool", iconName: "text", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, checkable: false, checked: vm.textPanelActive, selectionStyle: .segmented,
+                           accessibilityName: "Text", onClick: vm.showTextPanel)
                 IconButton(id: "editorBackgroundTool", iconName: "panel-background-mask", width: Metric.size22, height: Metric.size22,
-                           tone: .borderless, checkable: false, checked: vm.maskPanelActive, selectionStyle: .segmented,
+                           tone: .borderless, checkable: false, checked: vm.backgroundPanelActive, selectionStyle: .segmented,
                            accessibilityName: "Background", onClick: vm.showMaskPanel)
+                IconButton(id: "editorAudioTool", iconName: "audio-track", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, enabled: vm.audioAvailable, checkable: false, checked: vm.audioPanelActive,
+                           selectionStyle: .segmented, accessibilityName: "Audio track", onClick: vm.showAudioPanel)
+                IconButton(id: "editorLightTool", iconName: "adjustment", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, enabled: vm.lightAvailable, checkable: false, checked: vm.lightPanelActive,
+                           selectionStyle: .segmented, accessibilityName: "Light adjustment", onClick: vm.showLightPanel)
                 IconButton(id: "editorFileTool", iconName: "document-properties", width: Metric.size22, height: Metric.size22,
                            tone: .borderless, checkable: false, checked: vm.filePanelActive, selectionStyle: .segmented,
                            accessibilityName: "File", onClick: vm.showFilePanel)
@@ -61,6 +100,9 @@ EventListener(id: "editorSurface", width: 0, height: 0, flex: 1, onSizeChanged: 
                 IconButton(id: "editorLayerTool", iconName: "panel-layers-stack", width: Metric.size22, height: Metric.size22,
                            tone: .borderless, checkable: false, checked: vm.layerPanelActive, selectionStyle: .segmented,
                            accessibilityName: "Layers", onClick: vm.showLayerPanel)
+                IconButton(id: "editorSelectTool", iconName: "direct-select", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, checkable: false, checked: vm.selectingTool && vm.elementsPanelActive, selectionStyle: .segmented,
+                           accessibilityName: "Select", onClick: vm.showSelectTool)
             }
         }
         HStack(id: "editorTimeline", spacing: Metric.space8, padding: Metric.space8, alignment: .center) {

@@ -3,7 +3,7 @@
 #include "App/Generation/GenerationComposerModel.h"
 #include "App/Generation/GenerationController.h"
 #include "App/Generation/HomeGenerationInputs.h"
-#include <SharedStorage.h>
+#include <iiSocietyContainer>
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>

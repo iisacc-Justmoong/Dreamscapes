@@ -1,7 +1,7 @@
 #include "EditorGraphicHelper.h"
 #include "EditorCanvas.h"
 #include "EditorGraphicAdjust.h"
-#include <iiGraphicAdjust/iiGraphicAdjust.h>
+#include <iiGraphicAdjust>
 #include <QtConcurrentRun>
 #include <algorithm>
 #include <exception>

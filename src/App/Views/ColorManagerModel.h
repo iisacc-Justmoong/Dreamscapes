@@ -1,5 +1,5 @@
 #pragma once
-#include <iiColorManager/ColorManager.h>
+#include <iiColorManager>
 #include <QColor>
 #include <QPointer>
 #include <QQuickPaintedItem>

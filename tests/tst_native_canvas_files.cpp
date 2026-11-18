@@ -2,7 +2,7 @@
 #include <Document/DocumentEditor.h>
 #include <File/DocumentFile.h>
 #include <Serialization/IiscCodec.h>
-#include <iiFileProviderNative.h>
+#include <iiFileProvider>
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>

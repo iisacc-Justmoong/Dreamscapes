@@ -1,8 +1,7 @@
 #include "EditorDocumentOpen.h"
 #include "EditorImageImport.h"
 #include "EditorProjectCodec.h"
-#include <iiFileProviderNative.h>
-#include <iiFileProviderPresentation.h>
+#include <iiFileProvider>
 #include <cctype>
 #include <mutex>
 #include <stdexcept>

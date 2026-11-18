@@ -70,6 +70,8 @@ private slots:
                     auto input = QJsonDocument::fromJson(data.mid(4, n)).object(); ++requests;
                     QCOMPARE(input.value("productId").toString(), QStringLiteral("dreamscapes"));
                     QCOMPARE(input.value("appId").toString(), QStringLiteral("com.iisacc.dreamscapes"));
+                    QVERIFY(input.value("refresh").isBool());QVERIFY(!input.value("refresh").toBool());
+                    QCOMPARE(input.value("operation").toString(),QStringLiteral("local-license-v2"));
                     QVERIFY(!input.contains("accessToken")); QVERIFY(!input.contains("subject"));
                     const auto now = QDateTime::currentSecsSinceEpoch();
                     QJsonObject payload{{"v",1},{"iss","https://iisacc.com"},{"aud","society"},{"sub","fixture-owner"},

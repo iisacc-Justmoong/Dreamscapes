@@ -1,8 +1,9 @@
 #include "GenerationController.h"
+#include "ImageParameterCodec.h"
 #include "AdvancedImageInputs.h"
 #include "SocietyGenerationStorage.h"
 #include <ModelPackaging/ModelPackaging.hpp>
-#include <File.h>
+#include <iiFileProvider>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -87,8 +88,9 @@ void GenerationController::completeImageRouting()
     QStringList unsupported;
     const auto advanced = m_active.value("advancedParameters").toObject();
     if (!advanced.isEmpty()) {
-        for (const auto *key : {"seamlessTiling", "transparentBackground", "freeU", "refiner", "hiresFix", "faceRestore", "detailer"})
+        for (const auto *key : {"seamlessTiling", "transparentBackground", "freeU", "refiner", "faceRestore", "detailer"})
             if (advanced.value(key).toBool()) unsupported.append(QString::fromLatin1(key));
+        if (dreamscapes::imageHiresEnabled(advanced)) unsupported.append("hiresFix");
         for (const auto *key : {"sampler", "scheduler"})
             if (advanced.value(key).toString("auto") != "auto") unsupported.append(QString::fromLatin1(key));
         if (advanced.value("clipSkip").toInt() != 0) unsupported.append("clipSkip");
@@ -212,7 +214,7 @@ void GenerationController::startNative(const QString &model, bool preparePackage
         sampling.clipSkip = advanced.value("clipSkip").toInt();
         sampling.eta = float(advanced.value("eta").toDouble());
         sampling.seamlessTiling = advanced.value("seamlessTiling").toBool();
-        sampling.hires = advanced.value("hiresFix").toBool();
+        sampling.hires = dreamscapes::imageHiresEnabled(advanced);
         sampling.denoiseStrength = float(advanced.value("denoiseStrength").toDouble());
         sampling.upscaler = advanced.value("upscaler").toString().toStdString();
         sampling.upscalerModel = iiFileProvider::FileDevice::encodeName(advanced.value("upscalerModel").toString()).toStdString();

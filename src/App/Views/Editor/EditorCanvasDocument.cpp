@@ -9,9 +9,8 @@
 #include "EditorToolUtils.h"
 #include "EditorStillTiming.h"
 #include "App/Generation/ImageCanvas.h"
-#include <iiSharedCanvas/Bitmap/BitmapCodec.h>
-#include <iiSharedCanvas/Validation/Validation.h>
-#include <iiFileProvider.h>
+#include <iiSharedCanvas>
+#include <iiFileProvider>
 #include <QFileInfo>
 #include <QDir>
 #include <QSet>

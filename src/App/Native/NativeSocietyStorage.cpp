@@ -1,8 +1,8 @@
 #include "NativeSocietyStorage.h"
-#include <FileTree.h>
-#include <iiFileProviderNative.h>
-#include <iiJson/Json.h>
-#include <iiSocietyHelper/Monitoring/Monitor.h>
+#include <iiSocietyContainer>
+#include <iiFileProvider>
+#include <iiJson>
+#include <iiSocietyHelper>
 #include <algorithm>
 #include <chrono>
 #include <ctime>
@@ -118,7 +118,7 @@ ii::core::Result<SocietyListing> browse(const fs::path &selectionFile,const std:
         auto afterManifest=readManifest(selection->root);
         if (!after || !afterManifest || after->root!=selection->root || after->containerId!=selection->containerId || *afterManifest!=*manifest)
             return ii::core::fail(ErrorCode::busy,"Society selection changed while browsing");
-        return SocietyListing{selection->root,selection->containerId,vm::Value(std::move(rows))};
+        return SocietyListing{selection->root,selection->containerId,vm::Value(std::move(rows)),sectionPath};
     } catch (...) {return ii::core::fail(ErrorCode::failed,"Cannot browse Society storage",std::current_exception());}
 }
 }

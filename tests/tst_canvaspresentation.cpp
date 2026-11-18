@@ -1,7 +1,6 @@
 #include "App/Views/Editor/EditorCanvas.h"
 #include "App/Views/Editor/EditorTimelineModel.h"
-#include <iiSharedCanvas/File/DocumentFile.h>
-#include <iiSharedCanvas/Serialization/IiscCodec.h>
+#include <iiSharedCanvas>
 #include <QFile>
 #include <QQuickWindow>
 #include <QSignalSpy>

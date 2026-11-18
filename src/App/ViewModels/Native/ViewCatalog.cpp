@@ -1,5 +1,5 @@
 #include "ViewCatalog.h"
-#include <iiSDKCore/Core/Text/Text.h>
+#include <iiSDKCore>
 #include <regex>
 #include <set>
 #include <sstream>

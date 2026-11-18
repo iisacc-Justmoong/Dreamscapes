@@ -7,12 +7,10 @@
 #include "AdvancedImageParameters.h"
 #include "AdvancedImageOutput.h"
 #include "SocietyGenerationStorage.h"
-#include <ApplicationStorage.h>
+#include <iiSocietyContainer>
 #include <Generation/NativePose.hpp>
 #include <ModelPackaging/ModelPackaging.hpp>
-#include <StorageMap.h>
-#include <iiSocietyContainer/DashboardFiles.h>
-#include <iiFileProviderPresentation.h>
+#include <iiFileProvider>
 #include <QBuffer>
 #include <QCryptographicHash>
 #include <QDir>
@@ -231,18 +229,6 @@ private slots:
         QVERIFY(elapsed.elapsed() < 250);
         released = true; release->release();
         QTRY_VERIFY_WITH_TIMEOUT(done->load(), 5000);
-    }
-    void coordinatedShutdownWaitsWithoutBlockingOwner() {
-        QTemporaryDir root(QStringLiteral(DREAMSCAPES_TEST_RESOURCES) + "/startup-drain-XXXXXX.societycontainer");
-        QVERIFY(prepare(root));
-        auto entered=std::make_shared<std::atomic_bool>(false);auto gate=std::make_shared<std::binary_semaphore>(0);
-        bool released=false;const auto release=qScopeGuard([&]{if(!released)gate->release();});
-        auto runtime=fakeRuntime();runtime.beforeInitialStoragePreparation=[entered,gate]{*entered=true;gate->acquire();};
-        GenerationController controller(runtime);controller.startInitialStorage(root.path());QTRY_VERIFY(entered->load());
-        bool complete=false,heartbeat=false;QElapsedTimer elapsed;elapsed.start();controller.prepareForShutdown();
-        controller.finishShutdownAsync(this,[&]{complete=true;});QVERIFY(elapsed.elapsed()<250);
-        QTimer::singleShot(0,this,[&]{heartbeat=true;});QTRY_VERIFY(heartbeat);QVERIFY(!complete);
-        released=true;gate->release();QTRY_VERIFY_WITH_TIMEOUT(complete,10000);QVERIFY(!controller.connected());
     }
     void processExitsWhileInitialStorageIsBlocked() {
         QProcess child;
@@ -1795,7 +1781,7 @@ private slots:
         GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
         AdvancedImageParameters draft(root.filePath("presets.json"));
         QVERIFY(draft.updateParameters({{"prompt","home canvas"},{"model","first model.safetensor"},
-            {"width",1824},{"height",1024},{"outputCount",1},{"steps",1},
+            {"width",2736},{"height",1536},{"outputCount",1},{"steps",1},
             {"referenceImages",QVariantList{QUrl::fromLocalFile(original).toString()}}}));
         const auto id = controller.enqueueHomeCanvas(draft.parameters(),"16:9");
         QVERIFY2(!id.isEmpty(),qPrintable(controller.errorString()));
@@ -1842,7 +1828,7 @@ private slots:
         GenerationController controller(runtime); QVERIFY(controller.connectStorage(root.path()));
         auto parameters = dreamscapes::imageParametersToMap(iiLocalDiffusion::ImageParameters::defaults());
         parameters["prompt"] = "Krea reference"; parameters["model"] = "first model.safetensor";
-        parameters["width"] = 1024; parameters["height"] = 1368; parameters["outputCount"] = 1;
+        parameters["width"] = 1536; parameters["height"] = 2048; parameters["outputCount"] = 1;
         parameters["referenceImages"] = QVariantList{QUrl::fromLocalFile(input).toString()};
         const auto home = controller.enqueueHomeCanvas(parameters, "3:4"); QVERIFY(!home.isEmpty());
         controller.setForeground(true);
@@ -2495,8 +2481,8 @@ private slots:
         QTest::addColumn<QString>("ratio");
         QTest::addColumn<QSize>("expected");
         QTest::addColumn<bool>("native");
-        const QList<QPair<QString, QSize>> sizes{{"1:1", {1024, 1024}}, {"4:3", {1368, 1024}},
-            {"3:4", {1024, 1368}}, {"16:9", {1824, 1024}}, {"9:16", {1024, 1824}}};
+        const QList<QPair<QString, QSize>> sizes{{"1:1", {1536, 1536}}, {"4:3", {2048, 1536}},
+            {"3:4", {1536, 2048}}, {"16:9", {2736, 1536}}, {"9:16", {1536, 2736}}};
         for (bool native : {false, true})
             for (const auto &[ratio, size] : sizes)
                 QTest::newRow(qPrintable((native ? "native-" : "worker-") + ratio)) << ratio << size << native;
@@ -2526,7 +2512,7 @@ private slots:
         QVERIFY(!id.isEmpty());
         const auto submitted = recordedJob(controller, id);
         QCOMPARE(QSize(submitted.value("width").toInt(), submitted.value("height").toInt()), expected);
-        QCOMPARE(qMin(submitted.value("width").toInt(), submitted.value("height").toInt()), 1024);
+        QCOMPARE(qMin(submitted.value("width").toInt(), submitted.value("height").toInt()), 1536);
         QCOMPARE(submitted.value("steps").toInt(), 10);
         QTRY_COMPARE_WITH_TIMEOUT(state(controller, id), QString("completed"), 10000);
         QCOMPARE(QImage(controller.latestImage().toLocalFile()).size(), expected);

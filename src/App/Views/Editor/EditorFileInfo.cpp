@@ -1,8 +1,7 @@
 #include "EditorCanvas.h"
 #include "EditorProject.h"
-#include <iiSharedCanvas/File/DocumentFile.h>
-#include <iiSharedCanvas/Document/Document.h>
-#include <iiFileProvider.h>
+#include <iiSharedCanvas>
+#include <iiFileProvider>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QRegularExpression>

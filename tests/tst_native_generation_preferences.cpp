@@ -2,7 +2,7 @@
 #include "App/Generation/ModelPreferences.h"
 #include "App/Native/NativeApplicationShell.h"
 #include "NativeAssets.h"
-#include <iiFileProviderNative.h>
+#include <iiFileProvider>
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>

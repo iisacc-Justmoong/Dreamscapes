@@ -2,10 +2,11 @@
 
 #include "NativeReviewNavigation.h"
 #include "NativeReviewContext.h"
+#include "NativeReviewCompare.h"
 #include "App/Native/NativePreviewStatus.h"
-#include <LVUI/NativeImageResolver.h>
-#include <iiGUI/Image.h>
-#include <iiSDKCore/Core/Property/Observable.h>
+#include <LVUI>
+#include <iiGUI>
+#include <iiSDKCore>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -75,11 +76,17 @@ class ReviewGalleryModel final : public std::enable_shared_from_this<ReviewGalle
     imageForToken(std::string_view token, std::uint32_t width, std::uint32_t height) const;
     [[nodiscard]] std::optional<dreamscapes::native::PreviewStatus>
     previewStatusForToken(std::string_view token,std::uint32_t width,std::uint32_t height) const;
+    struct ResolvedPreview final {
+        std::shared_ptr<const ii::gui::RasterImage> image;
+        std::string status;
+        friend bool operator==(const ResolvedPreview &,const ResolvedPreview &)=default;
+    };
+    [[nodiscard]] ResolvedPreview previewForSource(std::string_view source,std::uint32_t width,std::uint32_t height) const;
     void setEditHandler(Action,Eligibility={});
     void setCompareHandler(Action);
     void setExportHandler(Action);
     void setDetailHandler(Action);
-    void setSaveFileHandler(Action);
+    void setSaveFileHandler(Action,Eligibility={});
     void setSavePhotosHandler(Action);
     void edit();
     void compare();
@@ -152,9 +159,15 @@ class NativeReviewGalleryBackend final {
     using Model = dreamscapes::review::ReviewGalleryModel;
     std::shared_ptr<dreamscapes::review::Session> session;
     std::shared_ptr<Model> model;
+    std::shared_ptr<dreamscapes::review::CompareModel> comparison;
     ii::core::Observable<std::vector<Model::Item>> &items;
     ii::core::Observable<std::string> &resultSummary, &selectionSummary;
     ii::core::Observable<bool> &canReview, &hasSelection, &canEdit, &canCompare, &canExport;
+    ii::core::Observable<bool> &comparing,&galleryVisible;
+    ii::core::Observable<std::vector<dreamscapes::review::CompareModel::Item>> &compareItems;
+    ii::core::Observable<std::string> &syncLabel;
+    ii::core::Observable<double> &compareWidth,&compareHeight,&compareContentWidth,&compareGridHeight,
+        &compareCellWidth,&compareCellHeight,&comparePaneHeight;
     NativeReviewGalleryBackend();
     explicit NativeReviewGalleryBackend(std::shared_ptr<dreamscapes::review::Session> session);
     void bindNavigation(std::shared_ptr<dreamscapes::review::CollectionNavigation> value) {
@@ -174,4 +187,14 @@ class NativeReviewGalleryBackend final {
     void edit() { model->edit(); }
     void compare() { model->compare(); }
     void exportResults() { model->exportResults(); }
+    std::function<void(double,double)> compareSizeHandler(double gap,double toolbar,double minimum) {
+        const std::weak_ptr<dreamscapes::review::CompareModel> weak=comparison;
+        return [weak,gap,toolbar,minimum](double w,double h) {if (auto p=weak.lock()) (void)p->setViewport(w,h,gap,toolbar,minimum);};
+    }
+    void closeCompare() {comparison->close();}
+    void fitCompare() {(void)comparison->fit();}
+    void actualCompare() {(void)comparison->actualSize();}
+    void zoomInCompare() {if (auto item=comparison->activeItem()) (void)comparison->zoom(item,1.25);}
+    void zoomOutCompare() {if (auto item=comparison->activeItem()) (void)comparison->zoom(item,.8);}
+    void toggleCompareSync() {(void)comparison->setSynchronized(!comparison->synchronized.get());}
 };

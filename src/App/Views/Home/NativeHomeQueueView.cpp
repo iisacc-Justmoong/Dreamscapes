@@ -1,7 +1,7 @@
 #include "NativeHomeQueueView.h"
 #include "NativeHomeQueue.generated.h"
-#include <LVUI/NativeImageResolver.h>
-#include <iiGUI/SvgImageCache.h>
+#include <LVUI>
+#include <iiGUI>
 #include <algorithm>
 #include <utility>
 

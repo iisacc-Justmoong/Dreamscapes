@@ -1,7 +1,7 @@
 #pragma once
 #include "PublishDraft.h"
 #include "SocialPublishingController.h"
-#include <iiSocialPublish/Review.h>
+#include <iiSocialIntegration>
 #include <QFutureWatcher>
 
 // GUI boundary only. Destination grouping and execution live in iiSocialPublish.

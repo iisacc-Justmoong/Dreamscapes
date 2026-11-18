@@ -1,5 +1,5 @@
 #include "App/Views/Home/NativeHomePresetGroup.h"
-#include <iiGUI/CompiledViewSource.h>
+#include <iiGUI>
 #include <iostream>
 #include <limits>
 #include <stdexcept>

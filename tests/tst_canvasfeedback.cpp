@@ -1,5 +1,5 @@
 #include "App/Views/Editor/EditorCanvasFeedback.h"
-#include <iiSharedCanvas.h>
+#include <iiSharedCanvas>
 #include <QFile>
 #include <QCursor>
 #include <QHoverEvent>

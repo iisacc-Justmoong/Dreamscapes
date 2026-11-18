@@ -2,8 +2,10 @@
 #include <Generation/ImageParameters.hpp>
 #include <QVariantMap>
 #include <QVariantList>
+#include <QJsonObject>
 
 namespace dreamscapes {
+bool imageHiresEnabled(const QJsonObject &saved);
 QVariantMap imageParametersToMap(const iiLocalDiffusion::ImageParameters &parameters);
 bool imageParametersFromMap(const QVariantMap &map, iiLocalDiffusion::ImageParameters *parameters, QString *error);
 QVariantList imageParameterIssues(const std::vector<iiLocalDiffusion::ImageParameterIssue> &issues);

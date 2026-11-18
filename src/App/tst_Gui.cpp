@@ -27,10 +27,8 @@
 #include <semaphore>
 #include "App/Views/ColorManagerModel.h"
 #include "App/Views/Editor/EditorCameraPhoto.h"
-#include <iiSharedCanvas/Render/FrameRenderer.h>
-#include <iiFileProviderNative.h>
-#include <iiSharedCanvas/Serialization/IiscCodec.h>
-#include <iiSharedCanvas/File/DocumentFile.h>
+#include <iiSharedCanvas>
+#include <iiFileProvider>
 #include "App/Generation/ImageCanvas.h"
 #include <QDir>
 #include <QClipboard>
@@ -77,7 +75,7 @@
 #include <QTimer>
 #include <QTemporaryDir>
 #include <QCryptographicHash>
-#include <StorageMap.h>
+#include <iiSocietyContainer>
 #include <QThread>
 #include <QTcpServer>
 #include <QTcpSocket>
@@ -94,10 +92,7 @@
 #include "Views/Result/ImageFileExporter.h"
 #include "Views/Result/GenerationReviewModel.h"
 #include "Views/Result/PhotoLibraryExporter.h"
-#include <iiSocietyHelper.h>
-#include <iiSocietyContainer/DashboardFiles.h>
-#include <iiSocietyContainer/SocietyApplication.h>
-#include <SharedStorage.h>
+#include <iiSocietyHelper>
 #include <QtTest>
 
 #include <memory>
@@ -740,6 +735,7 @@ void GuiTests::licenseEntryUsesTheSocietyAccount()
     // Verify the same window boundary with a real SocietyAccount and signed
     // fixture responses, without contacting the user's Society process.
     bool tampered = true;
+    bool forcedRefresh = false;
     int requests = 0;
     QLocalServer broker;
     broker.setSocketOptions(QLocalServer::UserAccessOption);
@@ -756,6 +752,7 @@ void GuiTests::licenseEntryUsesTheSocietyAccount()
                     | (quint32(p[2]) << 8) | quint32(p[3]);
                 if (data.size() < 4 + int(n)) return;
                 const auto request = QJsonDocument::fromJson(data.mid(4, n)).object();
+                forcedRefresh = forcedRefresh || request.value("refresh").toBool();
                 ++requests;
                 const auto now = QDateTime::currentSecsSinceEpoch();
                 const QJsonObject payload{{"v", 1}, {"iss", "https://iisacc.com"}, {"aud", "society"},
@@ -799,6 +796,7 @@ void GuiTests::licenseEntryUsesTheSocietyAccount()
     QVERIFY(item(window, "appContent")->isVisible());
     QVERIFY(!item(window, "societyLicenseGate")->isVisible());
     QCOMPARE(requests, requestsAtGrant);
+    QVERIFY2(!forcedRefresh, "launch unexpectedly forced an online license refresh");
 }
 
 void GuiTests::advancedImageModelSelectorTracksInventory()

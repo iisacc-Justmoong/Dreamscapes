@@ -50,6 +50,7 @@ ii::core::Result<void> HomeWorkspaceModel::publish(double width, double height, 
       for (unsigned round = 0; round < 64; ++round) {
         pendingComposerHeight_.reset();
         const bool isCompact = width < 700;
+        // The composed Home frame includes both LVUI space8 insets in its 181-point sidebar.
         const double navWidth = isCompact ? 48 : 181;
         const double viewport = std::max(0.0, width - navWidth);
         const double margin = isCompact ? gap : expandedInset;
@@ -62,6 +63,7 @@ ii::core::Result<void> HomeWorkspaceModel::publish(double width, double height, 
         const double generations = isWide ? available - queueSize : content;
         const double panelHeight = isWide ? std::max(360.0, height - composer - 284) : 360;
         if (auto result = sidebar_->setCompact(isCompact); !result) return result;
+        sidebar_->sizeChanged(navWidth, height);
         gap_ = gap; expandedInset_ = expandedInset;
         (void)windowWidth.set(width); (void)windowHeight.set(height); (void)composerHeight.set(composer);
         (void)sidebarWidth.set(navWidth); (void)viewportWidth.set(viewport); (void)contentWidth.set(content); (void)inset.set(margin);

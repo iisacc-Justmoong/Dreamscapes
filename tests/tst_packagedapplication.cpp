@@ -5,9 +5,8 @@
 #include <QTemporaryDir>
 #include <QFile>
 #include <QTimer>
-#include <SocietyDrive.h>
-#include <SharedStorage.h>
-#include <iiSocietyHelper.h>
+#include <iiSocietyContainer>
+#include <iiSocietyHelper>
 
 class PackagedApplicationTests final : public QObject {
     Q_OBJECT

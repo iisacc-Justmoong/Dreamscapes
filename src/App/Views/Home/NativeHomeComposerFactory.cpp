@@ -1,6 +1,6 @@
 #include "NativeHomeComposerFactory.h"
 #include "NativeHomeComposerPanelView.h"
-#include <iiGUI/CompiledViewSource.h>
+#include <iiGUI>
 #include <stdexcept>
 #include <utility>
 
@@ -19,26 +19,26 @@ std::shared_ptr<HomeComposerPanelModel> createHomeComposerPanel(std::shared_ptr<
     auto prompt = HomeComposerPromptModel::create(composer, HomeComposerTextRole::prompt,
         labels.promptPlaceholder, labels.prompt, labels.clearPrompt, true);
     auto negative = HomeComposerPromptModel::create(composer, HomeComposerTextRole::negativePrompt,
-        "", labels.negativePrompt, "", false);
+        spec.compactControls ? labels.negativePrompt : "", labels.negativePrompt, "", false);
     HomeComposerComponents parts;
     parts.composer = composer; parts.prompt = prompt;
     parts.negative = HomeNegativePromptModel::create(std::move(negative), labels.negativePrompt, labels.done);
     parts.media = choice(HomeComposerChoiceRole::media, labels.media, labels.media, false);
-    parts.model = choice(HomeComposerChoiceRole::model, labels.model, labels.chooseModel);
-    parts.ratio = choice(HomeComposerChoiceRole::ratio, labels.ratio, labels.ratio);
-    parts.resolution = choice(HomeComposerChoiceRole::resolution, labels.resolution, labels.resolution);
-    parts.count = choice(HomeComposerChoiceRole::count, labels.count, labels.count);
-    parts.duration = choice(HomeComposerChoiceRole::duration, labels.duration, labels.duration);
-    parts.frameRate = choice(HomeComposerChoiceRole::frameRate, labels.frameRate, labels.frameRate);
+    parts.model = choice(HomeComposerChoiceRole::model, labels.model, labels.chooseModel, !spec.compactControls);
+    parts.ratio = choice(HomeComposerChoiceRole::ratio, labels.ratio, labels.ratio, !spec.compactControls);
+    parts.resolution = choice(HomeComposerChoiceRole::resolution, labels.resolution, labels.resolution, !spec.compactControls);
+    parts.count = choice(HomeComposerChoiceRole::count, labels.count, labels.count, !spec.compactControls);
+    parts.duration = choice(HomeComposerChoiceRole::duration, labels.duration, labels.duration, !spec.compactControls);
+    parts.frameRate = choice(HomeComposerChoiceRole::frameRate, labels.frameRate, labels.frameRate, !spec.compactControls);
     parts.preset = choice(HomeComposerChoiceRole::preset, labels.loadPreset, labels.loadPreset, false);
-    parts.seed = HomeComposerSeedModel::create(composer, labels.seed, labels.random, labels.apply);
+    parts.seed = HomeComposerSeedModel::create(composer, labels.seed, labels.random, labels.apply, !spec.compactControls);
     parts.savePreset = HomePresetSaveModel::create(composer, labels.savePreset, labels.name, labels.save, labels.cancel);
     parts.attachments = HomeAttachmentsModel::create(composer, std::move(labels.removeAttachment));
     parts.attach = HomeComposerActionModel::create(composer, HomeComposerActionRole::attach, {"", "", labels.attach, {}});
     parts.paint = action(HomeComposerActionRole::paint, labels.paint);
     parts.advanced = action(HomeComposerActionRole::advanced, labels.advanced, labels.moreControls);
     parts.generate = HomeComposerActionModel::create(composer, HomeComposerActionRole::generate,
-        {"", "", labels.generate, std::move(labels.generationLabel)});
+        {"", "", labels.generate, std::move(labels.generationLabel)}, spec.compactControls);
     parts.images = std::move(images); parts.presetHeading = labels.preset;
     return HomeComposerPanelModel::create(std::move(composer), std::move(prompt), homeComposerPanelSources(std::move(parts)), spec, metrics);
 }

@@ -1,5 +1,5 @@
 #include "EditorGraphicAdjust.h"
-#include <iiGraphicAdjust/iiGraphicAdjust.h>
+#include <iiGraphicAdjust>
 #include <QColor>
 #include <QColorSpace>
 #include <QMetaType>

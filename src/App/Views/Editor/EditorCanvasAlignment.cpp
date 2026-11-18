@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <iiSharedCanvas/Document/CanvasSampling.h>
+#include <iiSharedCanvas>
 
 using namespace iiSharedCanvas;
 namespace A = dreamscapes::alignment;

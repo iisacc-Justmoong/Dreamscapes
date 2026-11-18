@@ -2,7 +2,7 @@
 #include "NativeReviewImages.h"
 #include "NativeReviewQueueView.h"
 #include "App/Native/NativeEmbeddedSurface.h"
-#include <iiSDKCore/Core/Result/Result.h>
+#include <iiSDKCore>
 #include <utility>
 
 namespace dreamscapes::review {

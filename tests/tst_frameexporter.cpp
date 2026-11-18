@@ -1,9 +1,7 @@
 #include "App/Views/Editor/EditorFrameExporter.h"
 #include "App/Views/Editor/EditorCanvas.h"
 #include "App/Views/Editor/EditorProject.h"
-#include <iiSharedCanvas/Serialization/IiscCodec.h>
-#include <iiSharedCanvas/File/DocumentFile.h>
-#include <iiSharedCanvas/Render/FrameRenderer.h>
+#include <iiSharedCanvas>
 #include <QFile>
 #include <QImage>
 #include <QGuiApplication>

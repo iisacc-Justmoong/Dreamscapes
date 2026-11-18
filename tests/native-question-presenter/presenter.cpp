@@ -1,6 +1,7 @@
 #include "App/Mcp/NativeQuestionPresenter.h"
 #include "App/ApplicationShutdownCoordinator.h"
-#include <iiMultimodalAgent/agent/QuestionInbox.h>
+#include <iiSDKCore>
+#include <iiMultimodalAgent>
 #include <QEvent>
 #include <QGuiApplication>
 #include <QWindow>
@@ -27,7 +28,8 @@ static void require(bool condition,const char* message){if(!condition)throw std:
 
 int main(int argc,char** argv){
     QGuiApplication app(argc,argv);
-    ApplicationShutdownCoordinator shutdown;
+    ii::runtime::EventLoop eventLoop;
+    ApplicationShutdownCoordinator shutdown(eventLoop);
     iiMultimodalAgent::agent::QuestionInbox inbox;
     QObject lifetime;
     QObject invalidRoot;
@@ -46,11 +48,11 @@ int main(int argc,char** argv){
     QCoreApplication::sendEvent(&root,&languageChange);
     QCoreApplication::processEvents();
     require(!root.isVisible(),"The presenter must not show the application window");
-    QEvent quit(QEvent::Quit);
-    QCoreApplication::sendEvent(&app,&quit);
+    require(bool(shutdown.begin()),"Native shutdown could not start");
     require(shutdown.isClosing(),"The presenter did not participate in application shutdown");
     require(!installNativeQuestionPresenter(&root,&inbox,&lifetime,&shutdown),"A closing application admitted a new presenter");
     QCoreApplication::processEvents();
+    (void)eventLoop.poll();
 }
 
 #include "presenter.moc"

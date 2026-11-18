@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ViewValue.h"
-#include <iiSDKCore/Runtime/Query.h>
+#include <iiSDKCore>
 
 namespace dreamscapes::vm {
 // Pure presentation queries. Inputs are detached values; no query can reach a

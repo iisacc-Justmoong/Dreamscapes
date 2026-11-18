@@ -1,7 +1,7 @@
 #pragma once
 #include "ViewValue.h"
 #include <cstdio>
-#include <iiSDKCore/Runtime/Query.h>
+#include <iiSDKCore>
 
 namespace dreamscapes::vm {
 struct PhotoSnapshot {

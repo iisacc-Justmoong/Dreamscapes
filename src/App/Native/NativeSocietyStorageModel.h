@@ -2,7 +2,7 @@
 #include "NativeSocietyStorage.h"
 #include "NativeCanvasFileModel.h"
 #include "App/Views/Home/NativeStorageWorkspace.h"
-#include <iiSDKCore/Runtime/EventLoop.h>
+#include <iiSDKCore>
 #include <optional>
 #include <atomic>
 #include <functional>

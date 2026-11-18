@@ -4,7 +4,7 @@
 #include "App/Views/Result/NativeReviewQueueSession.h"
 #include "App/Views/Result/NativeReviewQueueView.h"
 #include "iiGUI/WidgetState.h"
-#include <SharedStorage.h>
+#include <iiSocietyContainer>
 #include <QCoreApplication>
 #include <QFile>
 #include <QTemporaryDir>

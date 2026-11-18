@@ -1,6 +1,6 @@
 #pragma once
 
-#include <iiSharedCanvas/Document/Document.h>
+#include <iiSharedCanvas>
 #include <memory>
 #include <string>
 

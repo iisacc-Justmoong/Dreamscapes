@@ -47,7 +47,7 @@ VStack(id: "reviewQueue", spacing: Metric.space8, alignment: .stretch, flex: 1) 
                     }
                     if (item.canInspectFailure) {
                         HStack {
-                            LabelButton(id: "failureDetails", text: vm.failureLabel, tone: .default, onClick: item.inspectFailure)
+                            LabelButton(id: "failureDetails", text: item.detailsLabel, tone: .default, onClick: item.inspectFailure)
                         }
                     }
                 }

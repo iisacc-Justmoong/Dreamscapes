@@ -1,17 +1,14 @@
 #include "DreamscapesMcp.h"
+#include "App/ApplicationShutdownCoordinator.h"
 #ifdef DREAMSCAPES_NATIVE_QUESTION_PRESENTER
 #include "NativeQuestionPresenter.h"
 #endif
 #include "App/Generation/GenerationController.h"
-#include <iiMultimodalAgent/agent/ObjectTools.h>
-#include <iiMultimodalAgent/agent/McpServer.h>
-#include <iiMultimodalAgent/agent/QuestionInbox.h>
-#include <iiMultimodalAgent/agent/UserQuestions.h>
-#include <iiMultimodalAgent/mcp/LocalApplications.h>
-#include <QCoreApplication>
+#include <iiMultimodalAgent>
 #include <QDebug>
 #include <QDir>
 #include <QJsonArray>
+#include <QPointer>
 #include <algorithm>
 
 namespace a = iiMultimodalAgent::agent;
@@ -125,7 +122,16 @@ void installDreamscapesMcp(QObject* root, QObject* lifetime, ApplicationShutdown
         Q_UNUSED(shutdown);
 #endif
             root->setProperty("agentQuestionInbox", QVariant::fromValue(questions));
-        QObject::connect(qApp, &QCoreApplication::aboutToQuit, lifetime, [questions, server] { questions->close(); server->close(); });
+        const QPointer<a::QuestionInbox> inbox(questions);
+        if (!shutdown || !shutdown->isOwnerThread() || !shutdown->add([inbox, server](auto done) {
+                if (inbox) inbox->close();
+                server->close();
+                if (done) done();
+            })) {
+            questions->close(); server->close();
+            qWarning() << "Dreamscapes MCP: shutdown registration is unavailable";
+            return;
+        }
         QObject::connect(controller, &QObject::destroyed, lifetime, [questions, server] { questions->close(); server->close(); });
     } catch (const std::exception& error) { qWarning() << "Dreamscapes MCP:" << error.what(); }
 }

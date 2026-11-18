@@ -5,11 +5,18 @@
 #include "NativeTimelinePlayback.h"
 #include "NativeLayerPanel.h"
 #include "NativeElementsPanel.h"
+#include "NativeTextTool.h"
 #include "NativeMaskPanel.h"
+#include "NativeBackgroundPanel.h"
+#include "NativeAudioPanel.h"
+#include "NativeLightPanel.h"
+#include "NativeBrushTool.h"
 #include "NativeFilePanel.h"
 #include "NativeCanvasPanel.h"
 #include "NativeTimelinePanel.h"
-#include <iiSDKCore/Core/Property/Observable.h>
+#include "NativeSelectionTool.h"
+#include "NativeMaskLasso.h"
+#include <iiSDKCore>
 #include <functional>
 #include <memory>
 #include <string>
@@ -23,9 +30,14 @@ class WorkspaceModel final : public std::enable_shared_from_this<WorkspaceModel>
     static std::shared_ptr<WorkspaceModel> create(std::shared_ptr<native::DocumentSession>);
     void setPublishHandler(std::function<ii::core::Result<void>()> handler) {publish_=std::move(handler);}
     void setFramePresenter(std::shared_ptr<FramePresenter>);
+    void setHistogram(std::shared_ptr<HistogramModel>);
+    void setBackgroundPanel(std::shared_ptr<BackgroundPanelModel>);
+    void setAudioPanel(std::shared_ptr<AudioPanelModel>);
+    void setLightPanel(std::shared_ptr<LightPanelModel>);
+    void setBrushPanel(std::shared_ptr<BrushToolModel>);
     void setPlayback(std::shared_ptr<TimelinePlayback>);
     void setVisible(bool);
-    void canvasSizeChanged(double,double);
+    void canvasSizeChanged(double,double,double handleSize);
     void setFileModel(std::shared_ptr<native::CanvasFileModel>,FileActions);
     void openFile();
     void saveFile();
@@ -35,7 +47,14 @@ class WorkspaceModel final : public std::enable_shared_from_this<WorkspaceModel>
     void showLayerPanel();
     void showCanvasPanel();
     void showElementsPanel();
+    void showTextPanel();
+    void showSelectTool();
     void showMaskPanel();
+    void showColorPanel();
+    void showReplacePanel();
+    void showAudioPanel();
+    void showLightPanel();
+    void showBrushPanel();
     void createTimelineLayer(iiSharedCanvas::LayerKind);
     void createTimelineAudioTrack();
     void previous();
@@ -47,13 +66,24 @@ class WorkspaceModel final : public std::enable_shared_from_this<WorkspaceModel>
     std::shared_ptr<FilePanelModel> filePanel() const {return filePanel_;}
     std::shared_ptr<CanvasPanelModel> canvasPanel() const {return canvasPanel_;}
     std::shared_ptr<ElementsPanelModel> elementsPanel() const {return elementsPanel_;}
+    std::shared_ptr<TextToolModel> textTool() const {return textTool_;}
+    std::shared_ptr<SelectionToolModel> selectionTool() const {return selectionTool_;}
     std::shared_ptr<MaskPanelModel> maskPanel() const {return maskPanel_;}
+    std::shared_ptr<MaskLassoModel> maskLasso() const {return maskLasso_;}
     std::shared_ptr<TimelinePanelModel> timelinePanel() const {return timelinePanel_;}
     ii::core::Observable<double> width{1},height{1},canvasWidth{1},panelWidth{1};
     ii::core::Observable<double> previewWidth{1},previewHeight{1};
     ii::core::Observable<bool> canPrevious{false},canNext{false},canPlay{false},hasFrame{false};
     ii::core::Observable<bool> canOpenFile{false},canSaveFile{false},canSaveFileAs{false};
     ii::core::Observable<bool> filePanelActive{false},layerPanelActive{true},canvasPanelActive{false},elementsPanelActive{false},maskPanelActive{false};
+    ii::core::Observable<bool> backgroundPanelActive{false},textPanelActive{false};
+    ii::core::Observable<std::shared_ptr<BackgroundPanelModel>> backgroundPanel;
+    ii::core::Observable<bool> audioPanelActive{false},audioAvailable{false};
+    ii::core::Observable<std::shared_ptr<AudioPanelModel>> audioPanel;
+    ii::core::Observable<bool> lightPanelActive{false},lightAvailable{false};
+    ii::core::Observable<std::shared_ptr<LightPanelModel>> lightPanel;
+    ii::core::Observable<bool> brushPanelActive{false},brushAvailable{false};
+    ii::core::Observable<std::shared_ptr<BrushToolModel>> brushPanel;
     ii::core::Observable<std::string> activePanel{"layers"};
     ii::core::Observable<std::string> frameText{"No timeline"},renderStatus{"Canvas renderer unavailable"},fileMessage;
     ii::core::Observable<std::string> playText{"Play"};
@@ -63,6 +93,9 @@ class WorkspaceModel final : public std::enable_shared_from_this<WorkspaceModel>
     void start();
     void synchronize();
     void synchronizeFile();
+    void synchronizeTools();
+    void synchronizeToolFrame();
+    void synchronizeDisplayedFrame();
     void selectPanel(std::string);
     void invokeFile(const std::function<ii::core::Result<void>()> &);
     std::shared_ptr<native::DocumentSession> document_;
@@ -70,15 +103,23 @@ class WorkspaceModel final : public std::enable_shared_from_this<WorkspaceModel>
     std::shared_ptr<FilePanelModel> filePanel_;
     std::shared_ptr<CanvasPanelModel> canvasPanel_;
     std::shared_ptr<ElementsPanelModel> elementsPanel_;
+    std::shared_ptr<TextToolModel> textTool_;
+    std::shared_ptr<SelectionToolModel> selectionTool_;
     std::shared_ptr<MaskPanelModel> maskPanel_;
+    std::shared_ptr<MaskLassoModel> maskLasso_;
     std::shared_ptr<TimelinePanelModel> timelinePanel_;
     ii::core::ObservableSubscription frameObserver_,countObserver_,documentObserver_;
-    ii::core::ObservableSubscription imageObserver_,statusObserver_;
+    ii::core::ObservableSubscription imageObserver_,statusObserver_,frameCurrentObserver_;
+    ii::core::ObservableSubscription lightPreviewObserver_;
+    ii::core::ObservableSubscription audioStatusObserver_;
+    ii::core::ObservableSubscription brushPreviewObserver_;
     ii::core::ObservableSubscription playbackObserver_;
+    ii::core::ObservableSubscription toolModeObserver_,maskLassoObserver_;
     ii::core::ObservableSubscription fileBusyObserver_,fileSaveObserver_,fileSaveAsObserver_,fileStatusObserver_,fileErrorObserver_,dirtyObserver_;
     std::shared_ptr<native::CanvasFileModel> fileModel_;
     FileActions fileActions_;
     std::shared_ptr<FramePresenter> framePresenter_;
+    std::shared_ptr<HistogramModel> histogram_;
     std::shared_ptr<TimelinePlayback> playback_;
     bool visible_=false,selectingPanel_=false,panelPending_=false;
     std::function<ii::core::Result<void>()> publish_;

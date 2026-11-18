@@ -6,7 +6,7 @@
 #include "App/Views/Home/NativeHomeQueueSession.h"
 #include "App/Views/Result/GenerationReviewModel.h"
 #include "App/Views/Result/NativeReviewQueueBridge.h"
-#include <SharedStorage.h>
+#include <iiSocietyContainer>
 #include <QCoreApplication>
 #include <QFile>
 #include <QTemporaryDir>

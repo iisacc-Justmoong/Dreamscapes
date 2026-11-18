@@ -3,8 +3,8 @@
 #include "EditorImageImport.h"
 #include "EditorDocumentOpenRequest.h"
 #include "EditorFrameExporter.h"
-#include <iiFileProvider.h>
-#include <iiSharedCanvas/Media/MediaIo.h>
+#include <iiFileProvider>
+#include <iiSharedCanvas>
 #include <QFileInfo>
 #include <QSet>
 #include <QQmlEngine>

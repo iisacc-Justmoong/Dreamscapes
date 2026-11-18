@@ -1,6 +1,6 @@
 #include "App/Views/Editor/EditorAudioPlayback.h"
 #include "App/Views/Editor/EditorTimelineModel.h"
-#include <iiSharedCanvas/Serialization/IiscCodec.h>
+#include <iiSharedCanvas>
 #include <QGuiApplication>
 #include <QSignalSpy>
 #include <QTemporaryDir>

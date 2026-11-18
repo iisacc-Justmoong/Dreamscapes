@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/NativeHomeSidebar.md",
-    "sha256": "f2ecb65d06d167ef6a36b756e80b1437bdd9dcf2b333b0fc27fe201faa93fdfe",
-    "bytes": 1829,
-    "line_count": 30,
+    "sha256": "54e36fd4addade84e7e099746db5050a2bb58f15f8719d455faa85e701410973",
+    "bytes": 2743,
+    "line_count": 44,
     "encoding": "utf-8",
     "language": "en"
   },
@@ -42,50 +42,64 @@
       "id": "b000003",
       "kind": "paragraph",
       "start_line": 3,
-      "end_line": 7,
-      "raw": "The Home sidebar follows Figma node `1467:4562`. It provides Home, New Canvas,\nImage, Video, Audio, Board, Tools, Files, Assets and Generation History in the\nexisting order, separated into the same groups. The LVUI menu items use their\nauthored LVUI icons and native interaction states. Selection is a navigation\nstate, independent of hover, press and button type.\n"
+      "end_line": 12,
+      "raw": "The Home sidebar follows Figma node `1467:4562` and the row definitions in\n`219:2630` (Frame 18). It presents Home,\nthen a divider, New Canvas, Image, Video, Audio, Board and Tools, then a second\ndivider, followed by Files, Assets and Generation History. Each row uses the\ncorresponding LVUI icon, an 18-point icon slot and body typography. Idle rows\nshow the application window background. The stock LVUI MenuItem draws the\nselected, hovered and pressed states. The composed Home sidebar is 181 points\nwide. Its rows and dividers span 165 points with `Metric.space8` on each side.\nBelow a window width of 700 points, the 48-point sidebar displays 32-point\nicon-only rows. Selection is a navigation state independent of hover and press.\n"
     },
     {
       "id": "b000004",
       "kind": "blank",
-      "start_line": 8,
-      "end_line": 8,
+      "start_line": 13,
+      "end_line": 13,
       "raw": "\n"
     },
     {
       "id": "b000005",
       "kind": "paragraph",
-      "start_line": 9,
-      "end_line": 16,
-      "raw": "The parent supplies the selected action and whether the compact layout is\nactive. The regular view includes labels; the compact view retains icon names,\naccessible labels and descriptive tooltips. Both layouts keep actions usable by\npointer and keyboard, and short windows must allow the focused item to be\nrevealed by scrolling. The sidebar emits the same action identifiers to the\nexisting Home controller rather than opening files or changing generation\nstate itself. Translation and navigation definitions are supplied by the\napplication adapter.\n"
+      "start_line": 14,
+      "end_line": 17,
+      "raw": "Editor, Publish and Preferences are not extra Home sidebar entries. Their\nexisting document, editor publishing and account/settings routes remain\navailable. Navigating to an unlisted route clears the sidebar selection rather\nthan rejecting the navigation.\n"
     },
     {
       "id": "b000006",
       "kind": "blank",
-      "start_line": 17,
-      "end_line": 17,
+      "start_line": 18,
+      "end_line": 18,
       "raw": "\n"
     },
     {
       "id": "b000007",
       "kind": "paragraph",
-      "start_line": 18,
-      "end_line": 23,
-      "raw": "The Qt-free sidebar model and LVUI widget now project caller-supplied entries,\nuse the authored icons, and keep selected, compact and interaction states\nindependent. Widget tests cover action delivery, external selection, compact\naccessible names, hover and keyboard-focus tooltips, keyboard activation,\nscroll-to-focus and retirement. The generated renderer is checked for Qt and\nLVRS dependencies.\n"
+      "start_line": 19,
+      "end_line": 26,
+      "raw": "The parent supplies the selected action, viewport size and whether the compact\nlayout is active. The regular view includes labels; the compact view retains icon names,\naccessible labels and descriptive tooltips. Both layouts keep actions usable by\npointer and keyboard, and short windows must allow the focused item to be\nrevealed by scrolling. The sidebar emits the same action identifiers to the\nexisting Home controller rather than opening files or changing generation\nstate itself. Translation and navigation definitions are supplied by the\napplication adapter.\n"
     },
     {
       "id": "b000008",
       "kind": "blank",
-      "start_line": 24,
-      "end_line": 24,
+      "start_line": 27,
+      "end_line": 27,
       "raw": "\n"
     },
     {
       "id": "b000009",
       "kind": "paragraph",
-      "start_line": 25,
-      "end_line": 30,
-      "raw": "The existing product sidebar remains QML. The native widget is not connected to\nthe application yet. The intermediate LVUI Home composition uses an unclipped\nsidebar source, and its headless test checks that a compact tooltip opens with\ngeometry and text clipping extending beyond the sidebar. The eventual platform\nhost still needs visual verification, and all production action definitions and\nthe original navigation route must be connected before replacing the QML view.\n"
+      "start_line": 28,
+      "end_line": 34,
+      "raw": "The Qt-free sidebar model and LVUI widget now project caller-supplied entries,\nuse the authored icons, and keep selected, compact and interaction states\nindependent. Widget tests cover transparent idle rows in both widths, LVUI\nselection, hover and press feedback, action delivery, external selection,\ncompact accessible names, hover and keyboard-focus tooltips, keyboard\nactivation, scroll-to-focus and retirement. The generated renderer is checked\nfor Qt and LVRS dependencies.\n"
+    },
+    {
+      "id": "b000010",
+      "kind": "blank",
+      "start_line": 35,
+      "end_line": 35,
+      "raw": "\n"
+    },
+    {
+      "id": "b000011",
+      "kind": "paragraph",
+      "start_line": 36,
+      "end_line": 44,
+      "raw": "The application mounts this native widget through the Home workspace. Its\nunclipped sidebar source permits compact tooltips to extend beyond the sidebar.\nHeadless checks cover the product navigation definitions, row presentation,\naccessibility and routes. `Dreamscapes.NativeViewApp` shrinks the mounted Home,\nclicks Files in the compact sidebar, returns to Home and restores the window\nwidth. It checks the row widths and selection during this sequence. The\nstandalone widget test uses the linked iiGUI package's\npublic headers before the workspace's private test header to avoid mixing\ndifferent renderer ABIs. Platform rendering remains a separate verification.\n"
     }
   ],
   "outline": [
@@ -101,16 +115,9 @@
   "indexes": {
     "directive_candidates": [
       {
-        "block_id": "b000005",
-        "line": 12,
+        "block_id": "b000007",
+        "line": 22,
         "text": "pointer and keyboard, and short windows must allow the focused item to be",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000009",
-        "line": 30,
-        "text": "the original navigation route must be connected before replacing the QML view.",
         "basis": "lexical_match",
         "context": "paragraph"
       }
@@ -120,7 +127,7 @@
     "tables": []
   },
   "provenance": {
-    "generator": "workspace-docs",
+    "generator": "Codex (workspace-docs-compatible)",
     "version": "1.0.0",
     "profile": "lossless-blocks-v1",
     "derived": true

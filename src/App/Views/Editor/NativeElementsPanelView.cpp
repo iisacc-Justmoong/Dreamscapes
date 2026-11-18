@@ -1,6 +1,6 @@
 #include "NativeElementsPanelView.h"
 #include "NativeElementsPanel.generated.h"
-#include <iiGUI/CompiledViewSource.h>
+#include <iiGUI>
 
 std::function<void(double,double)> NativeElementsPanelBackend::sizeHandler(double inset,double gap) {
     return [weak=std::weak_ptr(model),inset,gap](double width,double height) {

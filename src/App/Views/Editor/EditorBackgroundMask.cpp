@@ -1,6 +1,6 @@
 #include "EditorCanvas.h"
 #include "EditorToolUtils.h"
-#include <iiGraphicAdjust/Masks.h>
+#include <iiGraphicAdjust>
 #include <QPainter>
 #include <QTransform>
 

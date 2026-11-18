@@ -10,15 +10,16 @@ storage, publishing, preferences and New Canvas routes also have native models; 
 connected file, canvas and in-memory behavior and the absent providers. Many other migrated
 views remain minimal static LVUI presentations retaining identifiable text.
 The cutover is not functionally equivalent to the former application:
-generation, audio playback, publication transport and other product integrations
+some editing tools, interactive social authorization and other product integrations
 have not been reconnected. Local Society file browsing, native `.iisc`
-open/save, bounded canvas frame rendering and visual frame playback are connected, with the limits
+open/save, canvas rendering, timeline audio/visual playback, Image/Video generation and
+session-authorized publication are connected, with the limits
 documented there. No action on an
 unavailable backend should be represented as successful.
 
 `resources/migration/view-manifest.json` records each removed QML view, its
-content hash, and its LVUI replacement. These views use only LVUI components
-and tokens and are compiled ahead of time against iiGUI. The application's
+content hash, and its LVUI replacement. No QML files remain in the source tree.
+The replacement views use LVUI components and tokens and compile for iiGUI. The
 native entry point must not instantiate a QML engine or link a Qt Quick view.
 Legacy backend source is retained separately; it is not evidence that the new
 native application can execute the prior product workflows. Setting
@@ -34,7 +35,7 @@ be supplied to `--view`. `src/App/Native/dreamscapes_views.py` provides
 the same source inventory to Python; neither interface performs generation or
 accesses a user's files. The native Home shows unavailable services as such.
 
-The build and windowless tests check the native app target, the replacement
+The build and windowless tests check the source tree and native bundle for QML, the replacement
 inventory and the compiled widget tree. An actual launch, visual parity,
 device behavior and previously available product functions are separate
 claims and are not established by these tests.

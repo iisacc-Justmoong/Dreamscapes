@@ -35,10 +35,8 @@
 #include "Publishing/SocialPublishingController.h"
 #include "Publishing/PublishDraft.h"
 #include "Publishing/PublishReview.h"
-#include <iiSocietyHelper/FileDownload.h>
-#include <iiSocietyContainer/DashboardFiles.h>
-#include <iiSocietyContainer/SocietyApplication.h>
-#include <Container.h>
+#include <iiSocietyHelper>
+#include <iiSocietyContainer>
 #include <QtQml/qqml.h>
 
 void registerStorageViewTypes()

@@ -1,6 +1,6 @@
 #pragma once
 #include "App/Native/NativeDocumentSession.h"
-#include <iiSDKCore/Runtime/EventLoop.h>
+#include <iiSDKCore>
 #include <functional>
 #include <memory>
 #include <thread>
@@ -16,6 +16,7 @@ class TimelinePlayback final : public std::enable_shared_from_this<TimelinePlayb
     [[nodiscard]] ii::core::Result<void> pause();
     // Advances from monotonic time; exposed for deterministic scheduling and tests.
     [[nodiscard]] ii::core::Result<void> advance();
+    [[nodiscard]] ii::runtime::Clock::time_point origin() const noexcept {return origin_;}
     void close();
     ii::core::Observable<bool> playing{false};
   private:

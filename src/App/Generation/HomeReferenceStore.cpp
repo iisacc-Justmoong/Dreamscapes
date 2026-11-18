@@ -1,18 +1,18 @@
 #include "HomeReferenceStore.h"
+#include "../ViewModels/Native/GenerationDraft.h"
 #include <QCoreApplication>
 #include <QImageReader>
-#include <iiSocietyHelper.h>
+#include <QStringList>
+#include <iiSocietyHelper>
 
 namespace dreamscapes {
 namespace {
 QString message(const char *text) { return QCoreApplication::translate("HomeCanvas", text); }
 }
 QSize homeReferenceOutputSize(const QString &ratio) {
-    if (ratio == "4:3") return {1368,1024};
-    if (ratio == "3:4") return {1024,1368};
-    if (ratio == "16:9") return {1824,1024};
-    if (ratio == "9:16") return {1024,1824};
-    return ratio == "1:1" ? QSize(1024,1024) : QSize();
+    if (!QStringList{"1:1","4:3","3:4","16:9","9:16"}.contains(ratio)) return {};
+    const auto size=vm::imageSize(ratio.toStdString(),vm::defaultImageShortSide);
+    return {int(vm::number(vm::get(size,"width"))),int(vm::number(vm::get(size,"height")))};
 }
 bool HomeReferenceStore::fail(QString value) { error_ = std::move(value); return error_.isEmpty(); }
 QString HomeReferenceStore::key(const QVariantMap &entry) { return entry.value("source").toUrl().toString(QUrl::FullyEncoded); }

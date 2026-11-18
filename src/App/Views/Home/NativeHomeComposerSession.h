@@ -39,7 +39,7 @@ class NativeHomeComposerSession final : public QObject {
     QPointer<QObject> generation_;
     QMetaObject::Connection parameterChanged_, parameterDestroyed_, generationDestroyed_;
     HomeComposerChoices choices_;
-    std::vector<HomeComposerChoice> modelChoices_, presetChoices_;
+    HomeComposerChoiceList modelChoices_, presetChoices_;
     std::vector<HomeComposerAttachment> attachments_;
     std::string randomSeedLabel_;
     std::string inputError_;

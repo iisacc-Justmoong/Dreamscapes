@@ -3,7 +3,7 @@
 #include <Document/Document.h>
 #include <Render/FrameRenderer.h>
 #include <Validation/Validation.h>
-#include <iiFileProviderNative.h>
+#include <iiFileProvider>
 #include <cmath>
 #include <filesystem>
 #include <iostream>

@@ -1,0 +1,140 @@
+import vm NativeBackgroundPanelBackend
+@Static let resizeBackground: (Double, Double) -> Void = vm.sizeHandler(Metric.space16, Metric.size22, Metric.space8, Metric.size44)
+EventListener(id: "backgroundColorSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizeBackground) {
+    ScrollView(id: "backgroundColorScroll", width: vm.width, height: vm.height) {
+        VStack(id: "backgroundColorPanel", width: vm.width, spacing: Metric.space8,
+               padding: Metric.space8, alignment: .stretch) {
+            HStack(spacing: Metric.space8, alignment: .center) {
+                IconButton(iconName: "panel-background-color", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, enabled: false, accessibilityName: "Background")
+                Label(text: "Background", style: .body, flex: 1)
+            }
+            HStack(spacing: Metric.space2, alignment: .center) {
+                IconButton(id: "backgroundColorTab", iconName: "panel-background-color", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, checked: !vm.replaceMode, checkable: false, selectionStyle: .segmented, accessibilityName: "Color", onClick: vm.showColor)
+                IconButton(iconName: "panel-background-remove", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, enabled: false, accessibilityName: "Remove unavailable")
+                IconButton(id: "backgroundMaskTab", iconName: "panel-background-mask", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, accessibilityName: "Mask", onClick: vm.showMask)
+                IconButton(id: "backgroundReplaceTab", iconName: "panel-background-replace", width: Metric.size22, height: Metric.size22,
+                           tone: .borderless, checked: vm.replaceMode, checkable: false, selectionStyle: .segmented, accessibilityName: "Replace", onClick: vm.showReplace)
+            }
+            if (vm.replaceMode) {
+                VStack(width: vm.contentWidth, spacing: Metric.space8, alignment: .stretch) {
+                    Label(text: "Replace", style: .body)
+                    Label(text: "Image or canvas", style: .caption)
+                    HStack(spacing: Metric.space8, alignment: .center) {
+                        Label(id: "backgroundImageName", text: vm.imageName, style: .caption, flex: 1, elideRight: true)
+                        LabelButton(id: "backgroundChooseImage", text: "Choose", tone: .default, enabled: vm.canChooseImage, onClick: vm.chooseImage)
+                    }
+                    Label(text: "Image fit", style: .caption)
+                    ListItemSelector(id: "backgroundImageFit", options: vm.imageFits, currentIndex: vm.imageFit,
+                                     enabled: !vm.busy, accessibilityName: "Background image fit", onCurrentIndexChanged: vm.selectImageFit)
+                    Label(text: "Generative replacement unavailable", style: .caption)
+                }
+            } else {
+            VStack(width: vm.contentWidth, spacing: Metric.space8, alignment: .stretch) {
+            Label(text: "New background fill", style: .body)
+            ListItemSelector(id: "backgroundPickerMode", options: vm.modeNames, currentIndex: vm.modeIndex,
+                             accessibilityName: "Color picker mode", onCurrentIndexChanged: vm.selectMode)
+            if (vm.hasPlane) {
+                HStack(width: vm.contentWidth, spacing: Metric.space8, alignment: .center) {
+                    NativeView(id: "backgroundPickerPlane", source: vm.planeView, width: vm.planeWidth, height: vm.planeHeight)
+                    NativeView(id: "backgroundPickerRail", source: vm.railView, width: vm.railWidth, height: vm.planeHeight)
+                }
+            }
+            for (item in vm.channels, key: item.key, id: "backgroundChannels", itemHeight: Metric.size44,
+                 width: vm.contentWidth, height: vm.channelListHeight, overscan: 1) {
+                VStack(width: vm.contentWidth, spacing: 0, alignment: .stretch) {
+                    Label(text: item.label, style: .caption)
+                    HStack(spacing: Metric.space8, alignment: .center) {
+                        Slider(from: item.minimum, to: item.maximum, stepSize: item.step, value: item.value,
+                               width: vm.channelSliderWidth, size: .mini, accessibilityName: item.key, onMoved: item.moved)
+                        InputField(text: item.text, width: Metric.size44, accessibilityName: item.key,
+                                   onEdited: item.edited, onSubmit: item.submitted)
+                    }
+                }
+            }
+            Label(text: "RGB · HSB · Lab · CMYK", style: .caption)
+            for (item in vm.allChannels, key: item.key, id: "backgroundAllChannels", itemHeight: Metric.size44,
+                 width: vm.contentWidth, height: vm.allChannelListHeight, overscan: 1) {
+                VStack(width: vm.contentWidth, spacing: 0, alignment: .stretch) {
+                    Label(text: item.label, style: .caption)
+                    HStack(spacing: Metric.space8, alignment: .center) {
+                        Slider(from: item.minimum, to: item.maximum, stepSize: item.step, value: item.value,
+                               width: vm.channelSliderWidth, size: .mini, accessibilityName: item.key, onMoved: item.moved)
+                        InputField(text: item.text, width: Metric.size44, accessibilityName: item.key,
+                                   onEdited: item.edited, onSubmit: item.submitted)
+                    }
+                }
+            }
+            HStack(spacing: Metric.space8, alignment: .center) {
+                Label(text: "Hex", style: .caption)
+                InputField(id: "backgroundHex", text: vm.hex, flex: 1, accessibilityName: "Background color hexadecimal",
+                           onEdited: vm.editHex, onSubmit: vm.commitHex)
+            }
+            HStack(spacing: Metric.space8, alignment: .center) {
+                Label(text: "Alpha", style: .caption, flex: 1)
+                Label(text: vm.alphaText, style: .caption)
+            }
+            Slider(id: "backgroundAlpha", from: 0, to: 100, stepSize: 1, value: vm.alpha,
+                   width: vm.contentWidth, size: .mini, accessibilityName: "Background alpha percent", onMoved: vm.setAlpha)
+            HStack(spacing: Metric.space8, alignment: .center) {
+                Label(text: "Opacity", style: .caption, flex: 1)
+                Label(text: vm.opacityText, style: .caption)
+            }
+            Slider(id: "backgroundOpacity", from: 0, to: 100, stepSize: 1, value: vm.opacity,
+                   width: vm.contentWidth, size: .mini, accessibilityName: "Background opacity percent", onMoved: vm.setOpacity)
+            Label(text: "Fill", style: .body)
+            ListItemSelector(id: "backgroundFill", options: vm.fillNames, currentIndex: vm.fillIndex,
+                             accessibilityName: "Background fill type", onCurrentIndexChanged: vm.selectFill)
+            if (vm.gradient) {
+                VStack(width: vm.contentWidth, spacing: Metric.space8, alignment: .stretch) {
+                Label(text: "Gradient stops", style: .caption)
+                HStack(spacing: Metric.space4, alignment: .center) {
+                    ListItemSelector(id: "backgroundStop", options: vm.stopNames, currentIndex: vm.stopIndex,
+                                     flex: 1, accessibilityName: "Gradient stop", onCurrentIndexChanged: vm.selectStop)
+                    IconButton(id: "backgroundStopAdd", iconName: "new-layer", width: Metric.size22, height: Metric.size22,
+                               tone: .default, accessibilityName: "Add gradient stop", onClick: vm.addStop)
+                    IconButton(id: "backgroundStopRemove", iconName: "delete-layer", width: Metric.size22, height: Metric.size22,
+                               tone: .default, enabled: vm.canRemoveStop, accessibilityName: "Remove gradient stop", onClick: vm.removeStop)
+                }
+                HStack(spacing: Metric.space8, alignment: .center) {
+                    Label(text: "Stop position", style: .caption, flex: 1)
+                    Label(text: vm.stopPositionText, style: .caption)
+                }
+                Slider(from: 0, to: 100, stepSize: 1, value: vm.stopPosition, width: vm.contentWidth, size: .mini,
+                       accessibilityName: "Gradient stop position percent", onMoved: vm.setStopPosition)
+                HStack(spacing: Metric.space8, alignment: .center) {
+                    Label(text: "Angle", style: .caption, flex: 1)
+                    Label(text: vm.angleText, style: .caption)
+                }
+                Slider(from: -360, to: 360, stepSize: 1, value: vm.angle, width: vm.contentWidth, size: .mini,
+                       accessibilityName: "Gradient angle in degrees", onMoved: vm.setAngle)
+                HStack(spacing: Metric.space8, alignment: .center) {
+                    Label(text: "Perceptual interpolation", style: .caption, flex: 1)
+                    ToggleSwitch(checked: vm.perceptual, accessibilityName: "Perceptual gradient interpolation", onToggled: vm.setPerceptual)
+                }
+                Label(text: "Gradient presets", style: .caption)
+                ListItemSelector(id: "backgroundPreset", options: vm.presetNames, currentIndex: 0,
+                                 accessibilityName: "Gradient preset", onCurrentIndexChanged: vm.selectPreset)
+                }
+            }
+            Label(text: "Swatches", style: .caption)
+            ListItemSelector(id: "backgroundSwatch", options: vm.swatchNames, currentIndex: 0,
+                             accessibilityName: "Background swatch", onCurrentIndexChanged: vm.selectSwatch)
+            Label(text: "Recent colors", style: .caption)
+            ListItemSelector(id: "backgroundRecent", options: vm.recentNames, currentIndex: 0,
+                             accessibilityName: "Recent background color", onCurrentIndexChanged: vm.selectRecent)
+            }
+            }
+            if (vm.availability != "") { Label(id: "backgroundAvailability", text: vm.availability, style: .caption) }
+            if (vm.status != "") { Label(id: "backgroundStatus", text: vm.status, style: .caption) }
+            if (vm.replaceMode) {
+                LabelButton(id: "backgroundApplyImage", text: "Apply", tone: .default, enabled: vm.canApplyImage, onClick: vm.applyImage)
+            } else {
+                LabelButton(id: "backgroundApply", text: "Apply", tone: .default, enabled: vm.canApply, onClick: vm.apply)
+            }
+        }
+    }
+}

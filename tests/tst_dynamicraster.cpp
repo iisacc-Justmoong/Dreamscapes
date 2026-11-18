@@ -2,9 +2,9 @@
 #include "App/Views/Editor/EditorGraphicAdjust.h"
 #include "App/Views/Editor/EditorGraphicHelper.h"
 #include "App/Views/Editor/EditorToolUtils.h"
-#include <iiSharedCanvas.h>
-#include <iiFileProviderNative.h>
-#include <SocietyDrive.h>
+#include <iiSharedCanvas>
+#include <iiFileProvider>
+#include <iiSocietyContainer>
 #include <QMouseEvent>
 #include <QColorSpace>
 #include <QSignalSpy>

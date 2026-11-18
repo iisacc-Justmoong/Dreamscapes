@@ -2,7 +2,7 @@
 #include "Views/Editor/EditorTimelineViewport.h"
 #include "Views/Editor/EditorCanvas.h"
 #include "ViewModels/ViewData.h"
-#include <iiSharedCanvas.h>
+#include <iiSharedCanvas>
 #include <QApplication>
 #include <QBuffer>
 #include <QDir>
@@ -16,7 +16,7 @@
 #include <QQuickStyle>
 #include <QWheelEvent>
 #include <QScopeGuard>
-#include <SocietyDrive.h>
+#include <iiSocietyContainer>
 #include <QTemporaryDir>
 #include <QtTest>
 #include <algorithm>

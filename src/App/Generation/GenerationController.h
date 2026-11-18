@@ -1,12 +1,9 @@
-#include <iiFileProviderDevice.h>
+#include <iiFileProvider>
 #pragma once
 
-#include <SharedStorage.h>
-#include <iiSocietyHelper.h>
-#include <iiSocietyHelper/LocalClient.h>
-#include <iiSocietyHelper/FileDownload.h>
+#include <iiSocietyContainer>
+#include <iiSocietyHelper>
 #include "SocietyAccount.h"
-#include <iiSocietyHelper/Generation/Remote.h>
 #include <Generation/NativeDiffusion.hpp>
 #include <Generation/ImageModelRouting.hpp>
 #include <QFutureWatcher>
@@ -28,13 +25,14 @@
 #include "GenerationPublication.h"
 #include "NativeGenerationWork.h"
 #include "BackgroundWorkGroup.h"
+#include "../ViewModels/Native/GenerationDraft.h"
 class FailureAgent;
 
 struct GenerationRuntime {
     QString executable;
     QString device = QStringLiteral("auto");
     int steps = 10;
-    int imageExtent = 1024; // Shorter output side, aligned to the 8px latent grid.
+    int imageExtent = dreamscapes::vm::defaultImageShortSide; // Shorter output side on the 8px latent grid.
     QString pythonExecutable;
     bool nativeInference = false;
     int nativeTimeoutMilliseconds = 900000; // Maximum active time without measurable progress.
@@ -122,7 +120,6 @@ public:
     // Begin cancellation on the owner thread, then wait off-thread for accepted
     // startup/inventory and Qt-pool work before final application shutdown.
     void prepareForShutdown();
-    void finishShutdownAsync(QObject *receiver, std::function<void()> completion);
 
     QObject *account() const { return const_cast<SocietyAccount *>(&m_accountSession); }
     bool connected() const;

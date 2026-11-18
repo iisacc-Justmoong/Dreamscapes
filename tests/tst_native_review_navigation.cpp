@@ -1,5 +1,5 @@
 #include "App/Views/Result/NativeReviewNavigation.h"
-#include <LVUI/NativeVirtualCollection.h>
+#include <LVUI>
 #include <iostream>
 #include <memory>
 #include <stdexcept>

@@ -3,6 +3,7 @@
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -33,9 +34,13 @@ def main():
         backend = view.get("backend", "NativeMigratedViewBackend")
         if not migrated.is_file() or f"import vm {backend}" not in migrated.read_text():
             fail(f"missing LVUI view or view model: {replacement}")
-    remaining = list((root / "src/App").rglob("*.qml"))
+    remaining = []
+    for current, directories, files in os.walk(root):
+        if Path(current) == root:
+            directories[:] = [directory for directory in directories if directory not in {".git", "build"}]
+        remaining.extend(Path(current) / name for name in files if Path(name).suffix.lower() == ".qml")
     if remaining:
-        fail(f"QML views remain under src/App: {remaining[0]}")
+        fail(f"QML files remain in the project source tree: {remaining[0].relative_to(root)}")
     main_source = (root / "src/App/Native/NativeMain.cpp").read_text()
     if "NativeApplicationWindow" not in main_source or "QQml" in main_source:
         fail("application does not start from the native window")
@@ -45,7 +50,7 @@ def main():
     catalog = module.ViewCatalog(manifest_path)
     if len(catalog.views()) != len(views) or not catalog.find("src/App/Views/Editor/CanvasEditor.lvui"):
         fail("Python view inventory does not match the compiled view inventory")
-    print(f"{len(views)} LVUI replacements; no QML views under src/App")
+    print(f"{len(views)} LVUI replacements; no QML files in the project source tree")
 
 if __name__ == "__main__":
     try:

@@ -18,7 +18,7 @@
 #include <QtTest>
 #include <backend/fonts/fontpolicy.h>
 #include <cmath>
-#include <iiSharedCanvas.h>
+#include <iiSharedCanvas>
 #include <memory>
 #include <numbers>
 

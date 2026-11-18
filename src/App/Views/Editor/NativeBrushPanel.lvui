@@ -1,0 +1,26 @@
+import vm NativeBrushPanelBackend
+@Static let resizeBrush: (Double, Double) -> Void = vm.sizeHandler(Metric.space16)
+EventListener(id: "brushPanelSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizeBrush) {
+    ScrollView(width: vm.panelWidth, height: vm.panelHeight) {
+        VStack(width: vm.panelWidth, padding: Metric.space8, spacing: Metric.space8, alignment: .stretch) {
+            Label(text: "Brush", style: .body)
+            if (vm.availability != "") { Label(id: "brushAvailability", text: vm.availability, style: .caption) }
+            if (vm.status != "") { Label(id: "brushStatus", text: vm.status, style: .caption) }
+            Label(text: "Color", style: .caption)
+            InputField(id: "brushColor", text: vm.colorText, width: vm.contentWidth,
+                       onEdited: vm.colorEdited, onSubmit: vm.colorSubmitted, accessibilityName: "Brush color")
+            Label(text: vm.sizeLabel, style: .caption)
+            Slider(id: "brushSize", from: vm.sizeMin, to: vm.sizeMax, stepSize: vm.sizeStep, value: vm.size,
+                   width: vm.contentWidth, size: .mini, accessibilityName: vm.sizeLabel, onMoved: vm.sizeMoved)
+            Label(text: vm.hardnessLabel, style: .caption)
+            Slider(id: "brushHardness", from: vm.hardnessMin, to: vm.hardnessMax, stepSize: vm.hardnessStep, value: vm.hardness,
+                   width: vm.contentWidth, size: .mini, accessibilityName: vm.hardnessLabel, onMoved: vm.hardnessMoved)
+            Label(text: vm.opacityLabel, style: .caption)
+            Slider(id: "brushOpacity", from: vm.opacityMin, to: vm.opacityMax, stepSize: vm.opacityStep, value: vm.opacity,
+                   width: vm.contentWidth, size: .mini, accessibilityName: vm.opacityLabel, onMoved: vm.opacityMoved)
+            Label(text: vm.flowLabel, style: .caption)
+            Slider(id: "brushFlow", from: vm.flowMin, to: vm.flowMax, stepSize: vm.flowStep, value: vm.flow,
+                   width: vm.contentWidth, size: .mini, accessibilityName: vm.flowLabel, onMoved: vm.flowMoved)
+        }
+    }
+}

@@ -22,9 +22,16 @@ void exercise() {
     int opened = 0;
     model.setOpenHandler([&] { ++opened; });
     model.open(); check(opened == 0 && !model.canOpen.get(), "empty selection opened a file");
+    // Native layout may synchronously report a new size while a file property
+    // invalidates the view. Layout is independent of the file projection.
+    auto layoutDuringPublish = model.name.observe([&](const auto &, std::uint64_t) {
+        model.sizeChanged(320, 240);
+    });
     const auto one = localFile();
     const auto firstRevision = model.setFile(one, "file:///canvas-preview.png");
-    check(bool(firstRevision), "local file was rejected");
+    check(bool(firstRevision), "layout during file publication rejected the selection");
+    check(model.viewportWidth.get() == 320 && model.viewportHeight.get() == 240 && !model.wide.get(),
+          "layout during file publication did not update the viewport");
     check(model.hasFile.get() && model.canOpen.get() && model.name.get() == "canvas.iisc" &&
           model.path.get() == "Campaigns/canvas.iisc" && model.previewSource.get() == "file:///canvas-preview.png" &&
           model.openLabel.get() == "Open in editor" && model.dimensions.get() == "Unavailable",

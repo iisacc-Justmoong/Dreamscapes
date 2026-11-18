@@ -209,10 +209,10 @@ ctest --test-dir build --output-on-failure
 ```
 
 기본적으로 `DREAMSCAPES_NATIVE_REVIEW_IMAGES=ON`은 앱 이미지 I/O 어댑터가 포함된
-LVUI 배포본, `LVUI::ImageIO`, iiGUI와 `iiSharedCanvasNative` 0.35 패키지를 요구한다. 이미지 공급자가 필요 없는 독립 모델
-검사에서는 이 옵션을 `OFF`로 둘 수 있다. 실제 제품은 아직 별도의 레거시
-`iiSharedCanvas::Quick`과 Qt 창을 사용하므로 두 경로의 바이너리나 검증 결과를 혼동하지
-않는다.
+LVUI 배포본, `LVUI::ImageIO`, iiGUI와 `iiSharedCanvasNative` 0.35.39 호환 패키지를 요구한다.
+이미지 공급자가 필요 없는 독립 모델 검사에서는 이 옵션을 `OFF`로 둘 수 있다.
+기본 앱은 `iiGraphicAdjust` 0.6.2 호환 패키지도 사용한다. 검증할 설치본을 선택하려면
+`iiSharedCanvasNative_DIR`과 `iiGraphicAdjust_DIR`을 지정한다.
 
 기존 Qt 제품 구성의 두 비교 검사는 Qt 6.8.3을 사용하여 같은 입력에 대한 동작을 비교한다.
 독립 모델 검사는 실제 GUI, 전체 제품 빌드, 시스템 설치 또는 다른 플랫폼 검증을 대신하지 않는다.

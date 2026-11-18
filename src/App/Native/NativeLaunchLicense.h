@@ -1,7 +1,5 @@
 #pragma once
-#include <iiSDKCore/Core/Property/Observable.h>
-#include <iiSDKCore/Core/Result/Result.h>
-#include <iiSDKCore/Runtime/EventLoop.h>
+#include <iiSDKCore>
 #include <functional>
 #include <memory>
 #include <string>
@@ -25,6 +23,11 @@ class LicenseProbe {
 class LaunchLicense final : public std::enable_shared_from_this<LaunchLicense> {
   public:
     static std::shared_ptr<LaunchLicense> create(ii::runtime::EventLoop &,std::shared_ptr<LicenseProbe>);
+    // The disabled path does not even construct a probe or create a false grant.
+    static std::shared_ptr<LaunchLicense> createIfEnabled(ii::runtime::EventLoop &,bool,
+        const std::function<std::shared_ptr<LicenseProbe>()> &);
+    static std::shared_ptr<LaunchLicense> createForApplication(ii::runtime::EventLoop &,
+        const std::function<std::shared_ptr<LicenseProbe>()> &);
     ~LaunchLicense();
     [[nodiscard]] ii::core::Result<void> start();
     void close();
@@ -40,7 +43,7 @@ class LaunchLicense final : public std::enable_shared_from_this<LaunchLicense> {
     ii::runtime::EventLoop::Sender sender_;
     std::shared_ptr<LicenseProbe> probe_;
     std::shared_ptr<Bridge> bridge_;
-    ii::runtime::TaskToken wake_;
+    ii::runtime::TaskToken wake_,deadline_;
     bool active_=true,started_=false,decisionMade_=false;
 };
 }

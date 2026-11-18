@@ -1,8 +1,10 @@
 #include "App/Native/NativeLaunchLicense.h"
 #include "App/Native/NativeSocietyLicense.h"
-#include <iiSDKCore/Runtime/EventLoop.h>
+#include <iiSDKCore>
+#include <chrono>
 #include <iostream>
 #include <stdexcept>
+#include <thread>
 
 void check(bool value,const char *message) {if (!value) throw std::runtime_error(message);}
 void good(ii::core::Result<void> value) {if (!value) throw std::runtime_error(value.error().message);}
@@ -19,6 +21,24 @@ int main() {
     try {
         using namespace dreamscapes::native;
         ii::runtime::EventLoop loop;
+        int probeFactories=0;
+        auto factory=[&] {++probeFactories;return std::make_shared<FakeProbe>();};
+        auto configured=LaunchLicense::createForApplication(loop,factory);
+#if DREAMSCAPES_TEST_EXPECT_LICENSE_VERIFICATION
+        check(configured && probeFactories==1,"enabled application policy skipped its probe");
+        configured->close();probeFactories=0;
+#else
+        check(!configured && probeFactories==0,"disabled application policy created a probe");
+#endif
+        auto suspended=LaunchLicense::createIfEnabled(loop,false,factory);
+        check(!suspended && probeFactories==0,
+              "disabled license verification created a probe or invented a session");
+        auto enabled=LaunchLicense::createIfEnabled(loop,true,factory);
+        check(enabled && probeFactories==1 && !enabled->licensed.get() && !enabled->decided.get(),
+              "enabled license verification did not create an unchecked session");
+        good(enabled->start());
+        check(enabled->checking.get(),"re-enabled license verification did not start normally");
+        enabled->close();
         auto probe=std::make_shared<FakeProbe>();
         auto license=LaunchLicense::create(loop,probe);
         good(license->start());
@@ -83,5 +103,20 @@ int main() {
         check(rejected->decided.get() && rejected->gateVisible.get() &&
               rejected->code.get()=="verification_unavailable",
               "a rejected device worker left the launch license pending");
+        ii::runtime::EventLoop stalledLoop;
+        ii::runtime::Task delayedDevice;
+        auto stalled=LaunchLicense::create(stalledLoop,societyLicenseProbe(stalledLoop,
+            [&](ii::runtime::Task task){delayedDevice=std::move(task);return true;},"test-version"));
+        const auto started=std::chrono::steady_clock::now();good(stalled->start());
+        while (!stalled->decided.get() && std::chrono::steady_clock::now()-started<std::chrono::milliseconds(1200)) {
+            (void)stalledLoop.poll();std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        check(stalled->decided.get() && !stalled->licensed.get() && stalled->gateVisible.get() &&
+              stalled->code.get()=="verification_unavailable" &&
+              std::chrono::steady_clock::now()-started<std::chrono::seconds(1),
+              "a stalled device worker did not fail closed within one second");
+        if (delayedDevice) delayedDevice();
+        (void)stalledLoop.poll();
+        check(!stalled->licensed.get() && stalled->gateVisible.get(),"a late device result replaced the timeout decision");
     } catch (const std::exception &error) {std::cerr << error.what() << '\n';return 1;}
 }

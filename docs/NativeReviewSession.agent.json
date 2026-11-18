@@ -10,8 +10,8 @@
   },
   "source": {
     "path": "docs/NativeReviewSession.md",
-    "sha256": "4f3f0178450ba3e42444c5e5a1b5214203544693cce116ca23fe5ddecca334b9",
-    "bytes": 19708,
+    "sha256": "d5315c80d836860691e964afda9c543f96a411a42806c3e99db9f4bea104fe72",
+    "bytes": 19730,
     "line_count": 218,
     "encoding": "utf-8",
     "language": "ko"
@@ -395,7 +395,7 @@
       "kind": "paragraph",
       "start_line": 211,
       "end_line": 215,
-      "raw": "기본적으로 `DREAMSCAPES_NATIVE_REVIEW_IMAGES=ON`은 앱 이미지 I/O 어댑터가 포함된\nLVUI 배포본, `LVUI::ImageIO`, iiGUI와 `iiSharedCanvasNative` 0.35 패키지를 요구한다. 이미지 공급자가 필요 없는 독립 모델\n검사에서는 이 옵션을 `OFF`로 둘 수 있다. 실제 제품은 아직 별도의 레거시\n`iiSharedCanvas::Quick`과 Qt 창을 사용하므로 두 경로의 바이너리나 검증 결과를 혼동하지\n않는다.\n"
+      "raw": "기본적으로 `DREAMSCAPES_NATIVE_REVIEW_IMAGES=ON`은 앱 이미지 I/O 어댑터가 포함된\nLVUI 배포본, `LVUI::ImageIO`, iiGUI와 `iiSharedCanvasNative` 0.35.39 호환 패키지를 요구한다.\n이미지 공급자가 필요 없는 독립 모델 검사에서는 이 옵션을 `OFF`로 둘 수 있다.\n기본 앱은 `iiGraphicAdjust` 0.6.2 호환 패키지도 사용한다. 검증할 설치본을 선택하려면\n`iiSharedCanvasNative_DIR`과 `iiGraphicAdjust_DIR`을 지정한다.\n"
     },
     {
       "id": "b000046",

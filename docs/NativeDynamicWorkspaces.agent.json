@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/NativeDynamicWorkspaces.md",
-    "sha256": "9058b81b663a38b5069c9f61a3869531128b79e1dc976931b60ec373be6e9cbe",
-    "bytes": 26892,
-    "line_count": 414,
+    "sha256": "63dcaa232412a0d708c60efdc82d05e98823eed23816190d0acd579943772edf",
+    "bytes": 52467,
+    "line_count": 774,
     "encoding": "utf-8",
     "language": "en"
   },
@@ -57,109 +57,109 @@
     {
       "id": "b000005",
       "kind": "paragraph",
+      "raw": "License verification is temporarily disabled in the native app by default.\nWith `DREAMSCAPES_ENABLE_LICENSE_VERIFICATION=OFF`, startup creates no Society\nlicense probe or gate and does not claim that a license or account was verified.\nTo restore verification, configure `build/` with\n`-DDREAMSCAPES_ENABLE_LICENSE_VERIFICATION=ON`, rebuild and reinstall the app.\nAn already running process keeps its original launch configuration.\n",
       "start_line": 5,
-      "end_line": 17,
-      "raw": "The native app presents its workspace while iiAccountManager checks the\nSociety license asynchronously. Exactly one automatic check is started for\neach app process. The first completed decision is kept as a runtime boolean\nuntil exit; later callbacks cannot revoke a successful session or open a\nrepeating gate. A failed check displays iiLicenseManager's existing LVUI\nSociety gate, and opening Society requires an explicit user action. With the\nsingle-check contract, a new check requires an app restart. The check never\nedits a canvas or stores a license grant inside an `.iisc` file.\nThe Account settings category projects the current session's connection,\nlicense result and verified account identifier as read-only fields. Checking,\nan unavailable verifier and an explicit denial remain distinct states; no\ntoken or inferred account is displayed. Replacing or disconnecting a session\nstops the previous check and removes its projected values.\n"
+      "end_line": 10
     },
     {
       "id": "b000006",
       "kind": "blank",
-      "start_line": 18,
-      "end_line": 18,
-      "raw": "\n"
+      "raw": "\n",
+      "start_line": 11,
+      "end_line": 11
     },
     {
       "id": "b000007",
+      "kind": "paragraph",
+      "start_line": 12,
+      "end_line": 24,
+      "raw": "When verification is enabled, the native app presents its workspace while iiAccountManager checks the\nSociety license asynchronously. Exactly one automatic check is started for\neach app process. The first completed decision is kept as a runtime boolean\nuntil exit; later callbacks cannot revoke a successful session or open a\nrepeating gate. A failed check displays iiLicenseManager's existing LVUI\nSociety gate, and opening Society requires an explicit user action. With the\nsingle-check contract, a new check requires an app restart. The check never\nedits a canvas or stores a license grant inside an `.iisc` file.\nThe Account settings category projects the current session's connection,\nlicense result and verified account identifier as read-only fields. Checking,\nan unavailable verifier and an explicit denial remain distinct states; no\ntoken or inferred account is displayed. Replacing or disconnecting a session\nstops the previous check and removes its projected values.\n"
+    },
+    {
+      "id": "b000008",
+      "kind": "blank",
+      "start_line": 25,
+      "end_line": 25,
+      "raw": "\n"
+    },
+    {
+      "id": "b000009",
       "kind": "heading",
-      "start_line": 19,
-      "end_line": 19,
+      "start_line": 26,
+      "end_line": 26,
       "raw": "## Editor actions\n",
       "level": 2,
       "title": "Editor actions"
     },
     {
-      "id": "b000008",
-      "kind": "blank",
-      "start_line": 20,
-      "end_line": 20,
-      "raw": "\n"
-    },
-    {
-      "id": "b000009",
-      "kind": "paragraph",
-      "start_line": 21,
-      "end_line": 23,
-      "raw": "The Home sidebar's Tools action opens the same live editor workspace and\ndocument session as the Editor route. It does not mount a static tool catalog\nor replace an already open canvas.\n"
-    },
-    {
       "id": "b000010",
       "kind": "blank",
-      "start_line": 24,
-      "end_line": 24,
+      "start_line": 27,
+      "end_line": 27,
       "raw": "\n"
     },
     {
       "id": "b000011",
       "kind": "paragraph",
-      "start_line": 25,
-      "end_line": 29,
-      "raw": "The Layers panel's Delete action removes the selected layer and its keyframes\nfrom the in-memory draft, preserves all assets and immutable rendering snapshots,\nand selects the closest remaining layer. It does not modify the source file until\nthe user saves. Invalid selection and reentrant document changes must not corrupt\nthe active document.\n"
+      "start_line": 28,
+      "end_line": 37,
+      "raw": "Timeline playback projects the current document's unmuted audio tracks to a\nnative float PCM output while the visual playhead advances. Audio is mixed in\nbounded blocks from the immutable document snapshot, with clip timing, source\noffsets, track/clip gain and mono/stereo sample rates respected. The audio\nworker starts at the current visual playback time and is canceled on pause,\nseek, document switch or editor exit. A missing output device reports a\ntimeline message without changing the document or preventing visual playback.\nThe output device's buffering latency is not measured, so this is clock-based\npreview synchronization rather than sample-accurate device-clock sync. Audio\nedits made during playback take effect on the next play from a fresh snapshot.\n"
     },
     {
       "id": "b000012",
       "kind": "blank",
-      "start_line": 30,
-      "end_line": 30,
+      "start_line": 38,
+      "end_line": 38,
       "raw": "\n"
     },
     {
       "id": "b000013",
       "kind": "paragraph",
-      "start_line": 31,
-      "end_line": 38,
-      "raw": "Timeline clips for static and keyframed bitmap/vector layers support transient\nmove and trim previews. Trimming changes the visible range without deleting\nsource or motion keys. Moving translates subsequent source keys and all motion\nkeys with the clip while retaining iiSharedCanvas's required frame-zero source\nowner. It clamps the move so even hidden keys remain within the document timeline. A\nrelease commits a single document edit; cancellation or a changed document\nleaves the source untouched. Audio and video clip editing have separate timing\nsemantics and are not provided by this operation.\n"
+      "start_line": 39,
+      "end_line": 50,
+      "raw": "The Brush tool connects its LVUI panel and pointer input to iiSharedCanvas\nbitmap editing. Color, size, hardness, opacity and flow affect the brush;\npointer pressure and tilt are passed to the paint engine. A gesture\nuses a captured document revision and a newly allocated raster asset for the\nselected bitmap layer. Static layers retain one source; a dynamic layer writes\nan exact-frame source key based on the frame's held image. Other layers, earlier\nframes, existing assets and files remain unchanged. The in-progress gesture is\nprivate to the editor; cancel, an invalid input or a changed document, selection\nor frame must discard it. Stroke processing and composited preview run away\nfrom the view thread, and only a completed, still-current stroke may commit.\nThe source file changes only when the user saves the document. Other brush\npresets and advanced controls are not yet connected.\n"
     },
     {
       "id": "b000014",
       "kind": "blank",
-      "start_line": 39,
-      "end_line": 39,
+      "start_line": 51,
+      "end_line": 51,
       "raw": "\n"
     },
     {
       "id": "b000015",
       "kind": "paragraph",
-      "start_line": 40,
-      "end_line": 47,
-      "raw": "The Layers panel's new-layer menu creates a selected empty static or dynamic\nbitmap or vector layer in the current document. Infinite-canvas bitmap sources\nuse sparse chunks. The installed iiSharedCanvas requires finite-canvas bitmaps\nto have actual pixels, so those start transparent at the canvas extent and are\nlimited to 16 megapixels for interactive allocation. Vectors retain the\ndocument extent, and dynamic sources include their required frame-zero key.\nCreation is an in-memory edit until the existing save action commits it.\nExisting assets and renderer snapshots remain unchanged.\n"
+      "start_line": 52,
+      "end_line": 63,
+      "raw": "The Light adjustment panel uses iiGraphicAdjust's rendered-sRGB light controls:\nexposure from -5 to 5 stops and contrast, highlights, shadows, whites and\nblacks from -100 to 100. Its target is the selected static bitmap layer. A\npreview is prepared from an immutable document snapshot on a worker and never\nedits the document; Apply commits only that preview to the same selected layer\nand frame if the document revision is still current. The changed raster gets a\nnew asset identity, preserving the original and any other layer sharing it.\nSelection, frame, viewport or document changes invalidate pending work. Auto\nanalyzes the selected bitmap on the worker and fills an uncommitted slider draft;\nit does not apply or save that draft. Transparent-only images and unavailable\nworkers report an error. The controls support static bitmap layers; other\nadjustment categories and unsupported layer types remain unavailable.\n"
     },
     {
       "id": "b000016",
       "kind": "blank",
-      "start_line": 48,
-      "end_line": 48,
+      "start_line": 64,
+      "end_line": 64,
       "raw": "\n"
     },
     {
       "id": "b000017",
       "kind": "paragraph",
-      "start_line": 49,
-      "end_line": 62,
-      "raw": "The Elements tool projects the selected static vector layer's actual path\ngeometry. Quadratic and cubic extrema determine the local bounds; stroke\nexpansion is excluded. Width and height reflect the layer's transform and are\ncommitted with Enter. Resizing changes the selected layer transform around its\nexisting local origin, preserving the source asset and other layers. The\nproportions toggle is session state. Uncommitted input is discarded when the\nselection or document changes. A hidden panel does not recalculate bounds.\nLayer selection is associated with the document generation so that replacing\nan open document cannot temporarily expose a same-named old selection to the\nElements or Layers inspector.\nEmpty or degenerate paths, singular transforms, bitmap and motion-bearing\nlayers are unavailable. Shape creation, shape-specific controls and canvas\ntransform handles remain unconnected; a vector path does not imply a stored\nrectangle, ellipse or polygon type.\n"
+      "start_line": 65,
+      "end_line": 67,
+      "raw": "The Home sidebar's Tools action opens the same live editor workspace and\ndocument session as the Editor route. It does not mount a static tool catalog\nor replace an already open canvas.\n"
     },
     {
       "id": "b000018",
       "kind": "blank",
-      "start_line": 63,
-      "end_line": 63,
+      "start_line": 68,
+      "end_line": 68,
       "raw": "\n"
     },
     {
       "id": "b000019",
       "kind": "paragraph",
-      "start_line": 64,
+      "start_line": 69,
       "end_line": 74,
-      "raw": "The Figma Elements Fill field reads the selected static vector asset's actual\nsolid colors. A common color is displayed as hexadecimal; differing colors\nare shown as mixed, and paths without a fill cannot be edited by this field.\nSubmitting an RGB value preserves each path's existing alpha; an explicit\nRGBA value changes alpha too. An invalid input or a changed selection cannot\nedit the document. A shared vector asset is copied before changing its fill,\nso other layers and mask references keep their original content. An exclusively\nreferenced asset is edited in place unless an immutable document snapshot is\nstill borrowed; repeating the same color does not change the revision. The\nchange marks the document dirty and updates the rendered frame. A color-picker popup\nand gradient or image fills are not yet connected.\n"
+      "raw": "The File, Layers, Elements, Background Mask, Color and Replace panel paths\nexposed through the native `--view` command open their corresponding panel\ninside that same editor session. They do not create a disconnected empty\ndocument. Color and Replace require their worker-backed provider; if it is\nunavailable the route reports that condition. Other migrated component paths\ncan still resolve to their simplified placeholder views.\n"
     },
     {
       "id": "b000020",
@@ -172,212 +172,206 @@
       "id": "b000021",
       "kind": "paragraph",
       "start_line": 76,
-      "end_line": 89,
-      "raw": "The Background tool's Mask view manages the selected artwork layer's IISC\nmask stack. A new raster identity mask contains one white pixel and white\noutside coverage, so adding it initially leaves the rendered layer unchanged\nwithout allocating a full-canvas bitmap. Users can select, duplicate, delete,\nenable, invert and combine stack entries and adjust their density and feather;\nthe stack can also be bypassed. A duplicate owns a separate asset. Removing\nan entry preserves its asset because it may still be referenced elsewhere.\nMask edits update the document only when explicitly invoked; row selection is\nsession state, and retired rows cannot act on a replacement document. The\niiSharedCanvas editor upgrades older in-memory format metadata when an\nappearance operation requires it. Existing legacy raster, vector and filter\nmasks are preserved and reported but are not editable in this panel. Painting\ninto the identity mask, selection tools, and the Color, Remove and Replace\nBackground views are not yet connected.\n"
+      "end_line": 80,
+      "raw": "The Layers panel's Delete action removes the selected layer and its keyframes\nfrom the in-memory draft, preserves all assets and immutable rendering snapshots,\nand selects the closest remaining layer. It does not modify the source file until\nthe user saves. Invalid selection and reentrant document changes must not corrupt\nthe active document.\n"
     },
     {
       "id": "b000022",
+      "kind": "blank",
+      "start_line": 81,
+      "end_line": 81,
+      "raw": "\n"
+    },
+    {
+      "id": "b000023",
+      "kind": "paragraph",
+      "start_line": 82,
+      "end_line": 89,
+      "raw": "Timeline clips for static and keyframed bitmap/vector layers support transient\nmove and trim previews. Trimming changes the visible range without deleting\nsource or motion keys. Moving translates subsequent source keys and all motion\nkeys with the clip while retaining iiSharedCanvas's required frame-zero source\nowner. It clamps the move so even hidden keys remain within the document timeline. A\nrelease commits a single document edit; cancellation or a changed document\nleaves the source untouched. Audio and video clip editing have separate timing\nsemantics and are not provided by this operation.\n"
+    },
+    {
+      "id": "b000024",
       "kind": "blank",
       "start_line": 90,
       "end_line": 90,
       "raw": "\n"
     },
     {
-      "id": "b000023",
-      "kind": "heading",
-      "start_line": 91,
-      "end_line": 91,
-      "raw": "## Society storage provider contract\n",
-      "level": 2,
-      "title": "Society storage provider contract"
-    },
-    {
-      "id": "b000024",
-      "kind": "blank",
-      "start_line": 92,
-      "end_line": 92,
-      "raw": "\n"
-    },
-    {
       "id": "b000025",
       "kind": "paragraph",
-      "start_line": 93,
-      "end_line": 101,
-      "raw": "Local PNG, JPEG, BMP, WebP, TIFF and TGA files selected through Home,\nFiles or the native Open dialog are decoded with iiVisualCodec on the file\nworker into an unsaved iiSharedCanvas bitmap canvas. The codec applies its\norientation and working-color conversion. The still layer spans one second at the document's\ndefault frame rate. Opening an image never changes or associates the source as\nan `.iisc` working file: Save requires a new `.iisc` path, and the source is\nchecked for replacement while decoding. Animated or layered formats are not\nadvertised as flattened image imports. Existing unsaved canvases remain\nprotected and stale asynchronous completions cannot replace a newer document.\n"
+      "start_line": 91,
+      "end_line": 98,
+      "raw": "The Layers panel's new-layer menu creates a selected empty static or dynamic\nbitmap or vector layer in the current document. Infinite-canvas bitmap sources\nuse sparse chunks. The installed iiSharedCanvas requires finite-canvas bitmaps\nto have actual pixels, so those start transparent at the canvas extent and are\nlimited to 16 megapixels for interactive allocation. Vectors retain the\ndocument extent, and dynamic sources include their required frame-zero key.\nCreation is an in-memory edit until the existing save action commits it.\nExisting assets and renderer snapshots remain unchanged.\n"
     },
     {
       "id": "b000026",
       "kind": "blank",
-      "start_line": 102,
-      "end_line": 102,
+      "start_line": 99,
+      "end_line": 99,
       "raw": "\n"
     },
     {
       "id": "b000027",
       "kind": "paragraph",
-      "start_line": 103,
-      "end_line": 108,
-      "raw": "Image import depends on the JPEG ABI used when the installed iiVisualCodec\narchive was built. The codec package must select a matching libjpeg; linking\nABI 80 to a codec built with ABI 62 fails at runtime even if the app links.\nThe file-model contract exercises JPEG and the other advertised image formats.\nOlder installed codec packages may not advertise their JPEG ABI and require\nthe matching JPEG headers and library to be selected at configuration time.\n"
+      "start_line": 100,
+      "end_line": 113,
+      "raw": "The Elements tool projects the selected static vector layer's actual path\ngeometry. Quadratic and cubic extrema determine the local bounds; stroke\nexpansion is excluded. Width and height reflect the layer's transform and are\ncommitted with Enter. Resizing changes the selected layer transform around its\nexisting local origin, preserving the source asset and other layers. The\nproportions toggle is session state. Uncommitted input is discarded when the\nselection or document changes. A hidden panel does not recalculate bounds.\nLayer selection is associated with the document generation so that replacing\nan open document cannot temporarily expose a same-named old selection to the\nElements or Layers inspector.\nEmpty or degenerate paths, singular transforms, bitmap and motion-bearing\nlayers are unavailable. A vector path does not imply a stored rectangle,\nellipse or polygon type, so shape-specific parameters for existing artwork\nremain unavailable. Shape creation and transform handles are described below.\n"
     },
     {
       "id": "b000028",
       "kind": "blank",
-      "start_line": 109,
-      "end_line": 109,
+      "start_line": 114,
+      "end_line": 114,
       "raw": "\n"
     },
     {
       "id": "b000029",
       "kind": "paragraph",
-      "start_line": 110,
-      "end_line": 122,
-      "raw": "The native browser reads the Society-selected container directly, without a\ndaemon or inter-application messages. Validate the selected identity and\nmanifest before and after listing. A redirected root, unready replica, unsafe\nsection path, changed selection or incomplete search is an error, never an\nempty successful listing. Ordinary browsing reads one directory; searches are\nbounded, recursive, and return only actual local entries. Work runs on the\nruntime worker and only the newest section, directory and search request may\nupdate the owner-thread model. Opening a row delegates to the existing canvas\nfile model. The request queue accepts replaceable listing adapters for regular\nstorage, recent files and model metadata. It reads the shared selection file; a\nconflicting legacy\nenvironment root override is rejected, and shared-group bootstrap has not been ported. Remote-only\ncatalog entries and downloads remain separate work.\n"
+      "start_line": 115,
+      "end_line": 125,
+      "raw": "The Figma Elements Fill field reads the selected static vector asset's actual\nsolid colors. A common color is displayed as hexadecimal; differing colors\nare shown as mixed, and paths without a fill cannot be edited by this field.\nSubmitting an RGB value preserves each path's existing alpha; an explicit\nRGBA value changes alpha too. An invalid input or a changed selection cannot\nedit the document. A shared vector asset is copied before changing its fill,\nso other layers and mask references keep their original content. An exclusively\nreferenced asset is edited in place unless an immutable document snapshot is\nstill borrowed; repeating the same color does not change the revision. The\nchange marks the document dirty and updates the rendered frame. A color-picker popup\nand gradient or image fills are not yet connected.\n"
     },
     {
       "id": "b000030",
       "kind": "blank",
-      "start_line": 123,
-      "end_line": 123,
+      "start_line": 126,
+      "end_line": 126,
       "raw": "\n"
     },
     {
       "id": "b000031",
       "kind": "paragraph",
-      "start_line": 124,
-      "end_line": 162,
-      "raw": "The Generation History route maintains a review session separate from the\ncurrent in-memory generation session. When opened, it lists the selected\nSociety container's actual local history files on a worker and validates the\ncontainer identity before and after the listing. The initial order follows\nfilesystem modification time; later arrivals append to preserve review\npositions. Locally present images and videos are represented\nby their real paths; unavailable model, prompt, and generation details are\nnever inferred. Image previews use the asynchronous native image loader.\nVideos without a known preview remain without an image. Selecting, filtering,\nor reviewing an item only changes the history session, never its source file.\nWhen one locally available still image is focused or selected, the review\ngallery's existing Edit action imports it into an unsaved editor canvas.\nUnsupported files, video and multi-selection do not expose this action until\nthe corresponding editor import is available; no subset is silently edited.\nAn unsaved editor document is not replaced, and failed imports remain visible\nin the review status.\nAn unavailable or changing container reports an error instead of an empty\nsuccessful history. Refreshes preserve session selection for surviving file\nidentities, and stale or post-close worker completions are ignored. The current\nstorage scan is limited to 10,000 entries and reports an error if exceeded;\npagination and remote-only downloads are not connected.\nHome's recent-files projection scans the selected Society Files section on a\nworker, including nested files, and displays at most twenty of the most\nrecently modified local entries. Returning Home requests a fresh scan. It does\nnot follow links or modify originals. The displayed date comes from each\nfile's filesystem modification time in the local time zone.\nThe selected-file panel follows the actual selected entry and uses the native\npreview provider when supported. Locally available `.iisc` files and supported\nstill images open through the asynchronous canvas file service; other file types remain\nnon-openable until a matching editor import service is connected. An unavailable\nstore is distinguishable from an available, empty store.\nIf a selection notification causes another Home refresh or selection, the\nselected-file projection reconciles to the latest requested file after the\ncurrent notification completes.\nHome requests only the newest twenty history records on startup and displays\ntheir actual names and available previews. Opening a recent record goes to\nhistory with that record focused; reviewing a selection goes to history with\nthose records selected. The full history is requested only when its view is\nopened. An empty available store and an unavailable store have distinct states.\n"
+      "start_line": 127,
+      "end_line": 143,
+      "raw": "The Background Color view uses iiColorManager for its nine picker modes and\ncolor-space conversions. Picker edits are a session draft. Applying a solid,\nlinear or radial multi-stop fill prepares a new finite-canvas background on a\nworker, and commits it only if the same document revision is still current.\nThe background is the `canvas.background.layer` layer, never the selected\nartwork layer. Existing background layer properties and other shared assets\nare preserved. Opening a different document, an intervening edit, invalid\ncolors, unsupported artboards or an infinite canvas cannot commit a stale or\npartial background. The original file changes only through Save.\nThe picker provides its current mode's channel controls as well as RGB, HSB,\nLab and generic CMYK fields; alpha and opacity are separate multipliers.\nGradient stops, angle, interpolation, catalog swatches and presets are draft\nsettings. Recent colors are kept only for this app session after an apply.\nAn intervening document edit cancels worker-side pixel generation where\npossible. The panel labels these inputs as a new fill: an existing raster\nbackground has no stored editable gradient parameters, so the view does not\npretend its initial draft reproduces those parameters.\n"
     },
     {
       "id": "b000032",
       "kind": "blank",
-      "start_line": 163,
-      "end_line": 163,
+      "start_line": 144,
+      "end_line": 144,
       "raw": "\n"
     },
     {
       "id": "b000033",
-      "kind": "heading",
-      "start_line": 164,
-      "end_line": 164,
-      "raw": "## Layer inspector contract\n",
-      "level": 2,
-      "title": "Layer inspector contract"
+      "kind": "paragraph",
+      "start_line": 145,
+      "end_line": 155,
+      "raw": "Background Replace accepts a locally selected image or IISC file as a new\nbackground asset in the current IISC draft. An IISC source is rendered at its\nfirst frame; its layers and metadata are never copied into or edited by the\ndestination. Fill, Fit and Stretch describe the resulting image's placement on\nthe finite canvas. Decoding, source rendering and document preparation run on\na worker and commit only against the captured destination revision. Cancelled\nfile selection, a source that changes while being read, an intervening edit,\nan over-limit source and an unsupported canvas cannot partially change the\ndocument. Neither source nor destination file is written by Replace; the\ndestination file changes only on Save. Generative replacement, subject\nmatching and lighting remain unavailable until their providers are connected.\n"
     },
     {
       "id": "b000034",
       "kind": "blank",
-      "start_line": 165,
-      "end_line": 165,
+      "start_line": 156,
+      "end_line": 156,
       "raw": "\n"
     },
     {
       "id": "b000035",
       "kind": "paragraph",
-      "start_line": 166,
-      "end_line": 181,
-      "raw": "The Layers view projects the selected iiSharedCanvas layer, including its real\nkind, opacity and blend mode. Selection and an incomplete text edit are view\nstate: they cannot change the document. A valid opacity commit, slider move or\nblend selection edits only the selected layer through DocumentEditor, marks the\ndocument dirty, invalidates the frame renderer, and can be saved through the\nexisting canvas file model. Invalid percentages, unsupported blend modes and\ncommands without a selection leave the document untouched. Selecting another\nlayer discards an uncommitted opacity draft and displays that layer's values.\nThe opacity control and blend list use LVUI widgets and the panel's Figma\nreference; example layers in that reference are never used as document data.\nSelection notifications may cause a new selection; the layer list reconciles\nto the final selection without modifying the canvas or retaining stale rows.\nThe Information segment reads the selected layer's actual current-frame asset,\ndimensions and representation. Unknown color profile, bit depth or origin is\nshown as unavailable; seeking to a frame with another source updates the\ndisplay without modifying the document.\n"
+      "start_line": 157,
+      "end_line": 170,
+      "raw": "The Background tool's Mask view manages the selected artwork layer's IISC\nmask stack. A new raster identity mask contains one white pixel and white\noutside coverage, so adding it initially leaves the rendered layer unchanged\nwithout allocating a full-canvas bitmap. Users can select, duplicate, delete,\nenable, invert and combine stack entries and adjust their density and feather;\nthe stack can also be bypassed. A duplicate owns a separate asset. Removing\nan entry preserves its asset because it may still be referenced elsewhere.\nMask edits update the document only when explicitly invoked; row selection is\nsession state, and retired rows cannot act on a replacement document. The\niiSharedCanvas editor upgrades older in-memory format metadata when an\nappearance operation requires it. Existing legacy raster, vector and filter\nmasks are preserved and reported but are not editable in this panel. Lasso\nselection can add vector masks as described below. Painting into the identity\nmask and the ML Remove Background view remain unconnected.\n"
     },
     {
       "id": "b000036",
       "kind": "blank",
-      "start_line": 182,
-      "end_line": 182,
+      "start_line": 171,
+      "end_line": 171,
       "raw": "\n"
     },
     {
       "id": "b000037",
-      "kind": "heading",
-      "start_line": 183,
-      "end_line": 183,
-      "raw": "## Timeline projection contract\n",
-      "level": 2,
-      "title": "Timeline projection contract"
+      "kind": "paragraph",
+      "start_line": 172,
+      "end_line": 179,
+      "raw": "The layer Histogram view reads the actual displayed composite preview and\ncomputes RGB channel distributions and encoded-RGB luma statistics on a worker. The\nreadout is labeled as preview-sampled: it is not a claim about full-resolution\npixels. Fully transparent pixels are excluded; other pixels each contribute one\nsample regardless of alpha. RGB, red, green and blue are\nsession-only display choices. Requests coalesce to the newest rendered frame,\nand hiding the view or changing documents retires old results without editing\nthe canvas or blocking playback on the view thread.\n"
     },
     {
       "id": "b000038",
       "kind": "blank",
-      "start_line": 184,
-      "end_line": 184,
+      "start_line": 180,
+      "end_line": 180,
       "raw": "\n"
     },
     {
       "id": "b000039",
       "kind": "paragraph",
-      "start_line": 185,
-      "end_line": 192,
-      "raw": "The timeline's Figma `new-layer` action opens the LVUI creation menu. A user\nmay explicitly add a static or dynamic bitmap or vector layer, or an empty\naudio track, to the current document; opening the menu and navigating the view\nnever add tracks. An audio track is appended after visual layers and existing\naudio tracks, receives a unique document identity and a default name, and is\nsaved in the same `.iisc`. Creation marks the file dirty and refreshes the\ntimeline without invalidating an unchanged visual frame. A snapshot held by a\nworker remains unchanged. Audio tracks cannot yet be played or edited here.\n"
+      "start_line": 181,
+      "end_line": 194,
+      "raw": "The Audio Track panel selects actual IISC audio tracks by stable track ID.\nCreating a track, changing its mute or gain, and importing an audio clip are\ndocument edits; changing the selected track is session state. PCM16 WAV input\nis read and decoded on a worker from the explicitly selected local file. Its\nsource sample rate, channels and samples are preserved without implicit\nresampling. Import places the entire clip at the current playhead and extends\nthe document timeline if necessary. Since IISC clip durations use whole\ntimeline frames, the source is padded with at most one frame of silence to\nretain a sub-frame tail. An overlapping clip, changed source file,\ninvalid audio, a changed document revision or an unavailable file picker is\nreported without partially changing the canvas. The imported sound remains in\nthe unsaved document until Save. Timeline playback resamples its unmuted clips\nto the output format. Fades, pan, ducking and sync analysis remain separate\ncapabilities and are not provided by this panel.\n"
     },
     {
       "id": "b000040",
       "kind": "blank",
-      "start_line": 193,
-      "end_line": 193,
+      "start_line": 195,
+      "end_line": 195,
       "raw": "\n"
     },
     {
       "id": "b000041",
       "kind": "paragraph",
-      "start_line": 194,
-      "end_line": 210,
-      "raw": "The timeline projects real visual layers, source and motion keyframes within\nits visible bounds from the attached iiSharedCanvas document. Layer frame ranges\nare inclusive in the document and half-open in the renderer. An absent range\nspans the document duration. Scrubbing changes the playhead without changing the\ndocument revision or unsaved state; the preceding rendered frame stays visible\nuntil the next frame arrives. Bitmap and vector layers, including dynamic and\nanimated layers, can be moved or trimmed under the key-preservation rules above.\nDragging shows a temporary range and translated key markers; cancel discards it,\nand release commits through iiSharedCanvas. A document or selection change\nduring the gesture cancels it. Visible source and motion keys can likewise be\ndragged inside their layer's visible range: preview is transient, release moves\nonly that key, and a conflicting destination is rejected. Source frame zero is\nthe required ownership anchor and cannot be moved. Real audio tracks and clip\nranges are projected after visual layers, including empty authored tracks;\nthese rows are read-only and never fabricate audio ticks or sample data. Audio\nplayback, time-based tick rendering and audio/video clip editing are not yet\nconnected.\n"
+      "start_line": 196,
+      "end_line": 203,
+      "raw": "The Trim segment chooses an existing clip on the selected audio track. Its\nrange is entered in timeline seconds and is rounded to the nearest timeline\nframe. Applying a valid subrange adjusts the clip's start, duration, and source\nsample offset without modifying the audio asset. Sample offsets are rounded\ndown to the nearest source sample; the fractional difference is less than one\nsample. The operation cannot expand a clip, cross a neighboring clip, or commit\nafter the source document changes. The selected track and clip and an uncommitted\nrange remain view state. Waveform display and fades are not yet connected.\n"
     },
     {
       "id": "b000042",
       "kind": "blank",
-      "start_line": 211,
-      "end_line": 211,
+      "start_line": 204,
+      "end_line": 204,
       "raw": "\n"
     },
     {
       "id": "b000043",
-      "kind": "heading",
-      "start_line": 212,
-      "end_line": 212,
-      "raw": "## Canvas size contract\n",
-      "level": 2,
-      "title": "Canvas size contract"
+      "kind": "paragraph",
+      "start_line": 205,
+      "end_line": 215,
+      "raw": "The Elements shape choices select a session-only drawing tool. A drag is mapped\nfrom the displayed, aspect-fitted canvas preview to document coordinates and\nshows a temporary outline. Only release creates a new static vector layer;\ncanceling the gesture, changing the document or leaving the tool creates no\nlayer. Rectangle, ellipse, polygon and line/arrow use the existing Elements\ncatalog's initial shape, solid fill, stroke color and width, rectangle radius,\npolygon sides and star setting, and line end arrow. The vector renderer applies\na centered stroke; the former inside/outside and cap options are not yet\nrepresented. The created vector is selected and can be resized and recolored by\nthe existing inspector and transformed using the selection handles. Editing\nshape-specific parameters on an existing vector remains separate work.\n"
     },
     {
       "id": "b000044",
       "kind": "blank",
-      "start_line": 213,
-      "end_line": 213,
+      "start_line": 216,
+      "end_line": 216,
       "raw": "\n"
     },
     {
       "id": "b000045",
-      "kind": "paragraph",
-      "start_line": 214,
-      "end_line": 223,
-      "raw": "The native Canvas tool displays the open document's real pixel extent. Width\nand height are drafts until submitted; accepting them resizes a finite root\ncanvas around its center without modifying source pixels. Layer motion follows\nthe shifted base transform, and unlinked masks shift in canvas space while\nlinked masks remain layer-local. The first operation supports finite documents\nwithout artboards or Dissolve blending; unsupported canvas\nstructures are rejected without changing the document. The current native\ndocument does not expose persistent print resolution or resampling here, so\nthose controls must not pretend to save either property. A resize commits one\nvisual document revision and uses the existing file-save path.\n"
+      "kind": "heading",
+      "start_line": 217,
+      "end_line": 217,
+      "raw": "## Society storage provider contract\n",
+      "level": 2,
+      "title": "Society storage provider contract"
     },
     {
       "id": "b000046",
       "kind": "blank",
-      "start_line": 224,
-      "end_line": 224,
+      "start_line": 218,
+      "end_line": 218,
       "raw": "\n"
     },
     {
       "id": "b000047",
       "kind": "paragraph",
-      "start_line": 225,
-      "end_line": 229,
-      "raw": "The Mirror segment reflects layer transforms horizontally or vertically within\nthe finite canvas and applies the same reflection to unlinked masks; linked\nmasks and motion stay in their local coordinates. It retains the source pixels.\nThe view-only mirror and text-preservation options remain unavailable until\ntheir respective native view and text semantics are connected.\n"
+      "start_line": 219,
+      "end_line": 227,
+      "raw": "Local PNG, JPEG, BMP, WebP, TIFF and TGA files selected through Home,\nFiles or the native Open dialog are decoded with iiVisualCodec on the file\nworker into an unsaved iiSharedCanvas bitmap canvas. The codec applies its\norientation and working-color conversion. The still layer spans one second at the document's\ndefault frame rate. Opening an image never changes or associates the source as\nan `.iisc` working file: Save requires a new `.iisc` path, and the source is\nchecked for replacement while decoding. Animated or layered formats are not\nadvertised as flattened image imports. Existing unsaved canvases remain\nprotected and stale asynchronous completions cannot replace a newer document.\n"
     },
     {
       "id": "b000048",
       "kind": "blank",
-      "start_line": 230,
-      "end_line": 230,
+      "start_line": 228,
+      "end_line": 228,
       "raw": "\n"
     },
     {
       "id": "b000049",
       "kind": "paragraph",
-      "start_line": 231,
+      "start_line": 229,
       "end_line": 234,
-      "raw": "The Rotate segment applies quarter-turn presets plus a bounded custom angle to\nthe actual finite canvas, expands its bounds, and transforms layers and unlinked\nmasks without rewriting pixel assets. The layer-preserving mode is required;\nartboards and Dissolve remain unavailable under the same constraints as resize.\n"
+      "raw": "Image import depends on the JPEG ABI used when the installed iiVisualCodec\narchive was built. The codec package must select a matching libjpeg; linking\nABI 80 to a codec built with ABI 62 fails at runtime even if the app links.\nThe file-model contract exercises JPEG and the other advertised image formats.\nOlder installed codec packages may not advertise their JPEG ABI and require\nthe matching JPEG headers and library to be selected at configuration time.\n"
     },
     {
       "id": "b000050",
@@ -388,280 +382,580 @@
     },
     {
       "id": "b000051",
-      "kind": "heading",
+      "kind": "paragraph",
       "start_line": 236,
-      "end_line": 236,
-      "raw": "## Publishing review settings\n",
-      "level": 2,
-      "title": "Publishing review settings"
+      "end_line": 248,
+      "raw": "The native browser reads the Society-selected container directly, without a\ndaemon or inter-application messages. Validate the selected identity and\nmanifest before and after listing. A redirected root, unready replica, unsafe\nsection path, changed selection or incomplete search is an error, never an\nempty successful listing. Ordinary browsing reads one directory; searches are\nbounded, recursive, and return only actual local entries. Work runs on the\nruntime worker and only the newest section, directory and search request may\nupdate the owner-thread model. Opening a row delegates to the existing canvas\nfile model. The request queue accepts replaceable listing adapters for regular\nstorage, recent files and model metadata. It reads the shared selection file; a\nconflicting legacy\nenvironment root override is rejected, and shared-group bootstrap has not been ported. Remote-only\ncatalog entries and downloads remain separate work.\n"
     },
     {
       "id": "b000052",
       "kind": "blank",
-      "start_line": 237,
-      "end_line": 237,
+      "start_line": 249,
+      "end_line": 249,
       "raw": "\n"
     },
     {
       "id": "b000053",
       "kind": "paragraph",
-      "start_line": 238,
-      "end_line": 261,
-      "raw": "The native Thread switch reads and writes the existing common\n`publish.destination.<platform>.sequence` IISC setting, using the legacy\n`Thread` and `Separate posts` values. Missing settings retain the provider's\nautomatic policy; opening a target does not write to the document. Metadata\nedits update the in-memory publication plan without discarding prepared media;\na visual edit or document replacement invalidates that media. Unknown settings\nand other platforms' settings are preserved. A plan is not an account connection\nor an upload, and publication remains unavailable until those services exist.\nThe existing Save draft action delegates to the same canvas file service as\nthe editor. It is available only for an unsaved document when that service can\nsave its working `.iisc` or offer Save As. Publication metadata and the canvas\nare committed together; choosing Save draft never sends a social post.\nEach destination checkbox independently reads and writes the typed boolean\n`publish.destination.<platform>.selected` in the same `.iisc` metadata. An\nabsent setting is unselected; an unrecognized value is reported without\nbeing coerced. Opening a destination review changes only the active panel and\ndoes not silently select or deselect it. A destination selection does not\nimply an account connection or enable an upload.\nThe plan also reads the existing per-target sequence, attachment grouping,\ncaption, numbering, repeated-introduction and text-splitting settings. Shared\ntitle, description, credits, mentions, tags, link, visibility and content flags\nfeed the plan, with supported destination overrides taking precedence. Unknown\nor incorrectly typed saved review options are reported rather than silently\nused as defaults.\n"
+      "start_line": 250,
+      "end_line": 278,
+      "raw": "The Generation History route maintains a review session separate from the\ncurrent in-memory generation session. When opened, it lists the selected\nSociety container's actual local history files on a worker and validates the\ncontainer identity before and after the listing. The initial order follows\nfilesystem modification time; later arrivals append to preserve review\npositions. Locally present images and videos are represented\nby their real paths; unavailable model, prompt, and generation details are\nnever inferred. Image previews use the asynchronous native image loader.\nVideos without a known preview remain without an image. Selecting, filtering,\nor reviewing an item only changes the history session, never its source file.\nWhen one locally available still image is focused or selected, the review\ngallery's existing Edit action imports it into an unsaved editor canvas.\nUnsupported files, video and multi-selection do not expose this action until\nthe corresponding editor import is available; no subset is silently edited.\nAn unsaved editor document is not replaced, and failed imports remain visible\nin the review status.\nThe review context menu can save one locally available original to a new file.\nThe native picker captures the menu's original target before focus can change;\ncanceling it changes nothing. The file worker captures a stable source snapshot\nand exclusively publishes it at the chosen path without transcoding or\noverwriting another file. The destination must retain the original extension.\nUnavailable sources, stale revisions, an already existing destination and\nworker failures are reported in the review status. Remote-only results and\nbatch export are not presented as supported by this single-file action.\nAn unavailable or changing container reports an error instead of an empty\nsuccessful history. Refreshes preserve session selection for surviving file\nidentities, and stale or post-close worker completions are ignored. The current\nstorage scan is limited to 10,000 entries and reports an error if exceeded;\npagination and remote-only downloads are not connected.\n"
     },
     {
       "id": "b000054",
       "kind": "blank",
-      "start_line": 262,
-      "end_line": 262,
+      "start_line": 279,
+      "end_line": 279,
       "raw": "\n"
     },
     {
       "id": "b000055",
-      "kind": "heading",
-      "start_line": 263,
-      "end_line": 263,
-      "raw": "## Generation preference provider contract\n",
-      "level": 2,
-      "title": "Generation preference provider contract"
+      "kind": "paragraph",
+      "start_line": 280,
+      "end_line": 304,
+      "raw": "The review workspace compares two to four selected still-image results in a\nretained overlay, leaving the gallery's selection, focus and scroll state in\nplace. Pan, zoom, fit and 100% operate on supplied preview pixels only; the\nview never changes the originals. Synchronized comparison uses one pixel scale\nand shared relative center, while unsynchronized panes can be adjusted\nindependently. An unavailable preview is reported per pane, and late image\nresults from a closed or replaced comparison are ignored.\nHome's recent-files projection scans the selected Society Files section on a\nworker, including nested files, and displays at most twenty of the most\nrecently modified local entries. Returning Home requests a fresh scan. It does\nnot follow links or modify originals. The displayed date comes from each\nfile's filesystem modification time in the local time zone.\nThe selected-file panel follows the actual selected entry and uses the native\npreview provider when supported. Locally available `.iisc` files and supported\nstill images open through the asynchronous canvas file service; other file types remain\nnon-openable until a matching editor import service is connected. An unavailable\nstore is distinguishable from an available, empty store.\nIf a selection notification causes another Home refresh or selection, the\nselected-file projection reconciles to the latest requested file after the\ncurrent notification completes.\nHome requests only the newest twenty history records on startup and displays\ntheir actual names and available previews. Opening a recent record goes to\nhistory with that record focused; reviewing a selection goes to history with\nthose records selected. The full history is requested only when its view is\nopened. An empty available store and an unavailable store have distinct states.\n"
     },
     {
       "id": "b000056",
-      "kind": "blank",
-      "start_line": 264,
-      "end_line": 264,
-      "raw": "\n"
-    },
-    {
-      "id": "b000057",
-      "kind": "paragraph",
-      "start_line": 265,
-      "end_line": 267,
-      "raw": "The About category displays the current CMake project version as read-only\napplication information. It is generated from the build configuration rather\nthan copied into a product-specific style or preference value.\n"
-    },
-    {
-      "id": "b000058",
-      "kind": "blank",
-      "start_line": 268,
-      "end_line": 268,
-      "raw": "\n"
-    },
-    {
-      "id": "b000059",
-      "kind": "paragraph",
-      "start_line": 269,
-      "end_line": 284,
-      "raw": "The Image, Video, Audio and Agents preferences project the existing native\n`generation-models.conf` values. The file is read and saved on a dedicated\nworker, using the existing UTF-8 quoted format, including legacy Windows CRLF\nfiles. Edits are serialized and coalesced; a failed write remains an unsaved\ndraft and reports the error. The provider preserves other categories and\nrefuses to overwrite a detected external file change. Reloading intentionally\ndiscards the unsaved settings draft; the model exposes that operation, while\nthe current view instructs the user to restart after a conflict. Image and\nVideo default-model selectors use the same Society catalogue as generation,\nrespect each model's eligible media types, and allow clearing the default.\nAn unavailable saved identifier is displayed without replacing it; the selector\nis disabled while the catalogue is unavailable. A successful selection is\nsaved through the same worker and updates non-overridden session defaults.\nA malformed file is never silently replaced. Accepted pending writes\nare drained on shutdown independently of canvas and storage work. An edit that\nwould exceed the format's one-megabyte read limit is rejected before writing.\n"
-    },
-    {
-      "id": "b000060",
-      "kind": "blank",
-      "start_line": 285,
-      "end_line": 285,
-      "raw": "\n"
-    },
-    {
-      "id": "b000061",
-      "kind": "paragraph",
-      "start_line": 286,
-      "end_line": 300,
-      "raw": "The Home and advanced generation selectors share one model-catalogue\nprojection. Image and Video retain separate selected model identities; a\nstored default is adopted only when it is present and eligible. Switching a\nselection changes the draft only and never begins inference. A missing catalogue\nkeeps model selection and generation unavailable. If catalogue publication is\nrejected during another snapshot notification, both the internal catalogue and\nits selections retain the last accepted state.\nThe catalogue is read from the Society Models section on a worker. It uses\niiLocalDiffusion's bounded model-metadata inspection and honors stored modality\noverrides; local Diffusers packages are listed once instead of listing their\ninternal weight files separately, and the Society VAE category is excluded from\nthe main model selector. Entries with no recognized modality retain the\nexisting image fallback. Classification is not a guarantee that an engine can\nload a model. Remote-only models and actual inference are not connected to this\ncatalogue.\n"
-    },
-    {
-      "id": "b000062",
-      "kind": "blank",
-      "start_line": 301,
-      "end_line": 301,
-      "raw": "\n"
-    },
-    {
-      "id": "b000063",
-      "kind": "paragraph",
-      "start_line": 302,
-      "end_line": 304,
-      "raw": "Preference field callbacks belong to the currently displayed projection. A\nretired field from an earlier category, provider snapshot or model-choice list\nmust not write a setting after the view has been rebuilt.\n"
-    },
-    {
-      "id": "b000064",
       "kind": "blank",
       "start_line": 305,
       "end_line": 305,
       "raw": "\n"
     },
     {
-      "id": "b000065",
-      "kind": "paragraph",
+      "id": "b000057",
+      "kind": "heading",
       "start_line": 306,
-      "end_line": 309,
-      "raw": "Once values have been read or saved, the existing Home generation draft\nreceives the image and video prompt defaults. Switching media adopts the matching\ndefault only while that input still contains the previous default; a prompt the\nuser has edited stays unchanged. This does not connect the inference engine.\n"
+      "end_line": 306,
+      "raw": "## Layer inspector contract\n",
+      "level": 2,
+      "title": "Layer inspector contract"
     },
     {
-      "id": "b000066",
+      "id": "b000058",
       "kind": "blank",
-      "start_line": 310,
-      "end_line": 310,
+      "start_line": 307,
+      "end_line": 307,
       "raw": "\n"
     },
     {
-      "id": "b000067",
+      "id": "b000059",
       "kind": "paragraph",
-      "start_line": 311,
-      "end_line": 315,
-      "raw": "The editor, file browser, publishing and preferences routes use owner-thread\nnative C++ presentation models and LVUI controls. File and frame work is\ndispatched to a bounded native runtime; service failures are shown explicitly.\nThe models do not create placeholder files, simulate uploads or present\nunknown metadata as fact.\n"
+      "start_line": 308,
+      "end_line": 323,
+      "raw": "The Layers view projects the selected iiSharedCanvas layer, including its real\nkind, opacity and blend mode. Selection and an incomplete text edit are view\nstate: they cannot change the document. A valid opacity commit, slider move or\nblend selection edits only the selected layer through DocumentEditor, marks the\ndocument dirty, invalidates the frame renderer, and can be saved through the\nexisting canvas file model. Invalid percentages, unsupported blend modes and\ncommands without a selection leave the document untouched. Selecting another\nlayer discards an uncommitted opacity draft and displays that layer's values.\nThe opacity control and blend list use LVUI widgets and the panel's Figma\nreference; example layers in that reference are never used as document data.\nSelection notifications may cause a new selection; the layer list reconciles\nto the final selection without modifying the canvas or retaining stale rows.\nThe Information segment reads the selected layer's actual current-frame asset,\ndimensions and representation. Unknown color profile, bit depth or origin is\nshown as unavailable; seeking to a frame with another source updates the\ndisplay without modifying the document.\n"
     },
     {
-      "id": "b000068",
+      "id": "b000060",
       "kind": "blank",
-      "start_line": 316,
-      "end_line": 316,
-      "raw": "\n"
-    },
-    {
-      "id": "b000069",
-      "kind": "paragraph",
-      "start_line": 317,
+      "start_line": 324,
       "end_line": 324,
-      "raw": "The editor and publishing views share an iiSharedCanvas document session.\nAttaching a document validates a detached `.iisc` snapshot. Selection, timeline\nseek, active panel and view options are transient presentation state and do not\nwrite or change the document. An explicit layer or publication metadata edit\nupdates the in-memory document through iiSharedCanvas and marks it unsaved;\nit does not silently write the source file. Rejected edits preserve the last\naccepted state. Publishing retains unknown shared metadata and does not upload\nwithout an attached publishing and account service.\n"
+      "raw": "\n"
     },
     {
-      "id": "b000070",
-      "kind": "blank",
+      "id": "b000061",
+      "kind": "heading",
       "start_line": 325,
       "end_line": 325,
-      "raw": "\n"
+      "raw": "## Timeline projection contract\n",
+      "level": 2,
+      "title": "Timeline projection contract"
     },
     {
-      "id": "b000071",
-      "kind": "paragraph",
-      "start_line": 326,
-      "end_line": 330,
-      "raw": "The editor's File tool has Information, Contents and Storage views backed by\nthe existing file-panel schema and active document/file session. The complete\nschema is visible; fields not supplied by the current native providers remain\nexplicitly unavailable. See [NativeFileInspector.md](NativeFileInspector.md)\nfor the current projection and repeated-record limit.\n"
-    },
-    {
-      "id": "b000072",
+      "id": "b000062",
       "kind": "blank",
-      "start_line": 331,
-      "end_line": 331,
+      "start_line": 326,
+      "end_line": 326,
       "raw": "\n"
     },
     {
-      "id": "b000073",
+      "id": "b000063",
       "kind": "paragraph",
-      "start_line": 332,
+      "start_line": 327,
       "end_line": 336,
-      "raw": "Canvas rendering observes a separate visual revision. Publication title and\ndescription edits still mark the document dirty and increment its document\nrevision, but do not enqueue a new frame render. Attaching a document and\nchanging layer appearance, visibility, range or structure do advance the\nvisual revision; seeking a frame remains transient presentation state.\n"
+      "raw": "The timeline's Figma `new-layer` action opens the LVUI creation menu. A user\nmay explicitly add a static or dynamic bitmap or vector layer, or an empty\naudio track, to the current document; opening the menu and navigating the view\nnever add tracks. An audio track is appended after visual layers and existing\naudio tracks, receives a unique document identity and a default name, and is\nsaved in the same `.iisc`. Creation marks the file dirty and refreshes the\ntimeline without invalidating an unchanged visual frame. A snapshot held by a\nworker remains unchanged. The timeline plays audio clips with the visual\nplayhead and allows moving or trimming a clip on its existing track. The Audio\nTrack panel provides import, trim, mute and gain editing.\n"
     },
     {
-      "id": "b000074",
+      "id": "b000064",
       "kind": "blank",
       "start_line": 337,
       "end_line": 337,
       "raw": "\n"
     },
     {
-      "id": "b000075",
+      "id": "b000065",
       "kind": "paragraph",
       "start_line": 338,
-      "end_line": 343,
-      "raw": "Render and I/O workers borrow an immutable, shared document snapshot. Frame\nseeks and repeated reads do not copy raster data. Single-operation edits detach\nwhen a worker still holds the preceding snapshot; multi-object structural edits\nprepare a separate document candidate so they can be committed atomically.\nPreparing those candidates can copy large assets on the owner thread. A separate\ndocument generation distinguishes switching files from editing one document.\n"
+      "end_line": 357,
+      "raw": "The timeline projects real visual layers, source and motion keyframes within\nits visible bounds from the attached iiSharedCanvas document. Layer frame ranges\nare inclusive in the document and half-open in the renderer. An absent range\nspans the document duration. Scrubbing changes the playhead without changing the\ndocument revision or unsaved state; the preceding rendered frame stays visible\nuntil the next frame arrives. Bitmap and vector layers, including dynamic and\nanimated layers, can be moved or trimmed under the key-preservation rules above.\nDragging shows a temporary range and translated key markers; cancel discards it,\nand release commits through iiSharedCanvas. A document or selection change\nduring the gesture cancels it. Visible source and motion keys can likewise be\ndragged inside their layer's visible range: preview is transient, release moves\nonly that key, and a conflicting destination is rejected. Source frame zero is\nthe required ownership anchor and cannot be moved. Real audio tracks and clip\nranges are projected after visual layers, including empty authored tracks.\nAudio dragging displays a transient preview, is bounded by the adjacent clips\nand timeline, and queues a document edit only on release. Trimming cannot\nextend the source; its start adjusts the source sample offset. The worker\npreserves the immutable snapshot and rejects an edit if the document changes\nbefore it commits. The same controls work when the Audio Track panel is hidden.\nTime-based tick rendering and direct video clip editing are not yet connected.\n"
+    },
+    {
+      "id": "b000066",
+      "kind": "blank",
+      "start_line": 358,
+      "end_line": 358,
+      "raw": "\n"
+    },
+    {
+      "id": "b000067",
+      "kind": "heading",
+      "start_line": 359,
+      "end_line": 359,
+      "raw": "## Canvas size contract\n",
+      "level": 2,
+      "title": "Canvas size contract"
+    },
+    {
+      "id": "b000068",
+      "kind": "blank",
+      "start_line": 360,
+      "end_line": 360,
+      "raw": "\n"
+    },
+    {
+      "id": "b000069",
+      "kind": "paragraph",
+      "start_line": 361,
+      "end_line": 370,
+      "raw": "The native Canvas tool displays the open document's real pixel extent. Width\nand height are drafts until submitted; accepting them resizes a finite root\ncanvas around its center without modifying source pixels. Layer motion follows\nthe shifted base transform, and unlinked masks shift in canvas space while\nlinked masks remain layer-local. The first operation supports finite documents\nwithout artboards or Dissolve blending; unsupported canvas\nstructures are rejected without changing the document. The current native\ndocument does not expose persistent print resolution or resampling here, so\nthose controls must not pretend to save either property. A resize commits one\nvisual document revision and uses the existing file-save path.\n"
+    },
+    {
+      "id": "b000070",
+      "kind": "blank",
+      "start_line": 371,
+      "end_line": 371,
+      "raw": "\n"
+    },
+    {
+      "id": "b000071",
+      "kind": "paragraph",
+      "start_line": 372,
+      "end_line": 376,
+      "raw": "The Mirror segment reflects layer transforms horizontally or vertically within\nthe finite canvas and applies the same reflection to unlinked masks; linked\nmasks and motion stay in their local coordinates. It retains the source pixels.\nThe view-only mirror and text-preservation options remain unavailable until\ntheir respective native view and text semantics are connected.\n"
+    },
+    {
+      "id": "b000072",
+      "kind": "blank",
+      "start_line": 377,
+      "end_line": 377,
+      "raw": "\n"
+    },
+    {
+      "id": "b000073",
+      "kind": "paragraph",
+      "start_line": 378,
+      "end_line": 381,
+      "raw": "The Rotate segment applies quarter-turn presets plus a bounded custom angle to\nthe actual finite canvas, expands its bounds, and transforms layers and unlinked\nmasks without rewriting pixel assets. The layer-preserving mode is required;\nartboards and Dissolve remain unavailable under the same constraints as resize.\n"
+    },
+    {
+      "id": "b000074",
+      "kind": "blank",
+      "start_line": 382,
+      "end_line": 382,
+      "raw": "\n"
+    },
+    {
+      "id": "b000075",
+      "kind": "heading",
+      "start_line": 383,
+      "end_line": 383,
+      "raw": "## Publishing review settings\n",
+      "level": 2,
+      "title": "Publishing review settings"
     },
     {
       "id": "b000076",
       "kind": "blank",
-      "start_line": 344,
-      "end_line": 344,
+      "start_line": 384,
+      "end_line": 384,
       "raw": "\n"
     },
     {
       "id": "b000077",
       "kind": "paragraph",
-      "start_line": 345,
-      "end_line": 349,
-      "raw": "The editor frame presenter uses iiSharedCanvas' latest-request-wins render\nqueue. Render work is dispatched off the view thread, and completed pixels\nreach the LVUI image on the owner event loop. While another frame of the same\ndocument is rendering, the last completed image remains visible; changing\ndocuments clears it immediately. Stale render completions are discarded.\n"
+      "start_line": 385,
+      "end_line": 395,
+      "raw": "The native publishing action accepts user OAuth grants supplied for the\ncurrent process and sends each checked destination's independently prepared\nplan through iiSocialIntegration on a worker. Grants remain session-only and\nare never placed in the IISC document, view properties or result messages.\nBefore sending any destination, validate every selected plan and grant; then\nretain each destination's individual outcome, including partial or unknown\nresults, without automatically retrying. Retain the staged media for the\nduration of the worker request even if the document or visible view changes.\nThe Publish button is enabled only when media and grants for all selected\nsupported destinations are available. No network request occurs until the\nuser invokes Publish.\n"
     },
     {
       "id": "b000078",
       "kind": "blank",
-      "start_line": 350,
-      "end_line": 350,
+      "start_line": 396,
+      "end_line": 396,
       "raw": "\n"
     },
     {
       "id": "b000079",
       "kind": "paragraph",
-      "start_line": 351,
-      "end_line": 366,
-      "raw": "The editor view derives canvas size, frame range and layer identities from the\nattached document, never the example imagery or tracks in Figma. Timeline\nplayback uses the document's rational frame rate and a monotonic clock; late\nticks skip to the current frame instead of queuing stale frames. Playback ends\non the last frame, pauses on a manual seek, document switch or editor exit, and\ndoes not modify the document. Rendering retains the preceding completed image\nwhile the newest frame is being prepared. Audio playback and the remaining\nediting tools are not yet connected. The publishing route derives its platform list and\nreview limits from iiSocialIntegration; its plan can split a supplied source,\nand a document revision invalidates prepared media. The plan does not grant\naccount access or perform an upload. Its canvas preview uses a separate,\nviewport-sized asynchronous iiSharedCanvas frame presenter for the active\ndocument and frame. The presenter is active only while the publishing route is\nvisible, retains the last completed frame during a render, and is canceled when\nthe user leaves. This is a canvas preview, not a claim that every artboard or\nplatform-specific post has been prepared for upload.\n"
+      "start_line": 397,
+      "end_line": 408,
+      "raw": "The current native host can receive an already-authorized user grant through\nprocess environment variables. For each platform use the uppercase platform ID\nin `DREAMSCAPES_PUBLISH_<ID>_ACCESS_TOKEN` and provide its actual granted scopes\nin `DREAMSCAPES_PUBLISH_<ID>_SCOPES` (space or comma separated). Optional\n`TARGET_ID`, `INSTANCE_URL`, `API_VERSION`, `ALLOW_BILLABLE` and\n`ALLOW_THREAD_REPLIES` values use the same prefix. X billable access and thread\nreply entitlement are enabled only by an explicit `1`, `true` or `yes` value.\nThe host consumes and removes the access-token variables before creating its\nworkers. The provider validates scopes and destination requirements at\nsubmission. This interface does not acquire, refresh or persist OAuth grants;\ninteractive account linking remains unconnected. Providers requiring publicly\nreachable media cannot use the current local PNG staging by itself.\n"
     },
     {
       "id": "b000080",
       "kind": "blank",
-      "start_line": 367,
-      "end_line": 367,
+      "start_line": 409,
+      "end_line": 409,
       "raw": "\n"
     },
     {
       "id": "b000081",
       "kind": "paragraph",
-      "start_line": 368,
-      "end_line": 384,
-      "raw": "The file browser reads locally resident entries from the selected Society\ncontainer on demand. Filtering, selection and navigation do not mutate\nstorage. Locally available `.iisc` and supported still-image rows can be opened in the editor; unsupported\nrows do not enable Open. Selecting a row updates its selection state without\nrecreating the current listing. The Storage preference exposes the verified\nselected path read-only. Generation prompt and Image/Video default model values\nare backed by the existing preferences file; other settings still need providers. The\naccount service and publishing transport are also unconnected;\nno upload is represented as successful. Remote-only catalog entries and their\ndownloads are not yet represented by the native browser.\nHome's file and generation-history View all actions navigate to their\nrespective routes. Recent-file and generation-history feeds read locally present\nSociety files on workers and do not represent remote-only entries.\nThe review gallery receives the application's asynchronous native file-image\nresolver, so a supplied local result can display its preview without reading\nor decoding it on the view thread. A missing history provider remains an\nunavailable feed; attaching the resolver alone does not populate results.\n"
+      "start_line": 410,
+      "end_line": 426,
+      "raw": "While the publishing view is visible, the current IISC frame is prepared as\ntemporary PNG media on a worker for the platform review plan. Publication\nmetadata orders canvases and supplies their captions and alternative text;\nwhen no explicit canvas list exists, its visible artboards or its root\ncanvas are used in document order. The staging files are temporary provider\ninputs: the IISC document and its shared metadata remain the source of truth.\nThe current frame is a still image, not a video export. Document replacement,\nvisual edits, frame changes, a changed canvas list or hiding the view retire\nthe prepared result. Older worker completions cannot replace newer state.\nChanging titles or platform options does not rerender pixels. Preparation\ndoes not authenticate or send any network request, and an unavailable\nrenderer, invalid canvas reference or exceeded limit is reported explicitly.\nEach image is checked against the codec's dimension and pixel-byte limits\nbefore rendering; configurable canvas-count, combined-pixel and encoded-byte\nlimits bound a preparation batch. Retiring the final lease removes its private\nstaging directory. Switching or detaching the media model during an observable\nupdate leaves the latest view state authoritative.\n"
     },
     {
       "id": "b000082",
       "kind": "blank",
-      "start_line": 385,
-      "end_line": 385,
+      "start_line": 427,
+      "end_line": 427,
       "raw": "\n"
     },
     {
       "id": "b000083",
       "kind": "paragraph",
-      "start_line": 386,
-      "end_line": 397,
-      "raw": "Canvas file access uses iiSharedCanvas native working-file transactions and\niiFileProvider source identity. Reads preserve both native snapshots and\nworking files. Saving an existing working file rejects a changed identity or\nrevision; creating a destination is exclusive and never overwrites another\nfile. Legacy packed snapshots remain unchanged and require a new destination.\nAll file access is a worker-thread responsibility.\nThe file view model serializes open and save requests, then delivers their\nresults to the owner event loop. An edit made while a save is in flight stays\ndirty. A document replaced during a request must never receive that request's\nresult or file association. The application's native file dialog and editor\nOpen, Save and Save As actions use this model. The selected Society directory\ncan use the same open path. Unsaved work cannot be silently replaced.\n"
+      "start_line": 428,
+      "end_line": 465,
+      "raw": "The native Thread switch reads and writes the existing common\n`publish.destination.<platform>.sequence` IISC setting, using the legacy\n`Thread` and `Separate posts` values. Missing settings retain the provider's\nautomatic policy; opening a target does not write to the document. Metadata\nedits update the in-memory publication plan without discarding prepared media;\na visual edit, frame change or document replacement invalidates that media. Unknown settings\nand other platforms' settings are preserved. A plan is not an account connection\nor an upload; transmission requires a configured grant and an explicit Publish action.\nThe existing Save draft action delegates to the same canvas file service as\nthe editor. It is available only for an unsaved document when that service can\nsave its working `.iisc` or offer Save As. Publication metadata and the canvas\nare committed together; choosing Save draft never sends a social post.\nEach destination checkbox independently reads and writes the typed boolean\n`publish.destination.<platform>.selected` in the same `.iisc` metadata. An\nabsent setting is unselected; an unrecognized value is reported without\nbeing coerced. Opening a destination review changes only the active panel and\ndoes not silently select or deselect it. A destination selection does not\nimply an account connection or enable an upload.\nThe plan also reads the existing per-target sequence, attachment grouping,\ncaption, numbering, repeated-introduction and text-splitting settings. Shared\ntitle, description, credits, mentions, tags, link, visibility and content flags\nfeed the plan, with supported destination overrides taking precedence. Unknown\nor incorrectly typed saved review options are reported rather than silently\nused as defaults.\nThe destination review fields use the actual document's shared title,\ndescription, tags and link as inherited values and expose explicit per-target\noverrides. Sequence, attachment grouping and the caption, numbering,\nintroduction and text-splitting options are written in their existing typed\nIISC settings. Reset removes only the selected override and restores the\ninherited or automatic value. Opening or changing a target is view state;\nretired field callbacks cannot edit a different target or replacement document.\nThe available fields also follow the destination: X and Threads expose their\nreply rules, X exposes AI disclosure, Mastodon exposes sensitivity, content\nwarning and language, Pinterest exposes its video cover URL, and YouTube\nexposes video category, audience, synthetic-media and notification settings.\nThey affect the local plan only; credentials and account configuration are\nnot stored in the canvas.\nThese controls prepare a plan only and cannot connect an account or publish.\n"
     },
     {
       "id": "b000084",
       "kind": "blank",
-      "start_line": 398,
-      "end_line": 398,
+      "start_line": 466,
+      "end_line": 466,
       "raw": "\n"
     },
     {
       "id": "b000085",
-      "kind": "paragraph",
-      "start_line": 399,
-      "end_line": 404,
-      "raw": "The New Canvas route uses the existing canvas preset catalogue and validation\nrules to create an unsaved in-memory iiSharedCanvas document. Creation must not\noverwrite another unsaved document or write a file. Unit conversion and\nbackground selection operate on the draft.\nThe catalogue is loaded on entry to New Canvas rather than at application\nstartup; changing a dimension does not rebuild an unchanged preset list.\n"
+      "kind": "heading",
+      "start_line": 467,
+      "end_line": 467,
+      "raw": "## Generation preference provider contract\n",
+      "level": 2,
+      "title": "Generation preference provider contract"
     },
     {
       "id": "b000086",
       "kind": "blank",
-      "start_line": 405,
-      "end_line": 405,
+      "start_line": 468,
+      "end_line": 468,
       "raw": "\n"
     },
     {
       "id": "b000087",
       "kind": "paragraph",
-      "start_line": 406,
-      "end_line": 409,
-      "raw": "The visual references are Dreamscapes editor `353:22614`, tool panel\n`353:22022`, publishing `1267:4554`, and preferences `353:5587`. The file's\n`Storage (Society mirror)` page had no frames when inspected; the existing\nproduct file-browser contract is the available reference for that route.\n"
+      "start_line": 469,
+      "end_line": 471,
+      "raw": "The About category displays the current CMake project version as read-only\napplication information. It is generated from the build configuration rather\nthan copied into a product-specific style or preference value.\n"
     },
     {
       "id": "b000088",
       "kind": "blank",
-      "start_line": 410,
-      "end_line": 410,
+      "start_line": 472,
+      "end_line": 472,
       "raw": "\n"
     },
     {
       "id": "b000089",
       "kind": "paragraph",
-      "start_line": 411,
-      "end_line": 414,
+      "start_line": 473,
+      "end_line": 488,
+      "raw": "The Image, Video, Audio and Agents preferences project the existing native\n`generation-models.conf` values. The file is read and saved on a dedicated\nworker, using the existing UTF-8 quoted format, including legacy Windows CRLF\nfiles. Edits are serialized and coalesced; a failed write remains an unsaved\ndraft and reports the error. The provider preserves other categories and\nrefuses to overwrite a detected external file change. Reloading intentionally\ndiscards the unsaved settings draft; the model exposes that operation, while\nthe current view instructs the user to restart after a conflict. Image and\nVideo default-model selectors use the same Society catalogue as generation,\nrespect each model's eligible media types, and allow clearing the default.\nAn unavailable saved identifier is displayed without replacing it; the selector\nis disabled while the catalogue is unavailable. A successful selection is\nsaved through the same worker and updates non-overridden session defaults.\nA malformed file is never silently replaced. Accepted pending writes\nare drained on shutdown independently of canvas and storage work. An edit that\nwould exceed the format's one-megabyte read limit is rejected before writing.\n"
+    },
+    {
+      "id": "b000090",
+      "kind": "blank",
+      "start_line": 489,
+      "end_line": 489,
+      "raw": "\n"
+    },
+    {
+      "id": "b000091",
+      "kind": "paragraph",
+      "start_line": 490,
+      "end_line": 504,
+      "raw": "The Home and advanced generation selectors share one model-catalogue\nprojection. Image and Video retain separate selected model identities; a\nstored default is adopted only when it is present and eligible. Switching a\nselection changes the draft only and never begins inference. A missing catalogue\nkeeps model selection and generation unavailable. If catalogue publication is\nrejected during another snapshot notification, both the internal catalogue and\nits selections retain the last accepted state.\nThe catalogue is read from the Society Models section on a worker. It uses\niiLocalDiffusion's bounded model-metadata inspection and honors stored modality\noverrides; local Diffusers packages are listed once instead of listing their\ninternal weight files separately, and the Society VAE category is excluded from\nthe main model selector. Entries with no recognized modality retain the\nexisting image fallback. Classification is not a guarantee that an engine can\nload a model. Remote-only models are not connected to this catalogue. The\nnative image generation provider uses the captured local model identity.\n"
+    },
+    {
+      "id": "b000092",
+      "kind": "blank",
+      "start_line": 505,
+      "end_line": 505,
+      "raw": "\n"
+    },
+    {
+      "id": "b000093",
+      "kind": "paragraph",
+      "start_line": 506,
+      "end_line": 508,
+      "raw": "Preference field callbacks belong to the currently displayed projection. A\nretired field from an earlier category, provider snapshot or model-choice list\nmust not write a setting after the view has been rebuilt.\n"
+    },
+    {
+      "id": "b000094",
+      "kind": "blank",
+      "start_line": 509,
+      "end_line": 509,
+      "raw": "\n"
+    },
+    {
+      "id": "b000095",
+      "kind": "paragraph",
+      "start_line": 510,
+      "end_line": 513,
+      "raw": "Once values have been read or saved, the existing Home generation draft\nreceives the image and video prompt defaults. Switching media adopts the matching\ndefault only while that input still contains the previous default; a prompt the\nuser has edited stays unchanged. Applying a default does not start inference.\n"
+    },
+    {
+      "id": "b000096",
+      "kind": "blank",
+      "start_line": 514,
+      "end_line": 514,
+      "raw": "\n"
+    },
+    {
+      "id": "b000097",
+      "kind": "paragraph",
+      "start_line": 515,
+      "end_line": 519,
+      "raw": "The editor, file browser, publishing and preferences routes use owner-thread\nnative C++ presentation models and LVUI controls. File and frame work is\ndispatched to a bounded native runtime; service failures are shown explicitly.\nThe models do not create placeholder files, simulate uploads or present\nunknown metadata as fact.\n"
+    },
+    {
+      "id": "b000098",
+      "kind": "blank",
+      "start_line": 520,
+      "end_line": 520,
+      "raw": "\n"
+    },
+    {
+      "id": "b000099",
+      "kind": "paragraph",
+      "start_line": 521,
+      "end_line": 528,
+      "raw": "The editor and publishing views share an iiSharedCanvas document session.\nAttaching a document validates a detached `.iisc` snapshot. Selection, timeline\nseek, active panel and view options are transient presentation state and do not\nwrite or change the document. An explicit layer or publication metadata edit\nupdates the in-memory document through iiSharedCanvas and marks it unsaved;\nit does not silently write the source file. Rejected edits preserve the last\naccepted state. Publishing retains unknown shared metadata and does not upload\nwithout an attached publishing and account service.\n"
+    },
+    {
+      "id": "b000100",
+      "kind": "blank",
+      "start_line": 529,
+      "end_line": 529,
+      "raw": "\n"
+    },
+    {
+      "id": "b000101",
+      "kind": "paragraph",
+      "start_line": 530,
+      "end_line": 534,
+      "raw": "The editor's File tool has Information, Contents and Storage views backed by\nthe existing file-panel schema and active document/file session. The complete\nschema is visible; fields not supplied by the current native providers remain\nexplicitly unavailable. See [NativeFileInspector.md](NativeFileInspector.md)\nfor the current projection and repeated-record limit.\n"
+    },
+    {
+      "id": "b000102",
+      "kind": "blank",
+      "start_line": 535,
+      "end_line": 535,
+      "raw": "\n"
+    },
+    {
+      "id": "b000103",
+      "kind": "paragraph",
+      "start_line": 536,
+      "end_line": 540,
+      "raw": "Canvas rendering observes a separate visual revision. Publication title and\ndescription edits still mark the document dirty and increment its document\nrevision, but do not enqueue a new frame render. Attaching a document and\nchanging layer appearance, visibility, range or structure do advance the\nvisual revision; seeking a frame remains transient presentation state.\n"
+    },
+    {
+      "id": "b000104",
+      "kind": "blank",
+      "start_line": 541,
+      "end_line": 541,
+      "raw": "\n"
+    },
+    {
+      "id": "b000105",
+      "kind": "paragraph",
+      "start_line": 542,
+      "end_line": 552,
+      "raw": "The Select tool uses the active canvas frame and the selected static vector's\nactual geometric bounds to present eight transform handles. Pointer movement\npreviews the outline of a move or resize without editing the document; the\nartwork frame updates after release commits one layer transform. Cancel,\nselection change, document replacement or\nleaving the tool discards the preview. Selection uses the uppermost visible\nvector whose transformed bounds contain the pointer. Layers with motion,\nartboard clipping, dynamic sources or unsupported geometry remain unchanged. Clicking empty\ncanvas space clears the selection without changing the file.\nCompleting a new shape activates Select; choosing a shape in Elements or\nreturning to the Elements tool resumes drawing with the last selected shape.\n"
+    },
+    {
+      "id": "b000106",
+      "kind": "blank",
+      "start_line": 553,
+      "end_line": 553,
+      "raw": "\n"
+    },
+    {
+      "id": "b000107",
+      "kind": "paragraph",
+      "start_line": 554,
+      "end_line": 560,
+      "raw": "The Background / Mask lasso creates a new vector mask on the selected static\nartwork layer. The temporary pointer path is presentation state; the closed\npath is committed as one mask-stack edit after release. New masks use the\nexisting Add / union mode, and users may change their combination afterwards.\nCancel, document replacement or leaving the tool discards the path. The first\nimplementation rejects animated, artboard-clipped or singularly transformed\nlayers instead of applying a mask in the wrong coordinate space.\n"
+    },
+    {
+      "id": "b000108",
+      "kind": "blank",
+      "start_line": 561,
+      "end_line": 561,
+      "raw": "\n"
+    },
+    {
+      "id": "b000109",
+      "kind": "paragraph",
+      "start_line": 562,
+      "end_line": 567,
+      "raw": "Render and I/O workers borrow an immutable, shared document snapshot. Frame\nseeks and repeated reads do not copy raster data. Single-operation edits detach\nwhen a worker still holds the preceding snapshot; multi-object structural edits\nprepare a separate document candidate so they can be committed atomically.\nPreparing those candidates can copy large assets on the owner thread. A separate\ndocument generation distinguishes switching files from editing one document.\n"
+    },
+    {
+      "id": "b000110",
+      "kind": "blank",
+      "start_line": 568,
+      "end_line": 568,
+      "raw": "\n"
+    },
+    {
+      "id": "b000111",
+      "kind": "paragraph",
+      "start_line": 569,
+      "end_line": 573,
+      "raw": "The editor frame presenter uses iiSharedCanvas' latest-request-wins render\nqueue. Render work is dispatched off the view thread, and completed pixels\nreach the LVUI image on the owner event loop. While another frame of the same\ndocument is rendering, the last completed image remains visible; changing\ndocuments clears it immediately. Stale render completions are discarded.\n"
+    },
+    {
+      "id": "b000112",
+      "kind": "blank",
+      "start_line": 574,
+      "end_line": 574,
+      "raw": "\n"
+    },
+    {
+      "id": "b000113",
+      "kind": "paragraph",
+      "start_line": 575,
+      "end_line": 593,
+      "raw": "The editor view derives canvas size, frame range and layer identities from the\nattached document, never the example imagery or tracks in Figma. Timeline\nplayback uses the document's rational frame rate and a monotonic clock; late\nticks skip to the current frame instead of queuing stale frames. Playback ends\non the last frame, pauses on a manual seek, document switch or editor exit, and\ndoes not modify the document. Rendering retains the preceding completed image\nwhile the newest frame is being prepared. Canvas pointer tools temporarily\ndecline input while a replacement frame is pending, so their coordinates never\nrefer to retained pixels from an older canvas revision. Some remaining editing\ntools are not yet connected. The publishing route derives its platform list and\nreview limits from iiSocialIntegration; its plan can split a supplied source,\nand a document revision invalidates prepared media. The plan does not grant\naccount access; the explicit Publish action invokes the native provider with\nconfigured session grants. Its canvas preview uses a separate,\nviewport-sized asynchronous iiSharedCanvas frame presenter for the active\ndocument and frame. The presenter is active only while the publishing route is\nvisible, retains the last completed frame during a render, and is canceled when\nthe user leaves. Its preview is separate from the frame media prepared for the\nplatform review plan and does not itself upload a post.\n"
+    },
+    {
+      "id": "b000114",
+      "kind": "blank",
+      "start_line": 594,
+      "end_line": 594,
+      "raw": "\n"
+    },
+    {
+      "id": "b000115",
+      "kind": "paragraph",
+      "start_line": 595,
+      "end_line": 607,
+      "raw": "The file browser reads locally resident entries from the selected Society\ncontainer on demand. Filtering, selection and navigation do not mutate\nstorage. Locally available `.iisc` and supported still-image rows can be opened in the editor; unsupported\nrows do not enable Open. Selecting a row updates its selection state without\nrecreating the current listing. The Storage preference exposes the verified\nselected path read-only. Generation prompt and Image/Video default model values\nare backed by the existing preferences file; other settings still need providers. The\ninteractive social account authorization is not yet connected; no upload is\nrepresented as successful without a provider result. Remote-only catalog entries and their\ndownloads are not yet represented by the native browser.\nHome's file and generation-history View all actions navigate to their\nrespective routes. Recent-file and generation-history feeds read locally present\nSociety files on workers and do not represent remote-only entries.\n"
+    },
+    {
+      "id": "b000116",
+      "kind": "blank",
+      "start_line": 608,
+      "end_line": 608,
+      "raw": "\n"
+    },
+    {
+      "id": "b000117",
+      "kind": "paragraph",
+      "start_line": 609,
+      "end_line": 722,
+      "raw": "The native generation migration must keep a session-owned queue separate from\nthe views and from the Society files that completed jobs produce. A submission\ncaptures its parameters and model identity before it enters the queue. Jobs run\nin order on a worker, report only actual engine progress, and deliver completed\noutputs to the owner event loop without erasing earlier outputs if a later job\nfails or is cancelled. Cancelling a waiting job prevents it from starting;\ncancelling a running job requests cooperative cancellation. Late worker events\ncannot change a retired or replaced job. The queue must not invent a backend,\nsuccess, progress percentage, or output path when a provider is unavailable.\nCancellation exposes both an atomic flag for in-process SDK operations and a\nstop token for iiSDK process communication, so either backend receives the same\nrequest without polling the view thread.\nThe desktop SDK-worker adapter must pass one bounded JSON request without a\nshell and accept completion only from a matching `iild-worker-result-v1`\nmessage after `iild-worker-v1` readiness and a successful process exit.\nIt must parse chunked stdout and stderr without unbounded buffering, forward\nonly validated SDK progress events, retain a bounded diagnostic tail, and\nterminate the owned worker process on cancellation. A missing or malformed\nresult is a failure, not a completed generation. The protocol adapter does not\nresolve model identities, prepare outputs, or publish files; those remain\nseparate provider responsibilities. The worker runner invokes preparation,\ntransport and publication in that order on a worker. Only a successfully\ncommitted output is passed to the review session. If a later publication fails\nor the job is canceled, earlier committed outputs remain visible. Invalid UTF-8\nand embedded zero bytes in diagnostic output are replaced for the selectable\nfailure report; log retention is bounded to the latest 16 KiB. The queue also\npreserves the beginning and end of unusually long provider failures within its\n64 KiB limit, without cutting a UTF-8 sequence or dropping the last log event.\nThe native application discovers the installed iiLocalDiffusion worker in the\nbackground and connects image and video requests to it. Only parameters\nimplemented by these adapters are forwarded; other edited settings return an\nexplicit error. Social-media account connections and social publication still\nrequire providers. The worker and publication contracts are covered with\nsynthetic fixtures; those tests do not establish that a particular installed\nmodel or hardware can successfully generate an image or video.\nThe model catalogue captures the selected Society container and file identities\non its worker. An image checkpoint or a directory package must resolve against\nthat same selection before execution and again before publication. A changed,\nremoved, redirected or newly added package member invalidates the captured\nreference; the application must not silently run a replacement model. These\nfilesystem identities detect ordinary replacement and edits, not deliberate\nforgery of filesystem metadata.\nAn image worker request is prepared on a worker from that captured reference.\nIt preserves the prompt, negative prompt, dimensions, batch count and seed as\nindividual arguments, and lets the SDK choose the model route. Quick generation\nretains SDK model defaults; an advanced request supplies its explicit sampling\nvalues. Any edited setting for which this adapter has no implementation must be\nrejected with its name before the worker starts. A private temporary directory\nis owned by the request and must not replace the user's model or existing output.\nBefore an image enters Society history, its worker record, path containment,\nSHA-256, decodability, dimensions and expected batch count are checked. The\ncaptured model and selected history section are revalidated before publication.\nEach destination is exclusive. The PNG preserves its existing chunks and gains\nthe generation recipe in `Dreamscapes.Parameters`; a seed is called resolved\nonly if the worker actually reported it. Once inference has produced files,\nfailure or cancellation retains the private output for recovery; a successful\npublication releases that staging directory. If the staging directory cannot\nbe inspected, its contents are conservatively retained and its location is\nincluded in the session report.\nIf cancellation leaves uncommitted generated files during a live session, the\ncanceled job exposes a Details action containing the recovery location. It\nremains a canceled job; already committed outputs remain visible independently.\nThe in-memory queue and its recovery report do not survive application exit.\nEach committed output also schedules a refresh of the Society history model,\nso the Home and history projections see the saved file without changing the\nreview session's selected results. In the current review session, the captured\nmodel label, prompt, validated dimensions and submitted settings accompany each\nresult. A seed is displayed only when the worker record supplies a valid\nresolved seed; device and elapsed time remain unavailable unless reported.\nAn image worker's nonnegative 64-bit reported seed remains valid even if a\nrandom batch crosses the 32-bit input limit.\nWorker discovery checks `IILD_GENERATOR_EXECUTABLE` first, then the explicit\n`DREAMSCAPES_DIFFUSION_EXECUTABLE` build setting. If neither is set, it prefers\nthe launcher in the build's iiLocalDiffusion package and uses the per-user SDK\nwhen that launcher is unavailable. A missing explicit launcher is reported.\nWindows script launchers require an absolute `IILD_PYTHON_EXECUTABLE`. The\nselected image worker must accept `--hires-fix` and `--no-hires-fix`. Discovery\nruns off the UI thread. The first generation request starts the worker.\nVideo requests must use the same captured Society model identity and worker\nprotocol. Each requested video is generated and published independently in\norder; cancellation or a later failure must retain earlier committed videos.\nWith an explicit seed, successive videos use that seed plus their zero-based\nbatch index, matching the existing generation contract. A batch that would\noverflow the unsigned 32-bit seed range is rejected before starting a worker;\nrandom-seed batches let the SDK resolve each video's seed separately.\nHome rejects an explicit seed that cannot cover its selected batch before\nqueueing a job, and clears the explanation when the user corrects the draft.\nThe Video viewmodel prevents submission while camera motions conflict, an\nexplicit seed cannot cover the requested batch, or sequential offload conflicts\nwith CPU text encoding or VAE tiling. It explains the constraint in the existing\ngeneration status area. Correcting the draft restores the\nGenerate action without altering the accepted settings of other fields.\nThe adapter must preserve every supported video setting or report an unsupported\nsetting before inference. It must validate the SDK's completion record, output\ndimensions, frame rate, frame count, file size and SHA-256 before an exclusive\nSociety history commit. The SDK's verified-decode field is evidence supplied by\nthe worker, not an independent playback test by Dreamscapes.\nSequential video offload explicitly requests the SDK's `--low-vram` mode and\nrequires CPU text encoding and VAE tiling, which that mode enforces. An older\ninstalled SDK without the flag reports a worker error instead of silently\nclaiming low-VRAM execution. Video review currently has no native playback or\nposter provider, and the history projection does not yet restore the video\nworker's detailed sidecar metadata.\nThe queue-to-review projection supplies the existing LVUI queue, Home queue,\nand result-selection models with actual session jobs and committed outputs.\nProgress-only updates do not replace the result list. Filtering a job changes\nthe review projection, not the queue or the files.\nThe generation review route uses the existing Figma queue, results, and\ninspector composition. Its controls must use the same session as the submitted\njob; the Society history route remains a separate result source.\nWhen a provider reports failure, the queue can open the existing selectable,\ncopyable failure view with the submitted settings, observed stage, and original\nprovider error. A provider error is evidence, not an inferred root cause or an\nagent analysis.\n"
+    },
+    {
+      "id": "b000118",
+      "kind": "blank",
+      "start_line": 723,
+      "end_line": 723,
+      "raw": "\n"
+    },
+    {
+      "id": "b000119",
+      "kind": "paragraph",
+      "start_line": 724,
+      "end_line": 727,
+      "raw": "The review gallery receives the application's asynchronous native file-image\nresolver, so a supplied local result can display its preview without reading\nor decoding it on the view thread. A missing history provider remains an\nunavailable feed; attaching the resolver alone does not populate results.\n"
+    },
+    {
+      "id": "b000120",
+      "kind": "blank",
+      "start_line": 728,
+      "end_line": 728,
+      "raw": "\n"
+    },
+    {
+      "id": "b000121",
+      "kind": "paragraph",
+      "start_line": 729,
+      "end_line": 740,
+      "raw": "Canvas file access uses iiSharedCanvas native working-file transactions and\niiFileProvider source identity. Reads preserve both native snapshots and\nworking files. Saving an existing working file rejects a changed identity or\nrevision; creating a destination is exclusive and never overwrites another\nfile. Legacy packed snapshots remain unchanged and require a new destination.\nAll file access is a worker-thread responsibility.\nThe file view model serializes open and save requests, then delivers their\nresults to the owner event loop. An edit made while a save is in flight stays\ndirty. A document replaced during a request must never receive that request's\nresult or file association. The application's native file dialog and editor\nOpen, Save and Save As actions use this model. The selected Society directory\ncan use the same open path. Unsaved work cannot be silently replaced.\n"
+    },
+    {
+      "id": "b000122",
+      "kind": "blank",
+      "start_line": 741,
+      "end_line": 741,
+      "raw": "\n"
+    },
+    {
+      "id": "b000123",
+      "kind": "paragraph",
+      "start_line": 742,
+      "end_line": 747,
+      "raw": "The New Canvas route uses the existing canvas preset catalogue and validation\nrules to create an unsaved in-memory iiSharedCanvas document. Creation must not\noverwrite another unsaved document or write a file. Unit conversion and\nbackground selection operate on the draft.\nThe catalogue is loaded on entry to New Canvas rather than at application\nstartup; changing a dimension does not rebuild an unchanged preset list.\n"
+    },
+    {
+      "id": "b000124",
+      "kind": "blank",
+      "start_line": 748,
+      "end_line": 748,
+      "raw": "\n"
+    },
+    {
+      "id": "b000125",
+      "kind": "paragraph",
+      "start_line": 749,
+      "end_line": 759,
+      "raw": "The editor Text tool uses the catalogue defaults for content, font, size and\ncolor. Enter text, choose the typeface and color, then click the canvas to\ncreate a selected, saveable static vector layer. The canvas coordinates are\nmapped through the same fitted preview as the other editor tools. A document\nreplacement, view change, or intervening edit cancels an unfinished placement.\nOn macOS, Core Text shapes Unicode and supplies vector glyph outlines; missing\noutlines, a text box that does not fit, and more than 128 visible glyphs are\nreported instead of silently omitting content. Text is stored as vector paths,\nnot editable text metadata. Other platforms report that outlining is unavailable\nuntil a platform provider is connected. Text-role presets and the additional\nlayout and appearance options from the original panel are not yet implemented.\n"
+    },
+    {
+      "id": "b000126",
+      "kind": "blank",
+      "start_line": 760,
+      "end_line": 760,
+      "raw": "\n"
+    },
+    {
+      "id": "b000127",
+      "kind": "paragraph",
+      "start_line": 761,
+      "end_line": 764,
+      "raw": "The visual references are Dreamscapes editor `353:22614`, tool panel\n`353:22022`, publishing `1267:4554`, and preferences `353:5587`. The file's\n`Storage (Society mirror)` page had no frames when inspected; the existing\nproduct file-browser contract is the available reference for that route.\n"
+    },
+    {
+      "id": "b000128",
+      "kind": "blank",
+      "start_line": 765,
+      "end_line": 765,
+      "raw": "\n"
+    },
+    {
+      "id": "b000129",
+      "kind": "paragraph",
+      "start_line": 766,
+      "end_line": 769,
       "raw": "Model and windowless iiGUI tests cover injected data binding, user commands,\nrejected edits, navigation and changes to view state. These tests do not launch\nthe app, use real account credentials, upload content or prove visual parity or\nend-to-end device behavior. The other migrated view stubs remain static.\n"
+    },
+    {
+      "id": "b000130",
+      "kind": "blank",
+      "start_line": 770,
+      "end_line": 770,
+      "raw": "\n"
+    },
+    {
+      "id": "b000131",
+      "kind": "paragraph",
+      "start_line": 771,
+      "end_line": 774,
+      "raw": "시작 라이선스 검사는 기기 식별과 Society 로컬 채널을 포함해 900ms에 판정\n기한을 둔다. 지연 시 허가하지 않고, 이미 전달받은 결과와 종료된 세션의 늦은\n응답은 섞지 않는다. 정상 이벤트 루프와 OS 스케줄링이 전제이며, 별도 프로세스의\n합성 서명 토큰 검사는 설치된 데몬이나 실제 계정의 검증을 대신하지 않는다.\n"
     }
   ],
   "outline": [
@@ -682,284 +976,459 @@
       "start_line": 3
     },
     {
-      "block_id": "b000007",
+      "block_id": "b000009",
       "parent_id": "b000001",
       "level": 2,
       "title": "Editor actions",
       "anchor": "editor-actions",
-      "start_line": 19
+      "start_line": 26
     },
     {
-      "block_id": "b000023",
+      "block_id": "b000045",
       "parent_id": "b000001",
       "level": 2,
       "title": "Society storage provider contract",
       "anchor": "society-storage-provider-contract",
-      "start_line": 91
+      "start_line": 217
     },
     {
-      "block_id": "b000033",
+      "block_id": "b000057",
       "parent_id": "b000001",
       "level": 2,
       "title": "Layer inspector contract",
       "anchor": "layer-inspector-contract",
-      "start_line": 164
+      "start_line": 306
     },
     {
-      "block_id": "b000037",
+      "block_id": "b000061",
       "parent_id": "b000001",
       "level": 2,
       "title": "Timeline projection contract",
       "anchor": "timeline-projection-contract",
-      "start_line": 183
+      "start_line": 325
     },
     {
-      "block_id": "b000043",
+      "block_id": "b000067",
       "parent_id": "b000001",
       "level": 2,
       "title": "Canvas size contract",
       "anchor": "canvas-size-contract",
-      "start_line": 212
+      "start_line": 359
     },
     {
-      "block_id": "b000051",
+      "block_id": "b000075",
       "parent_id": "b000001",
       "level": 2,
       "title": "Publishing review settings",
       "anchor": "publishing-review-settings",
-      "start_line": 236
+      "start_line": 383
     },
     {
-      "block_id": "b000055",
+      "block_id": "b000085",
       "parent_id": "b000001",
       "level": 2,
       "title": "Generation preference provider contract",
       "anchor": "generation-preference-provider-contract",
-      "start_line": 263
+      "start_line": 467
     }
   ],
   "indexes": {
     "directive_candidates": [
       {
-        "block_id": "b000005",
-        "line": 11,
+        "block_id": "b000007",
+        "line": 18,
         "text": "single-check contract, a new check requires an app restart. The check never",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000011",
-        "line": 28,
-        "text": "the user saves. Invalid selection and reentrant document changes must not corrupt",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
         "block_id": "b000013",
-        "line": 34,
-        "text": "keys with the clip while retaining iiSharedCanvas's required frame-zero source",
+        "line": 47,
+        "text": "or frame must discard it. Stroke processing and composited preview run away",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000015",
-        "line": 45,
-        "text": "document extent, and dynamic sources include their required frame-zero key.",
+        "line": 55,
+        "text": "preview is prepared from an immutable document snapshot on a worker and never",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000019",
+        "line": 71,
+        "text": "inside that same editor session. They do not create a disconnected empty",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000021",
+        "line": 79,
+        "text": "the user saves. Invalid selection and reentrant document changes must not corrupt",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000023",
+        "line": 85,
+        "text": "keys with the clip while retaining iiSharedCanvas's required frame-zero source",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000025",
-        "line": 97,
-        "text": "default frame rate. Opening an image never changes or associates the source as",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000027",
-        "line": 104,
-        "text": "archive was built. The codec package must select a matching libjpeg; linking",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000029",
-        "line": 113,
-        "text": "section path, changed selection or incomplete search is an error, never an",
+        "line": 96,
+        "text": "document extent, and dynamic sources include their required frame-zero key.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000031",
         "line": 131,
-        "text": "never inferred. Image previews use the asynchronous native image loader.",
+        "text": "The background is the `canvas.background.layer` layer, never the selected",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000031",
-        "line": 133,
-        "text": "or reviewing an item only changes the history session, never its source file.",
+        "block_id": "b000033",
+        "line": 147,
+        "text": "first frame; its layers and metadata are never copied into or edited by the",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000031",
-        "line": 136,
-        "text": "Unsupported files, video and multi-selection do not expose this action until",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000035",
-        "line": 175,
-        "text": "reference; example layers in that reference are never used as document data.",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000039",
-        "line": 188,
-        "text": "never add tracks. An audio track is appended after visual layers and existing",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000041",
-        "line": 206,
-        "text": "the required ownership anchor and cannot be moved. Real audio tracks and clip",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000041",
-        "line": 208,
-        "text": "these rows are read-only and never fabricate audio ticks or sample data. Audio",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000045",
-        "line": 222,
-        "text": "those controls must not pretend to save either property. A resize commits one",
+        "block_id": "b000047",
+        "line": 223,
+        "text": "default frame rate. Opening an image never changes or associates the source as",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000049",
-        "line": 233,
-        "text": "masks without rewriting pixel assets. The layer-preserving mode is required;",
+        "line": 230,
+        "text": "archive was built. The codec package must select a matching libjpeg; linking",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000051",
+        "line": 239,
+        "text": "section path, changed selection or incomplete search is an error, never an",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000053",
-        "line": 249,
-        "text": "are committed together; choosing Save draft never sends a social post.",
+        "line": 257,
+        "text": "never inferred. Image previews use the asynchronous native image loader.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000053",
+        "line": 259,
+        "text": "or reviewing an item only changes the history session, never its source file.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000053",
+        "line": 262,
+        "text": "Unsupported files, video and multi-selection do not expose this action until",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000053",
+        "line": 270,
+        "text": "overwriting another file. The destination must retain the original extension.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000055",
+        "line": 283,
+        "text": "view never changes the originals. Synchronized comparison uses one pixel scale",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000059",
-        "line": 282,
-        "text": "A malformed file is never silently replaced. Accepted pending writes",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000061",
-        "line": 289,
-        "text": "selection changes the draft only and never begins inference. A missing catalogue",
+        "line": 317,
+        "text": "reference; example layers in that reference are never used as document data.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000063",
-        "line": 304,
-        "text": "must not write a setting after the view has been rebuilt.",
+        "line": 330,
+        "text": "never add tracks. An audio track is appended after visual layers and existing",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
-        "block_id": "b000067",
-        "line": 314,
-        "text": "The models do not create placeholder files, simulate uploads or present",
+        "block_id": "b000065",
+        "line": 350,
+        "text": "the required ownership anchor and cannot be moved. Real audio tracks and clip",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000069",
-        "line": 319,
-        "text": "seek, active panel and view options are transient presentation state and do not",
+        "line": 369,
+        "text": "those controls must not pretend to save either property. A resize commits one",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000073",
-        "line": 334,
-        "text": "revision, but do not enqueue a new frame render. Attaching a document and",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000075",
-        "line": 339,
-        "text": "seeks and repeated reads do not copy raster data. Single-operation edits detach",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000079",
-        "line": 352,
-        "text": "attached document, never the example imagery or tracks in Figma. Timeline",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000081",
-        "line": 369,
-        "text": "container on demand. Filtering, selection and navigation do not mutate",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000081",
-        "line": 371,
-        "text": "rows do not enable Open. Selecting a row updates its selection state without",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000081",
         "line": 380,
-        "text": "Society files on workers and do not represent remote-only entries.",
+        "text": "masks without rewriting pixel assets. The layer-preserving mode is required;",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000077",
+        "line": 388,
+        "text": "are never placed in the IISC document, view properties or result messages.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000083",
-        "line": 389,
-        "text": "revision; creating a destination is exclusive and never overwrites another",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000083",
-        "line": 394,
-        "text": "dirty. A document replaced during a request must never receive that request's",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
-        "block_id": "b000085",
-        "line": 400,
-        "text": "rules to create an unsaved in-memory iiSharedCanvas document. Creation must not",
+        "line": 439,
+        "text": "are committed together; choosing Save draft never sends a social post.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000089",
-        "line": 412,
+        "line": 486,
+        "text": "A malformed file is never silently replaced. Accepted pending writes",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000091",
+        "line": 493,
+        "text": "selection changes the draft only and never begins inference. A missing catalogue",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000093",
+        "line": 508,
+        "text": "must not write a setting after the view has been rebuilt.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000097",
+        "line": 518,
+        "text": "The models do not create placeholder files, simulate uploads or present",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000099",
+        "line": 523,
+        "text": "seek, active panel and view options are transient presentation state and do not",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000103",
+        "line": 538,
+        "text": "revision, but do not enqueue a new frame render. Attaching a document and",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000109",
+        "line": 563,
+        "text": "seeks and repeated reads do not copy raster data. Single-operation edits detach",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000113",
+        "line": 576,
+        "text": "attached document, never the example imagery or tracks in Figma. Timeline",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000113",
+        "line": 582,
+        "text": "decline input while a replacement frame is pending, so their coordinates never",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000115",
+        "line": 596,
+        "text": "container on demand. Filtering, selection and navigation do not mutate",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000115",
+        "line": 598,
+        "text": "rows do not enable Open. Selecting a row updates its selection state without",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000115",
+        "line": 607,
+        "text": "Society files on workers and do not represent remote-only entries.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 609,
+        "text": "The native generation migration must keep a session-owned queue separate from",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 616,
+        "text": "cannot change a retired or replaced job. The queue must not invent a backend,",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 621,
+        "text": "The desktop SDK-worker adapter must pass one bounded JSON request without a",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 624,
+        "text": "It must parse chunked stdout and stderr without unbounded buffering, forward",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 642,
+        "text": "synthetic fixtures; those tests do not establish that a particular installed",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 645,
+        "text": "on its worker. An image checkpoint or a directory package must resolve against",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 648,
+        "text": "reference; the application must not silently run a replacement model. These",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 655,
+        "text": "values. Any edited setting for which this adapter has no implementation must be",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 657,
+        "text": "is owned by the request and must not replace the user's model or existing output.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 671,
+        "text": "The in-memory queue and its recovery report do not survive application exit.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 685,
+        "text": "selected image worker must accept `--hires-fix` and `--no-hires-fix`. Discovery",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 687,
+        "text": "Video requests must use the same captured Society model identity and worker",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 689,
+        "text": "order; cancellation or a later failure must retain earlier committed videos.",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 701,
+        "text": "The adapter must preserve every supported video setting or report an unsupported",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 702,
+        "text": "setting before inference. It must validate the SDK's completion record, output",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 714,
+        "text": "Progress-only updates do not replace the result list. Filtering a job changes",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000117",
+        "line": 717,
+        "text": "inspector composition. Its controls must use the same session as the submitted",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000121",
+        "line": 732,
+        "text": "revision; creating a destination is exclusive and never overwrites another",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000121",
+        "line": 737,
+        "text": "dirty. A document replaced during a request must never receive that request's",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000123",
+        "line": 743,
+        "text": "rules to create an unsaved in-memory iiSharedCanvas document. Creation must not",
+        "basis": "lexical_match",
+        "context": "paragraph"
+      },
+      {
+        "block_id": "b000129",
+        "line": 767,
         "text": "rejected edits, navigation and changes to view state. These tests do not launch",
         "basis": "lexical_match",
         "context": "paragraph"
@@ -968,11 +1437,11 @@
     "commands": [],
     "links": [
       {
-        "block_id": "b000071",
+        "block_id": "b000101",
         "label": "NativeFileInspector.md",
         "target": "NativeFileInspector.md",
         "kind": "relative",
-        "line": 329
+        "line": 533
       }
     ],
     "tables": []

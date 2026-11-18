@@ -2,9 +2,9 @@
 #include "App/Views/Editor/EditorMedia.h"
 #include "App/Views/Editor/EditorClippingOverlay.h"
 #include "App/Views/Editor/EditorLayerHistogram.h"
-#include <iiSharedCanvas.h>
-#include <iiFileProviderNative.h>
-#include <SocietyDrive.h>
+#include <iiSharedCanvas>
+#include <iiFileProvider>
+#include <iiSocietyContainer>
 #include <QImage>
 #include <QTemporaryDir>
 #include <QMouseEvent>

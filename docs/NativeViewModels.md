@@ -135,7 +135,7 @@ Qt의 시퀀스 연결부가 항목을 QVariant 안의 QVariant로 전달하는 
 
 뷰 단위 초기화는 하나의 초안에서 모든 필드의 변경 계획을 만든다. 연결부는 연속 필드 편집 사이에 이전 선택 스냅샷으로 도구를 다시 설정하지 않는다. 예를 들어 Fill 초기화가 색상을 초기화하면서 이미 수락한 Solid를 이전 Gradient로 되돌려서는 안 되며, 해당 뷰에 없는 geometry는 유지한다.
 
-QML에 남은 Canvas/Shape 그리기, 좌표·색상·너비 바인딩, 화면 크기에 따른 레이아웃, 포커스·스크롤·팝업 전환은 뷰의 책임이다. 이것을 없애기 위해 GUI 객체를 하위 순수 모델로 넘기지 않는다. ViewModel의 판단이 필요한 이벤트는 C++로 전달하고, 반환된 표시 명령으로 화면을 연다.
+과거 QML이 담당하던 Canvas/Shape 그리기, 좌표·색상·너비 바인딩, 화면 크기에 따른 레이아웃, 포커스·스크롤·팝업 전환은 뷰의 책임이다. 이것을 없애기 위해 GUI 객체를 하위 순수 모델로 넘기지 않는다. ViewModel의 판단이 필요한 이벤트는 C++로 전달하고, 반환된 표시 명령으로 화면을 연다.
 
 ## 카탈로그 유지보수
 
@@ -147,21 +147,21 @@ QML에 남은 Canvas/Shape 그리기, 좌표·색상·너비 바인딩, 화면 �
 python3 tools/generate_graphic_panels.py --from-manifest src/App/Views/Editor/GraphicPanels.json --check
 ```
 
-이전 JS와 타임라인 상태 구현은 `tests/fixtures/legacy-viewmodels/`에 동결되어 있다. 앱 QML 자원에 포함하거나 새 기능을 이 자료에 구현하지 않는다. 데이터 카탈로그 변경은 독립 Figma/SDK 계약 테스트와 네이티브 기본값 테스트를 갱신해야 한다.
+이전 JS 정의는 `tests/fixtures/legacy-viewmodels/`에 동결되어 있다. 이전 타임라인 QML 픽스처는 제거했으며 타임라인 명령과 편집 이력은 네이티브 뷰모델 테스트로 검증한다. 데이터 카탈로그 변경은 독립 Figma/SDK 계약 테스트와 네이티브 기본값 테스트를 갱신해야 한다.
 
 ## 검증 방법
 
 빌드는 기존 `build/`만 사용한다.
 
 ```sh
-cmake --build build --target DreamscapesNativeViewModelTests DreamscapesViewModelBridgeTests DreamscapesViewModelAdapterTests DreamscapesReviewModelTests DreamscapesAdvancedParametersTests --parallel 4
-ctest --test-dir build -R 'Dreamscapes\.(NativeViewModels|ViewModelBridge|ViewModelAdapters|NativeViewBoundary|ReviewModel|AdvancedParameters)$' --output-on-failure
+cmake --build build --target DreamscapesNativeViewModelTests Dreamscapes --parallel 4
+ctest --test-dir build -R 'Dreamscapes\.(NativeViewModels|NativeViewConversion|NativeViewAppBinary)$' --output-on-failure
 ```
 
 - NativeViewModels: Qt 없이 값 경로·검증·타임라인·초안·선택·명령 계획·행 차이·실제 iiSDK 작업 풀을 검증한다.
 - 표시 조회·재생·팔레트: 숫자 표현이 다른 선택값, 음수 범위, 원본 스냅샷 유지, 단조 시계의 지연·반복·종료·스냅, 잘못된 입력 거부, 단색 그레디언트를 검증한다. GUI 연결 검사는 URL·날짜 형식 보존, 실제 타이머 진행, 화면 중단·소유자 파괴와 문서 변경 없음도 확인한다.
-- ViewModelBridge: 동결한 이전 구현과 전체 그래픽 카탈로그·기본값·중첩 경로·숫자 입력·타임라인 명령의 결과를 비교한다.
-- ViewModelAdapters: 초기화 순서, Undo 초안 보존, 캔버스 생성 입력, 공유 소유권, 없는 런타임 거부 및 QML 네이티브 등록을 검증한다.
+- NativeViewConversion: 생성 산출물과 Git 저장소를 제외한 프로젝트 전체에 QML 파일이 없는지, LVUI 뷰와 뷰모델이 연결되는지 검사한다.
+- NativeViewAppBinary: macOS 네이티브 앱 번들에 QML 파일과 Qt Quick·LVRS 링크가 없는지 검사한다.
 - 기존 GUI/생성/타임라인/그래픽/저장소 회귀 검사는 연결된 실제 화면 동작을 검증한다. 단위 테스트 성공을 앱 전체 또는 설치본의 성공으로 대체해서 보고하지 않는다.
 
 생성 배치 취소 회귀는 중복·미확인 ID가 섞인 선택을 취소해도 다른 작업 공간의 대기 작업, 모델 선택 및 Generation History가 유지되는 것을 검증한다. 같은 선택을 다시 취소하거나 빈 선택을 전달해도 새 작업 변경 알림을 만들지 않는다.

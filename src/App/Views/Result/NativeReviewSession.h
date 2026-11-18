@@ -3,8 +3,7 @@
 #include "ReviewSelection.h"
 #include "../../ViewModels/Native/ReviewCommands.h"
 #include "../../ViewModels/Native/ViewValue.h"
-#include <iiSDKCore/Core/Result/Result.h>
-#include <iiSDKCore/Runtime/Query.h>
+#include <iiSDKCore>
 #include <cstddef>
 #include <cstdint>
 #include <memory>

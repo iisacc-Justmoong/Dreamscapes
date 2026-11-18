@@ -1,7 +1,7 @@
 #pragma once
 #include "NativeReviewGrid.h"
-#include <LVUI/NativeImageResolver.h>
-#include <iiGUI/NativeWidgets.h>
+#include <LVUI>
+#include <iiGUI>
 
 namespace dreamscapes::review {
 [[nodiscard]] ii::core::Result<void> buildReviewGrid(ii::gui::WidgetBuilder &,ii::gui::Widget parent,

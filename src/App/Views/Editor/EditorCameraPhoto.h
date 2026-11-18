@@ -14,7 +14,7 @@
 #include <optional>
 #include <exception>
 #include <type_traits>
-#include <iiPhotoLibrary/PhotoLibrary.h>
+#include <iiPhotoLibrary>
 
 class QCamera;
 class QImageCapture;

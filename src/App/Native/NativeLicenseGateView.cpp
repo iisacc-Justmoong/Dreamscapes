@@ -1,6 +1,6 @@
 #include "NativeLicenseGateView.h"
 #include "NativeSocietyLicenseGate.generated.h"
-#include <iiGUI/Desktop.h>
+#include <iiGUI>
 #include <exception>
 
 namespace dreamscapes::native {

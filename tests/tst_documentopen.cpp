@@ -1,11 +1,8 @@
 #include "App/Views/Editor/EditorDocumentOpenRequest.h"
 #include "App/Views/Editor/EditorProject.h"
 #include "App/Views/Editor/EditorProjectCodec.h"
-#include <SocietyDrive.h>
-#include <SharedStorage.h>
-#include <TemporaryLease.h>
-#include <iiFileProvider.h>
-#include <iiFileProviderPresentation.h>
+#include <iiSocietyContainer>
+#include <iiFileProvider>
 #include <QElapsedTimer>
 #include <QImage>
 #include <QSignalSpy>

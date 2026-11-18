@@ -1,5 +1,5 @@
 #pragma once
-#include <iiAccountManager/SocietySession.h>
+#include <iiAccountManager>
 #include <QObject>
 #include <QTimer>
 #include <QUrl>

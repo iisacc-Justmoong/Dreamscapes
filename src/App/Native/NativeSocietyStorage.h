@@ -1,6 +1,6 @@
 #pragma once
 #include "App/ViewModels/Native/ViewValue.h"
-#include <iiSDKCore/Core/Result/Result.h>
+#include <iiSDKCore>
 #include <filesystem>
 #include <cstddef>
 #include <string>
@@ -11,6 +11,8 @@ struct SocietyListing final {
     std::filesystem::path root;
     std::string containerId;
     vm::Value aliases;
+    // The manifest-defined section after validating its type and containment.
+    std::filesystem::path sectionPath;
 };
 // Performs bounded, read-only filesystem work. Call on a worker thread.
 [[nodiscard]] ii::core::Result<SocietyListing> browseSociety(const std::filesystem::path &selection,

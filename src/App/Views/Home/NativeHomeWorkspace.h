@@ -1,9 +1,8 @@
 #pragma once
 
 #include "NativeHomeSidebar.h"
-#include <iiGUI/NativeView.h>
-#include <iiSDKCore/Core/Property/Observable.h>
-#include <iiSDKCore/Core/Result/Result.h>
+#include <iiGUI>
+#include <iiSDKCore>
 #include <functional>
 #include <memory>
 #include <optional>

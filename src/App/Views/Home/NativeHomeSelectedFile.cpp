@@ -33,9 +33,12 @@ HomeSelectedFileModel::HomeSelectedFileModel(HomeSelectedFileStrings strings) : 
 HomeSelectedFileModel::~HomeSelectedFileModel() {
     if (active_ && owner_ == std::this_thread::get_id()) try { close(); } catch (...) {}
 }
-void HomeSelectedFileModel::requireOwner() const {
+void HomeSelectedFileModel::requireActiveOwner() const {
     if (owner_ != std::this_thread::get_id()) throw std::logic_error("Selected file requires its owner thread");
     if (!active_) throw std::logic_error("Selected file is closed");
+}
+void HomeSelectedFileModel::requireOwner() const {
+    requireActiveOwner();
     if (updating_) throw std::logic_error("Selected file update is already in progress");
 }
 vm::Value HomeSelectedFileModel::query(vm::Read operation, std::vector<vm::Value> arguments) const {
@@ -120,7 +123,9 @@ void HomeSelectedFileModel::open() {
     auto handler = open_; if (hasFile.get() && handler) handler();
 }
 void HomeSelectedFileModel::sizeChanged(double width, double height) {
-    requireOwner();
+    // Layout is independent of the selected file snapshot. The native host
+    // can report size synchronously while observers render that snapshot.
+    requireActiveOwner();
     if (!std::isfinite(width) || !std::isfinite(height) || width < 0 || height < 0 || width > 8192 || height > 8192) return;
     (void)viewportWidth.set(width);
     (void)viewportHeight.set(height);

@@ -1,6 +1,6 @@
 #include "NativeGenerationPreferences.h"
 #include "App/Generation/ModelPreferences.h"
-#include <iiFileProviderNative.h>
+#include <iiFileProvider>
 #include <algorithm>
 #include <array>
 #include <cstdlib>

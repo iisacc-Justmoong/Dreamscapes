@@ -1,8 +1,8 @@
 #include "App/Views/Home/NativeHomeComposerSources.h"
 #include "App/Views/Home/NativeHomeComposerPanelView.h"
 #include "iiGUI/WidgetState.h"
-#include <iiGUI/CompiledViewSource.h>
-#include <iiSDKCore/Runtime/FrameLoop.h>
+#include <iiGUI>
+#include <iiSDKCore>
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -114,7 +114,49 @@ void exercise() {
     good(editor.focus()); good(root.set_extent({360,900})); (void)take(state->drawing_snapshot({360,900})); (void)take(state->snapshots());
     check(take(editor.snapshot()).focused && composer->snapshot.get().prompt == "장면" && std::abs(panel->contentWidth.get()-336) < .01,
           "composed composer lost its editor during resize");
-    state->close(); panel->close(); prompt->close(); negative->close(); composer->close();
+    state->close(); panel->close();
+
+    auto compactParts=parts;
+    compactParts.model=choice(HomeComposerChoiceRole::model,"Model",false);
+    compactParts.ratio=choice(HomeComposerChoiceRole::ratio,"Aspect ratio",false);
+    compactParts.resolution=choice(HomeComposerChoiceRole::resolution,"Resolution",false);
+    compactParts.count=choice(HomeComposerChoiceRole::count,"Batch size",false);
+    compactParts.seed=HomeComposerSeedModel::create(composer,"Seed","Random","Apply",false);
+    compactParts.generate=HomeComposerActionModel::create(composer,HomeComposerActionRole::generate,
+        {"","","Generate",[](int count,bool) {return std::to_string(count);}},true);
+    auto compactSpec=spec;compactSpec.compactControls=true;compactSpec.topPreferred[5]=71;
+    auto compact=HomeComposerPanelModel::create(composer,prompt,homeComposerPanelSources(compactParts),compactSpec,metrics);
+    auto compactState=std::make_shared<detail::WidgetState>([](ii::runtime::Task task) {task();},WidgetAppearance{},hooks);
+    auto compactRoot=take(compactState->content_host({},"compact",{1227,500}));
+    good(compactRoot.set_content([&](WidgetBuilder &builder) {return buildHomeComposerPanel(builder,{},compact);}));
+    (void)take(compactState->drawing_snapshot({1227,500}));(void)take(compactState->snapshots());
+    auto first=compact->layout.get();
+    if (first.contentWidth==0) {
+        auto probe=compact->setViewport(1227,500,metrics);
+        if (!probe) throw std::runtime_error("compact viewport rejected: "+probe.error().message);
+        throw std::runtime_error("compact viewport was not delivered by the view");
+    }
+    if (first.settings[9].width!=22 || first.settings[10].width!=71 ||
+        first.settings[0].y!=first.settings[9].y || first.settings[10].y!=first.settings[9].y)
+        throw std::runtime_error("compact controls geometry: content="+std::to_string(first.contentWidth)+
+            " attach="+std::to_string(first.settings[9].width)+"@"+std::to_string(first.settings[9].y)+
+            " model="+std::to_string(first.settings[0].width)+"@"+std::to_string(first.settings[0].y)+
+            " generate="+std::to_string(first.settings[10].width)+"@"+std::to_string(first.settings[10].y));
+    auto longer=composer->snapshot.get();longer.modelLabel="A much longer model label";
+    good(composer->setSnapshot(longer));
+    (void)take(compactState->drawing_snapshot({1227,500}));
+    auto second=compact->layout.get();
+    check(second.settings[0].width>first.settings[0].width && second.settings[9].width==22 &&
+          second.settings[10].width==71,"dropdown did not hug the changed label or fixed actions changed size");
+    good(find(compactState,"homeActionIcon").activate());
+    auto generateButton=find(compactState,"homeActionPrimary");
+    check(take(generateButton.snapshot()).text=="Generate","compact action did not keep its Generate label");
+    good(generateButton.activate());
+    check(attached==2 && generated==2,"compact actions lost their original commands");
+    good(compactRoot.set_extent({360,900}));(void)take(compactState->drawing_snapshot({360,900}));
+    check(compact->layout.get().settings[9].width==22 && compact->layout.get().settings[10].width==71,
+          "compact actions changed size on a narrow window");
+    compactState->close();compact->close();prompt->close();negative->close();composer->close();
 }
 }
 int main() { try { exercise(); } catch (const std::exception &e) { std::cerr << e.what() << '\n'; return 1; } }

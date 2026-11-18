@@ -22,7 +22,16 @@ EventListener(id: "generationSurface", width: 0, height: 0, flex: 1, onSizeChang
                         }
                         HStack(spacing: Metric.space8, alignment: .center) {
                             Label(id: "generationFieldLabel", text: item.label, style: .caption, flex: 1)
-                            if (item.isToggle) {
+                            if (item.isFile) {
+                                HStack(spacing: Metric.space4, alignment: .center) {
+                                    if (item.hasFile) {
+                                        LabelButton(id: "generationClearImage", text: "Clear", tone: .default,
+                                                    accessibilityName: item.clearAccessibility, onClick: item.clearFile)
+                                    }
+                                    LabelButton(id: "generationChooseImage", text: "Choose", tone: .default,
+                                                enabled: item.canChooseFile, accessibilityName: item.chooseAccessibility, onClick: item.chooseFile)
+                                }
+                            } else if (item.isToggle) {
                                 ToggleSwitch(id: "generationToggle", checked: item.checked, enabled: item.enabled,
                                              onToggled: item.toggled)
                             } else if (item.isChoice) {
@@ -34,13 +43,20 @@ EventListener(id: "generationSurface", width: 0, height: 0, flex: 1, onSizeChang
                                            accessibilityName: item.label, onEdited: item.edited)
                             }
                         }
+                        if (item.hasFile) {
+                            Label(id: "generationImageName", text: item.fileName, style: .caption)
+                        }
                         if (item.invalid) {
                             Label(id: "generationInputError", text: item.error, style: .caption)
                         }
                     }
                 }
-                Label(id: "generationServiceStatus", text: "Generation service unavailable", style: .caption)
-                LabelButton(id: "generationSubmit", text: "Generate", tone: .default, enabled: vm.canGenerate)
+                if (vm.validationStatus != "") {
+                    Label(id: "generationValidationStatus", text: vm.validationStatus, style: .caption)
+                } else {
+                    Label(id: "generationServiceStatus", text: vm.serviceStatus, style: .caption)
+                }
+                LabelButton(id: "generationSubmit", text: "Generate", tone: .default, enabled: vm.canGenerate, onClick: vm.submit)
         }
     }
 }

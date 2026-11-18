@@ -2,8 +2,8 @@
 #include "App/Native/NativeSocietyStorageModel.h"
 #include "App/Native/NativeSocietyModels.h"
 #include "NativeAssets.h"
-#include <iiFileProviderNative.h>
-#include <iiJson/Json.h>
+#include <iiFileProvider>
+#include <iiJson>
 #include <algorithm>
 #include <filesystem>
 #include <iostream>

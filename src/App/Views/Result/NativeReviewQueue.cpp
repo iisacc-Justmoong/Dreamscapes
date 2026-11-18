@@ -46,7 +46,7 @@ std::string stateName(std::string_view state, const QueueStrings &s) {
 }
 struct ProjectedRow {
     std::string id, state, title, stateLabel, modelLabel, detail;
-    bool progress = false;
+    bool progress = false, hasDiagnostic = false;
     int step = 0, total = 0;
 };
 template <class Observable, class T>
@@ -149,6 +149,7 @@ ii::core::Result<void> QueueModel::setSnapshot(const QueueSnapshot &snapshot) {
         try { row.title = strings_.jobTitle(std::string_view(row.id).substr(0, 8)); }
         catch (...) { return ii::core::fail(ii::core::ErrorCode::failed, "Review queue title formatting failed", std::current_exception()); }
         row.stateLabel = stateName(row.state, strings_);
+        row.hasDiagnostic = !vm::text(vm::get(job,"error")).empty();
         auto media = vm::text(vm::get(job, "mediaType"));
         auto model = vm::text(vm::get(job, "modelName"));
         row.modelLabel = (media.empty() ? strings_.unavailable : media) + " · " +
@@ -194,23 +195,26 @@ ii::core::Result<void> QueueModel::setSnapshot(const QueueSnapshot &snapshot) {
         const auto &item = next[i]; const auto &row = projection[i];
         if (i >= items.get().size() || items.get()[i] != item || item->showProgress.get() != row.progress ||
             item->canCancel.get() != (!row.id.empty() && pending(row.state) && bool(cancel_)) ||
-            item->canInspectFailure.get() != (!row.id.empty() && row.state == "failed" && bool(failure_))) layoutChanged = true;
+            item->canInspectFailure.get() != (!row.id.empty() && (row.state == "failed" ||
+                (row.state == "cancelled" && row.hasDiagnostic)) && bool(failure_))) layoutChanged = true;
     }
     // Retire removed tokens before publishing any row changes.
     byId_ = std::move(nextById); byToken_ = std::move(nextByToken);
     activeJobId_ = activeId;
-    for (std::size_t i = 0; i < next.size(); ++i) next[i]->state_ = projection[i].state;
+    for (std::size_t i = 0; i < next.size(); ++i) {next[i]->state_ = projection[i].state;next[i]->hasDiagnostic_=projection[i].hasDiagnostic;}
     std::exception_ptr notificationFailure;
     for (std::size_t i = 0; i < next.size(); ++i) {
         auto &item = next[i]; const auto &row = projection[i];
         publish(item->title, row.title, notificationFailure); publish(item->stateLabel, row.stateLabel, notificationFailure);
         publish(item->modelLabel, row.modelLabel, notificationFailure); publish(item->detail, row.detail, notificationFailure);
+        publish(item->detailsLabel,row.state=="cancelled"?strings_.details:strings_.failure,notificationFailure);
         publish(item->step, row.step, notificationFailure); publish(item->total, row.total, notificationFailure);
         publish(item->showProgress, row.progress, notificationFailure);
         publish(item->isFailed, row.state == "failed", notificationFailure);
         publish(item->selected, !row.id.empty() && session_->jobFilter() == row.id, notificationFailure);
         publish(item->canCancel, !row.id.empty() && pending(row.state) && bool(cancel_), notificationFailure);
-        publish(item->canInspectFailure, !row.id.empty() && row.state == "failed" && bool(failure_), notificationFailure);
+        publish(item->canInspectFailure, !row.id.empty() && (row.state == "failed" ||
+            (row.state == "cancelled" && row.hasDiagnostic)) && bool(failure_), notificationFailure);
     }
     publish(running, runningCount, notificationFailure); publish(queued, queuedCount, notificationFailure);
     publish(completed, completedCount, notificationFailure); publish(failed, failedCount, notificationFailure);
@@ -256,7 +260,8 @@ void QueueModel::refreshActions() {
     bool layoutChanged = false;
     for (const auto &item : items.get()) {
         const bool canCancel = !item->id.empty() && pending(item->state_) && bool(cancel_);
-        const bool canInspect = !item->id.empty() && item->state_ == "failed" && bool(failure_);
+        const bool canInspect = !item->id.empty() && (item->state_ == "failed" ||
+            (item->state_ == "cancelled" && item->hasDiagnostic_)) && bool(failure_);
         layoutChanged |= item->canCancel.get() != canCancel || item->canInspectFailure.get() != canInspect;
         publish(item->canCancel, canCancel, failure); publish(item->canInspectFailure, canInspect, failure);
     }
@@ -303,7 +308,8 @@ void QueueModel::invoke(std::string_view token, Command command) {
     }
     const auto action = command == Command::Cancel ? cancel_ : failure_;
     if (action && ((command == Command::Cancel && pending(item->state_)) ||
-                   (command == Command::Failure && item->state_ == "failed"))) action(item->id);
+                   (command == Command::Failure && (item->state_ == "failed" ||
+                       (item->state_ == "cancelled" && item->hasDiagnostic_))))) action(item->id);
 }
 void QueueModel::close() {
     requireOwner();

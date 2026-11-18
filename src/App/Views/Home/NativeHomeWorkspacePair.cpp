@@ -1,6 +1,6 @@
 #include "NativeHomeWorkspacePair.h"
-#include <LVUI/NativeBindings.h>
-#include <iiGUI/CompiledViewSource.h>
+#include <LVUI>
+#include <iiGUI>
 #include <algorithm>
 
 namespace dreamscapes::home {

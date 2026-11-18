@@ -1,7 +1,7 @@
 #include "NativeHomeWorkspaceSources.h"
 #include "NativeHomeQueueView.h"
 #include "NativeHomeSidebarView.h"
-#include <iiGUI/CompiledViewSource.h>
+#include <iiGUI>
 #include <stdexcept>
 #include <utility>
 

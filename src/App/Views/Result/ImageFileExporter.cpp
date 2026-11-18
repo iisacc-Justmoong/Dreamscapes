@@ -1,6 +1,6 @@
 #include "ImageFileExporter.h"
 
-#include <iiSocietyHelper/MediaExport.h>
+#include <iiSocietyHelper>
 #include <QFileInfo>
 #include <QPointer>
 #include <QtConcurrentRun>

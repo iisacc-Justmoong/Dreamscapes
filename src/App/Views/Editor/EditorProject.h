@@ -3,7 +3,7 @@
 #include "EditorPagePreviews.h"
 #include "EditorImageImport.h"
 #include "EditorDocumentOpen.h"
-#include <Container.h>
+#include <iiSocietyContainer>
 #include <QObject>
 #include <vector>
 

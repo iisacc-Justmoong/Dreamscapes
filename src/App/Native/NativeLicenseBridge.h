@@ -1,5 +1,5 @@
 #pragma once
-#include <iiLicenseManager/SocietyLicenseGateModel.h>
+#include <iiLicenseManager>
 #include <functional>
 #include <memory>
 #include <string>

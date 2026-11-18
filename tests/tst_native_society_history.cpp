@@ -1,11 +1,11 @@
 #include "App/Native/NativeSocietyHistory.h"
 #ifdef DREAMSCAPES_HISTORY_IMAGE_TEST
 #include "App/Native/NativeFileImages.h"
-#include <iiSDKCore/Runtime/Runtime.h>
+#include <iiSDKCore>
 #include <thread>
 #endif
-#include <iiFileProviderNative.h>
-#include <iiJson/Json.h>
+#include <iiFileProvider>
+#include <iiJson>
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>

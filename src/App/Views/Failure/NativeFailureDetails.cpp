@@ -1,9 +1,6 @@
 #include "NativeFailureDetails.h"
-#include <LVUI/NativeModal.h>
-#include <iiGUI/NativeTextLayout.h>
-#include <iiGUI/ModalModel.h>
-#include <iiGUI/TextInputModel.h>
-#include <iiGUI/Desktop.h>
+#include <LVUI>
+#include <iiGUI>
 #include <algorithm>
 #include <cmath>
 #include <limits>

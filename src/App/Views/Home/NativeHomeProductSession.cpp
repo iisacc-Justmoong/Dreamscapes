@@ -5,8 +5,8 @@
 #include "App/Generation/GenerationController.h"
 #include "App/ViewModels/GenerationProjection.h"
 #include "App/ViewModels/WorkspaceSession.h"
-#include <Container.h>
-#include <iiGUI/CompiledViewSource.h>
+#include <iiSocietyContainer>
+#include <iiGUI>
 #include <QThread>
 #include <stdexcept>
 #include <utility>

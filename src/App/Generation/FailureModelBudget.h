@@ -1,6 +1,6 @@
 #pragma once
 
-#include <iiMultimodalAgent/agent/Types.h>
+#include <iiMultimodalAgent>
 #include <memory>
 #include <stdexcept>
 #include <utility>

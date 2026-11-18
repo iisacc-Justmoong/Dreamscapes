@@ -1,8 +1,8 @@
 #include "App/Views/Home/NativeHomeComposerPanelView.h"
 #include "App/Views/Home/NativeHomeComposerPromptView.h"
 #include "iiGUI/WidgetState.h"
-#include <iiGUI/CompiledViewSource.h>
-#include <iiSDKCore/Runtime/FrameLoop.h>
+#include <iiGUI>
+#include <iiSDKCore>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>

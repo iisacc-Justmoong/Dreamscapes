@@ -1,9 +1,7 @@
-#include <iiMultimodalAgent/mcp/LocalApplications.h>
-#include <iiMultimodalAgent/mcp/HttpClient.h>
-#include <iiMultimodalAgent/agent/McpTools.h>
+#include <iiMultimodalAgent>
 #include <atomic>
 #include <future>
-#include <SocietyDrive.h>
+#include <iiSocietyContainer>
 #include <QtTest/QtTest>
 #include <QProcess>
 #include <QProcessEnvironment>

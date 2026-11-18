@@ -1,6 +1,6 @@
 #include "GenerationController.h"
 #include "VideoGeneration.h"
-#include <iiFileProviderStorage.h>
+#include <iiFileProvider>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>

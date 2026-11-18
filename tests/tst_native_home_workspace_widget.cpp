@@ -1,8 +1,8 @@
 #include "App/Views/Home/NativeHomeWorkspaceSources.h"
 #include "App/Views/Home/NativeHomeWorkspaceView.h"
 #include "iiGUI/WidgetState.h"
-#include <iiGUI/CompiledViewSource.h>
-#include <iiSDKCore/Runtime/FrameLoop.h>
+#include <iiGUI>
+#include <iiSDKCore>
 #include <cmath>
 #include <chrono>
 #include <fstream>
@@ -71,8 +71,8 @@ void exercise(const char *assetPath) {
     const auto queueBounds = take(find(state,"homeQueue").snapshot()).bounds;
     const auto generationsBounds = take(find(state,"homeRecentGenerations").snapshot()).bounds;
     auto near = [](double a, double b) { return std::abs(a-b) < 0.1; };
-    if (!near(filesBounds.width,676) || !near(selectedBounds.width,491) || !near(filesBounds.height,469) ||
-        !near(queueBounds.width,526) || !near(generationsBounds.width,665) || selectedBounds.x <= filesBounds.x ||
+    if (!near(filesBounds.width,model->fileWidth.get()-24) || !near(selectedBounds.width,model->selectedWidth.get()-24) || !near(filesBounds.height,469) ||
+        !near(queueBounds.width,model->queueWidth.get()) || !near(generationsBounds.width,model->generationWidth.get()-24) || selectedBounds.x <= filesBounds.x ||
         generationsBounds.x <= queueBounds.x || queueBounds.y <= filesBounds.y)
         throw std::runtime_error("wide native bounds: files=" + std::to_string(filesBounds.width) + "x" + std::to_string(filesBounds.height) +
             " selected=" + std::to_string(selectedBounds.width) + " queue=" + std::to_string(queueBounds.width) +

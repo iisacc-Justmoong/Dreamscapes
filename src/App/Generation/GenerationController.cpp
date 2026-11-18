@@ -1,7 +1,6 @@
 #include "../ViewModels/Native/GenerationPresentation.h"
 #include "../ViewModels/ViewData.h"
-#include <File.h>
-#include <iiFileProviderDevice.h>
+#include <iiFileProvider>
 #include "GenerationController.h"
 #include "ImageParameterCodec.h"
 #include "VideoGeneration.h"
@@ -18,13 +17,12 @@
 
 #include <QDateTime>
 #include <QFileInfo>
-#include <QGuiApplication>
+#include <QCoreApplication>
 #include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QStandardPaths>
 #include <QThread>
-#include <QThreadPool>
 #include <QScopeGuard>
 #include <QUuid>
 #include <QSet>
@@ -269,16 +267,10 @@ GenerationController::GenerationController(GenerationRuntime runtime, QObject *p
         m_runtime.backgroundActivity->observeForeground([self](bool foreground) {
             if (self) self->setForeground(foreground);
         });
-    } else if (auto *application = qobject_cast<QGuiApplication *>(QCoreApplication::instance())) {
-        connect(application, &QGuiApplication::applicationStateChanged, this, [this](Qt::ApplicationState state) {
-            // A temporary inactive state (an alert or Control Center) is not
-            // background execution. Cancel only after the app is hidden.
-            setForeground(m_runtime.nativeInference
-                ? state == Qt::ApplicationActive || state == Qt::ApplicationInactive
-                : state == Qt::ApplicationActive);
-        });
-        setForeground(application->applicationState() == Qt::ApplicationActive
-            || (m_runtime.nativeInference && application->applicationState() == Qt::ApplicationInactive));
+    } else {
+        // Hosts without a platform activity source start in the foreground.
+        // Lifecycle transitions arrive through the injected native interface.
+        setForeground(true);
     }
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
     ii::process::EnvironmentPatch environment{{"IILD_WORKER_PROGRESS", "1"}, {"IILD_MODEL_VALIDATION", "metadata"}};
@@ -373,20 +365,6 @@ void GenerationController::prepareForShutdown()
     clearWorkingFiles();
 }
 
-void GenerationController::finishShutdownAsync(QObject *receiver, std::function<void()> completion)
-{
-    prepareForShutdown();
-    const auto work = m_backgroundWork;
-    auto *worker = QThread::create([work] {
-        work->wait();
-        QThreadPool::globalInstance()->waitForDone();
-    });
-    connect(worker, &QThread::finished, receiver, [completion = std::move(completion)] {
-        if (completion) completion();
-    });
-    connect(worker, &QThread::finished, worker, &QObject::deleteLater);
-    worker->start();
-}
 void GenerationController::cancelBatch(const QStringList &ids) {
     const QSet<QString> owners(ids.begin(), ids.end()); QStringList queued, active;
     for (const auto &value : jobs()) {
@@ -1361,6 +1339,10 @@ void GenerationController::startWorkerGeneration(const QString &model)
         arguments.append({"--engine", "native",
             "--guidance-scale", QString::number(advanced.value("cfgScale").toDouble(), 'g', 17),
             "--native-sampler", advanced.value("sampler").toString()});
+        const bool hires = dreamscapes::imageHiresEnabled(advanced);
+        arguments.append(hires ? "--hires-fix" : "--no-hires-fix");
+        if (hires) arguments.append({"--hires-upscaler", advanced.value("upscaler").toString(),
+            "--hires-strength", QString::number(advanced.value("denoiseStrength").toDouble(), 'g', 17)});
         for (const auto &value : advanced.value("loras").toArray()) {
             const auto lora = value.toObject();
             arguments.append({"--lora", lora.value("source").toString(),

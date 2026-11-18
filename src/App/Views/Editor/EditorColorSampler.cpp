@@ -1,5 +1,5 @@
 #include "EditorColorSampler.h"
-#include <iiSharedCanvas/Render/FrameRenderer.h>
+#include <iiSharedCanvas>
 #include <QtConcurrentRun>
 #include <exception>
 

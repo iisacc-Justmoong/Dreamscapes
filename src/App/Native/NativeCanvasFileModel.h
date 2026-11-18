@@ -1,8 +1,7 @@
 #pragma once
 #include "NativeCanvasFiles.h"
 #include "NativeDocumentSession.h"
-#include <iiSDKCore/Core/Property/Observable.h>
-#include <iiSDKCore/Runtime/EventLoop.h>
+#include <iiSDKCore>
 #include <functional>
 #include <memory>
 #include <optional>

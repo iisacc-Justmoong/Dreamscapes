@@ -1,6 +1,6 @@
 #include "CanvasPreview.h"
 
-#include <iiSharedCanvas/Render/DocumentPreview.h>
+#include <iiSharedCanvas>
 #include <QFileInfo>
 #include <QImage>
 #include <QQmlEngine>

@@ -18,8 +18,8 @@
 #include <chrono>
 #include <fstream>
 #include <future>
-#include <iiJson/Json.h>
-#include <iiSDKCore/Runtime/Query.h>
+#include <iiJson>
+#include <iiSDKCore>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -105,6 +105,22 @@ void timeline() {
     const auto recipe = model.recipeShots("test prompt");
     require(array(recipe).size() == 2 && !array(get(array(recipe)[0], "conditions")).empty(),
             "recipe lost native conditions");
+    send(TimelineAction::seek, {Value(20)});
+    require(boolean(send(TimelineAction::pasteKey)), "pasting a copied key failed");
+    require(array(get(model.presentation(), "keys")).size() == 3, "pasting a key lost existing keys");
+    require(text(get(get(model.presentation(), "selectedKey"), "source")) == "file:///b.iisc",
+            "pasted key changed the image source");
+    require(boolean(send(TimelineAction::selectShot, {Value("shot-1"), Value(false)})), "shot selection failed");
+    require(boolean(send(TimelineAction::toggleExclude)), "shot exclusion failed");
+    require(boolean(get(get(model.presentation(), "selectedShot"), "excluded")), "excluded shot stayed active");
+    const auto beforeDeletion = model.snapshot();
+    require(boolean(send(TimelineAction::rippleDelete)), "ripple deletion failed");
+    require(array(get(model.presentation(), "shots")).size() == 1, "ripple deletion retained a deleted shot");
+    send(TimelineAction::undo);
+    require(model.snapshot() == beforeDeletion, "undo did not restore the deleted shot and keys");
+    send(TimelineAction::reset, {Value(240), Value(30)});
+    require(array(get(model.presentation(), "tracks")).empty() && model.undoDepth() == 0,
+            "reset retained tracks or edit history");
 }
 void drafts() {
     int resized = 0;

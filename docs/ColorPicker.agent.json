@@ -10,8 +10,8 @@
   },
   "source": {
     "path": "docs/ColorPicker.md",
-    "sha256": "63cd1a5452f7a64fe41384950e300ea81b45ce4c6a4cc1378a9494d0829f96bc",
-    "bytes": 3640,
+    "sha256": "208c58cb02125be8d113820e34058f976771df6a8636245417f784a4ef5717ba",
+    "bytes": 3644,
     "line_count": 55,
     "encoding": "utf-8",
     "language": "en"
@@ -113,7 +113,7 @@
       "kind": "paragraph",
       "start_line": 40,
       "end_line": 55,
-      "raw": "Build and test with the existing `build/` tree. The `Dreamscapes.ColorManager`\ntest covers all nine modes at 280px and 402px, native model bindings, numeric\nedits, pointer/keyboard surfaces and accept/cancel. It verifies the header and\nselector geometry and chooses every mode through the real menu at both widths.\nIts nine GUI captures are\nwritten to `build/color-manager-verification/`. Existing Home/tool/graphic GUI\nregressions cover the production caller paths. The real application registration\nis in `src/main.cpp`, independently of the test registration.\nThe Home painting fixture creates an isolated Society drive for attachment\nimports and restores its previous container environment on every exit. It does\nnot depend on the user's active drive. Packaged startup verification removes\ndevelopment library/import overrides and checks the bundle's real entry point.\nThe packaged entry check allows 90 seconds for a cold start from the external\nworkspace volume; its process is still required to emit `root-loaded`, create\none window, and discover the isolated test helper. Elapsed time alone is not a\nsuccessful startup result.\n"
+      "raw": "Build and test with the existing `build/` tree. The `Dreamscapes.ColorManager`\ntest covers all nine modes at 280px and 402px, native model bindings, numeric\nedits, pointer/keyboard surfaces and accept/cancel. It verifies the header and\nselector geometry and chooses every mode through the real menu at both widths.\nIts nine GUI captures are\nwritten to `build/color-manager-verification/`. Existing Home/tool/graphic GUI\nregressions covered the former Qt application paths. That retired entry point\nhas been removed; current native app coverage is tracked separately.\nThe Home painting fixture creates an isolated Society drive for attachment\nimports and restores its previous container environment on every exit. It does\nnot depend on the user's active drive. Packaged startup verification removes\ndevelopment library/import overrides and checks the bundle's real entry point.\nThe packaged entry check allows 90 seconds for a cold start from the external\nworkspace volume; its process is still required to emit `root-loaded`, create\none window, and discover the isolated test helper. Elapsed time alone is not a\nsuccessful startup result.\n"
     }
   ],
   "outline": [
@@ -127,15 +127,7 @@
     }
   ],
   "indexes": {
-    "directive_candidates": [
-      {
-        "block_id": "b000013",
-        "line": 53,
-        "text": "workspace volume; its process is still required to emit `root-loaded`, create",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      }
-    ],
+    "directive_candidates": [],
     "commands": [],
     "links": [
       {

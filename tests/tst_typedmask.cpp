@@ -3,9 +3,9 @@
 #include "App/Views/Editor/EditorGraphicAdjust.h"
 #include "App/Views/Editor/EditorToolUtils.h"
 #include "App/Views/Editor/EditorRasterSource.h"
-#include <iiGraphicAdjust/iiGraphicAdjust.h>
-#include <iiFileProviderNative.h>
-#include <SocietyDrive.h>
+#include <iiGraphicAdjust>
+#include <iiFileProvider>
+#include <iiSocietyContainer>
 #include <QTemporaryDir>
 #include <QtTest>
 #include <limits>

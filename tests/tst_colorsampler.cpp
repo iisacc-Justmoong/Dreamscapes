@@ -1,6 +1,5 @@
 #include "App/Views/Editor/EditorColorSampler.h"
-#include <iiSharedCanvas/Serialization/IiscCodec.h>
-#include <iiSharedCanvas/Render/FrameRenderer.h>
+#include <iiSharedCanvas>
 #include <QElapsedTimer>
 #include <QSignalSpy>
 #include <QTimer>

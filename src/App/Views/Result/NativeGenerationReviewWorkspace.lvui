@@ -1,0 +1,29 @@
+import vm NativeGenerationReviewWorkspaceBackend
+@Static let resizeReview: (Double, Double) -> Void = vm.sizeHandler(Metric.size256, Metric.size280, Metric.size400, Metric.space12)
+EventListener(id: "generationReviewSurface", width: 0, height: 0, flex: 1, onSizeChanged: resizeReview) {
+  ZStack(width: vm.width, height: vm.height, alignment: .stretch) {
+    VStack(id: "generationReviewWorkspace", width: vm.width, height: vm.height, spacing: Metric.space8, alignment: .stretch) {
+        HStack(id: "generationReviewHeader", height: Metric.size22, spacing: Metric.space8, alignment: .center) {
+            LabelButton(id: "generationReviewBack", text: "Back", tone: .default, onClick: vm.back)
+            Label(text: "Generation review", style: .body, flex: 1)
+        }
+        HStack(id: "generationReviewBody", height: 0, flex: 1, spacing: Metric.space12, alignment: .stretch) {
+            if (vm.showQueue) {
+                VStack(id: "generationReviewQueueSlot", width: vm.queueWidth, alignment: .stretch) {
+                    NativeView(id: "generationReviewQueueView", source: vm.queueView, width: vm.queueWidth, height: 0, flex: 1)
+                }
+            }
+            VStack(id: "generationReviewResultsSlot", width: vm.galleryWidth, alignment: .stretch) {
+                NativeView(id: "generationReviewResultsView", source: vm.galleryView, width: vm.galleryWidth, height: 0, flex: 1)
+            }
+            if (vm.showInspector) {
+                VStack(id: "generationReviewInspectorSlot", width: vm.inspectorWidth, alignment: .stretch) {
+                    NativeView(id: "generationReviewInspectorView", source: vm.inspectorView, width: vm.inspectorWidth, height: 0, flex: 1)
+                }
+            }
+        }
+    }
+    NativeView(id: "generationFailureView", source: vm.failureView, width: vm.width, height: vm.height,
+               enabled: vm.failureOpen, clip: false)
+  }
+}

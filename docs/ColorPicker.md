@@ -43,8 +43,8 @@ edits, pointer/keyboard surfaces and accept/cancel. It verifies the header and
 selector geometry and chooses every mode through the real menu at both widths.
 Its nine GUI captures are
 written to `build/color-manager-verification/`. Existing Home/tool/graphic GUI
-regressions cover the production caller paths. The real application registration
-is in `src/main.cpp`, independently of the test registration.
+regressions covered the former Qt application paths. That retired entry point
+has been removed; current native app coverage is tracked separately.
 The Home painting fixture creates an isolated Society drive for attachment
 imports and restores its previous container environment on every exit. It does
 not depend on the user's active drive. Packaged startup verification removes

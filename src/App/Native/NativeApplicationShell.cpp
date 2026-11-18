@@ -1,15 +1,20 @@
 #include "NativeApplicationShell.h"
+#include "App/Generation/NativeFailurePresenter.h"
 #include "App/Views/Home/NativeHomeWorkspaceView.h"
 #include "App/Views/Home/NativeStorageWorkspaceView.h"
 #include "App/Views/Home/NativeCanvasWorkspaceView.h"
 #include "App/Views/Generation/NativeGenerationWorkspaceView.h"
 #include "App/Views/Result/NativeReviewGalleryView.h"
+#include "App/Views/Result/NativeGenerationReviewWorkspace.h"
 #include "App/Views/Editor/NativeEditorWorkspaceView.h"
 #include "App/Views/Publishing/NativePublishWorkspaceView.h"
+#include "App/Views/Publishing/NativePublishMedia.h"
 #include "App/Views/Preferences/NativePreferencesWorkspaceView.h"
 #include "NativeAssets.h"
 #include "NativeSocietyModels.h"
-#include <iiGUI/CompiledViewSource.h>
+#include <iiGUI>
+#include <iiJson>
+#include <iiSDKCore>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -35,10 +40,10 @@ std::filesystem::path nativePath(std::string_view value) {
     return std::filesystem::path(bytes);
 }
 HomeComposerLabels composerLabels() {
-    return {"Describe the image or video to create", "Prompt", "Clear", "Negative prompt", "Done",
+    return {"Prompt", "Prompt", "Clear", "Negative prompt", "Done",
         "Media", "Model", "Choose model", "Aspect ratio", "Resolution", "Batch size", "Duration", "Frame rate",
         "Preset", "Load preset", "Save preset", "Name", "Save", "Cancel", "Seed", "Random", "Apply",
-        "Attach images", "Paint canvas", "Advanced parameters", "More controls", "Generate",
+        "Attach reference files", "Paint canvas", "Advanced parameters", "More controls", "Generate",
         [](int count,bool video){return std::to_string(count)+(video?" videos":" images");},
         [](const auto &name){return "Remove "+name;}};
 }
@@ -52,6 +57,7 @@ const std::map<std::string,std::string,std::less<>> routes{
     {"files","src/App/Views/Home/StorageBrowser.qml"},
     {"assets","src/App/Views/Home/StorageBrowser.qml"},
     {"history","src/App/Views/Result/GenerationResult.qml"},
+    {"review","src/App/Views/Result/GenerationResult.qml"},
     {"editor","src/App/Views/Editor/CanvasEditor.qml"},
     {"publish","src/App/Views/Publishing/PublishWorkspace.qml"},
     {"preferences","src/App/Views/Preferences/PreferencesWindow.qml"},
@@ -62,15 +68,38 @@ std::shared_ptr<NativeApplicationShell> NativeApplicationShell::create(std::stri
     auto shell=std::shared_ptr<NativeApplicationShell>(new NativeApplicationShell(std::move(svg)));
     shell->start(); return shell;
 }
+ii::core::Result<void> NativeApplicationShell::connectPublication(ii::runtime::EventLoop &loop,CanvasFileModel::Submit submit,
+    std::map<std::string,iiSocialIntegration::Account,std::less<>> accounts,
+    std::shared_ptr<iiSocialIntegration::Transport> transport) {
+    try {
+        auto service=publishing::PublicationService::create(loop,std::move(submit),std::move(transport));
+        for (auto &[id,account]:accounts) if (auto configured=service->configure(id,std::move(account));!configured)
+            return configured;
+        disconnectPublication();publicationService_=std::move(service);
+        publishingWorkspace_->setPublicationService(publicationService_);return {};
+    } catch (...) {return ii::core::fail(ii::core::ErrorCode::failed,"Cannot initialize publishing service",std::current_exception());}
+}
+void NativeApplicationShell::disconnectPublication() {
+    publishingWorkspace_->setPublicationService({});
+    if (publicationService_) publicationService_->close();
+    publicationService_.reset();
+}
 void NativeApplicationShell::start() {
     sidebar_=HomeSidebarModel::create({
-        {"home","Home","nodeshomeFolder"}, {"canvas","New Canvas","imagefitContent"},
+        {"home","Home","nodeshomeFolder"}, {"home-divider","","",true},
+        {"canvas","New Canvas","imagefitContent"},
         {"image","Image","unconditionalImageGeneration"}, {"video","Video","imageToVideo"},
-        {"audio","Audio","volume"}, {"board","Board",""}, {"tools","Tools",""},
+        {"audio","Audio","volume"}, {"board","Board","pattern"}, {"tools","Tools","collection-asset"},
+        {"storage-divider","","",true},
         {"files","Files","sqlFile"}, {"assets","Assets","asset-library"},
-        {"history","Generation History","profileCPU"}, {"editor","Editor",""},
-        {"publish","Publish",""}, {"preferences","Preferences",""}});
+        {"history","Generation History","profileCPU"}});
     const std::weak_ptr<NativeApplicationShell> weak=shared_from_this();
+    titleBar_=NativeTitleBarModel::create(false,{},[weak] {
+        if (auto shell=weak.lock()) {
+            if (auto preferences=shell->preferencesWorkspace()) (void)preferences->select("Account");
+            (void)shell->navigate("preferences");
+        }
+    });
     sidebar_->setHandler([weak](std::string key){if (auto shell=weak.lock()) (void)shell->navigate(key);});
     (void)sidebar_->setSelected("home");
 
@@ -86,6 +115,8 @@ void NativeApplicationShell::start() {
     videoGeneration_=generation::GenerationWorkspaceModel::create(true,composer_);
     reviewSession_=std::make_shared<review::Session>();
     historySession_=std::make_shared<review::Session>();
+    reviewQueue_=review::QueueModel::create(reviewSession_);
+    generationFailure_=std::make_shared<failure::FailureDetailsModel>();
     documentSession_=DocumentSession::create();
     editorWorkspace_=editor::WorkspaceModel::create(documentSession_);
     publishingWorkspace_=publishing::WorkspaceModel::create(documentSession_);
@@ -107,19 +138,19 @@ void NativeApplicationShell::start() {
         if (auto value=weak.lock()) return value->navigate("publish");
         return ii::core::fail(ii::core::ErrorCode::closed,"Native application is closed");
     });
-    // These layout values are the existing Home composition's design inputs.
-    const HomeComposerLayoutSpec layout{1000,600,400,{88,1,22,93,138,145},{327,88,144,96,120,228,152}};
+    // Figma 1756:75057 fixes the media and Generate widths. LVUI supplies the control height.
+    const HomeComposerLayoutSpec layout{1000,600,400,{65,1,22,93,138,71},{327,88,144,96,120,228,152},true};
     const HomeComposerLayoutMetrics metrics{8,12,22,37,44};
     composerPanel_=createHomeComposerPanel(composer_,composerLabels(),layout,metrics);
     HomeRecentFilesStrings fileStrings;
     HomeRecentGenerationsStrings generationStrings;
     generationStrings.edit=[](std::size_t count) {return "Review ("+std::to_string(count)+")";};
     HomeQueueStrings queueStrings;
-    queueStrings.ready="Generation unavailable"; queueStrings.detail="Generation is not connected in this view migration.";
+    queueStrings.ready="Generation unavailable";
     recentFiles_=HomeRecentFilesModel::create(std::move(fileStrings));
     selectedFile_=HomeSelectedFileModel::create();
     (void)recentFiles_->setAvailabilityMessage("Storage unavailable");
-    auto queue=std::make_shared<HomeQueueModel>(std::move(queueStrings));
+    homeQueue_=std::make_shared<HomeQueueModel>(std::move(queueStrings));
     recentGenerations_=HomeRecentGenerationsModel::create(std::move(generationStrings));
     (void)recentGenerations_->setAvailabilityMessage("Generation history unavailable");
     sharedImages_=std::make_shared<SharedImageResolver>();
@@ -131,7 +162,7 @@ void NativeApplicationShell::start() {
         },.edit=[weak](std::vector<std::string> tokens) {
             if (auto shell=weak.lock()) shell->reviewRecentHistory(tokens);
         },.browse=[weak] {if (auto shell=weak.lock()) (void)shell->navigate("history");}});
-    auto sources=homeWorkspaceSources({sidebar_,homeComposerPanelSource(composerPanel_),recentFiles_,selectedFile_,queue,recentGenerations_,sharedImages_,queueSvg_});
+    auto sources=homeWorkspaceSources({sidebar_,homeComposerPanelSource(composerPanel_),recentFiles_,selectedFile_,homeQueue_,recentGenerations_,sharedImages_,queueSvg_});
     workspace_=HomeWorkspaceModel::create(std::move(sources),sidebar_,{"Workspace","","Open file","New canvas","Storage unavailable"},
         {.openFile=[weak] {
             if (auto shell=weak.lock()) if (auto result=shell->requestCanvasOpen(); !result) (void)shell->workspace_->setError(result.error().message);
@@ -171,6 +202,7 @@ void NativeApplicationShell::prepareCanvasWorkspace() {
 ii::core::Result<void> NativeApplicationShell::navigate(const std::string &key) {
     if (license_ && license_->gateVisible.get())
         return ii::core::fail(ii::core::ErrorCode::unsupported,"A verified Dreamscapes license is required");
+    if (key!="review" && generationFailure_ && generationFailure_->open.get()) generationFailure_->dismiss();
     if (key=="home") {
         if (auto result=sidebar_->setSelected(key); !result) return result;
         editorRoute_=false;publishRoute_=false;
@@ -193,18 +225,27 @@ ii::core::Result<void> NativeApplicationShell::navigate(const std::string &key) 
     std::shared_ptr<ii::gui::NativeViewSource> view;
     const bool image=source=="src/App/Views/Home/ImageGenerationWorkspace.qml";
     const bool video=source=="src/App/Views/Video/VideoGenerationWorkspace.qml";
-    const bool history=source=="src/App/Views/Result/GenerationResult.qml";
-    const bool editor=source=="src/App/Views/Editor/CanvasEditor.qml";
+    const bool review=key=="review";
+    const bool history=source=="src/App/Views/Result/GenerationResult.qml" && !review;
+    const bool filePanel=source=="src/App/Views/Editor/EditorFilePanel.qml";
+    const bool layerPanel=source=="src/App/Views/Editor/EditorLayersPanel.qml";
+    const bool elementsPanel=source=="src/App/Views/Editor/EditorElementsPanel.qml";
+    const bool maskPanel=source=="src/App/Views/Editor/EditorBackgroundPanel.qml";
+    const bool colorPanel=source=="src/App/Views/Editor/EditorBackgroundColorPanel.qml";
+    const bool replacePanel=source=="src/App/Views/Editor/EditorBackgroundReplacePanel.qml";
+    const bool editor=source=="src/App/Views/Editor/CanvasEditor.qml" || filePanel || layerPanel || elementsPanel || maskPanel || colorPanel || replacePanel;
     const bool publish=source=="src/App/Views/Publishing/PublishWorkspace.qml";
     const bool storage=source=="src/App/Views/Home/StorageBrowser.qml" && key!="board";
     const bool preferences=source=="src/App/Views/Preferences/PreferencesWindow.qml";
     const bool canvas=source=="src/App/Views/Home/NewCanvasDialog.qml";
     if (image || video) {
         if (modelCatalogWorkspace_) (void)modelCatalogWorkspace_->refresh();
-        if (composer_->snapshot.get().video!=video) {
+        const bool matchingMedia = composer_->snapshot.get().video == video;
+        if (!matchingMedia) {
             if (auto changed=composer_->dispatch(HomeComposerCommandKind::chooseMedia,video?"Video":"Image"); !changed) return changed;
         }
         auto model=video?videoGeneration_:imageGeneration_;
+        if (atHome.get() && matchingMedia) (void)model->adoptQuickSettings(composer_->snapshot.get());
         view=ii::gui::compiled_view_source([model](ii::gui::WidgetBuilder &builder) {
             return generation::buildGenerationWorkspace(builder,{},model);
         });
@@ -235,8 +276,25 @@ ii::core::Result<void> NativeApplicationShell::navigate(const std::string &key) 
         });
     } else if (editor) {
         auto model=editorWorkspace_;
+        if ((colorPanel || replacePanel) && !model->backgroundPanel.get())
+            return ii::core::fail(ii::core::ErrorCode::unsupported,"Background provider is unavailable");
+        if (filePanel) model->showFilePanel();
+        else if (layerPanel) model->showLayerPanel();
+        else if (elementsPanel) model->showElementsPanel();
+        else if (maskPanel) model->showMaskPanel();
+        else if (colorPanel) model->showColorPanel();
+        else if (replacePanel) model->showReplacePanel();
         view=ii::gui::compiled_view_source([model](ii::gui::WidgetBuilder &builder) {
             return editor::buildWorkspace(builder,{},model);
+        });
+    } else if (review) {
+        const std::weak_ptr<NativeApplicationShell> weak=shared_from_this();
+        auto model=review::GenerationReviewWorkspace::create(reviewSession_,reviewQueue_,sharedImages_,generationFailure_,
+            [weak](const auto &gallery) {if (auto shell=weak.lock()) {
+                shell->reviewGallery_=gallery;gallery->setImageResolver(shell->reviewImages_);shell->configureReviewActions(gallery);
+            }},[weak] {if (auto shell=weak.lock()) (void)shell->navigate("home");});
+        view=ii::gui::compiled_view_source([model](ii::gui::WidgetBuilder &builder) {
+            return review::buildGenerationReviewWorkspace(builder,{},model);
         });
     } else if (history) {
         auto session=societyHistory_?historySession_:reviewSession_;
@@ -254,7 +312,9 @@ ii::core::Result<void> NativeApplicationShell::navigate(const std::string &key) 
             return buildMigratedView(builder,{},name,model);
         });
     }
-    if (auto result=sidebar_->setSelected(found==routes.end()?std::string{}:key); !result) return result;
+    const auto sidebarRows=sidebar_->rows.get();
+    const bool sidebarRoute=std::ranges::any_of(sidebarRows,[&](const auto &row) {return !row.divider && row.key==key;});
+    if (auto result=sidebar_->setSelected(sidebarRoute?key:std::string{}); !result) return result;
     editorRoute_=editor;publishRoute_=publish;
     editorWorkspace_->setVisible(editor);
     publishingWorkspace_->setVisible(publish);
@@ -302,47 +362,207 @@ void NativeApplicationShell::updateLicenseGate() {
     auto changed=viewChange_;
     if (changed) if (auto result=changed(); !result && workspace_) (void)workspace_->setError(result.error().message);
 }
+ii::core::Result<void> NativeApplicationShell::connectGenerationQueue(ii::runtime::EventLoop &loop,
+    generation::Queue::Submit submit,generation::QueueRunner runner,bool image,bool video) {
+    if (!submit || !runner || (!image && !video))
+        return ii::core::fail(ii::core::ErrorCode::invalid_argument,"Generation service requires a worker, provider and supported media");
+    try {
+        disconnectGenerationQueue();
+        generationQueue_=generation::Queue::create(loop,std::move(submit),std::move(runner));
+        generationReview_=review::GenerationReviewBridge::create(generationQueue_,reviewSession_,reviewQueue_,homeQueue_);
+        imageGenerationAvailable_=image;videoGenerationAvailable_=video;
+        const std::weak_ptr<NativeApplicationShell> weak=shared_from_this();
+        generationOutputObserver_=generationQueue_->outputs.observe([weak](const auto &,std::uint64_t) {
+            if (auto shell=weak.lock();shell && shell->societyHistory_)
+                (void)shell->societyHistory_->refresh(shell->historyVisible_?0:20);
+        });
+        reviewQueue_->setFailureHandler([weak](const std::string &id) {if (auto shell=weak.lock()) shell->showGenerationFailure(id);});
+        const auto handler=[weak](bool video,vm::Value values) -> ii::core::Result<void> {
+            if (auto shell=weak.lock()) return shell->submitGeneration(video,std::move(values));
+            return ii::core::fail(ii::core::ErrorCode::closed,"Native application is closed");
+        };
+        if (image) imageGeneration_->setSubmitHandler([handler](vm::Value values){return handler(false,std::move(values));});
+        if (video) videoGeneration_->setSubmitHandler([handler](vm::Value values){return handler(true,std::move(values));});
+        localDraft_->setSubmitHandler([handler](const HomeComposerSnapshot &state) {
+            vm::Object values{{"model",vm::Value(state.modelId)},{"prompt",vm::Value(state.prompt)},
+                {"negativePrompt",vm::Value(state.negativePrompt)},{"width",vm::Value(state.width)},
+                {"height",vm::Value(state.height)},{"outputCount",vm::Value(state.outputCount)},
+                {"seed",vm::Value(static_cast<std::int64_t>(state.seed))},{"quick",vm::Value(true)}};
+            if (state.video) {values["duration"]=vm::Value(state.videoDuration);values["fps"]=vm::Value(state.videoFps);}
+            return handler(state.video,vm::Value(std::move(values)));
+        },image,video);
+        homeQueue_->setOpenQueueHandler([weak] {if (auto shell=weak.lock()) (void)shell->navigate("review");});
+        return {};
+    } catch (...) {
+        disconnectGenerationQueue();
+        return ii::core::fail(ii::core::ErrorCode::failed,"Cannot connect generation service",std::current_exception());
+    }
+}
+void NativeApplicationShell::disconnectGenerationQueue() {
+    generationOutputObserver_={};
+    imageGenerationAvailable_=false;videoGenerationAvailable_=false;
+    if (localDraft_) localDraft_->setSubmitHandler({},false,false);
+    if (imageGeneration_) imageGeneration_->setSubmitHandler({});
+    if (videoGeneration_) videoGeneration_->setSubmitHandler({});
+    if (homeQueue_) homeQueue_->setOpenQueueHandler({});
+    if (reviewQueue_ && reviewQueue_->active()) reviewQueue_->setFailureHandler({});
+    if (generationFailure_ && generationFailure_->open.get()) generationFailure_->dismiss();
+    if (generationReview_) generationReview_->close();
+    generationReview_.reset();
+    if (generationQueue_) generationQueue_->close();
+    generationQueue_.reset();
+    if (homeQueue_) (void)homeQueue_->setSnapshot({vm::Value(vm::Array{}),"Generation unavailable",{},"Automatic"});
+}
+void NativeApplicationShell::showGenerationFailure(const std::string &id) {
+    if (!generationQueue_ || !generationFailure_) return;
+    const auto &jobs=generationQueue_->jobs.get();
+    const auto found=std::ranges::find_if(jobs,[&](const auto &job){return job->id==id;});
+    if (found==jobs.end()) return;
+    const auto job=*found;
+    const bool canceled=job->state.get()==generation::QueueState::Canceled && !job->error.get().empty();
+    if (job->state.get()!=generation::QueueState::Failed && !canceled) return;
+    failure::NativeFailurePresenter presenter(generationFailure_);
+    if (auto result=presenter.open(*job);!result) {
+        generationFailure_->setReportFailure(result.error().message);return;
+    }
+}
+ii::core::Result<void> NativeApplicationShell::submitGeneration(bool video,vm::Value parameters) {
+    if (!generationQueue_ || !(video?videoGenerationAvailable_:imageGenerationAvailable_))
+        return ii::core::fail(ii::core::ErrorCode::unsupported,"Generation service is unavailable");
+    if (license_ && license_->gateVisible.get())
+        return ii::core::fail(ii::core::ErrorCode::unsupported,"A verified Dreamscapes license is required");
+    const auto model=vm::text(vm::get(parameters,"model"));
+    if (model.empty() || vm::trim(vm::text(vm::get(parameters,"prompt"))).empty())
+        return ii::core::fail(ii::core::ErrorCode::invalid_argument,"Choose a model and enter a prompt");
+    const auto &draft=composer_->snapshot.get();
+    const auto modelLabel=draft.modelId==model && draft.video==video?draft.modelLabel:std::string{};
+    auto queued=generationQueue_->enqueue({video?"Video":"Image",model,std::move(parameters),modelLabel,localDraft_->modelSource(model)});
+    if (!queued) return std::unexpected(queued.error());
+    if ((*queued)->state.get()==generation::QueueState::Failed)
+        return ii::core::fail(ii::core::ErrorCode::failed,(*queued)->error.get());
+    if ((*queued)->state.get()==generation::QueueState::Canceled)
+        return ii::core::fail(ii::core::ErrorCode::cancelled,"Generation was canceled");
+    if (auto shown=navigate("review");!shown && workspace_) (void)workspace_->setError(shown.error().message);
+    return {};
+}
 ii::core::Result<void> NativeApplicationShell::connectFrameRenderer(ii::runtime::EventLoop &loop,
-    std::shared_ptr<iiSharedCanvas::FrameRenderExecutor> executor) {
+    std::shared_ptr<iiSharedCanvas::FrameRenderExecutor> executor,std::filesystem::path publicationStagingRoot) {
     if (!executor) return ii::core::fail(ii::core::ErrorCode::invalid_argument,"Canvas renderer requires an executor");
     try {
         auto presenter=editor::FramePresenter::create(documentSession_,loop,executor);
-        auto publishPresenter=editor::FramePresenter::create(documentSession_,loop,std::move(executor));
+        auto publishPresenter=editor::FramePresenter::create(documentSession_,loop,executor);
+        auto publicationMedia=publishing::PublicationMediaModel::create(documentSession_,loop,executor,std::move(publicationStagingRoot));
+        auto histogram=editor::HistogramModel::create(loop,executor);
+        auto background=editor::BackgroundPanelModel::create(documentSession_,loop,executor,backgroundCatalog);
+        auto audio=editor::AudioPanelModel::create(documentSession_,loop,executor);
+        auto light=editor::LightPanelModel::create(documentSession_,loop,executor,toolCatalog);
+        auto brush=editor::BrushToolModel::create(documentSession_,loop,executor);
+        const auto brushSpec=editor::brushPanelSpec();
+        iiSharedCanvas::BitmapBrush settings;settings.size=brushSpec.size.initial;
+        settings.hardness=brushSpec.hardness.initial/100;settings.opacity=brushSpec.opacity.initial/100;settings.flow=brushSpec.flow.initial/100;
+        if (auto configured=brush->setBrush(settings);!configured) return configured;
         auto playback=editor::TimelinePlayback::create(documentSession_,loop);
+        disconnectTimelineAudio();
+        editorWorkspace_->setHistogram(histogram);
+        editorWorkspace_->setBackgroundPanel(background);
+        editorWorkspace_->setAudioPanel(audio);
+        editorWorkspace_->setLightPanel(light);
+        editorWorkspace_->setBrushPanel(brush);
         editorWorkspace_->setFramePresenter(presenter);
         publishingWorkspace_->setFramePresenter(publishPresenter);
+        publishingWorkspace_->setMediaModel(publicationMedia);
         editorWorkspace_->setPlayback(playback);
         if (framePresenter_) framePresenter_->close();
         if (publishFramePresenter_) publishFramePresenter_->close();
+        if (publicationMedia_) publicationMedia_->close();
+        if (histogram_) histogram_->close();
+        if (backgroundPanel_) backgroundPanel_->close();
+        if (audioPanel_) audioPanel_->close();
+        if (lightPanel_) lightPanel_->close();
+        if (brushPanel_) brushPanel_->close();
         if (playback_) playback_->close();
         framePresenter_=std::move(presenter);
         publishFramePresenter_=std::move(publishPresenter);
+        publicationMedia_=std::move(publicationMedia);
+        histogram_=std::move(histogram);
+        backgroundPanel_=std::move(background);
+        audioPanel_=std::move(audio);
+        lightPanel_=std::move(light);
+        brushPanel_=std::move(brush);
         playback_=std::move(playback);
+        updateAudioFileBindings();
+        updateBackgroundFileBindings();
         return {};
     } catch (...) {return ii::core::fail(ii::core::ErrorCode::failed,"Cannot connect canvas renderer",std::current_exception());}
 }
+ii::core::Result<void> NativeApplicationShell::connectTimelineAudio(ii::runtime::EventLoop &loop,
+    editor::TimelineAudio::Submit submit,editor::TimelineAudioRunner runner) {
+    if (!playback_ || !submit) return ii::core::fail(ii::core::ErrorCode::invalid_argument,"Timeline playback and audio worker are required");
+    try {
+        auto audio=editor::TimelineAudio::create(documentSession_,playback_,loop,std::move(submit),std::move(runner));
+        disconnectTimelineAudio();timelineAudio_=std::move(audio);
+        const std::weak_ptr<NativeApplicationShell> weak=shared_from_this();
+        timelineAudioStatus_=timelineAudio_->status.observe([weak](const auto &message,std::uint64_t) {
+            if (auto shell=weak.lock()) (void)shell->editorWorkspace_->timelinePanel()->status.set(message);
+        },true);
+        return {};
+    } catch (...) {return ii::core::fail(ii::core::ErrorCode::failed,"Cannot connect timeline audio",std::current_exception());}
+}
+void NativeApplicationShell::disconnectTimelineAudio() {
+    timelineAudioStatus_={};if (timelineAudio_) timelineAudio_->close();timelineAudio_.reset();
+}
 void NativeApplicationShell::disconnectFrameRenderer() {
+    disconnectTimelineAudio();
+    editorWorkspace_->setHistogram({});
+    editorWorkspace_->setBackgroundPanel({});
+    editorWorkspace_->setAudioPanel({});
+    editorWorkspace_->setLightPanel({});
+    editorWorkspace_->setBrushPanel({});
     editorWorkspace_->setFramePresenter({});
     publishingWorkspace_->setFramePresenter({});
+    publishingWorkspace_->setMediaModel({});
     editorWorkspace_->setPlayback({});
     if (framePresenter_) framePresenter_->close();
     if (publishFramePresenter_) publishFramePresenter_->close();
+    if (publicationMedia_) publicationMedia_->close();
+    if (histogram_) histogram_->close();
+    if (backgroundPanel_) backgroundPanel_->close();
+    if (audioPanel_) audioPanel_->close();
+    if (lightPanel_) lightPanel_->close();
+    if (brushPanel_) brushPanel_->close();
     if (playback_) playback_->close();
     framePresenter_.reset();
     publishFramePresenter_.reset();
+    publicationMedia_.reset();
+    histogram_.reset();
+    backgroundPanel_.reset();
+    audioPanel_.reset();
+    lightPanel_.reset();
+    brushPanel_.reset();
     playback_.reset();
 }
 ii::core::Result<void> NativeApplicationShell::connectCanvasFiles(ii::runtime::EventLoop &loop,CanvasFileModel::Submit submit) {
     if (!submit) return ii::core::fail(ii::core::ErrorCode::invalid_argument,"Canvas file worker is required");
     try {
-        auto model=CanvasFileModel::create(documentSession_,loop,std::move(submit));
+        auto model=CanvasFileModel::create(documentSession_,loop,submit);
+        auto reviewSave=ReviewFileSave::create(loop,std::move(submit));
+        reviewSave->setPicker(canvasFilePicker_);
         const std::weak_ptr<NativeApplicationShell> weak=shared_from_this();
         model->setOpenedHandler([weak] {
             if (auto shell=weak.lock()) if (auto result=shell->navigate("editor"); !result)
                 if (shell->canvasFiles_) shell->canvasFiles_->reportError(result.error().message);
         });
         if (canvasFiles_) canvasFiles_->close();
+        if (reviewFileSave_) reviewFileSave_->close();
         canvasFiles_=std::move(model);
+        reviewFileSave_=std::move(reviewSave);
+        reviewSaveStatusObserver_=reviewFileSave_->status.observe([weak](const auto &,std::uint64_t) {
+            if (auto shell=weak.lock()) shell->updateHistoryStatus();
+        });
+        reviewSaveBusyObserver_=reviewFileSave_->busy.observe([weak](bool,std::uint64_t) {
+            if (auto shell=weak.lock()) if (auto gallery=shell->reviewGallery_.lock();gallery && gallery->active())
+                shell->configureReviewActions(gallery);
+        });
         canvasFileErrorObserver_=canvasFiles_->error.observe([weak](const auto &message,std::uint64_t) {
             if (auto shell=weak.lock()) {
                 if (shell->workspace_) (void)shell->workspace_->setError(message);
@@ -366,15 +586,19 @@ ii::core::Result<void> NativeApplicationShell::connectCanvasFiles(ii::runtime::E
     } catch (...) {return ii::core::fail(ii::core::ErrorCode::failed,"Cannot connect canvas file services",std::current_exception());}
 }
 void NativeApplicationShell::disconnectCanvasFiles() {
-    if (auto gallery=reviewGallery_.lock();gallery && gallery->active()) gallery->setEditHandler({});
+    if (auto gallery=reviewGallery_.lock();gallery && gallery->active()) {gallery->setEditHandler({});gallery->setSaveFileHandler({});}
     canvasFilePicker_={};
     canvasDialogPending_=false;
     canvasFileErrorObserver_={};
+    reviewSaveStatusObserver_={};reviewSaveBusyObserver_={};
+    if (reviewFileSave_) reviewFileSave_->close();
+    reviewFileSave_.reset();
     storageWorkspace_->setOpenHandler({});
     editorWorkspace_->setFileModel({},{});
     if (selectedFile_) selectedFile_->setOpenHandler({});
     if (canvasFiles_) canvasFiles_->close();
     canvasFiles_.reset();
+    updateHistoryStatus();
 }
 ii::core::Result<void> NativeApplicationShell::connectSocietyStorage(ii::runtime::EventLoop &loop,
     CanvasFileModel::Submit submit,std::filesystem::path selection,std::filesystem::path explicitRoot) {
@@ -411,7 +635,7 @@ ii::core::Result<void> NativeApplicationShell::connectSocietyStorage(ii::runtime
                 std::vector<home::GenerationModelOption> options;
                 if (listing) for (const auto &entry:vm::array(listing->aliases))
                     options.push_back({vm::text(vm::get(entry,"id")),vm::text(vm::get(entry,"name")),
-                        vm::boolean(vm::get(entry,"image")),vm::boolean(vm::get(entry,"video"))});
+                        vm::boolean(vm::get(entry,"image")),vm::boolean(vm::get(entry,"video")),vm::get(entry,"source")});
                 const auto error=listing?std::string{}:std::string("Model catalogue unavailable: ")+listing.error().message;
                 if (auto changed=shell->setGenerationModelCatalog(std::move(options),error); !changed && shell->workspace_)
                     (void)shell->workspace_->setError(changed.error().message);
@@ -526,13 +750,14 @@ void NativeApplicationShell::openRecentCanvas(const vm::Value &entry) {
 }
 void NativeApplicationShell::updateHistoryStatus() {
     const auto error=canvasFiles_?canvasFiles_->error.get():std::string{};
-    const auto message=historyVisible_ ? (!error.empty()?error:
+    const auto saveStatus=reviewFileSave_?reviewFileSave_->status.get():std::string{};
+    const auto message=historyVisible_ ? (!error.empty()?error:!saveStatus.empty()?saveStatus:
         (societyHistory_?societyHistory_->status.get():std::string("Generation history unavailable"))) : std::string{};
     (void)pageStatus.set(message);(void)hasPageStatus.set(!message.empty());
 }
 void NativeApplicationShell::configureReviewActions(const std::shared_ptr<review::ReviewGalleryModel> &gallery) {
     if (!gallery || !gallery->active()) return;
-    if (!canvasFiles_) {gallery->setEditHandler({});return;}
+    if (!canvasFiles_) {gallery->setEditHandler({});gallery->setSaveFileHandler({});return;}
     const std::weak_ptr<NativeApplicationShell> weak=shared_from_this();
     gallery->setEditHandler([weak](std::vector<vm::Value> entries) {
         auto shell=weak.lock();if (!shell || !shell->canvasFiles_ || entries.size()!=1) return;
@@ -544,6 +769,15 @@ void NativeApplicationShell::configureReviewActions(const std::shared_ptr<review
         if (!shell || !shell->canvasFiles_ || entries.size()!=1) return false;
         const auto path=vm::text(vm::get(entries.front(),"path"));
         return !path.empty() && supportsCanvasInput(nativePath(path));
+    });
+    gallery->setSaveFileHandler([weak](std::vector<vm::Value> entries) {
+        auto shell=weak.lock();if (!shell || !shell->reviewFileSave_ || entries.size()!=1) return;
+        if (shell->canvasFiles_) shell->canvasFiles_->reportError({});
+        if (auto result=shell->reviewFileSave_->save(entries.front()); !result && shell->canvasFiles_)
+            shell->canvasFiles_->reportError(result.error().message);
+    },[weak](const std::vector<vm::Value> &entries) {
+        const auto shell=weak.lock();
+        return shell && shell->reviewFileSave_ && entries.size()==1 && shell->reviewFileSave_->canSave(entries.front());
     });
 }
 void NativeApplicationShell::updateRecentHistory() {
@@ -598,7 +832,125 @@ void NativeApplicationShell::disconnectGenerationPreferences() {
     generationPreferences_.reset();
 }
 void NativeApplicationShell::setCanvasFilePicker(CanvasFilePicker picker) {
-    canvasFilePicker_=std::move(picker); updateCanvasFileBindings();
+    canvasFilePicker_=std::move(picker);
+    if (reviewFileSave_) reviewFileSave_->setPicker(canvasFilePicker_);
+    updateCanvasFileBindings();
+    updateAudioFileBindings();
+    updateBackgroundFileBindings();
+    if (videoGeneration_) {
+        const std::weak_ptr<NativeApplicationShell> weak=shared_from_this();
+        if (canvasFilePicker_) videoGeneration_->setReferencePicker([weak](std::string_view key) -> ii::core::Result<void> {
+            if (auto shell=weak.lock()) return shell->chooseVideoReference(key);
+            return ii::core::fail(ii::core::ErrorCode::closed,"Native application is closed");
+        });
+        else videoGeneration_->setReferencePicker({});
+    }
+    if (auto gallery=reviewGallery_.lock();gallery && gallery->active()) configureReviewActions(gallery);
+}
+void NativeApplicationShell::updateAudioFileBindings() {
+    if (!audioPanel_) return;
+    if (!canvasFilePicker_) {audioPanel_->setPickHandler({});return;}
+    const std::weak_ptr<NativeApplicationShell> weak=shared_from_this();
+    audioPanel_->setPickHandler([weak]() -> ii::core::Result<void> {
+        if (auto shell=weak.lock()) return shell->chooseAudioFile();
+        return ii::core::fail(ii::core::ErrorCode::closed,"Native application is closed");
+    });
+}
+ii::core::Result<void> NativeApplicationShell::chooseAudioFile() {
+    if (!audioPanel_ || !canvasFilePicker_) return ii::core::fail(ii::core::ErrorCode::unsupported,"Audio file picker is unavailable");
+    if (canvasDialogPending_ || audioDialogPending_ || backgroundDialogPending_ || videoDialogPending_ || audioPanel_->busy.get())
+        return ii::core::fail(ii::core::ErrorCode::busy,"A file operation is already in progress");
+    ii::gui::FileDialogOptions options;options.mode=ii::gui::FileDialogMode::open;
+    options.title="Import audio";options.filters={{"PCM16 WAV",{"wav"}}};
+    const std::weak_ptr<NativeApplicationShell> weak=shared_from_this();
+    const std::weak_ptr<editor::AudioPanelModel> expected=audioPanel_;
+    const auto generation=documentSession_->documentGeneration.get(),revision=documentSession_->revision.get();
+    const auto frame=documentSession_->frame.get();const auto track=audioPanel_->selectedTrackId();
+    auto panel=audioPanel_;auto picker=canvasFilePicker_;audioDialogPending_=true;
+    ii::core::Result<void> result;
+    try {result=picker(std::move(options),[weak,expected,generation,revision,frame,track](ii::core::Result<ii::gui::FileDialogSelection> selected) {
+        auto shell=weak.lock();if (!shell) return;shell->audioDialogPending_=false;
+        auto panel=expected.lock();if (!panel || shell->audioPanel_!=panel) return;
+        if (!selected) {panel->reportError(selected.error().message);return;}
+        if (selected->canceled) return;
+        if (shell->documentSession_->documentGeneration.get()!=generation || shell->documentSession_->revision.get()!=revision ||
+            shell->documentSession_->frame.get()!=frame || panel->selectedTrackId()!=track) {
+            panel->reportError("The canvas or audio selection changed while the file picker was open");return;
+        }
+        if (selected->paths.size()!=1 || selected->paths.front().empty()) {panel->reportError("Choose one WAV file");return;}
+        if (auto imported=panel->importFile(nativePath(selected->paths.front()));!imported) panel->reportError(imported.error().message);
+    });} catch (...) {result=ii::core::fail(ii::core::ErrorCode::failed,"Cannot open the audio file picker",std::current_exception());}
+    if (!result) {audioDialogPending_=false;if (audioPanel_==panel) panel->reportError(result.error().message);}
+    return result;
+}
+void NativeApplicationShell::updateBackgroundFileBindings() {
+    if (!backgroundPanel_) return;
+    if (!canvasFilePicker_) {backgroundPanel_->setImagePickHandler({});return;}
+    const std::weak_ptr<NativeApplicationShell> weak=shared_from_this();
+    backgroundPanel_->setImagePickHandler([weak]() -> ii::core::Result<void> {
+        if (auto shell=weak.lock()) return shell->chooseBackgroundFile();
+        return ii::core::fail(ii::core::ErrorCode::closed,"Native application is closed");
+    });
+}
+ii::core::Result<void> NativeApplicationShell::chooseBackgroundFile() {
+    if (!backgroundPanel_ || !canvasFilePicker_) return ii::core::fail(ii::core::ErrorCode::unsupported,"Image picker is unavailable");
+    if (canvasDialogPending_ || audioDialogPending_ || backgroundDialogPending_ || videoDialogPending_ || backgroundPanel_->busy.get())
+        return ii::core::fail(ii::core::ErrorCode::busy,"A file operation is already in progress");
+    ii::gui::FileDialogOptions options;options.mode=ii::gui::FileDialogMode::open;
+    options.title="Choose background image or canvas";
+    options.filters={{"Images and canvas",{"png","jpg","jpeg","bmp","webp","tif","tiff","tga","iisc"}}};
+    const std::weak_ptr<NativeApplicationShell> weak=shared_from_this();const std::weak_ptr<editor::BackgroundPanelModel> expected=backgroundPanel_;
+    const auto generation=documentSession_->documentGeneration.get(),revision=documentSession_->revision.get();
+    auto panel=backgroundPanel_;auto picker=canvasFilePicker_;backgroundDialogPending_=true;
+    ii::core::Result<void> result;
+    try {result=picker(std::move(options),[weak,expected,generation,revision](ii::core::Result<ii::gui::FileDialogSelection> selected) {
+        auto shell=weak.lock();if (!shell) return;shell->backgroundDialogPending_=false;
+        auto panel=expected.lock();if (!panel || shell->backgroundPanel_!=panel) return;
+        if (!selected) {panel->reportError(selected.error().message);return;}
+        if (selected->canceled) return;
+        if (shell->documentSession_->documentGeneration.get()!=generation || shell->documentSession_->revision.get()!=revision ||
+            !shell->editorRoute_ || !panel->replaceMode.get() || shell->editorWorkspace_->activePanel.get()!="background-color") {
+            panel->reportError("The canvas or background view changed while the file picker was open");return;
+        }
+        if (selected->paths.size()!=1 || selected->paths.front().empty()) {panel->reportError("Choose one image or canvas file");return;}
+        if (auto loaded=panel->setImagePath(nativePath(selected->paths.front()));!loaded) panel->reportError(loaded.error().message);
+    });} catch (...) {result=ii::core::fail(ii::core::ErrorCode::failed,"Cannot open the image picker",std::current_exception());}
+    if (!result) {backgroundDialogPending_=false;if (backgroundPanel_==panel) panel->reportError(result.error().message);}
+    return result;
+}
+ii::core::Result<void> NativeApplicationShell::chooseVideoReference(std::string_view key) {
+    if (!videoGeneration_ || !canvasFilePicker_ || (key!="firstFrame" && key!="lastFrame"))
+        return ii::core::fail(ii::core::ErrorCode::unsupported,"Video image picker is unavailable");
+    if (canvasDialogPending_ || audioDialogPending_ || backgroundDialogPending_ || videoDialogPending_)
+        return ii::core::fail(ii::core::ErrorCode::busy,"A file operation is already in progress");
+    ii::gui::FileDialogOptions options;options.mode=ii::gui::FileDialogMode::open;
+    options.title=key=="firstFrame"?"Choose first frame image":"Choose last frame image";
+    options.filters={{"Images",{"png","jpg","jpeg","bmp","webp","tif","tiff","tga"}}};
+    const std::weak_ptr<NativeApplicationShell> weak=shared_from_this();
+    const std::weak_ptr<generation::GenerationWorkspaceModel> expected=videoGeneration_;
+    const auto revision=videoGeneration_->referenceRevision();const auto field=std::string(key);
+    auto picker=canvasFilePicker_;videoDialogPending_=true;
+    ii::core::Result<void> result;
+    try {result=picker(std::move(options),[weak,expected,revision,field](ii::core::Result<ii::gui::FileDialogSelection> selected) {
+        auto shell=weak.lock();if (!shell) return;shell->videoDialogPending_=false;
+        auto model=expected.lock();if (!model || shell->videoGeneration_!=model) return;
+        if (!selected) {(void)model->serviceStatus.set(selected.error().message);return;}
+        if (selected->canceled) return;
+        if (model->referenceRevision()!=revision) {
+            (void)model->serviceStatus.set("Video image conditions changed while the file picker was open");return;
+        }
+        if (selected->paths.size()!=1 || selected->paths.front().empty()) {
+            (void)model->serviceStatus.set("Choose one image file");return;
+        }
+        const auto &path=selected->paths.front();const auto native=ii::core::path_from_utf8(path);
+        if (!native || path.find('\0')!=path.npos || !native->is_absolute() || *native!=native->lexically_normal()) {
+            (void)model->serviceStatus.set("Choose an image with an absolute UTF-8 path");return;
+        }
+        if (auto changed=model->edit(field,path);!changed) (void)model->serviceStatus.set(changed.error().message);
+        else (void)model->serviceStatus.set(shell->videoGenerationAvailable_?std::string{}:"Generation service unavailable");
+    });} catch (...) {result=ii::core::fail(ii::core::ErrorCode::failed,"Cannot open the video image picker",std::current_exception());}
+    if (!result) videoDialogPending_=false;
+    return result;
 }
 void NativeApplicationShell::setReviewImageResolver(std::shared_ptr<const lvui::native::ImageResolver<ii::gui::RasterImage>> value) {
     reviewImages_=std::move(value);
@@ -645,7 +997,7 @@ void NativeApplicationShell::updateCanvasFileBindings() {
 ii::core::Result<void> NativeApplicationShell::chooseCanvasFile(bool save) {
     if (!canvasFiles_ || !canvasFilePicker_)
         return ii::core::fail(ii::core::ErrorCode::unsupported,"Canvas file picker is unavailable");
-    if (canvasFiles_->busy.get() || canvasDialogPending_)
+    if (canvasFiles_->busy.get() || canvasDialogPending_ || audioDialogPending_ || backgroundDialogPending_ || videoDialogPending_)
         return ii::core::fail(ii::core::ErrorCode::busy,"A canvas file operation is already running");
     ii::gui::FileDialogOptions options;
     options.mode=save?ii::gui::FileDialogMode::save:ii::gui::FileDialogMode::open;

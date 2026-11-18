@@ -3,8 +3,8 @@
 #include <QImage>
 #include <QSignalSpy>
 #include <QTemporaryDir>
-#include <SocietyDrive.h>
-#include <iiSocietyHelper/MediaExport.h>
+#include <iiSocietyContainer>
+#include <iiSocietyHelper>
 #include <QtTest>
 #include <QTimer>
 #include <QPointer>

@@ -1,8 +1,7 @@
 #pragma once
 
 #include <Document/Document.h>
-#include <iiSDKCore/Core/Property/Observable.h>
-#include <iiSDKCore/Core/Result/Result.h>
+#include <iiSDKCore>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -11,6 +10,7 @@
 #include <thread>
 #include <vector>
 
+namespace dreamscapes::editor {struct PreparedBackgroundFill;struct PreparedAudioEdit;struct PreparedLightAdjustment;struct PreparedBrushStroke;}
 namespace dreamscapes::native {
 class DocumentSession;
 enum class LayerKeyKind {source,motion};
@@ -33,6 +33,7 @@ class DocumentSession final : public std::enable_shared_from_this<DocumentSessio
   public:
     static std::shared_ptr<DocumentSession> create();
     [[nodiscard]] ii::core::Result<void> attach(iiSharedCanvas::Document,std::string name,bool isNew=false);
+    // An empty id clears the current selection without changing the document.
     [[nodiscard]] ii::core::Result<void> selectLayer(std::string_view);
     [[nodiscard]] ii::core::Result<void> seek(std::int64_t);
     [[nodiscard]] ii::core::Result<void> setLayerVisible(std::string_view,bool);
@@ -42,6 +43,8 @@ class DocumentSession final : public std::enable_shared_from_this<DocumentSessio
     // RGB is 0xRRGGBB; an absent alpha retains each path's existing alpha.
     [[nodiscard]] ii::core::Result<void> setVectorSolidFill(std::string_view,std::uint32_t rgb,std::optional<std::uint8_t> alpha={});
     [[nodiscard]] ii::core::Result<std::string> createLayerMask(std::string_view);
+    // Adds a non-destructive vector mask from a closed world-space lasso.
+    [[nodiscard]] ii::core::Result<std::string> createLassoMask(std::string_view,std::vector<iiSharedCanvas::Point>);
     [[nodiscard]] ii::core::Result<std::string> duplicateLayerMask(std::string_view,std::string_view);
     [[nodiscard]] ii::core::Result<void> removeLayerMask(std::string_view,std::string_view);
     [[nodiscard]] ii::core::Result<void> updateLayerMask(std::string_view,std::string_view,const MaskPatch &);
@@ -54,11 +57,18 @@ class DocumentSession final : public std::enable_shared_from_this<DocumentSessio
     [[nodiscard]] ii::core::Result<void> mirrorCanvas(bool horizontal);
     [[nodiscard]] ii::core::Result<void> rotateCanvas(double degrees);
     [[nodiscard]] ii::core::Result<std::string> createLayer(iiSharedCanvas::LayerKind);
+    // Inserts both the vector asset and its layer as one document revision.
+    [[nodiscard]] ii::core::Result<std::string> insertVectorDrawing(std::string,std::vector<iiSharedCanvas::VectorPath>);
+    [[nodiscard]] ii::core::Result<void> commitBackgroundFill(editor::PreparedBackgroundFill);
+    [[nodiscard]] ii::core::Result<void> commitLightAdjustment(editor::PreparedLightAdjustment);
+    [[nodiscard]] ii::core::Result<void> commitBrushStroke(editor::PreparedBrushStroke);
+    [[nodiscard]] ii::core::Result<void> commitAudioEdit(editor::PreparedAudioEdit);
     [[nodiscard]] ii::core::Result<std::string> createAudioTrack();
     [[nodiscard]] ii::core::Result<std::string> duplicateLayer(std::string_view);
     [[nodiscard]] ii::core::Result<void> removeLayer(std::string_view);
     [[nodiscard]] ii::core::Result<void> editPublication(std::string_view,std::string);
     [[nodiscard]] ii::core::Result<void> editPublicationSetting(std::string,iiSharedCanvas::PublicationSetting);
+    [[nodiscard]] ii::core::Result<void> removePublicationSetting(std::string_view);
     // Reconciles an already committed file with the same document generation.
     // Returns false when later edits remain unsaved.
     [[nodiscard]] ii::core::Result<bool> acknowledgeSave(std::uint64_t generation,std::uint64_t revision,

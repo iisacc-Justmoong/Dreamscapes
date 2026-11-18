@@ -1,7 +1,7 @@
 #include "EditorCanvas.h"
 #include "EditorToolUtils.h"
 #include "App/Generation/ImageCanvas.h"
-#include <iiColorManager/ColorManager.h>
+#include <iiColorManager>
 #include <QClipboard>
 #include <QFileInfo>
 #include <QGuiApplication>

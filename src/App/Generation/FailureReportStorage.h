@@ -1,6 +1,6 @@
 #pragma once
-#include <iiFileProviderCoreIO.h>
-#include <iiFileProviderStorage.h>
+#include <iiFileProvider>
+#include <iiFileProvider>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <stdexcept>

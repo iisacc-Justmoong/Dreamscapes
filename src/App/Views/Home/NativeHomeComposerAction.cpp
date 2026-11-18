@@ -18,18 +18,18 @@ HomeComposerCommandKind command(HomeComposerActionRole role) {
 }
 }
 HomeComposerActionModel::HomeComposerActionModel(std::shared_ptr<HomeComposerModel> composer, HomeComposerActionRole role,
-        HomeComposerActionLabels labels)
+        HomeComposerActionLabels labels, bool fixedGenerateLabel)
     : icon(role == HomeComposerActionRole::attach), primary(role == HomeComposerActionRole::generate),
       showHeading(!labels.heading.empty()), heading(labels.heading), accessible(labels.accessible),
-      composer_(std::move(composer)), role_(role), labels_(std::move(labels)) {
+      composer_(std::move(composer)), role_(role), labels_(std::move(labels)), fixedGenerateLabel_(fixedGenerateLabel) {
     (void)command(role_);
     if (!composer_ || !composer_->active() || accessible.empty() ||
         (primary ? !labels_.generation : !icon && labels_.label.empty()))
         throw std::invalid_argument("Composer action requires an active model and accessible labels");
 }
 std::shared_ptr<HomeComposerActionModel> HomeComposerActionModel::create(std::shared_ptr<HomeComposerModel> composer,
-        HomeComposerActionRole role, HomeComposerActionLabels labels) {
-    auto result = std::shared_ptr<HomeComposerActionModel>(new HomeComposerActionModel(std::move(composer), role, std::move(labels)));
+        HomeComposerActionRole role, HomeComposerActionLabels labels, bool fixedGenerateLabel) {
+    auto result = std::shared_ptr<HomeComposerActionModel>(new HomeComposerActionModel(std::move(composer), role, std::move(labels), fixedGenerateLabel));
     result->start(); return result;
 }
 HomeComposerActionModel::~HomeComposerActionModel() { if (active_ && owner_ == std::this_thread::get_id()) try { close(); } catch (...) {} }
@@ -51,7 +51,7 @@ void HomeComposerActionModel::synchronize() {
         if (!active_ || !composer_) return;
         const auto snapshot = composer_->snapshot.get();
         auto makeLabel = labels_.generation;
-        auto next = primary ? makeLabel(snapshot.outputCount, snapshot.video) : labels_.label;
+        auto next = primary ? (fixedGenerateLabel_ ? accessible : makeLabel(snapshot.outputCount, snapshot.video)) : labels_.label;
         if (!active_) return;
         if (pending_) continue;
         if (primary && next.empty()) throw std::invalid_argument("Generate action needs a visible label");

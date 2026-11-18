@@ -1,0 +1,20 @@
+import vm NativeTitleBarBackend
+@Static let resizeTitle: (Double, Double) -> Void = vm.sizeHandler(
+    Metric.size140 + Metric.size56 + Metric.space10, Metric.size72 + Metric.space8,
+    Metric.size24 + Metric.size24 + Metric.space8 + Metric.space8 + Metric.space8 + Metric.space8 + Metric.space8)
+EventListener(id: "titleBarSurface", width: 0, height: Metric.size32, onSizeChanged: resizeTitle) {
+    HStack(id: "titleBar", width: vm.width, height: Metric.size32, spacing: Metric.space8,
+           rightPadding: Metric.space8, topPadding: Metric.space4, bottomPadding: Metric.space4, alignment: .top) {
+        if (vm.nativeControls) {
+            EventListener(id: "titleBarNativeControlsInset", width: vm.leadingWidth, height: Metric.size24) {}
+        }
+        EventListener(id: "titleBarDrag", width: 0, height: Metric.size24, flex: 1, onInput: vm.drag) {}
+        InputField(id: "titleBarAgent", text: vm.agentText, placeholder: "Agent", width: vm.agentWidth,
+                   height: Metric.size22, accessibilityName: "Agent", onEdited: vm.editAgent)
+        IconButton(id: "titleBarNotifications", iconName: "toolwindownotifications", tone: .default,
+                   width: Metric.size24, height: Metric.size24, accessibilityName: "Notifications", enabled: false)
+        EventListener(id: "titleBarAccount", width: Metric.size24, height: Metric.size24, onClick: vm.account) {
+            Avatar(size: .Small, accessibilityName: "Account")
+        }
+    }
+}

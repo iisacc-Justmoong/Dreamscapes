@@ -14,8 +14,9 @@ EventListener(id: "layerPanelSurface", width: 0, height: 0, flex: 1, onSizeChang
                        accessibilityName: "Layer", onClick: vm.showLayer)
             IconButton(iconName: "panel-layers-adjust", width: Metric.size22, height: Metric.size22,
                        tone: .borderless, enabled: false, accessibilityName: "Adjust")
-            IconButton(iconName: "panel-layers-histogram", width: Metric.size22, height: Metric.size22,
-                       tone: .borderless, enabled: false, accessibilityName: "Histogram")
+            IconButton(id: "layerHistogramTab", iconName: "panel-layers-histogram", width: Metric.size22, height: Metric.size22,
+                       tone: .borderless, checkable: false, checked: vm.histogramMode, selectionStyle: .segmented,
+                       accessibilityName: "Histogram", onClick: vm.showHistogram)
             IconButton(id: "layerInformationTab", iconName: "panel-layers-information", width: Metric.size22, height: Metric.size22,
                        tone: .borderless, checkable: false, checked: vm.informationMode, selectionStyle: .segmented,
                        accessibilityName: "Information", onClick: vm.showInformation)
@@ -70,6 +71,26 @@ EventListener(id: "layerPanelSurface", width: 0, height: 0, flex: 1, onSizeChang
                     Label(text: item.value, style: .caption, elideRight: true)
                 }
             }
+        }
+        VStack(width: vm.contentWidth, height: 0, flex: 1, spacing: Metric.space4,
+               alignment: .stretch, visible: vm.histogramMode) {
+            Label(text: "Composite · preview", style: .caption)
+            HStack(spacing: Metric.space2, alignment: .center) {
+                LabelButton(id: "histogramRgb", text: "RGB", tone: .default, flex: 1,
+                            checkable: false, checked: vm.histogramRgb, selectionStyle: .segmented, onClick: vm.selectRgb)
+                LabelButton(id: "histogramRed", text: "R", tone: .default, flex: 1,
+                            checkable: false, checked: vm.histogramRed, selectionStyle: .segmented, onClick: vm.selectRed)
+                LabelButton(id: "histogramGreen", text: "G", tone: .default, flex: 1,
+                            checkable: false, checked: vm.histogramGreen, selectionStyle: .segmented, onClick: vm.selectGreen)
+                LabelButton(id: "histogramBlue", text: "B", tone: .default, flex: 1,
+                            checkable: false, checked: vm.histogramBlue, selectionStyle: .segmented, onClick: vm.selectBlue)
+            }
+            if (vm.histogramHasPlot) {
+                Image(id: "histogramPlot", source: vm.histogramPlot, width: vm.contentWidth, height: Metric.size140, fit: .Contain)
+            }
+            if (vm.histogramBusy) { Label(text: "Analyzing preview…", style: .caption) }
+            if (vm.histogramSummary != "") { Label(id: "histogramSummary", text: vm.histogramSummary, style: .caption) }
+            if (vm.histogramStatus != "") { Label(text: vm.histogramStatus, style: .caption) }
         }
         Menu(id: "layerBlendMenu", targetId: "layerBlend", showIconSlot: false) {
             for (item in vm.blends, key: item.key, id: "layerBlendChoices") {

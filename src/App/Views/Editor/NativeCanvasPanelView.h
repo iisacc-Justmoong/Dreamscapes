@@ -1,7 +1,6 @@
 #pragma once
 #include "NativeCanvasPanel.h"
-#include <iiGUI/NativeView.h>
-#include <iiGUI/NativeWidgets.h>
+#include <iiGUI>
 
 namespace dreamscapes::editor {
 [[nodiscard]] ii::core::Result<void> buildCanvasPanel(ii::gui::WidgetBuilder &,ii::gui::Widget,std::shared_ptr<CanvasPanelModel>);

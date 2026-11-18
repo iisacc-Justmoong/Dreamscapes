@@ -1,10 +1,8 @@
 #pragma once
 #include "App/Native/NativeDocumentSession.h"
 #include <Render/AsyncFrameRenderQueue.h>
-#include <iiGUI/Image.h>
-#include <iiSDKCore/Core/Property/Observable.h>
-#include <iiSDKCore/Runtime/EventLoop.h>
-#include <iiSDKCore/Runtime/Runtime.h>
+#include <iiGUI>
+#include <iiSDKCore>
 #include <memory>
 #include <string>
 #include <thread>
@@ -30,7 +28,7 @@ class FramePresenter final : public std::enable_shared_from_this<FramePresenter>
     [[nodiscard]] ii::core::Result<void> setViewport(double,double);
     void close();
     ii::core::Observable<std::shared_ptr<const ii::gui::RasterImage>> image;
-    ii::core::Observable<bool> busy{false};
+    ii::core::Observable<bool> busy{false},current{false};
     ii::core::Observable<std::string> status;
   private:
     struct Bridge;

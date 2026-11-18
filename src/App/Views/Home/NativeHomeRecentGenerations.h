@@ -1,8 +1,7 @@
 #pragma once
 
 #include "App/ViewModels/Native/ImageSelection.h"
-#include <iiSDKCore/Core/Property/Observable.h>
-#include <iiSDKCore/Core/Result/Result.h>
+#include <iiSDKCore>
 #include <cstdint>
 #include <functional>
 #include <map>

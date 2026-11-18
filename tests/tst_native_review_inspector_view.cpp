@@ -6,7 +6,7 @@
 #ifdef DREAMSCAPES_REVIEW_INSPECTOR_WIDGET_TEST
 #include "App/Views/Result/NativeReviewInspectorView.h"
 #include "iiGUI/WidgetState.h"
-#include <iiGUI/CompiledViewSource.h>
+#include <iiGUI>
 #endif
 
 using namespace dreamscapes;

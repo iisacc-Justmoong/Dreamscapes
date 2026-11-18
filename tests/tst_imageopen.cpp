@@ -1,6 +1,6 @@
 #include "App/Views/Home/ImageOpenRequest.h"
-#include <iiSocietyHelper.h>
-#include <SharedStorage.h>
+#include <iiSocietyHelper>
+#include <iiSocietyContainer>
 #include <QFile>
 #include <QImage>
 #include <QSignalSpy>

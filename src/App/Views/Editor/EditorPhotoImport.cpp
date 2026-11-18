@@ -1,7 +1,7 @@
 #include "EditorPhotoImport.h"
 #include "EditorToolUtils.h"
-#include <iiSocietyHelper.h>
-#include <iiSharedCanvas.h>
+#include <iiSocietyHelper>
+#include <iiSharedCanvas>
 #include <QImageReader>
 #include <algorithm>
 #include <stdexcept>

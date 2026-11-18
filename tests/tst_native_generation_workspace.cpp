@@ -27,11 +27,12 @@ int main() {
               "advanced image selection did not update the shared draft");
         check(!image->selectModelAt(2) && home->model()->snapshot.get().modelId=="image-b",
               "an invalid model index changed the shared selection");
-        check(vm::number(vm::get(image->parameters(),"width"))==1024 && vm::number(vm::get(image->parameters(),"outputCount"))==4,
-              "image defaults do not match the SDK");
-        good(image->edit("width","2048"));
+        check(vm::number(vm::get(image->parameters(),"width"))==1536 && vm::number(vm::get(image->parameters(),"height"))==1536 &&
+              vm::boolean(vm::get(image->parameters(),"hiresFix")) && vm::number(vm::get(image->parameters(),"outputCount"))==4,
+              "image defaults did not carry the increased Home size and default Hires");
+        good(image->edit("width","4096"));
         check(!image->edit("width","33") && image->field("width")->invalid.get() &&
-              image->field("width")->text.get()=="33" && vm::number(vm::get(image->parameters(),"width"))==2048,
+              image->field("width")->text.get()=="33" && vm::number(vm::get(image->parameters(),"width"))==4096,
               "invalid dimensions replaced the accepted image draft");
         good(image->edit("width","1024"));
         check(!image->field("width")->invalid.get(),"correcting an image input did not clear the error");
@@ -48,6 +49,20 @@ int main() {
               "generation prompt edit did not return to the shared Home draft");
         check(vm::number(vm::get(video->parameters(),"width"))==1024 && vm::number(vm::get(video->parameters(),"fps"))==24,
               "video defaults do not match the native draft");
+        check(video->field("firstFrame") && video->field("lastFrame"),
+              "advanced video image conditions are missing");
+        check(video->field("firstFrame")->isFile && !video->field("firstFrame")->canChooseFile.get(),
+              "video reference input did not expose an unavailable picker correctly");
+        good(video->edit("firstFrame","/tmp/reference 첫.png"));
+        good(video->edit("lastFrame","/tmp/final.png"));
+        check(vm::text(vm::get(video->parameters(),"firstFrame"))=="/tmp/reference 첫.png" &&
+              vm::text(vm::get(video->parameters(),"lastFrame"))=="/tmp/final.png" &&
+              video->field("firstFrame")->fileName.get()=="reference 첫.png" && video->field("firstFrame")->hasFile.get(),
+              "video image conditions did not enter the generation draft");
+        good(video->clearReference("firstFrame"));
+        check(vm::text(vm::get(video->parameters(),"firstFrame")).empty() &&
+              vm::text(vm::get(video->parameters(),"lastFrame"))=="/tmp/final.png",
+              "clearing one video image condition changed the other");
         good(video->select("fps","30"));
         check(vm::number(vm::get(video->parameters(),"fps"))==30,"video FPS choice was not applied");
         check(!video->edit("device","unknown") && vm::text(vm::get(video->parameters(),"device"))=="auto",
@@ -102,5 +117,22 @@ int main() {
               vm::number(vm::get(video->parameters(),"seed"))==42 &&
               !vm::boolean(vm::get(video->parameters(),"randomSeed")),
               "Home video settings did not reach Advanced");
+        video->setSubmitHandler([](vm::Value){return ii::core::Result<void>{};});
+        check(video->canGenerate.get(),"valid video draft did not enable generation");
+        good(video->select("camera1","pan-left"));good(video->select("camera2","pan-right"));
+        check(!video->canGenerate.get() && video->validationStatus.get().find("camera")!=std::string::npos,
+              "conflicting video camera motions remained submittable");
+        good(video->select("camera2","none"));
+        check(video->canGenerate.get() && video->validationStatus.get().empty(),"corrected camera motions remained invalid");
+        good(video->edit("outputCount","2"));good(video->edit("seed","4294967295"));
+        check(!video->canGenerate.get() && video->validationStatus.get().find("seed")!=std::string::npos,
+              "overflowing batch seed remained submittable");
+        good(video->edit("seed","4294967294"));
+        check(video->canGenerate.get() && video->validationStatus.get().empty(),"a valid seed boundary remained invalid");
+        good(video->select("offload","sequential"));good(video->toggle("vaeTiling",false));
+        check(!video->canGenerate.get() && video->validationStatus.get().find("VAE")!=std::string::npos,
+              "a low-VRAM option conflict remained submittable");
+        good(video->toggle("vaeTiling",true));
+        check(video->canGenerate.get() && video->validationStatus.get().empty(),"correcting low-VRAM options remained invalid");
     } catch (const std::exception &error) {std::cerr << error.what() << '\n'; return 1;}
 }

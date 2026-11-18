@@ -1,5 +1,5 @@
 #include "NativeTimelinePanel.h"
-#include <LVUI/NativeEditorTimeline.h>
+#include <LVUI>
 #include <algorithm>
 #include <charconv>
 #include <cmath>
@@ -41,6 +41,12 @@ void TimelinePanelModel::start() {
     auto projection=[weak](const auto &,std::uint64_t){if (auto self=weak.lock()) self->synchronize(true);};
     revisionObserver_=document_->revision.observe(projection); generationObserver_=document_->documentGeneration.observe(projection);
     selectionObserver_=document_->selectedLayer.observe(projection); synchronize(true);
+}
+void TimelinePanelModel::setAudioClipEdit(AudioClipEdit edit) {
+    if (owner_!=std::this_thread::get_id()) return;
+    audioClipEdit_=std::move(edit);
+    if (gesture_ && gesture_->audio) gesture_.reset();
+    synchronize(true);
 }
 void TimelinePanelModel::synchronize(bool projectionChanged) {
     if (owner_!=std::this_thread::get_id()) return;
@@ -86,13 +92,26 @@ ii::core::Result<ii::gui::EditorTimelineProjection> TimelinePanelModel::project(
             output.tracks.push_back({track,displayName(audio.name,"Audio"),double(index)*rowHeight_,rowHeight_});
             const auto firstClip=std::lower_bound(audio.clips.begin(),audio.clips.end(),frameFirst,
                 [](const auto &clip,std::int64_t frame) {return std::int64_t(clip.startFrame)+clip.durationFrames<=frame;});
-            for (auto clip=firstClip;clip!=audio.clips.end() && std::int64_t(clip->startFrame)<frameEnd;++clip) {
-                if (output.clips.size()==4096) return ii::core::fail(ErrorCode::out_of_range,"Too many visible timeline clips");
-                const auto clipIndex=static_cast<std::size_t>(clip-audio.clips.begin());
+            const bool preview=gesture_ && gesture_->audio && gesture_->index==audioIndex &&
+                gesture_->generation==document_->documentGeneration.get() && gesture_->revision==document_->revision.get();
+            bool previewVisited=false;
+            auto append=[&](std::size_t clipIndex) {
+                const auto &clip=audio.clips[clipIndex];
+                auto begin=std::int64_t(clip.startFrame),endFrame=begin+clip.durationFrames;
+                if (preview && gesture_->audioClipIndex==clipIndex) {
+                    previewVisited=true;begin=gesture_->previewFirst;endFrame=gesture_->previewEnd;
+                }
+                if (begin>=frameEnd || endFrame<=frameFirst) return true;
+                if (output.clips.size()==4096) return false;
                 output.clips.push_back({"audioClip/"+std::to_string(audioIndex)+"/"+std::to_string(clipIndex),track,
-                    displayName(clip->name,"Audio clip"),std::int64_t(clip->startFrame),
-                    std::int64_t(clip->startFrame)+clip->durationFrames,false,true});
-            }
+                    displayName(clip.name,"Audio clip"),begin,endFrame,false,!audioClipEdit_});
+                return true;
+            };
+            for (auto clip=firstClip;clip!=audio.clips.end() && std::int64_t(clip->startFrame)<frameEnd;++clip)
+                if (!append(static_cast<std::size_t>(clip-audio.clips.begin())))
+                    return ii::core::fail(ErrorCode::out_of_range,"Too many visible timeline clips");
+            if (preview && !previewVisited && gesture_->audioClipIndex<audio.clips.size() && !append(gesture_->audioClipIndex))
+                return ii::core::fail(ErrorCode::out_of_range,"Too many visible timeline clips");
             continue;
         }
         const auto &layer=document->layers[index]; const auto &properties=iiSharedCanvas::layerProperties(layer);
@@ -101,7 +120,7 @@ ii::core::Result<ii::gui::EditorTimelineProjection> TimelinePanelModel::project(
         auto begin=properties.frameRange?std::int64_t(properties.frameRange->firstFrame):0;
         auto endFrame=properties.frameRange?std::int64_t(properties.frameRange->lastFrame)+1:frameCount;
         std::int64_t previewShift=0;
-        if (gesture_ && gesture_->index==index && gesture_->generation==document_->documentGeneration.get() &&
+        if (gesture_ && !gesture_->audio && gesture_->index==index && gesture_->generation==document_->documentGeneration.get() &&
             gesture_->revision==document_->revision.get()) {
             begin=gesture_->previewFirst; endFrame=gesture_->previewEnd;
             if (gesture_->kind==EditorTimelineGesture::move_clip) previewShift=begin-gesture_->first;
@@ -110,7 +129,7 @@ ii::core::Result<ii::gui::EditorTimelineProjection> TimelinePanelModel::project(
             if (output.clips.size()==4096) return ii::core::fail(ErrorCode::out_of_range,"Too many visible timeline clips");
             output.clips.push_back({"clip/"+std::to_string(index),track,label,begin,endFrame,properties.id==selected,!editableRange(layer)});
         }
-        const bool movingKey=gesture_ && gesture_->kind==EditorTimelineGesture::move_key && gesture_->index==index &&
+        const bool movingKey=gesture_ && !gesture_->audio && gesture_->kind==EditorTimelineGesture::move_key && gesture_->index==index &&
             gesture_->generation==document_->documentGeneration.get() && gesture_->revision==document_->revision.get();
         auto add=[&](std::string kind,iiSharedCanvas::FrameIndex original,std::int64_t frame,bool preview=false) -> bool {
             if (movingKey && gesture_->keyOriginal==std::int64_t(original) &&
@@ -234,6 +253,62 @@ ii::core::Result<void> TimelinePanelModel::input(const ii::gui::EditorTimelineEv
     if (event.phase==EditorTimelinePhase::cancel) {
         if (gesture_) {gesture_.reset();synchronize(true);}
         return {};
+    }
+    if (event.id.starts_with("audioClip/")) {
+        if (event.phase==EditorTimelinePhase::begin) {
+            if (gesture_) return ii::core::fail(ErrorCode::busy,"A timeline edit is already in progress");
+            if (!audioClipEdit_) return ii::core::fail(ErrorCode::unsupported,"Audio editing is unavailable");
+            const auto suffix=std::string_view(event.id).substr(10);const auto separator=suffix.find('/');
+            if (separator==std::string_view::npos) return ii::core::fail(ErrorCode::invalid_argument,"Unknown audio clip");
+            const auto trackText=suffix.substr(0,separator),clipText=suffix.substr(separator+1);
+            std::size_t trackIndex=0,clipIndex=0;
+            const auto parsedTrack=std::from_chars(trackText.data(),trackText.data()+trackText.size(),trackIndex);
+            const auto parsedClip=std::from_chars(clipText.data(),clipText.data()+clipText.size(),clipIndex);
+            const auto *document=document_->document();
+            if (trackText.empty() || clipText.empty() || parsedTrack.ec!=std::errc{} || parsedClip.ec!=std::errc{} ||
+                parsedTrack.ptr!=trackText.data()+trackText.size() || parsedClip.ptr!=clipText.data()+clipText.size() ||
+                !document || trackIndex>=document->audioTracks.size() ||
+                clipIndex>=document->audioTracks[trackIndex].clips.size() || event.frame<0 ||
+                event.frame>=std::int64_t(document->timeline.frameCount))
+                return ii::core::fail(ErrorCode::invalid_argument,"Audio clip is unavailable");
+            const auto &track=document->audioTracks[trackIndex];const auto &clip=track.clips[clipIndex];
+            const auto first=std::int64_t(clip.startFrame),end=first+clip.durationFrames;
+            const auto left=clipIndex?std::int64_t(track.clips[clipIndex-1].startFrame)+track.clips[clipIndex-1].durationFrames:0;
+            const auto right=clipIndex+1<track.clips.size()?std::int64_t(track.clips[clipIndex+1].startFrame):
+                std::int64_t(document->timeline.frameCount);
+            gesture_=Gesture{event.kind,event.id,{},trackIndex,document_->documentGeneration.get(),document_->revision.get(),
+                first,end,event.frame,first,end,left-first,right-end};
+            gesture_->audio=true;gesture_->audioClipIndex=clipIndex;gesture_->audioTrack=track.id;gesture_->audioClip=clip.id;
+            (void)status.set({});return {};
+        }
+        if (!gesture_ || !gesture_->audio || gesture_->clip!=event.id || gesture_->kind!=event.kind)
+            return ii::core::fail(ErrorCode::invalid_argument,"Audio timeline edit is no longer active");
+        if (!audioClipEdit_ || !document_->document() || gesture_->generation!=document_->documentGeneration.get() ||
+            gesture_->revision!=document_->revision.get()) {
+            gesture_.reset();synchronize(true);(void)status.set("Canvas changed during the audio edit");
+            return ii::core::fail(ErrorCode::cancelled,status.get());
+        }
+        if (event.frame<0 || event.frame>=std::int64_t(document_->document()->timeline.frameCount))
+            return ii::core::fail(ErrorCode::out_of_range,"Frame is outside the timeline");
+        auto first=gesture_->first,end=gesture_->end;
+        if (event.kind==EditorTimelineGesture::move_clip) {
+            const auto shift=std::clamp(event.frame-gesture_->initial,gesture_->minOffset,gesture_->maxOffset);
+            first+=shift;end+=shift;
+        } else if (event.kind==EditorTimelineGesture::trim_start) first=std::clamp(event.frame,first,end-1);
+        else end=std::clamp(event.frame+1,first+1,end);
+        if (event.phase==EditorTimelinePhase::update) {
+            if (gesture_->previewFirst!=first || gesture_->previewEnd!=end) {
+                gesture_->previewFirst=first;gesture_->previewEnd=end;synchronize(true);
+            }
+            return {};
+        }
+        auto track=gesture_->audioTrack,clip=gesture_->audioClip;const auto kind=gesture_->kind;
+        const bool changed=first!=gesture_->first || end!=gesture_->end;
+        gesture_.reset();synchronize(true);
+        if (!changed) return {};
+        auto result=audioClipEdit_(std::move(track),std::move(clip),kind,first,end);
+        if (!result) (void)status.set(result.error().message);
+        return result;
     }
     if (event.phase==EditorTimelinePhase::begin) {
         if (gesture_) return ii::core::fail(ErrorCode::busy,"A timeline edit is already in progress");

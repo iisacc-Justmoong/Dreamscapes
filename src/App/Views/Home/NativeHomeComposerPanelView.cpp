@@ -6,6 +6,9 @@ namespace dreamscapes::home {
 ii::core::Result<void> buildHomeComposerPanel(ii::gui::WidgetBuilder &widgets, ii::gui::Widget parent,
                                             std::shared_ptr<HomeComposerPanelModel> model) {
     if (!model || !model->active()) return ii::core::fail(ii::core::ErrorCode::invalid_argument, "Home composer panel requires an active model");
+    if (auto appearance=widgets.appearance();appearance) {
+        if (auto result=model->setFontFamily(appearance->font_family);!result) return result;
+    } else return std::unexpected(appearance.error());
     auto factories = lvui::native::BackendFactories{}.with<NativeHomeComposerPanelBackend>([model] {
         return NativeHomeComposerPanelBackend(model);
     });

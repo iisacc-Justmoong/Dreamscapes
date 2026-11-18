@@ -14,8 +14,13 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_test(NAME Dreamscapes.NativeHomeSidebar COMMAND DreamscapesNativeHomeSidebarTests)
     if(DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR AND EXISTS "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}/iiGUI/WidgetState.h")
         add_executable(DreamscapesNativeHomeSidebarWidgetTests tests/tst_native_home_sidebar_widget.cpp)
-        set_target_properties(DreamscapesNativeHomeSidebarWidgetTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
-        target_include_directories(DreamscapesNativeHomeSidebarWidgetTests PRIVATE "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}")
+        set_target_properties(DreamscapesNativeHomeSidebarWidgetTests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF
+            NO_SYSTEM_FROM_IMPORTED ON)
+        # Use public headers from the linked iiGUI package before its private
+        # test-only WidgetState header. The workspace SDK can be a newer ABI.
+        get_target_property(_sidebar_iigui_public_includes iiGUI::iiGUI INTERFACE_INCLUDE_DIRECTORIES)
+        target_include_directories(DreamscapesNativeHomeSidebarWidgetTests BEFORE PRIVATE
+            ${_sidebar_iigui_public_includes} "${DREAMSCAPES_IIGUI_TEST_INCLUDE_DIR}")
         target_link_libraries(DreamscapesNativeHomeSidebarWidgetTests PRIVATE DreamscapesHomeSidebarNative)
         add_test(NAME Dreamscapes.NativeHomeSidebarWidget COMMAND DreamscapesNativeHomeSidebarWidgetTests)
         find_package(Python3 REQUIRED COMPONENTS Interpreter)

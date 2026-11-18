@@ -17,7 +17,7 @@
 #include <QTemporaryDir>
 #include <QJSValue>
 #include <QScopeGuard>
-#include <SocietyDrive.h>
+#include <iiSocietyContainer>
 #include <QtTest>
 
 namespace {

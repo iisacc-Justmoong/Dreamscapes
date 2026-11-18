@@ -1,9 +1,8 @@
 #include "EditorImageImport.h"
 #include "EditorProjectCodec.h"
 #include "EditorStillTiming.h"
-#include <iiSocietyHelper.h>
-#include <iiSharedCanvas/Validation/Validation.h>
-#include <iiSharedCanvas/Media/MediaIo.h>
+#include <iiSocietyHelper>
+#include <iiSharedCanvas>
 #include <QFileInfo>
 #include <QDateTime>
 #include <QSet>

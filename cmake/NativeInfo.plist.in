@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleName</key><string>${MACOSX_BUNDLE_BUNDLE_NAME}</string>
+<key>CFBundleIdentifier</key><string>${MACOSX_BUNDLE_GUI_IDENTIFIER}</string>
+<key>CFBundleExecutable</key><string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
+<key>CFBundleVersion</key><string>${MACOSX_BUNDLE_BUNDLE_VERSION}</string>
+<key>CFBundleShortVersionString</key><string>${MACOSX_BUNDLE_SHORT_VERSION_STRING}</string>
+<key>CFBundleIconFile</key><string>${MACOSX_BUNDLE_ICON_FILE}</string>
+<key>CFBundleDevelopmentRegion</key><string>en</string>
+<key>CFBundleAllowMixedLocalizations</key><true/>
+<key>NSPrincipalClass</key><string>NSApplication</string>
+<key>NSSupportsAutomaticGraphicsSwitching</key><true/>
+<key>SocietyAppGroup</key><string>group.com.iisacc.society</string>
+<key>NSLocalNetworkUsageDescription</key><string>Connect to your Society host to download selected models and upload completed images.</string>
+<key>NSBonjourServices</key><array><string>_society-pair._udp</string></array>
+<key>NSBluetoothAlwaysUsageDescription</key><string>Discover your nearby Society host. Files transfer over Wi-Fi or LAN.</string>
+<key>NSCameraUsageDescription</key><string>Preview your camera and capture photos or silent video for your canvas.</string>
+<key>NSPhotoLibraryUsageDescription</key><string>Browse selected Photos images and import originals into your canvas.</string>
+<key>NSPhotoLibraryAddUsageDescription</key><string>Save generated images to Photos. iCloud Photos syncs them when enabled for your photo library.</string>
+</dict></plist>

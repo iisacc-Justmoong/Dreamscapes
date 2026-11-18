@@ -57,7 +57,10 @@ void exercise() {
     const int beforeBusy = calls;
     check(!model->canSubmit.get() && !model->dispatch(HomeComposerCommandKind::submit) && calls == beforeBusy,
           "busy submission reached the controller");
-    auto bad = busy; bad.choices.models.push_back({"model-a", "Duplicate"});
+    auto bad = busy;
+    auto invalidModels = busy.choices.models.entries();
+    invalidModels.push_back({"model-a", "Duplicate"});
+    bad.choices.models = std::move(invalidModels);
     check(!model->setSnapshot(bad) && model->snapshot.get() == busy, "invalid snapshot replaced the live composer");
     bool wrongThread = false;
     std::thread thread([&] { wrongThread = !model->dispatch(HomeComposerCommandKind::paint); }); thread.join();

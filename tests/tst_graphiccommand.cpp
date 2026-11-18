@@ -3,8 +3,8 @@
 #include "App/Views/Editor/EditorGraphicHelper.h"
 #include "App/Views/Editor/EditorCanvas.h"
 #include "App/Views/Editor/EditorToolUtils.h"
-#include <iiFileProviderNative.h>
-#include <SocietyDrive.h>
+#include <iiFileProvider>
+#include <iiSocietyContainer>
 #include <QJSEngine>
 #include <QSignalSpy>
 #include <QTemporaryDir>

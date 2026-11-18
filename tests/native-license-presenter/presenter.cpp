@@ -1,5 +1,6 @@
 #include "App/Native/NativeLicensePresenter.h"
 #include "App/ApplicationShutdownCoordinator.h"
+#include <iiSDKCore>
 #include <QEvent>
 #include <QGuiApplication>
 #include <QWindow>
@@ -32,7 +33,7 @@ private:
 };
 static void check(bool value,const char* message){if(!value)throw std::runtime_error(message);}
 int main(int argc,char** argv){
-    QGuiApplication app(argc,argv);ApplicationShutdownCoordinator shutdown;
+    QGuiApplication app(argc,argv);ii::runtime::EventLoop eventLoop;ApplicationShutdownCoordinator shutdown(eventLoop);
     QObject lifetime,invalidRoot,invalidAccount;LicenseWindow root;Account account;QWindow noLicenseProperty;
     using dreamscapes::native::installNativeLicensePresenter;
     check(!installNativeLicensePresenter(&invalidRoot,&account,&lifetime,&shutdown),"A non-window root was admitted");
@@ -42,9 +43,10 @@ int main(int argc,char** argv){
     root.setWorkspaceVisible(true);account.refresh();root.setWorkspaceVisible(false);
     QEvent language(QEvent::LanguageChange);QCoreApplication::sendEvent(&root,&language);
     QCoreApplication::processEvents();check(!root.isVisible(),"A native application window was shown");
-    QEvent quit(QEvent::Quit);QCoreApplication::sendEvent(&app,&quit);
+    check(bool(shutdown.begin()),"Native shutdown could not start");
     check(shutdown.isClosing(),"Application shutdown was not coordinated");
     check(!installNativeLicensePresenter(&root,&account,&lifetime,&shutdown),"A closing application admitted a presenter");
     QCoreApplication::processEvents();
+    (void)eventLoop.poll();
 }
 #include "presenter.moc"

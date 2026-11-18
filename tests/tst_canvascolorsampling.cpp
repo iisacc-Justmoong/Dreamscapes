@@ -1,8 +1,8 @@
 #include "App/Views/Editor/EditorCanvas.h"
 #include "App/Views/Editor/EditorColorSampler.h"
-#include <iiSharedCanvas.h>
-#include <iiFileProviderNative.h>
-#include <SocietyDrive.h>
+#include <iiSharedCanvas>
+#include <iiFileProvider>
+#include <iiSocietyContainer>
 #include <QCursor>
 #include <QElapsedTimer>
 #include <QHoverEvent>

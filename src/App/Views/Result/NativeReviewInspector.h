@@ -1,7 +1,7 @@
 #pragma once
 
 #include "NativeReviewSession.h"
-#include <iiSDKCore/Core/Property/Observable.h>
+#include <iiSDKCore>
 #include <functional>
 #include <memory>
 #include <string>

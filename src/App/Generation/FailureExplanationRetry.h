@@ -1,5 +1,5 @@
 #pragma once
-#include <iiMultimodalAgent/agent/Engine.h>
+#include <iiMultimodalAgent>
 
 namespace dreamscapes {
 // A truncated structured turn is never accepted as a result. A fresh,

@@ -66,7 +66,7 @@ void exercise() {
     auto observation = choice->enabled.observe([&](bool active, std::uint64_t) {
         if (!active) return;
         auto next = reentrant->snapshot.get(); next.modelLabel = "New label";
-        next.choices.models[0].label = "New label"; good(reentrant->setSnapshot(std::move(next)));
+        next.choices.models = {{"a", "New label"}}; good(reentrant->setSnapshot(std::move(next)));
     });
     good(reentrant->setHandler([](const HomeComposerCommand &) -> ii::core::Result<void> { return {}; }));
     check(choice->value.get() == "New label" && choice->choices.get()[0].label == "New label",

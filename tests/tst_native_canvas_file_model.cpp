@@ -4,8 +4,8 @@
 #include "App/Views/Editor/NativeFilePanel.h"
 #include "NativeAssets.h"
 #include <File/DocumentFile.h>
-#include <iiFileProviderNative.h>
-#include <iiVisualCodec/ImageCodec.h>
+#include <iiFileProvider>
+#include <iiVisualCodec>
 #include <array>
 #include <filesystem>
 #include <iostream>

@@ -2,10 +2,8 @@
 #include "GenerationController.h"
 #include "SocietyGenerationStorage.h"
 #include "GenerationWorkProgress.h"
-#include <iiSocietyHelper.h>
-#include <iiSocietyHelper/Sync/Sync.h>
-#include <iiSocietyHelper/Generation/Host.h>
-#include <StorageMap.h>
+#include <iiSocietyHelper>
+#include <iiSocietyContainer>
 #include <QFile>
 #include <QImage>
 #include <QJsonDocument>

@@ -4,7 +4,7 @@
 #include "App/ViewModels/WorkspaceSession.h"
 #include "App/Views/Home/NativeHomeQueueSession.h"
 #include "App/Views/Home/NativeHomeQueueView.h"
-#include <SharedStorage.h>
+#include <iiSocietyContainer>
 #include <QCoreApplication>
 #include <QFile>
 #include <QTemporaryDir>

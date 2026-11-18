@@ -8,8 +8,9 @@ content must not silently turn into an empty production panel. The application
 adapter owns live data, translation, navigation, file commands and generation;
 the workspace owns only layout and presentation state.
 
-At a window width below 700 the sidebar is 48 wide, otherwise 181. The
-content viewport scrolls. At a viewport width of 1040 or more the file and
+The sidebar is 181 points wide with 165-point rows and dividers. Below a
+window width of 700 points it switches to 48 points with 32-point icon rows.
+The content viewport scrolls. At a viewport width of 1040 or more the file and
 session panels are placed in two columns; otherwise they stack vertically.
 The 12 or 16 point content inset, 12 point gaps, 360 point minimum file-panel
 height and 160 point session panels follow the existing layout. Caller-supplied
@@ -33,13 +34,10 @@ real LVUI composer with the other native panels, checks prompt focus and
 workspace height across a resize, and sends a command to an isolated draft
 handler. It does not open the application or run generation.
 
-The view is an intermediate native composition, not the application's Home.
-The remaining QuickGenerate canvas and picker, other routes, the top-level
-window and complete controller adapters remain required. The workspace must
-not replace the running Home until all
-its native regions and commands have functional parity, and the native
-tooltip and resizing behavior are checked in an actual host. Automated
-headless tests are distinct from a visually verified installed application.
+The native application shell mounts this composition for the Home route.
+`Dreamscapes.NativeViewApp` exercises Home's expanded and compact sidebar
+through the shell viewport and clicks a compact row with iiGUI pointer input.
+Installed-app checks exercise the same sequence in the native window host.
 
 When the composer reports a new natural height during a Home resize, the
 workspace retains the latest height and recalculates after the active layout

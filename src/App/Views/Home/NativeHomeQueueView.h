@@ -1,7 +1,7 @@
 #pragma once
 
 #include "NativeHomeQueue.h"
-#include <iiGUI/NativeWidgets.h>
+#include <iiGUI>
 #include <memory>
 #include <string>
 

@@ -1,5 +1,5 @@
 #include "App/Views/Home/NativeHomeWorkspace.h"
-#include <iiGUI/NativeView.h>
+#include <iiGUI>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -27,7 +27,7 @@ void exercise() {
     const auto viewport = [&](double width, double height) { return model->setViewport(width, height, 12, 16); };
     good(model->setComposerHeight(91));
     good(viewport(1440, 868));
-    check(!model->compact.get() && model->wide.get() && near(model->sidebarWidth.get(),181)
+    check(!model->compact.get() && model->wide.get() && near(model->sidebarWidth.get(),181) && near(sidebar->viewportWidth.get(),181)
         && near(model->contentWidth.get(),1227) && near(model->fileWidth.get(),700)
         && near(model->selectedWidth.get(),515) && near(model->queueWidth.get(),526)
         && near(model->generationWidth.get(),689) && near(model->fileHeight.get(),493), "wide layout is wrong");
@@ -37,7 +37,7 @@ void exercise() {
         && near(model->fileWidth.get(),687) && near(model->selectedWidth.get(),687)
         && near(model->fileHeight.get(),360) && model->status.get()=="Running", "stacked layout is wrong");
     good(viewport(600,600));
-    check(model->compact.get() && sidebar->compact.get() && near(model->sidebarWidth.get(),48)
+    check(model->compact.get() && sidebar->compact.get() && near(model->sidebarWidth.get(),48) && near(sidebar->viewportWidth.get(),48)
         && near(model->contentWidth.get(),528), "compact layout is wrong");
     good(viewport(700,600));
     check(!model->compact.get() && near(model->sidebarWidth.get(),181), "sidebar breakpoint is wrong");

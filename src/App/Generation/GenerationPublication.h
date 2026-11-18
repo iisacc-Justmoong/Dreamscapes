@@ -1,5 +1,5 @@
 #pragma once
-#include <iiSocietyHelper.h>
+#include <iiSocietyHelper>
 #include <Generation/NativeDiffusion.hpp>
 #include <QByteArray>
 #include <QJsonObject>

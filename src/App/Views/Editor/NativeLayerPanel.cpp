@@ -138,14 +138,69 @@ void LayerPanelModel::synchronize() {
 ii::core::Result<void> LayerPanelModel::showLayer() {
     if (auto valid=writable(); !valid) return valid;
     editing_=false;
-    (void)informationMode.set(false); (void)layerMode.set(true); (void)viewTitle.set("Layer");
+    (void)informationMode.set(false); (void)histogramMode.set(false); (void)layerMode.set(true); (void)viewTitle.set("Layer");
+    if (histogram_) (void)histogram_->setVisible(false);
     synchronize(); return {};
 }
 ii::core::Result<void> LayerPanelModel::showInformation() {
     if (auto valid=writable(); !valid) return valid;
     editing_=false;
-    (void)layerMode.set(false); (void)informationMode.set(true); (void)viewTitle.set("Information");
+    (void)layerMode.set(false); (void)histogramMode.set(false); (void)informationMode.set(true); (void)viewTitle.set("Information");
+    if (histogram_) (void)histogram_->setVisible(false);
     synchronize(); return {};
+}
+ii::core::Result<void> LayerPanelModel::showHistogram() {
+    if (auto valid=writable();!valid) return valid;
+    editing_=false;
+    (void)layerMode.set(false);(void)informationMode.set(false);(void)histogramMode.set(true);(void)viewTitle.set("Histogram");
+    if (histogram_) (void)histogram_->setVisible(visible_);
+    return {};
+}
+ii::core::Result<void> LayerPanelModel::selectHistogram(HistogramChannel channel) {
+    if (auto valid=writable();!valid) return valid;
+    if (!histogram_) return ii::core::fail(ErrorCode::closed,"Histogram is unavailable");
+    return histogram_->select(channel);
+}
+void LayerPanelModel::setVisible(bool value) {
+    if (owner_!=std::this_thread::get_id()) return;
+    visible_=value;
+    if (histogram_) (void)histogram_->setVisible(visible_ && histogramMode.get());
+}
+void LayerPanelModel::setHistogram(std::shared_ptr<HistogramModel> value) {
+    if (owner_!=std::this_thread::get_id()) return;
+    histogramObservers_.clear();
+    if (histogram_) (void)histogram_->setVisible(false);
+    histogram_=std::move(value);
+    if (!histogram_) {
+        (void)histogramPlot.set({});(void)histogramHasPlot.set(false);(void)histogramSummary.set({});
+        (void)histogramStatus.set("Histogram unavailable");(void)histogramBusy.set(false);return;
+    }
+    const std::weak_ptr<LayerPanelModel> weak=shared_from_this();
+    histogramObservers_.push_back(histogram_->plot.observe([weak](const auto &image,std::uint64_t){
+        if (auto self=weak.lock()) {(void)self->histogramPlot.set(image);(void)self->histogramHasPlot.set(bool(image));}
+    },true));
+    histogramObservers_.push_back(histogram_->summary.observe([weak](const auto &text,std::uint64_t){
+        if (auto self=weak.lock()) (void)self->histogramSummary.set(text);
+    },true));
+    histogramObservers_.push_back(histogram_->status.observe([weak](const auto &text,std::uint64_t){
+        if (auto self=weak.lock()) (void)self->histogramStatus.set(text);
+    },true));
+    histogramObservers_.push_back(histogram_->busy.observe([weak](bool value,std::uint64_t){
+        if (auto self=weak.lock()) (void)self->histogramBusy.set(value);
+    },true));
+    histogramObservers_.push_back(histogram_->rgbSelected.observe([weak](bool value,std::uint64_t){
+        if (auto self=weak.lock()) (void)self->histogramRgb.set(value);
+    },true));
+    histogramObservers_.push_back(histogram_->redSelected.observe([weak](bool value,std::uint64_t){
+        if (auto self=weak.lock()) (void)self->histogramRed.set(value);
+    },true));
+    histogramObservers_.push_back(histogram_->greenSelected.observe([weak](bool value,std::uint64_t){
+        if (auto self=weak.lock()) (void)self->histogramGreen.set(value);
+    },true));
+    histogramObservers_.push_back(histogram_->blueSelected.observe([weak](bool value,std::uint64_t){
+        if (auto self=weak.lock()) (void)self->histogramBlue.set(value);
+    },true));
+    (void)histogram_->setVisible(visible_ && histogramMode.get());
 }
 ii::core::Result<void> LayerPanelModel::editOpacityText(std::string value) {
     if (auto valid=writable(); !valid) return valid;

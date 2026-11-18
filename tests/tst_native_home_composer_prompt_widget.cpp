@@ -1,6 +1,6 @@
 #include "App/Views/Home/NativeHomeComposerPromptView.h"
 #include "iiGUI/WidgetState.h"
-#include <iiSDKCore/Runtime/FrameLoop.h>
+#include <iiSDKCore>
 #include <iostream>
 #include <stdexcept>
 

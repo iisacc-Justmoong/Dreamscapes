@@ -11,21 +11,52 @@ template<std::size_t N> bool preferences(const std::array<double, N> &values) {
 }
 }
 ii::core::Result<HomeComposerLayout> calculateHomeComposerLayout(double width, double promptHeight, bool video,
-        bool attachments, double errorHeight, const HomeComposerLayoutSpec &spec, const HomeComposerLayoutMetrics &metrics) {
+        bool attachments, double errorHeight, const HomeComposerLayoutSpec &spec, const HomeComposerLayoutMetrics &metrics,
+        double negativePromptHeight) {
     using ii::core::ErrorCode;
-    if (!dimension(width) || !dimension(promptHeight) || !dimension(errorHeight) ||
+    if (!dimension(width) || !dimension(promptHeight) || !dimension(negativePromptHeight) || !dimension(errorHeight) ||
         !dimension(spec.wideBreakpoint) || !dimension(spec.mediumBreakpoint) || !dimension(spec.compactBreakpoint) ||
         spec.compactBreakpoint > spec.mediumBreakpoint || spec.mediumBreakpoint > spec.wideBreakpoint ||
-        !preferences(spec.topPreferred) || !preferences(spec.settingsPreferred) ||
+        !preferences(spec.topPreferred) || !preferences(spec.settingsPreferred) || !preferences(spec.videoPreferred) ||
         !dimension(metrics.gap) || !dimension(metrics.inset) || !dimension(metrics.controlHeight) ||
         !dimension(metrics.settingHeight) || !dimension(metrics.attachmentHeight) || metrics.controlHeight <= 0 ||
         metrics.settingHeight < metrics.controlHeight || (attachments && metrics.attachmentHeight <= 0) || width <= 2*metrics.inset)
         return ii::core::fail(ErrorCode::invalid_argument, "Invalid Home composer layout inputs");
     HomeComposerLayout result;
+    for (auto &item : result.settings) item.visible = false;
     result.contentWidth = width - 2*metrics.inset;
     const auto gap = metrics.gap;
     const auto prompt = std::max(metrics.controlHeight, promptHeight);
-    if (width >= spec.wideBreakpoint) {
+    if (spec.compactControls) {
+        const auto mediaWidth=std::min(spec.topPreferred[0],result.contentWidth-gap-1);
+        const auto generateWidth=spec.topPreferred[5];
+        if (mediaWidth<=0 || metrics.controlHeight>result.contentWidth || generateWidth>result.contentWidth)
+            return ii::core::fail(ErrorCode::out_of_range,"Composer width cannot fit its fixed controls");
+        const auto negativePrompt = std::max(metrics.controlHeight, negativePromptHeight);
+        result.topHeight=prompt+gap+negativePrompt;
+        result.top[0]={0,(prompt-metrics.controlHeight)/2,mediaWidth,metrics.controlHeight,true};
+        result.top[1]={mediaWidth+gap,0,result.contentWidth-mediaWidth-gap,prompt,true};
+        result.top[2]={0,prompt+gap,result.contentWidth,negativePrompt,true};
+        for (std::size_t i=3;i<result.top.size();++i) result.top[i].visible=false;
+
+        double x=0,y=0;
+        const auto place=[&](std::size_t index,double desired) {
+            const auto itemWidth=std::min(desired,result.contentWidth);
+            if (x>0 && x+gap+itemWidth>result.contentWidth) {x=0;y+=metrics.controlHeight+gap;}
+            if (x>0) x+=gap;
+            result.settings[index]={x,y,itemWidth,metrics.controlHeight,true};
+            x+=itemWidth;
+        };
+        place(9,metrics.controlHeight);
+        for (std::size_t i=0;i<5;++i) place(i,spec.settingsPreferred[i]);
+        if (video) {
+            place(7,spec.videoPreferred[0]);
+            place(8,spec.videoPreferred[1]);
+        }
+        if (x+gap+generateWidth>result.contentWidth) y+=metrics.controlHeight+gap;
+        result.settings[10]={result.contentWidth-generateWidth,y,generateWidth,metrics.controlHeight,true};
+        result.settingsHeight=y+metrics.controlHeight;
+    } else if (width >= spec.wideBreakpoint) {
         double fixed = 0;
         for (std::size_t i = 0; i < result.top.size(); ++i) if (i != 1) fixed += spec.topPreferred[i];
         const auto room = result.contentWidth - gap * (result.top.size()-1);
@@ -68,7 +99,7 @@ ii::core::Result<HomeComposerLayout> calculateHomeComposerLayout(double width, d
         const auto settingCell = (result.contentWidth-gap*(settingsColumns-1))/settingsColumns;
         if (settingCell <= 0) return ii::core::fail(ErrorCode::out_of_range, "Composer width cannot fit settings");
         std::size_t column = 0, row = 0;
-        const auto count = video ? result.settings.size() : spec.settingsPreferred.size();
+        const auto count = video ? std::size_t{9} : spec.settingsPreferred.size();
         for (std::size_t i = 0; i < count; ++i) {
             const std::size_t span = width < spec.mediumBreakpoint && (i == 5 || i == 6) ? 2 : 1;
             if (column + span > settingsColumns) { column = 0; ++row; }

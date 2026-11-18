@@ -1,6 +1,6 @@
 #include "PublishReview.h"
 #include "../Views/Editor/EditorFrameExporter.h"
-#include <iiFileProviderStorage.h>
+#include <iiFileProvider>
 #include <QUuid>
 #include <QtConcurrentRun>
 #include <algorithm>

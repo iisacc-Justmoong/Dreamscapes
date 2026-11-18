@@ -1,11 +1,8 @@
 #include "GenerationProcess.h"
-#include <iiSDKCore/Runtime/EventLoop.h>
-#include <iiSDKCore/Runtime/Runtime.h>
-#include <QCoreApplication>
+#include <iiSDKCore>
 #include <QPointer>
 #include <QScopeGuard>
 #include <QTimer>
-#include <QThread>
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -58,14 +55,6 @@ private:
 };
 ProcessRuntime &processRuntime() {
     static ProcessRuntime runtime;
-    if (auto *application = QCoreApplication::instance()) {
-        static std::once_flag hooked;
-        std::call_once(hooked, [application] {
-            const auto close = [target = &runtime] { target->shutdown(); };
-            QObject::connect(application, &QCoreApplication::aboutToQuit, application, close, Qt::DirectConnection);
-            QObject::connect(application, &QObject::destroyed, close);
-        });
-    }
     return runtime;
 }
 }
@@ -263,19 +252,6 @@ struct GenerationProcess::State : std::enable_shared_from_this<State> {
 
 GenerationProcess::GenerationProcess(QObject *parent) : QObject(parent) {}
 GenerationProcess::~GenerationProcess() { retire(); }
-void GenerationProcess::shutdownAsync(QObject *receiver, std::function<void()> completion,
-                                      std::function<void()> beforeWait) {
-    auto *runtime = &processRuntime();
-    auto *worker = QThread::create([runtime, beforeWait = std::move(beforeWait)] {
-        try { if (beforeWait) beforeWait(); } catch (...) {}
-        runtime->shutdown();
-    });
-    QObject::connect(worker, &QThread::finished, receiver, [completion = std::move(completion)] {
-        if (completion) completion();
-    });
-    QObject::connect(worker, &QThread::finished, worker, &QObject::deleteLater);
-    worker->start();
-}
 quint64 GenerationProcess::processId() const { return d ? d->pid.load() : 0; }
 void GenerationProcess::start(const QString &program, const QStringList &arguments, std::shared_ptr<void> lifetime) {
     if (m_status != NotRunning) return;

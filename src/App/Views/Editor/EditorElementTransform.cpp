@@ -1,6 +1,6 @@
 #include "EditorCanvas.h"
 #include "EditorToolUtils.h"
-#include <iiSharedCanvas/Document/CanvasSampling.h>
+#include <iiSharedCanvas>
 #include <QHoverEvent>
 #include <QCursor>
 #include <QKeyEvent>

@@ -1,7 +1,10 @@
 import nav NativeReviewNavigationScope
 import vm NativeReviewGalleryBackend
+@Static let resizeCompare: (Double, Double) -> Void = vm.compareSizeHandler(Metric.space8, Metric.size22, Metric.size140)
 ApplicationWindow(title: "Dreamscapes · Results", width: 1440, height: 900) {
     VStack(spacing: 8, padding: 12, alignment: .stretch, flex: 1) {
+        ZStack(id: "reviewBody", alignment: .stretch, flex: 1) {
+          VStack(id: "galleryLayer", spacing: Metric.space8, alignment: .stretch, visible: vm.galleryVisible, flex: 1) {
         HStack(spacing: 4) {
             Label(text: "RESULTS", style: .caption)
             LabelButton(id: "all", text: "All", tone: .default, onClick: vm.showAll)
@@ -31,6 +34,34 @@ ApplicationWindow(title: "Dreamscapes · Results", width: 1440, height: 900) {
                     ContextMenuItem(id: "reviewContextSavePhotos", label: item.savePhotosLabel(), enabled: item.canContextSavePhotos(), hasChildItems: false)
                 }
             }
+        }
+          }
+          EventListener(id: "compareSurface", width: 0, height: 0, flex: 1,
+                        visible: vm.comparing, onSizeChanged: resizeCompare) {
+            VStack(width: vm.compareWidth, height: vm.compareHeight, spacing: Metric.space8, alignment: .stretch) {
+                HStack(height: Metric.size22, spacing: Metric.space8, alignment: .center) {
+                    LabelButton(id: "compareBack", text: "Back", tone: .default, onClick: vm.closeCompare)
+                    Label(text: "Compare · Preview pixels", style: .caption, flex: 1)
+                    LabelButton(id: "compareFit", text: "Fit", tone: .default, onClick: vm.fitCompare)
+                    LabelButton(id: "compareActual", text: "100%", tone: .default, onClick: vm.actualCompare)
+                    LabelButton(id: "compareOut", text: "−", tone: .default, onClick: vm.zoomOutCompare)
+                    LabelButton(id: "compareIn", text: "+", tone: .default, onClick: vm.zoomInCompare)
+                    LabelButton(id: "compareSync", text: vm.syncLabel, tone: .default, onClick: vm.toggleCompareSync)
+                }
+                for (item in vm.compareItems, key: item.key, id: "compareItems", itemWidth: vm.compareCellWidth,
+                     itemHeight: vm.compareCellHeight, spacing: Metric.space8, overscan: 1) {
+                    VStack(width: vm.compareCellWidth, height: vm.compareCellHeight, spacing: Metric.space8, alignment: .stretch) {
+                        HStack(height: Metric.size22, alignment: .center) {
+                            Label(text: item.title, style: .caption, elideRight: true)
+                        }
+                        ZStack(width: vm.compareCellWidth, height: vm.comparePaneHeight, alignment: .center) {
+                            NativeView(source: item.surface, width: vm.compareCellWidth, height: vm.comparePaneHeight)
+                            Label(text: item.status, visible: item.status != "", style: .caption)
+                        }
+                    }
+                }
+            }
+          }
         }
         HStack(spacing: 4) {
             Label(text: vm.selectionSummary, style: .caption)

@@ -2,7 +2,7 @@
 #include "ViewValue.h"
 #include <charconv>
 #include <limits>
-#include <iiSDKCore/Runtime/Query.h>
+#include <iiSDKCore>
 
 namespace dreamscapes::vm {
 enum class NumberInputKind { number, percentage, frame };

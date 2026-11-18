@@ -1,7 +1,6 @@
 #pragma once
 #include "NativeFilePanel.h"
-#include <iiGUI/NativeView.h>
-#include <iiGUI/NativeWidgets.h>
+#include <iiGUI>
 
 namespace dreamscapes::editor {
 [[nodiscard]] ii::core::Result<void> buildFilePanel(ii::gui::WidgetBuilder &,ii::gui::Widget,std::shared_ptr<FilePanelModel>);

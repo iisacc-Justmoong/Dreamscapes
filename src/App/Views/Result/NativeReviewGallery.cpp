@@ -1,4 +1,5 @@
 #include "NativeReviewGallery.h"
+#include "NativeReviewCompareView.h"
 #include <stdexcept>
 #include <utility>
 
@@ -218,6 +219,15 @@ ReviewGalleryModel::previewStatusForToken(std::string_view token,std::uint32_t w
     return status?std::optional{status->previewStatus(address,width,height)}:std::nullopt;
 }
 
+ReviewGalleryModel::ResolvedPreview ReviewGalleryModel::previewForSource(std::string_view source,std::uint32_t width,std::uint32_t height) const {
+    requireOwner();const auto resolver=imageResolver_.get();
+    if (source.empty() || !resolver) return {{},"Preview unavailable"};
+    if (auto image=resolver->image(source,width,height)) return {std::move(image),{}};
+    const auto status=std::dynamic_pointer_cast<const dreamscapes::native::PreviewStatusSource>(resolver);
+    return {{},status && status->previewStatus(source,width,height)==dreamscapes::native::PreviewStatus::loading?
+                "Loading preview…":"Preview unavailable"};
+}
+
 void ReviewGalleryModel::updateActions() {
     (void)resultSummary.set(std::to_string(session_->totalCount()) + " results");
     (void)selectionSummary.set(std::to_string(session_->selectedCount()) + " selected");
@@ -258,7 +268,9 @@ void ReviewGalleryModel::setDetailHandler(Action handler) {
     requireOwner();
     detail_ = std::move(handler);
 }
-void ReviewGalleryModel::setSaveFileHandler(Action handler) {requireOwner(); context_->setSaveFileHandler(std::move(handler));}
+void ReviewGalleryModel::setSaveFileHandler(Action handler,Eligibility eligible) {
+    requireOwner();context_->setSaveFileHandler(std::move(handler),std::move(eligible));
+}
 void ReviewGalleryModel::setSavePhotosHandler(Action handler) {requireOwner(); context_->setSavePhotosHandler(std::move(handler));}
 void ReviewGalleryModel::edit() {
     requireOwner();
@@ -331,7 +343,16 @@ NativeReviewNavigationScope::NativeReviewNavigationScope()
 NativeReviewGalleryBackend::NativeReviewGalleryBackend()
     : NativeReviewGalleryBackend(std::make_shared<dreamscapes::review::Session>()) {}
 NativeReviewGalleryBackend::NativeReviewGalleryBackend(std::shared_ptr<dreamscapes::review::Session> source)
-    : session(std::move(source)), model(Model::create(session)), items(model->items),
+    : session(std::move(source)), model(Model::create(session)), comparison(dreamscapes::review::CompareModel::create()), items(model->items),
       resultSummary(model->resultSummary), selectionSummary(model->selectionSummary), canReview(model->canReview),
       hasSelection(model->hasSelection), canEdit(model->canEdit), canCompare(model->canCompare),
-      canExport(model->canExport) {}
+      canExport(model->canExport),comparing(comparison->visible),galleryVisible(comparison->galleryVisible),
+      compareItems(comparison->items),syncLabel(comparison->syncLabel),compareWidth(comparison->width),
+      compareHeight(comparison->height),compareContentWidth(comparison->contentWidth),compareGridHeight(comparison->gridHeight),
+      compareCellWidth(comparison->cellWidth),compareCellHeight(comparison->cellHeight),comparePaneHeight(comparison->paneHeight) {
+    const std::weak_ptr weakCompare=comparison;const std::weak_ptr weakGallery=model;
+    comparison->setPaneFactory([weakCompare,weakGallery](const auto &item) {
+        return dreamscapes::review::comparePaneSource(weakCompare,weakGallery,item);
+    });
+    model->setCompareHandler([weakCompare](auto entries) {if (auto c=weakCompare.lock()) (void)c->open(entries);});
+}

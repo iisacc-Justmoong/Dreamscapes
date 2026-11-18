@@ -1,5 +1,5 @@
 #pragma once
-#include <iiSharedCanvas/Serialization/IiscCodec.h>
+#include <iiSharedCanvas>
 
 namespace dreamscapes {
 struct ProjectPage { std::string name; iiSharedCanvas::Document document; };

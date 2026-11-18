@@ -3,4 +3,7 @@
 /cmake-build-debug/
 /.idea/
 .DS_Store
+!/resources/migration/
+/resources/migration/*
+!/resources/migration/view-manifest.json
 resources/
