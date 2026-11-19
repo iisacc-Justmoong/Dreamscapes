@@ -18,6 +18,7 @@ int main() {
         auto timeline=editor::TimelinePanelModel::create(session,22);
         check(!session->createAudioTrack(),"an empty session allowed a new audio track");
         check(timeline->options.get().frame_count==0 &&
+              timeline->options.get().frame_rate.numerator==0 &&
               take(timeline->project({.frames={0,0},.top=0,.bottom=100})).tracks.empty(),
               "an empty session displayed fabricated tracks");
         Document document; document.extent={2,2}; document.timeline={{24,1},24};
@@ -27,6 +28,15 @@ int main() {
                                                         LayerFrameRange{2,9}},StaticSource{"one"}});
         document.layers.emplace_back(DynamicBitmapLayer{{"motion","Motion"},KeyframedSource{{0,12}}});
         document.frames={{0,{{"motion","one"}}},{12,{{"motion","two"}}}};
+        good(session->attach(document,"timeline.iisc"));
+        check(timeline->options.get().frame_rate==EditorTimelineFrameRate{24,1},
+              "The timeline did not read the canvas project frame rate");
+        auto fractional=document;
+        fractional.timeline.frameRate={30000,1001};
+        good(session->attach(std::move(fractional),"fractional.iisc"));
+        check(timeline->options.get().frame_count==24 &&
+              timeline->options.get().frame_rate==EditorTimelineFrameRate{30000,1001},
+              "The timeline did not update its exact frame rate when the canvas changed");
         good(session->attach(document,"timeline.iisc"));
         auto projection=take(timeline->project({.frames={0,24},.top=0,.bottom=44}));
         check(projection.tracks.size()==2 && projection.clips.size()==2 && projection.keys.size()==2 &&

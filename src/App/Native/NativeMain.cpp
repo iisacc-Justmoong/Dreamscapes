@@ -10,6 +10,7 @@
 #include "NativeSocietyVideoGeneration.h"
 #ifdef DREAMSCAPES_NATIVE_RESIDENT_CLIENT
 #include "NativeResidentCommand.h"
+#include "NativeSocietyDaemon.h"
 #endif
 #ifdef DREAMSCAPES_NATIVE_REVIEW_IMAGES
 #include "NativeFileImages.h"
@@ -156,18 +157,21 @@ int main(int argc,char **argv) {
                 if (auto owner=weakResources.lock()) return owner->runtime->post(RuntimeLane::general,std::move(task));
                 return false;
             }); !connected) return std::unexpected(connected.error());
+        const auto explicitSocietyRoot=environmentPath("SOCIETY_CONTAINER_PATH");
+        SocietyStorageAccess societyStorage;
+#ifdef DREAMSCAPES_NATIVE_RESIDENT_CLIENT
+        // Desktop data comes from the running daemon. SOCIETY_CONTAINER_PATH
+        // is only a constraint on its selected drive, never a fallback.
+        societyStorage=societyDaemonStorage({},explicitSocietyRoot);
+#else
         const auto societySelection=iiSocietyHelper::Monitoring::defaultSelectionFile();
-        std::filesystem::path explicitSocietyRoot;
-        if (const auto value=std::getenv("SOCIETY_CONTAINER_PATH"); value && *value) {
-            std::u8string text;
-            for (const unsigned char c:std::string_view(value)) text.push_back(static_cast<char8_t>(c));
-            explicitSocietyRoot=std::filesystem::path(text);
-        }
-        if (!societySelection.empty()) {
+        if (!societySelection.empty()) societyStorage=localSocietyStorage(societySelection,explicitSocietyRoot);
+#endif
+        if (societyStorage.read) {
             if (auto connected=shell->connectSocietyStorage(loop,[weakResources](ii::runtime::Task task) {
                     if (auto owner=weakResources.lock()) return owner->runtime->post(RuntimeLane::general,std::move(task));
                     return false;
-                },societySelection,explicitSocietyRoot); !connected) return std::unexpected(connected.error());
+                },societyStorage); !connected) return std::unexpected(connected.error());
             GenerationWorkerPaths paths;
             paths.explicitExecutable=environmentPath("IILD_GENERATOR_EXECUTABLE");
             paths.python=environmentPath("IILD_PYTHON_EXECUTABLE");
@@ -188,12 +192,12 @@ int main(int argc,char **argv) {
             const auto discovery=discoverGenerationRuntime(loop,[weakResources](ii::runtime::Task task) {
                     if (auto owner=weakResources.lock()) return owner->runtime->post(RuntimeLane::general,std::move(task));
                     return false;
-                },std::move(paths),{},[weakResources,loopPointer=&loop,societySelection,explicitSocietyRoot](auto result) mutable {
+                },std::move(paths),{},[weakResources,loopPointer=&loop,read=std::move(societyStorage.read),explicitSocietyRoot](auto result) mutable {
                     auto owner=weakResources.lock();
                     if (!owner || !owner->shell) return;
                     auto &shell=owner->shell;
                     if (!result) {(void)shell->generation(false)->serviceStatus.set(result.error().message);return;}
-                    SocietyGenerationOptions generationOptions{societySelection,explicitSocietyRoot,std::move(result->stagingRoot)};
+                    SocietyGenerationOptions generationOptions{{},explicitSocietyRoot,std::move(result->stagingRoot),std::move(read)};
                     auto transport=dreamscapes::generation::processWorkerTransport(std::move(result->command));
                     auto imageRunner=dreamscapes::generation::makeWorkerGenerationRunner(societyGenerationServices(generationOptions,transport));
                     auto videoRunner=makeSocietyVideoRunner(std::move(generationOptions),std::move(transport));

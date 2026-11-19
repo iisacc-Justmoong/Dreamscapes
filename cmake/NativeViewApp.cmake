@@ -281,7 +281,12 @@ if(_dreamscapes_worker)
     target_compile_definitions(Dreamscapes PRIVATE "DREAMSCAPES_DIFFUSION_EXECUTABLE=\"${_dreamscapes_worker}\"")
 endif()
 if(NOT IOS AND NOT ANDROID AND NOT EMSCRIPTEN)
-    find_package(iiSocietyHelperNative 0.12 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietyHelper")
+    find_package(iiSocietyHelperNative 0.12.1 CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiSocietyHelper")
+    add_library(DreamscapesNativeSocietyDaemon STATIC
+        src/App/Native/NativeSocietyDaemon.h src/App/Native/NativeSocietyDaemon.cpp)
+    target_link_libraries(DreamscapesNativeSocietyDaemon PRIVATE
+        DreamscapesNativeViewApp iiSocietyHelperNative::ResidentClient iiJson::iiJson)
+    target_link_libraries(Dreamscapes PRIVATE DreamscapesNativeSocietyDaemon)
     add_library(DreamscapesNativeResidentCommand STATIC
         src/App/Native/NativeResidentCommand.h src/App/Native/NativeResidentCommand.cpp)
     target_compile_features(DreamscapesNativeResidentCommand PUBLIC cxx_std_23)
@@ -519,6 +524,14 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     target_compile_definitions(DreamscapesNativeSocietyStorageTests PRIVATE DREAMSCAPES_TEST_RESOURCES="${CMAKE_CURRENT_SOURCE_DIR}/resources")
     target_link_libraries(DreamscapesNativeSocietyStorageTests PRIVATE DreamscapesNativeViewApp)
     add_test(NAME Dreamscapes.NativeSocietyStorage COMMAND DreamscapesNativeSocietyStorageTests)
+    if(UNIX AND NOT IOS AND NOT ANDROID AND NOT EMSCRIPTEN AND NOT CMAKE_CROSSCOMPILING)
+        add_executable(DreamscapesNativeSocietyDaemonTests tests/tst_native_society_daemon.cpp)
+        target_link_libraries(DreamscapesNativeSocietyDaemonTests PRIVATE DreamscapesNativeViewApp DreamscapesNativeSocietyDaemon)
+        add_test(NAME Dreamscapes.NativeSocietyDaemon COMMAND "${Python3_EXECUTABLE}" -B
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_society_daemon.py"
+            "$<TARGET_FILE:DreamscapesNativeSocietyDaemonTests>" "${CMAKE_CURRENT_SOURCE_DIR}/resources")
+        set_tests_properties(Dreamscapes.NativeSocietyDaemon PROPERTIES TIMEOUT 45)
+    endif()
     add_executable(DreamscapesNativeSocietyHistoryTests tests/tst_native_society_history.cpp)
     target_compile_definitions(DreamscapesNativeSocietyHistoryTests PRIVATE DREAMSCAPES_TEST_RESOURCES="${CMAKE_CURRENT_SOURCE_DIR}/resources")
     target_link_libraries(DreamscapesNativeSocietyHistoryTests PRIVATE DreamscapesNativeViewApp)

@@ -108,7 +108,7 @@ ii::core::Result<generation::WorkerJobPlan> prepareSocietyVideoGeneration(const 
         effective["seed"]=vm::Value(static_cast<std::int64_t>(vm::number(vm::get(*values,"seed")))+
             static_cast<std::int64_t>(outputIndex));
     values=vm::Value(std::move(effective));
-    auto model=resolveSocietyModel(options.selection,request.modelSource,options.explicitRoot,[&]{return cancellation.load();});
+    auto model=resolveSocietyModel(options.storageReader(),request.modelSource,[&]{return cancellation.load();});
     if (!model) return std::unexpected(model.error());
     try {
         std::error_code error;const auto parent=fs::canonical(options.stagingRoot,error);
@@ -185,9 +185,11 @@ ii::core::Result<void> publishSocietyVideoGeneration(const generation::WorkerJob
         if (vm::text(vm::get(values,"model"))!=vm::text(vm::get(source,"id")))
             return fail(ErrorCode::invalid_argument,"Video model identity is invalid");
         const auto verify=[&]() -> ii::core::Result<SocietyListing> {
-            auto model=resolveSocietyModel(options.selection,source,options.explicitRoot,[&]{return cancellation.load();});
+            const auto read=options.storageReader();
+            const auto canceled=[&]{return cancellation.load();};
+            auto model=resolveSocietyModel(read,source,canceled);
             if (!model) return std::unexpected(model.error());
-            auto history=browseSociety(options.selection,"generation-history","","",options.explicitRoot);
+            auto history=read({"generation-history","","",SocietyListingKind::section},canceled);
             if (!history) return std::unexpected(history.error());
             auto selectedRoot=ii::core::path_to_utf8(history->root);
             if (!selectedRoot || *selectedRoot!=vm::text(vm::get(source,"root")) ||

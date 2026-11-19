@@ -14,7 +14,7 @@
       "document_id": "urn:iisacc:document:8cfc9d8a7589190597322d973c2b2fecb5c3dc57efad048e8b4b7ea6f238046c",
       "source": "AGENT.md",
       "agent_json": "docs/entrypoints/AGENT.agent.json",
-      "source_sha256": "d23561462950e4f2008d96c535af594de155eeaab74ac329f0386589e850880a",
+      "source_sha256": "a9c02f48b428f98483e379cf503897924c4fa7fbcd7f34168a138407c2508b85",
       "role": "instructions"
     },
     {
@@ -28,7 +28,7 @@
       "document_id": "urn:iisacc:document:047887459d0d4d3b49222e75488254321571556918c4f0489c848d9d649831d3",
       "source": "README.md",
       "agent_json": "docs/entrypoints/README.agent.json",
-      "source_sha256": "91aa6e48ccfc1815697489c077ad9c294d5bbe75cfc8f8367990fc98960c2a78",
+      "source_sha256": "715c6757c8162642234b3ac06cfc284daaa53c10b1327309b9a72ea192f8689e",
       "role": "overview"
     },
     {
@@ -182,7 +182,7 @@
       "document_id": "urn:iisacc:document:72f474e91c0abeddb47ad805e06829fadb5402171c6800debf0f2635b691298d",
       "source": "docs/EditorLayerTimeline.md",
       "agent_json": "docs/EditorLayerTimeline.agent.json",
-      "source_sha256": "a40d21a428a790e694cc12a27025a2547ad7c807d7ffc313f6ddb1b60b562603",
+      "source_sha256": "b457f82053df7b77a302ce70178cc69a467d0924f380468110dc65a1eaacc671",
       "role": "guide"
     },
     {
@@ -399,14 +399,14 @@
       "document_id": "urn:iisacc:document:384e07f3667ee719ccd79bc6c8fd3cbaf3df0f261dfc994363b05ddca447d146",
       "source": "docs/NativeDynamicGeneration.md",
       "agent_json": "docs/NativeDynamicGeneration.agent.json",
-      "source_sha256": "fb6dd7c413e309613f5acb8eb06d04321eb73928cacd910f273a411b506000af",
+      "source_sha256": "d7e1d5ecd1199f123106b82fc6875ff05f596a9b185f49d4a534c1011cdcedc0",
       "role": "guide"
     },
     {
       "document_id": "urn:iisacc:document:65cd8f883e731adcb069ba71fc56d644cd1308038a2660a6513355236e16ff8d",
       "source": "docs/NativeDynamicWorkspaces.md",
       "agent_json": "docs/NativeDynamicWorkspaces.agent.json",
-      "source_sha256": "63dcaa232412a0d708c60efdc82d05e98823eed23816190d0acd579943772edf",
+      "source_sha256": "6e44025c923e2eea32d06e1c74925a0ac693552cb7fcf0c9af3bced9605bb11a",
       "role": "guide"
     },
     {
@@ -497,7 +497,7 @@
       "document_id": "urn:iisacc:document:5f662fa8e186405eb7e17c9fd60db59674ef924b4e2a83346a2dcc984421fe62",
       "source": "docs/NativeLicenseOverlay.md",
       "agent_json": "docs/NativeLicenseOverlay.agent.json",
-      "source_sha256": "1de2869db7dd7b1176a3820194c6b4f33b4f0854f841bd4fefac7829ac68946e",
+      "source_sha256": "37bcb0e09ccdda01190ad76eef2b5503c0affe72e9ded0725001f40a3411953c",
       "role": "guide"
     },
     {

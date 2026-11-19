@@ -91,7 +91,7 @@ ii::core::Result<generation::WorkerJobPlan> prepareSocietyGeneration(const gener
     const bool quick=vm::boolean(vm::get(request.parameters,"quick"));
     auto values=imageParameters(request,quick);
     if (!values) return std::unexpected(values.error());
-    auto model=resolveSocietyModel(options.selection,request.modelSource,options.explicitRoot,[&] {return cancellation.load();});
+    auto model=resolveSocietyModel(options.storageReader(),request.modelSource,[&] {return cancellation.load();});
     if (!model) return std::unexpected(model.error());
     if (cancellation.load()) return ii::core::fail(ErrorCode::cancelled,"Generation was canceled");
     try {
@@ -163,10 +163,12 @@ ii::core::Result<void> publishSocietyGeneration(const generation::WorkerJobPlan 
             vm::text(vm::get(parameters,"model"))!=vm::text(vm::get(source,"id")) || vm::text(vm::get(plan.context,"outputDirectory"))!=
             ii::core::path_to_utf8(output).value_or(std::string{}))
             return fail(ErrorCode::invalid_argument,"Generation output parameters are invalid");
+        const auto read=options.storageReader();
+        const auto canceled=[&]{return cancellation.load();};
         const auto verify=[&]() -> ii::core::Result<SocietyListing> {
-            auto model=resolveSocietyModel(options.selection,source,options.explicitRoot,[&]{return cancellation.load();});
+            auto model=resolveSocietyModel(read,source,canceled);
             if (!model) return std::unexpected(model.error());
-            auto history=browseSociety(options.selection,"generation-history","","",options.explicitRoot);
+            auto history=read({"generation-history","","",SocietyListingKind::section},canceled);
             if (!history) return std::unexpected(history.error());
             auto root=ii::core::path_to_utf8(history->root);
             if (!root || *root!=vm::text(vm::get(source,"root")) || history->containerId!=vm::text(vm::get(source,"containerId")))

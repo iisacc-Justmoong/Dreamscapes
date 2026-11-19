@@ -1,8 +1,8 @@
 #include "NativeReviewFileSave.h"
+#include "NativeSocietyStorage.h"
 #include <iiFileProvider>
 #include <algorithm>
 #include <array>
-#include <chrono>
 #include <limits>
 #include <mutex>
 #include <optional>
@@ -34,8 +34,7 @@ bool supported(const fs::path &path) {
     return validPath(path) && std::ranges::find(suffixes,suffix)!=suffixes.end();
 }
 std::string revision(const fs::path &path) {
-    return std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(
-        fs::last_write_time(path).time_since_epoch()).count())+"-"+std::to_string(fs::file_size(path));
+    return societySourceRevision(fs::last_write_time(path),fs::file_size(path));
 }
 ii::core::Result<void> copyOriginal(const fs::path &source,const fs::path &destination,
                                    const std::string &expected,const std::shared_ptr<std::atomic_bool> &canceled) {
@@ -94,6 +93,7 @@ void ReviewFileSave::setPicker(Picker value) {
 }
 bool ReviewFileSave::canSave(const vm::Value &entry) const {
     if (owner_!=std::this_thread::get_id() || !active_ || !picker_ || busy.get()) return false;
+    if (vm::has(entry,"societyReference") && !vm::boolean(vm::get(vm::get(entry,"societyReference"),"resident"))) return false;
     const auto value=vm::text(vm::get(entry,"path"));
     return !value.empty() && supported(pathFrom(value));
 }

@@ -46,6 +46,13 @@ opened after the view exists and lock changes on the selected layer.
 - The ruler, playback and precision controls use native frame count and
   rational FPS. Ranges that extend past the document grow its frame extent;
   invalid ranges never commit a partial change.
+  The native `TimelinePanelModel` forwards the exact `timeline.frameRate`
+  numerator and denominator from the active iiSharedCanvas document. The
+  ruler redraws after a document switch or rate change and uses the current
+  zoom and horizontal scroll to draw every visible frame boundary. Longer
+  ticks snap quarter seconds and seconds to the nearest frame, with ties on
+  the later frame. Below one logical pixel per frame, each occupied column
+  retains its tallest tick. [System timeline ruler](https://www.figma.com/design/PFMgQb3BVbrTbzPPsoWsRp/System?node-id=16-4107)
 - Thumbnails render the actual layer through `renderFrameLayerTiles`, including
   its appearance, at a bounded 64-pixel output. Audio waveforms summarize the
   clip's actual PCM samples and source offset. There are no sample assets.

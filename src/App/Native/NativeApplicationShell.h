@@ -49,6 +49,8 @@ class NativeApplicationShell final : public std::enable_shared_from_this<NativeA
     [[nodiscard]] ii::core::Result<void> connectCanvasFiles(ii::runtime::EventLoop &,CanvasFileModel::Submit);
     void disconnectCanvasFiles();
     [[nodiscard]] ii::core::Result<void> connectSocietyStorage(ii::runtime::EventLoop &,CanvasFileModel::Submit,std::filesystem::path,std::filesystem::path explicitRoot={});
+    /// Connects the existing storage views to one authoritative worker-side provider.
+    [[nodiscard]] ii::core::Result<void> connectSocietyStorage(ii::runtime::EventLoop &,CanvasFileModel::Submit,SocietyStorageAccess);
     void disconnectSocietyStorage();
     [[nodiscard]] ii::core::Result<void> connectGenerationPreferences(ii::runtime::EventLoop &,CanvasFileModel::Submit,std::filesystem::path);
     void disconnectGenerationPreferences();
@@ -71,6 +73,8 @@ class NativeApplicationShell final : public std::enable_shared_from_this<NativeA
     void setRoot(ii::gui::Widget root) {root_=std::move(root);}
     void sizeChanged(double width,double height);
     void setViewChangeHandler(std::function<ii::core::Result<void>()> value) {viewChange_=std::move(value);}
+    // Refreshes the gate's own host when the launch decision or session changes.
+    void setLicenseGateChangeHandler(std::function<ii::core::Result<void>()> value) {licenseGateChange_=std::move(value);}
     std::shared_ptr<home::HomeSidebarModel> sidebar() const {return sidebar_;}
     std::shared_ptr<home::HomeWorkspaceModel> workspace() const {return workspace_;}
     std::shared_ptr<home::HomeComposerModel> composer() const {return composer_;}
@@ -170,6 +174,7 @@ class NativeApplicationShell final : public std::enable_shared_from_this<NativeA
     ii::core::ObservableSubscription publishSaveObserver_,publishSaveMessageObserver_;
     std::shared_ptr<storage::WorkspaceModel> storageWorkspace_;
     std::shared_ptr<SocietyStorageModel> societyStorage_;
+    SocietyStorageAccess::Materialize societyMaterialize_;
     std::shared_ptr<storage::WorkspaceModel> recentFilesWorkspace_;
     std::shared_ptr<SocietyStorageModel> recentFilesProvider_;
     ii::core::ObservableSubscription recentFilesStatusObserver_;
@@ -191,6 +196,7 @@ class NativeApplicationShell final : public std::enable_shared_from_this<NativeA
     std::shared_ptr<home::HomeWorkspaceModel> workspace_;
     std::shared_ptr<home::HomeComposerWorkspaceBinding> composerHeight_;
     std::function<ii::core::Result<void>()> viewChange_;
+    std::function<ii::core::Result<void>()> licenseGateChange_;
     ii::gui::Widget root_;
 };
 }

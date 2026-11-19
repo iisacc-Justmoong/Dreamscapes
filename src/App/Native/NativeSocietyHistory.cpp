@@ -1,5 +1,6 @@
 #include "NativeSocietyHistory.h"
 #include "NativeSocietyStorage.h"
+#include <iiSocietyContainer>
 #include <algorithm>
 #include <limits>
 #include <mutex>
@@ -10,12 +11,16 @@
 namespace dreamscapes::native {
 namespace {
 using ii::core::ErrorCode;
-ii::core::Result<std::vector<vm::Value>> readHistory(const std::filesystem::path &selection,const std::filesystem::path &root,std::size_t limit) {
-    auto listing=browseSociety(selection,"generation-history","","",root);
+// Preserve the logical daemon reference on remote results so their media can
+// be prepared only when the user opens it.
+ii::core::Result<std::vector<vm::Value>> readHistory(const SocietyStorageAccess::Read &read,std::size_t limit,
+    std::stop_token stop) {
+    auto listing=read({"generation-history","",""},[stop]{return stop.stop_requested();});
     if (!listing) return std::unexpected(listing.error());
     static constexpr std::string_view images[]{".png",".jpg",".jpeg",".webp",".bmp",".gif",".tif",".tiff",".avif",".heic",".heif"};
     static constexpr std::string_view videos[]{".mp4",".mov",".m4v",".webm",".mkv"};
     std::vector<vm::Value> result;
+    const iiSocietyContainer::FileTree tree(listing->sectionPath);
     for (const auto &entry:vm::array(listing->aliases)) {
         if (vm::boolean(vm::get(entry,"isDirectory"))) continue;
         const auto name=vm::text(vm::get(entry,"name"));
@@ -24,14 +29,30 @@ ii::core::Result<std::vector<vm::Value>> readHistory(const std::filesystem::path
         const bool video=std::ranges::find(videos,extension)!=std::end(videos);
         const auto path=vm::text(vm::get(entry,"nativePath"));
         if ((!image && !video) || path.empty()) continue;
-        auto url=societyFileUrl(path);
+        const bool referenced=vm::has(entry,"referenceRoot");
+        const bool resident=!vm::has(entry,"resident") || vm::boolean(vm::get(entry,"resident"));
+        auto sourceRevision=vm::text(vm::get(entry,"sourceRevision"));
+        if (referenced && resident) {
+            // The broker reports ISO time at millisecond precision. The
+            // original-export check uses the native file clock and exact size.
+            const auto relative=ii::core::path_from_utf8(vm::text(vm::get(entry,"relativePath")));
+            if (!relative) return ii::core::fail(ErrorCode::invalid_argument,"Invalid Society history file");
+            const auto local=tree.entry(*relative);
+            if (!local || local.value->kind!=iiSocietyContainer::FileTree::Kind::File)
+                return ii::core::fail(ErrorCode::busy,"A Society history file changed while being read");
+            sourceRevision=societySourceRevision(local.value->lastModified,local.value->size);
+        }
         vm::Object item{{"containerId",vm::Value(listing->containerId)},{"key",vm::get(entry,"key")},
             {"name",vm::Value(name)},{"displayName",vm::Value(name)},{"path",vm::Value(path)},{"mediaType",vm::Value(image?"Image":"Video")},
-            {"sourceRevision",vm::get(entry,"sourceRevision")}};
-        if (image) {
-            item.emplace("imageSource",vm::Value(url));
-            if (url.size()<8000) item.emplace("thumbnailSource",vm::Value(url+"?v="+vm::text(vm::get(entry,"sourceRevision"))));
-        } else item.emplace("mediaSource",vm::Value(std::move(url)));
+            {"sourceRevision",vm::Value(sourceRevision)}};
+        if (referenced) item.emplace("societyReference",entry);
+        if (resident) {
+            auto url=societyFileUrl(path);
+            if (image) {
+                item.emplace("imageSource",vm::Value(url));
+                if (url.size()<8000) item.emplace("thumbnailSource",vm::Value(url+"?v="+sourceRevision));
+            } else item.emplace("mediaSource",vm::Value(std::move(url)));
+        }
         result.emplace_back(std::move(item));
         if (limit && result.size()>=limit) break;
     }
@@ -47,13 +68,21 @@ struct SocietyHistoryModel::Bridge final {
     bool closed=false;
 };
 SocietyHistoryModel::SocietyHistoryModel(std::shared_ptr<review::Session> session,ii::runtime::EventLoop::Sender sender,
-    CanvasFileModel::Submit submit,std::filesystem::path selection,std::filesystem::path root)
-    : session_(std::move(session)),sender_(std::move(sender)),submit_(std::move(submit)),selection_(std::move(selection)),root_(std::move(root)) {
-    if (!session_ || !submit_ || selection_.empty()) throw std::invalid_argument("History requires a session, worker and selection");
+    CanvasFileModel::Submit submit,SocietyStorageAccess::Read read)
+    : session_(std::move(session)),sender_(std::move(sender)),submit_(std::move(submit)),read_(std::move(read)) {
+    if (!session_ || !submit_ || !read_) throw std::invalid_argument("History requires a session, worker and provider");
 }
 std::shared_ptr<SocietyHistoryModel> SocietyHistoryModel::create(std::shared_ptr<review::Session> session,
     ii::runtime::EventLoop &loop,CanvasFileModel::Submit submit,std::filesystem::path selection,std::filesystem::path root) {
-    auto value=std::shared_ptr<SocietyHistoryModel>(new SocietyHistoryModel(std::move(session),loop.sender(),std::move(submit),std::move(selection),std::move(root)));
+    if (selection.empty()) throw std::invalid_argument("History requires a selection");
+    return create(std::move(session),loop,std::move(submit),localSocietyStorage(std::move(selection),std::move(root)).read);
+}
+
+// The read callback is invoked only on the submitted worker.
+std::shared_ptr<SocietyHistoryModel> SocietyHistoryModel::create(std::shared_ptr<review::Session> session,
+    ii::runtime::EventLoop &loop,CanvasFileModel::Submit submit,SocietyStorageAccess::Read read) {
+    auto value=std::shared_ptr<SocietyHistoryModel>(new SocietyHistoryModel(
+        std::move(session),loop.sender(),std::move(submit),std::move(read)));
     value->start(); return value;
 }
 void SocietyHistoryModel::start() {
@@ -69,6 +98,7 @@ ii::core::Result<void> SocietyHistoryModel::refresh(std::size_t limit) {
     if (limit>10000) return ii::core::fail(ErrorCode::out_of_range,"History limit exceeds the storage scan bound");
     if (next_==std::numeric_limits<std::uint64_t>::max()) return ii::core::fail(ErrorCode::out_of_range,"History request identity exhausted");
     const auto id=++next_; pending_=id;pendingLimit_=limit;
+    if (running_) requestStop_.request_stop();
     (void)loading.set(true);
     if (!active_ || next_!=id) return {};
     (void)status.set("Reading Society generation history…");
@@ -79,11 +109,12 @@ ii::core::Result<void> SocietyHistoryModel::refresh(std::size_t limit) {
 void SocietyHistoryModel::launch() {
     if (!active_ || running_ || !pending_) return;
     const auto id=std::exchange(pending_,0);const auto limit=pendingLimit_; running_=true;
-    auto bridge=bridge_;auto selection=selection_;auto root=root_;
+    requestStop_=std::stop_source{};
+    auto bridge=bridge_;auto read=read_;
     bool accepted=false;
-    try {accepted=submit_([bridge,selection=std::move(selection),root=std::move(root),id,limit] {
+    try {accepted=submit_([bridge,read=std::move(read),stop=requestStop_.get_token(),id,limit] {
         ii::core::Result<std::vector<vm::Value>> result=ii::core::fail(ErrorCode::failed,"Cannot read generation history");
-        try {result=readHistory(selection,root,limit);} catch (...) {
+        try {result=readHistory(read,limit,stop);} catch (...) {
             result=ii::core::fail(ErrorCode::failed,"Cannot read generation history",std::current_exception());
         }
         {std::lock_guard lock(bridge->mutex);if (bridge->closed) return;bridge->completion.emplace(Bridge::Completion{id,std::move(result)});}
@@ -134,6 +165,7 @@ void SocietyHistoryModel::close() {
     if (owner_!=std::this_thread::get_id()) throw std::logic_error("History requires its owner thread");
     if (!active_) return;
     active_=false;pending_=0;submit_={};snapshot_={};
+    requestStop_.request_stop(); read_={};
     {std::lock_guard lock(bridge_->mutex);bridge_->closed=true;bridge_->completion.reset();}
     (void)sender_.cancel(wake_);
     fail("Generation history unavailable");

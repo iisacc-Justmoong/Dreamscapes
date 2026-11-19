@@ -19,16 +19,25 @@ struct SocietyStorageModel::Bridge final {
     bool closed=false;
 };
 SocietyStorageModel::SocietyStorageModel(std::shared_ptr<storage::WorkspaceModel> workspace,
-    ii::runtime::EventLoop::Sender sender,CanvasFileModel::Submit submit,std::filesystem::path selection,std::filesystem::path root,Browse browse)
-    : workspace_(std::move(workspace)),sender_(std::move(sender)),submit_(std::move(submit)),selection_(std::move(selection)),explicitRoot_(std::move(root)),browse_(std::move(browse)) {
-    if (!workspace_ || !submit_ || selection_.empty()) throw std::invalid_argument("Society storage requires a worker and selection");
-    if (!browse_) browse_=[](const auto &path,const auto &section,const auto &directory,const auto &query,const auto &explicitRoot,Canceled) {
-        return browseSociety(path,section,directory,query,explicitRoot);
-    };
+    ii::runtime::EventLoop::Sender sender,CanvasFileModel::Submit submit,SocietyStorageAccess::Read browse)
+    : workspace_(std::move(workspace)),sender_(std::move(sender)),submit_(std::move(submit)),browse_(std::move(browse)) {
+    if (!workspace_ || !submit_ || !browse_) throw std::invalid_argument("Society storage requires a worker and provider");
 }
 std::shared_ptr<SocietyStorageModel> SocietyStorageModel::create(std::shared_ptr<storage::WorkspaceModel> workspace,
     ii::runtime::EventLoop &loop,CanvasFileModel::Submit submit,std::filesystem::path selection,std::filesystem::path root,Browse browse) {
-    auto value=std::shared_ptr<SocietyStorageModel>(new SocietyStorageModel(std::move(workspace),loop.sender(),std::move(submit),std::move(selection),std::move(root),std::move(browse)));
+    if (selection.empty()) throw std::invalid_argument("Society storage requires a selection");
+    if (!browse) return create(std::move(workspace),loop,std::move(submit),localSocietyStorage(std::move(selection),std::move(root)).read);
+    return create(std::move(workspace),loop,std::move(submit),
+        [browse=std::move(browse),selection=std::move(selection),root=std::move(root)](const SocietyStorageQuery &query,Canceled canceled) {
+            return browse(selection,query.section,query.directory,query.filter,root,std::move(canceled));
+        });
+}
+
+// The provider is only invoked by work submitted from the owner thread.
+std::shared_ptr<SocietyStorageModel> SocietyStorageModel::create(std::shared_ptr<storage::WorkspaceModel> workspace,
+    ii::runtime::EventLoop &loop,CanvasFileModel::Submit submit,SocietyStorageAccess::Read browse) {
+    auto value=std::shared_ptr<SocietyStorageModel>(new SocietyStorageModel(
+        std::move(workspace),loop.sender(),std::move(submit),std::move(browse)));
     value->start(); return value;
 }
 void SocietyStorageModel::start() {
@@ -51,12 +60,12 @@ void SocietyStorageModel::request(std::string section,std::string directory,std:
 void SocietyStorageModel::launch() {
     if (!active_ || running_ || !pending_) return;
     auto request=std::move(*pending_); pending_.reset(); running_=true;const auto id=request.id;
-    auto bridge=bridge_; auto selection=selection_; auto root=explicitRoot_;auto browse=browse_;
+    auto bridge=bridge_; auto browse=browse_;
     auto cancel=std::make_shared<std::atomic_bool>(false);cancel_=cancel;
     bool accepted=false;
-    try {accepted=submit_([bridge,selection=std::move(selection),root=std::move(root),request=std::move(request),browse=std::move(browse),cancel]() mutable {
+    try {accepted=submit_([bridge,request=std::move(request),browse=std::move(browse),cancel]() mutable {
         ii::core::Result<SocietyListing> result=ii::core::fail(ii::core::ErrorCode::failed,"Cannot read Society storage");
-        try {result=browse(selection,request.section,request.directory,request.query,root,[cancel]{return cancel->load();});}
+        try {result=browse({request.section,request.directory,request.query},[cancel]{return cancel->load();});}
         catch (...) {result=ii::core::fail(ii::core::ErrorCode::failed,"Cannot read Society storage",std::current_exception());}
         {
             std::lock_guard lock(bridge->mutex);

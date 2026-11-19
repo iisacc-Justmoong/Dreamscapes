@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/NativeLicenseOverlay.md",
-    "sha256": "1de2869db7dd7b1176a3820194c6b4f33b4f0854f841bd4fefac7829ac68946e",
-    "bytes": 3425,
-    "line_count": 49,
+    "sha256": "37bcb0e09ccdda01190ad76eef2b5503c0affe72e9ded0725001f40a3411953c",
+    "bytes": 3209,
+    "line_count": 47,
     "encoding": "utf-8",
     "language": "ko"
   },
@@ -39,24 +39,24 @@
       "raw": "\n"
     },
     {
-      "id": "b000003",
+      "id": "b000022",
       "kind": "paragraph",
       "start_line": 3,
-      "end_line": 7,
-      "raw": "Dreamscapes macOS 데스크톱은 iiLicenseManager 네이티브 패키지의\n`SocietyLicenseGate.lvui`를 C++23으로 AOT 생성해 iiGUI 외부 표면에 결합한다.\n기존 `SocietyAccount`가 소유한 확인 상태와 결과 코드가 화면으로 전달되며, 실제\n진입 권한은 계속 기존 라이선스 판정이 통제한다. 토큰과 자격 증명은 화면 모델에\n전달하지 않는다. Society 열기와 재확인 버튼도 기존 계정 동작을 호출한다.\n"
+      "end_line": 6,
+      "raw": "Dreamscapes는 iiLicenseManager 프레젠테이션 패키지의 `SocietyLicenseGate.lvui`를\nC++23으로 AOT 생성해 iiGUI 앱 창에 올린다. 확인 상태와 결과 코드는\n`LaunchLicense`가 소유한다. 실제 진입 권한은 이 판정이 통제하며, 토큰과 자격\n증명의 전달 범위는 검증 서비스까지이다. 시트에는 Society 열기와 재시작 안내를 표시한다.\n"
     },
     {
       "id": "b000004",
       "kind": "blank",
-      "start_line": 8,
-      "end_line": 8,
+      "start_line": 7,
+      "end_line": 7,
       "raw": "\n"
     },
     {
       "id": "b000005",
       "kind": "heading",
-      "start_line": 9,
-      "end_line": 9,
+      "start_line": 8,
+      "end_line": 8,
       "raw": "## 상태와 수명\n",
       "level": 2,
       "title": "상태와 수명"
@@ -64,16 +64,16 @@
     {
       "id": "b000006",
       "kind": "blank",
-      "start_line": 10,
-      "end_line": 10,
+      "start_line": 9,
+      "end_line": 9,
       "raw": "\n"
     },
     {
-      "id": "b000007",
+      "id": "b000023",
       "kind": "paragraph",
-      "start_line": 11,
+      "start_line": 10,
       "end_line": 14,
-      "raw": "잠금이 필요하고 창이 보일 때만 표면을 생성한다. 창 표시와 라이선스 속성의 변경,\n계정의 상태 알림, 언어 변경, 사용자 동작에만 반응한다. 확인 중 재확인은 차단하고,\nSociety를 열지 못하면 기존 안내 오류를 보여준다. 이미 열린 표면이 닫히기 전에\n새 표면이 시작되지 않으며, 앱의 정상 종료는 호스트가 표면을 정리할 때까지 기다린다.\n"
+      "raw": "런치 판정으로 잠금이 필요하면 시트 전용 콘텐츠 호스트를 채운다. 기존 작업 화면과\n제목 표시줄의 위젯과 문서는 유지되고, 검정 48%의 LVUI 암막 위에서 시트가 입력을\n받는다. 작업 화면으로 포인터·키보드·접근성 입력이 전달되는 것을 iiGUI가 차단한다.\n편집 도구, 재생, 게시 작업의 허용 여부에는 기존 라이선스 조건을 사용한다.\n잠금이 해제되면 시트의 콘텐츠와 모델 구독을 해제한다.\n"
     },
     {
       "id": "b000008",
@@ -83,82 +83,82 @@
       "raw": "\n"
     },
     {
-      "id": "b000009",
-      "kind": "paragraph",
-      "start_line": 16,
-      "end_line": 19,
-      "raw": "현재 Qt 앱의 격리된 QML 잠금 화면은 네이티브 화면 아래에 유지한다. 네이티브 화면\n연결이 불가능하거나 표면 마운트가 실패하면 기존 잠금 화면이 그대로 작동한다.\n다른 플랫폼은 아직 이 레거시 경로를 사용한다. 이는 각 플랫폼에서 새 호스트가\n동작한다거나 사용자 앱에서 실제 화면 표시가 검증됐다는 뜻은 아니다.\n"
-    },
-    {
-      "id": "b000010",
-      "kind": "blank",
-      "start_line": 20,
-      "end_line": 20,
-      "raw": "\n"
-    },
-    {
       "id": "b000011",
       "kind": "heading",
-      "start_line": 21,
-      "end_line": 21,
+      "start_line": 16,
+      "end_line": 16,
       "raw": "## 빌드와 검사\n",
       "level": 2,
       "title": "빌드와 검사"
     },
     {
-      "id": "b000012",
+      "id": "b000010",
       "kind": "blank",
-      "start_line": 22,
-      "end_line": 22,
+      "start_line": 17,
+      "end_line": 17,
       "raw": "\n"
     },
     {
       "id": "b000013",
       "kind": "paragraph",
-      "start_line": 23,
-      "end_line": 27,
+      "start_line": 18,
+      "end_line": 22,
       "raw": "제품은 iiLicenseManager의 LVUI 선언과 모델, LVUI 컴파일러, iiGUI 및 iiSDKCore를\n조합한다. SDK 모듈 사이에 새로운 직접 의존성을 추가하지 않는다. 빌드 시 선택한\n패키지들의 Core ABI가 일치해야 한다. 같은 Core 버전 번호만으로는 이를 보장하지\n못한다. 오래된 전역 `CPATH`가 다른 SDK 헤더를 앞세우는 환경에서는 명시적으로\n선택한 패키지의 헤더가 사용되도록 전역 경로를 제외해야 한다.\n"
+    },
+    {
+      "id": "b000012",
+      "kind": "blank",
+      "start_line": 23,
+      "end_line": 23,
+      "raw": "\n"
+    },
+    {
+      "id": "b000024",
+      "kind": "paragraph",
+      "start_line": 24,
+      "end_line": 25,
+      "raw": "`Dreamscapes.NativeViewApp`은 판정 전후에 편집기 위젯과 문서가 유지되는지, 창\n전체에 암막이 한 번 그려지는지, 입력 차단과 복원이 작동하는지 검사한다.\n"
     },
     {
       "id": "b000014",
       "kind": "blank",
-      "start_line": 28,
-      "end_line": 28,
+      "start_line": 26,
+      "end_line": 26,
       "raw": "\n"
     },
     {
-      "id": "b000015",
+      "id": "b000025",
       "kind": "paragraph",
-      "start_line": 29,
-      "end_line": 33,
-      "raw": "`tests/native-license-bridge`는 상태 투영, 버튼 동작, 확인 중 중복 요청 차단,\n오류와 재진입·수명 종료를 검사한다. `tests/native-license-presenter`는 실제\nLVUI 생성 코드와 계정 연결을 빌드하며, 표시하지 않는 offscreen 창에서 진입·종료를\n검사한다. 별도의 `PaintView` 검사에서는 생성된 뷰의 버튼과 상태를 모델·가짜 페인트\n장치에 연결한다. 이들은 앱 창이나 실제 GPU 렌더링을 실행하는 검사가 아니다.\n"
+      "start_line": 27,
+      "end_line": 31,
+      "raw": "이전 외부 표면의 `tests/native-license-bridge`는 상태 투영, 버튼 동작, 확인 중 중복 요청 차단,\n오류와 재진입·수명 종료를 검사한다. `tests/native-license-presenter`는 실제\nLVUI 생성 코드와 계정 연결을 빌드하며, 표시하지 않는 offscreen 창에서 진입·종료를\n검사한다. 별도의 `PaintView` 검사에서는 생성된 뷰의 버튼과 상태를 모델·가짜 페인트\n장치에 연결한다. 이들은 앱 창이나 실제 GPU 렌더링을 실행하는 검사가 아니다.\n"
     },
     {
       "id": "b000016",
+      "kind": "blank",
+      "start_line": 32,
+      "end_line": 32,
+      "raw": "\n"
+    },
+    {
+      "id": "b000017",
+      "kind": "paragraph",
+      "start_line": 33,
+      "end_line": 33,
+      "raw": "각 디렉터리를 호환되는 SDK 패키지 경로로 CMake 구성한 뒤 다음과 같이 다시 실행한다.\n"
+    },
+    {
+      "id": "b000018",
       "kind": "blank",
       "start_line": 34,
       "end_line": 34,
       "raw": "\n"
     },
     {
-      "id": "b000017",
-      "kind": "paragraph",
-      "start_line": 35,
-      "end_line": 35,
-      "raw": "각 디렉터리를 호환되는 SDK 패키지 경로로 CMake 구성한 뒤 다음과 같이 다시 실행한다.\n"
-    },
-    {
-      "id": "b000018",
-      "kind": "blank",
-      "start_line": 36,
-      "end_line": 36,
-      "raw": "\n"
-    },
-    {
       "id": "b000019",
       "kind": "fenced_code",
-      "start_line": 37,
-      "end_line": 42,
+      "start_line": 35,
+      "end_line": 40,
       "raw": "```sh\ncmake --build build/native-license-bridge\nctest --test-dir build/native-license-bridge --output-on-failure\ncmake --build build/native-license-presenter\nctest --test-dir build/native-license-presenter --output-on-failure\n```\n",
       "language": "sh",
       "code": "cmake --build build/native-license-bridge\nctest --test-dir build/native-license-bridge --output-on-failure\ncmake --build build/native-license-presenter\nctest --test-dir build/native-license-presenter --output-on-failure\n",
@@ -167,15 +167,15 @@
     {
       "id": "b000020",
       "kind": "blank",
-      "start_line": 43,
-      "end_line": 43,
+      "start_line": 41,
+      "end_line": 41,
       "raw": "\n"
     },
     {
       "id": "b000021",
       "kind": "paragraph",
-      "start_line": 44,
-      "end_line": 49,
+      "start_line": 42,
+      "end_line": 47,
       "raw": "2026-11-14의 제품 검사는 동일한 Core를 사용하는 계정·네트워크 패키지와 제품의\niiJson 타입을 조합해 빌드한 iiLicenseManager를 `build/` 아래에 별도 스테이징했다.\n다른 iiJson 값 타입으로 빌드된 동적 네트워크 패키지를 제품의 기존 JSON API와\n섞지 않았다. 이 스테이징은 시스템 설치를 갱신하지 않는다.\n같은 날 Dreamscapes 앱 빌드와 번들 패키징이 통과했고, 번들의 라이선스 모듈과\nCore UUID가 이 스테이징과 일치했다. 실제 앱 창은 띄우지 않았다.\n"
     }
   ],
@@ -194,7 +194,7 @@
       "level": 2,
       "title": "상태와 수명",
       "anchor": "상태와-수명",
-      "start_line": 9
+      "start_line": 8
     },
     {
       "block_id": "b000011",
@@ -202,42 +202,35 @@
       "level": 2,
       "title": "빌드와 검사",
       "anchor": "빌드와-검사",
-      "start_line": 21
+      "start_line": 16
     }
   ],
   "indexes": {
     "directive_candidates": [
       {
-        "block_id": "b000003",
-        "line": 7,
-        "text": "전달하지 않는다. Society 열기와 재확인 버튼도 기존 계정 동작을 호출한다.",
-        "basis": "lexical_match",
-        "context": "paragraph"
-      },
-      {
         "block_id": "b000013",
-        "line": 24,
+        "line": 19,
         "text": "조합한다. SDK 모듈 사이에 새로운 직접 의존성을 추가하지 않는다. 빌드 시 선택한",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000013",
-        "line": 25,
+        "line": 20,
         "text": "패키지들의 Core ABI가 일치해야 한다. 같은 Core 버전 번호만으로는 이를 보장하지",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000013",
-        "line": 27,
+        "line": 22,
         "text": "선택한 패키지의 헤더가 사용되도록 전역 경로를 제외해야 한다.",
         "basis": "lexical_match",
         "context": "paragraph"
       },
       {
         "block_id": "b000021",
-        "line": 47,
+        "line": 45,
         "text": "섞지 않았다. 이 스테이징은 시스템 설치를 갱신하지 않는다.",
         "basis": "lexical_match",
         "context": "paragraph"

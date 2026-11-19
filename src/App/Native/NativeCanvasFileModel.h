@@ -5,6 +5,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <stop_token>
 #include <string>
 #include <thread>
 
@@ -13,9 +14,12 @@ class CanvasFileModel final : public std::enable_shared_from_this<CanvasFileMode
   public:
     // submit must either accept a task once or return false without running it.
     using Submit=std::function<bool(ii::runtime::Task)>;
+    /// Prepares a referenced file on the file worker before opening its bytes.
+    /// The returned local path must match the captured path.
+    using Resolve=std::function<ii::core::Result<std::filesystem::path>(std::stop_token)>;
     static std::shared_ptr<CanvasFileModel> create(std::shared_ptr<DocumentSession>,ii::runtime::EventLoop &,Submit);
     ~CanvasFileModel();
-    [[nodiscard]] ii::core::Result<void> open(std::filesystem::path);
+    [[nodiscard]] ii::core::Result<void> open(std::filesystem::path,Resolve resolve={});
     [[nodiscard]] ii::core::Result<void> save();
     [[nodiscard]] ii::core::Result<void> saveAs(std::filesystem::path);
     void setOpenedHandler(std::function<void()>);
@@ -43,6 +47,7 @@ class CanvasFileModel final : public std::enable_shared_from_this<CanvasFileMode
     ii::core::ObservableSubscription identityObserver_,dirtyObserver_,documentObserver_;
     std::optional<CanvasFileVersion> version_;
     std::function<void()> opened_;
+    std::stop_source openStop_;
     std::uint64_t next_=0,current_=0;
     bool active_=true;
 };

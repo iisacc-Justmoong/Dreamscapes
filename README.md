@@ -3,16 +3,15 @@
 > **Current build:** the default application is a simplified LVUI/iiGUI view
 > migration. Home, Image, Video and session-local result review use dynamic
 > C++ view models. New Canvas, editor, files, publishing and preferences have native
-> view models. Local Society file browsing, `.iisc` open/save and bounded
-> canvas frame rendering, timeline playback, Image/Video generation and session-authorized
-> publication are connected. License verification is temporarily disabled by default; many former views remain minimal
-> static LVUI presentations. Interactive social authorization, remote-only files
-> and other former product integrations are not connected in this build. The application has not been launched or
-> visually verified as part of this change. See [Native view cutover](docs/NativeViewCutover.md)
+> view models. On desktop, Files, Assets, Generation History and model choices
+> use the local Society daemon. Supported canvas and still-image files are
+> prepared through the daemon before opening. Image/Video generation, timeline
+> playback and session-authorized publication use their native providers.
+> License verification is disabled by default. See [Native view cutover](docs/NativeViewCutover.md)
 > [Native generation view models](docs/NativeDynamicGeneration.md), and
 > [Native editor and workspace view models](docs/NativeDynamicWorkspaces.md).
 
-Build with `cmake -S . -B build` and `cmake --build build --target Dreamscapes`. The default native build requires `iiSharedCanvasNative` 0.35.39 and `iiGraphicAdjust` 0.6.2 or compatible newer packages.
+Build with `cmake -S . -B build` and `cmake --build build --target Dreamscapes`. The default native build requires `iiSharedCanvasNative` 0.35.39 and `iiGraphicAdjust` 0.6.2 or compatible newer packages. Desktop also requires `iiSocietyHelperNative` 0.12.1 or a compatible newer package.
 The native executable accepts `--help` and `--list-views` as non-GUI agent
 commands and `--view image` to select an initial view. Its Python inventory is available from
 `src/App/Native/dreamscapes_views.py`.
@@ -103,7 +102,7 @@ Use the following native SDK packages with `find_package(... CONFIG REQUIRED)` a
 | iiUpdateManager | `iiUpdateManager::iiUpdateManager` |
 | LVRS | `LVRS::LVRS` |
 
-The retained Qt editor CMake declarations select `iiSharedCanvas 0.35.39 EXACT` (Quick) and `iiGraphicAdjust 0.6.2 EXACT`
+The retained Qt editor CMake declarations request iiSharedCanvas Quick **0.35.39** or a later 0.35 patch and `iiGraphicAdjust 0.6.2 EXACT`
 (`iiGraphicAdjust::iiGraphicAdjust`). The Color, Adjust, Mask and Effects panels
 use the installed Qt-free C++23 adjustment SDK through a product-side QImage
 adapter. The shared LVRS renderer covers the requested 381 detailed Figma views;

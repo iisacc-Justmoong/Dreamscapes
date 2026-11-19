@@ -59,6 +59,9 @@ void TimelinePanelModel::synchronize(bool projectionChanged) {
             const auto *document=document_->document();
             const auto count=document?std::int64_t(document->timeline.frameCount):0;
             auto next=options.get(); next.frame_count=count; next.enabled=count>0;
+            // Preserve the project rate's exact ratio across viewport updates.
+            next.frame_rate=document?ii::gui::EditorTimelineFrameRate{
+                document->timeline.frameRate.numerator,document->timeline.frameRate.denominator}:ii::gui::EditorTimelineFrameRate{};
             next.playhead=count?std::clamp(document_->frame.get(),std::int64_t{0},count-1):0;
             next.revision=projectionRevision_;
             (void)options.set(std::move(next));

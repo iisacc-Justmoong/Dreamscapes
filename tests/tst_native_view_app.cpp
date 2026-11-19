@@ -11,6 +11,7 @@
 #include <iiVisualCodec>
 #include <iiFileProvider>
 #include <iiSDKCore>
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
 #include <iostream>
@@ -272,13 +273,30 @@ int main() {
             (void)take(tree->drawing_snapshot({1000,700}));
             check(!license->gateVisible.get() && licensedShell->documentSession()->dirty.get(),
                   "the workspace was blocked while the license was pending");
+            const auto beforeGate=take(tree->snapshots());
+            const auto timelineNode=std::ranges::find_if(beforeGate,[](const auto &node){
+                return node.id.ends_with("/editorTimelineCanvas");
+            });
+            check(timelineNode!=beforeGate.end() && timelineNode->visible,"Editor timeline missing before license denial");
+            const auto timeline=take(tree->find(timelineNode->id));
             probe->completion({false,false,"society_unavailable",{}});(void)licenseLoop.poll();
-            (void)take(tree->drawing_snapshot({1000,700}));
+            const auto gated=take(tree->drawing_snapshot({1000,700}));
+            const auto retained=take(timeline.snapshot());
+            check(retained.visible && retained.input_blocked,"License denial replaced the editor or left it interactive");
+            check(std::ranges::count_if(gated.overlays,[&](const auto& layer){
+                return std::ranges::any_of(layer.panels,[&](const auto& panel){
+                    return panel.bounds==gated.viewport && panel.top.red==0 && panel.top.green==0 &&
+                           panel.top.blue==0 && std::abs(panel.top.alpha-.48)<.001;
+                });
+            })==1,"License denial did not draw a single window scrim");
             bool gateTitle=false;
             for (const auto &node:take(tree->snapshots())) if (node.id.ends_with("/licenseTitle") && node.text=="Connect to Society") gateTitle=true;
             check(gateTitle && license->gateVisible.get() && !licensedShell->navigate("home") &&
                   licensedShell->documentSession()->title.get()=="Pending.iisc" && licensedShell->documentSession()->dirty.get(),
                   "license denial failed to mount the SDK gate or lost the working document");
+            licensedShell->setLaunchLicense({});
+            (void)take(tree->drawing_snapshot({1000,700}));
+            check(!take(timeline.snapshot()).input_blocked,"Removing the license gate left the editor blocked");
             tree->close();license->close();
         }
         {

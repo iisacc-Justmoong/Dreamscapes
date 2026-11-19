@@ -10,9 +10,9 @@
   },
   "source": {
     "path": "docs/NativeDynamicGeneration.md",
-    "sha256": "fb6dd7c413e309613f5acb8eb06d04321eb73928cacd910f273a411b506000af",
-    "bytes": 10595,
-    "line_count": 156,
+    "sha256": "d7e1d5ecd1199f123106b82fc6875ff05f596a9b185f49d4a534c1011cdcedc0",
+    "bytes": 10771,
+    "line_count": 159,
     "encoding": "utf-8",
     "language": "ko"
   },
@@ -200,77 +200,77 @@
       "id": "b000023",
       "kind": "paragraph",
       "start_line": 82,
-      "end_line": 89,
-      "raw": "The native Society catalogue recognizes safetensors and GGUF files from a\nbounded content probe when their filename uses another extension. Existing\nrecognized extensions remain visible, while ONNX and unrelated files remain\nexcluded. GGUF architecture metadata and tensor signatures distinguish known\nvideo models from image models; Society modality overrides take precedence.\nKnown Wan, Hunyuan Video, CogVideoX, Mochi and Stable Video Diffusion pipeline\nidentities are listed as video models. Classification is independent of the\nworker's supported pipeline and required components.\n"
+      "end_line": 92,
+      "raw": "On desktop, the model inventory and Generation History destination come from\nthe Society daemon. Dreamscapes checks local model identities before passing\nthem to the iiLocalDiffusion worker. The catalogue recognizes safetensors and\nGGUF files from a\nbounded content probe when their filename uses another extension. Existing\nrecognized extensions remain visible, while ONNX and unrelated files remain\nexcluded. GGUF architecture metadata and tensor signatures distinguish known\nvideo models from image models; Society modality overrides take precedence.\nKnown Wan, Hunyuan Video, CogVideoX, Mochi and Stable Video Diffusion pipeline\nidentities are listed as video models. Classification is independent of the\nworker's supported pipeline and required components.\n"
     },
     {
       "id": "b000026",
       "kind": "blank",
-      "start_line": 90,
-      "end_line": 90,
+      "start_line": 93,
+      "end_line": 93,
       "raw": "\n"
     },
     {
       "id": "b000027",
       "kind": "paragraph",
-      "start_line": 91,
-      "end_line": 98,
+      "start_line": 94,
+      "end_line": 101,
       "raw": "Standalone safetensors shard indexes, including mixed-case index suffixes, are\npresented as a single model, with their indexed shard files captured in its Society source identity. Only a\ncomplete validated group is collapsed; a changed, missing or replaced shard\ninvalidates the selected source before generation. The underlying weights are\nnot rewritten by catalogue discovery. Classification identifies the intended\nmodality; the generation backend still checks architecture and required\ncomponents. An indexed native video checkpoint without embedded LLM tensors\nrequires a compatible text encoder.\n"
     },
     {
       "id": "b000028",
       "kind": "blank",
-      "start_line": 99,
-      "end_line": 99,
+      "start_line": 102,
+      "end_line": 102,
       "raw": "\n"
     },
     {
       "id": "b000029",
       "kind": "paragraph",
-      "start_line": 100,
-      "end_line": 102,
+      "start_line": 103,
+      "end_line": 105,
       "raw": "For legacy checkpoints with no known classification, the existing image\nfallback remains. Discovery and classification do not establish that an\ninference backend supports every architecture or quantization.\n"
     },
     {
       "id": "b000024",
       "kind": "blank",
-      "start_line": 103,
-      "end_line": 103,
+      "start_line": 106,
+      "end_line": 106,
       "raw": "\n"
     },
     {
       "id": "b000025",
       "kind": "paragraph",
-      "start_line": 104,
-      "end_line": 107,
+      "start_line": 107,
+      "end_line": 110,
       "raw": "The native catalogue test compiles the production storage and inspection\nsources without linking the UI. It exercises renamed files, content types,\nexplicit overrides, exclusion rules and model identity revalidation with\nsynthetic fixtures; it does not run inference. The Society generation publication test also accepts generic Diffusers image records without inventing per-image seeds.\n"
     },
     {
       "id": "b000030",
       "kind": "blank",
       "raw": "\n",
-      "start_line": 108,
-      "end_line": 108
+      "start_line": 111,
+      "end_line": 111
     },
     {
       "id": "b000031",
       "kind": "paragraph",
       "raw": "Video 생성은 Society에서 선택한 패키지의 경로와 캡처된 파일 식별을 워커에\n전달한다. 최신 iiLocalDiffusion 런타임은 인식된 Wan 패키지의 `video_vae`가\n하나의 구성 요소로 확인되면 이를 검증·복원하여 네이티브 엔진에 연결한다.\n주 모델이 GGUF인 패키지도 내장 GGUF의 텐서 구조를 검사해 Video 목록에 표시하며,\n워커가 주 모델을 검증 복원해 네이티브 엔진에 전달한다.\n기본 Diffusers Wan의 완전한 텐서 서명이 있는 독립 체크포인트도 최신 모델 검사\nSDK에서 video로 분류하며, 같은 검사로 선택한 원본 경로를 확인한다.\n별도 외부 파일의 자동 탐색이나 다중 전문가 선택은 제공하지 않는다. 네이티브\nSociety 비디오 테스트는 합성 Wan 패키지가 Video 모델로 표시되고 선택한 경로가\n워커에 전달되는지 검사한다. 이 테스트는 실제 모델 추론을 수행하지 않는다.\n",
-      "start_line": 109,
-      "end_line": 118
+      "start_line": 112,
+      "end_line": 121
     },
     {
       "id": "b000032",
       "kind": "blank",
-      "start_line": 119,
-      "end_line": 119,
+      "start_line": 122,
+      "end_line": 122,
       "raw": "\n"
     },
     {
       "id": "b000033",
       "kind": "heading",
-      "start_line": 120,
-      "end_line": 120,
+      "start_line": 123,
+      "end_line": 123,
       "raw": "### Video image conditions\n",
       "level": 3,
       "title": "Video image conditions"
@@ -278,29 +278,29 @@
     {
       "id": "b000034",
       "kind": "blank",
-      "start_line": 121,
-      "end_line": 121,
+      "start_line": 124,
+      "end_line": 124,
       "raw": "\n"
     },
     {
       "id": "b000035",
       "kind": "paragraph",
-      "start_line": 122,
-      "end_line": 133,
+      "start_line": 125,
+      "end_line": 136,
       "raw": "The advanced Video view exposes the first and last image conditions shown in\nthe existing Figma design. A user may choose, replace, or clear each condition;\nthe fields belong to the video draft and do not change the canvas or source\nfile. A canceled chooser leaves the prior selection unchanged. The queued\nrequest retains the selected paths and the preparation worker snapshots each\ninput before invoking the backend. The backend receives `--first-frame` and\n`--last-frame` only for supplied images. Missing, redirected, empty, oversized,\nor changing inputs fail the request instead of silently producing an\nunconditioned video. Older requests without either optional field retain their\nexisting behavior. Each backend still validates whether its specific model\nsupports the supplied conditions. These guarantees are tested with synthetic\nfixtures and do not establish successful inference for any real model.\n"
     },
     {
       "id": "b000036",
       "kind": "blank",
-      "start_line": 134,
-      "end_line": 134,
+      "start_line": 137,
+      "end_line": 137,
       "raw": "\n"
     },
     {
       "id": "b000037",
       "kind": "heading",
-      "start_line": 135,
-      "end_line": 135,
+      "start_line": 138,
+      "end_line": 138,
       "raw": "### Renamed standalone shard indexes\n",
       "level": 3,
       "title": "Renamed standalone shard indexes"
@@ -308,29 +308,29 @@
     {
       "id": "b000038",
       "kind": "blank",
-      "start_line": 136,
-      "end_line": 136,
+      "start_line": 139,
+      "end_line": 139,
       "raw": "\n"
     },
     {
       "id": "b000039",
       "kind": "paragraph",
-      "start_line": 137,
-      "end_line": 141,
+      "start_line": 140,
+      "end_line": 144,
       "raw": "The model catalogue also groups a standalone Safetensors index when the index\nor shard filenames use other extensions. The shared SDK verifies the index\nstructure and shard headers before the group is offered. A selection captures\nthe index and each shard, so replacing a member invalidates the selection.\nThis is a source-identity and routing check, not an inference result.\n"
     },
     {
       "id": "b000040",
       "kind": "blank",
-      "start_line": 142,
-      "end_line": 142,
+      "start_line": 145,
+      "end_line": 145,
       "raw": "\n"
     },
     {
       "id": "b000041",
       "kind": "heading",
-      "start_line": 143,
-      "end_line": 143,
+      "start_line": 146,
+      "end_line": 146,
       "raw": "### PyTorch 체크포인트 목록\n",
       "level": 3,
       "title": "PyTorch 체크포인트 목록"
@@ -338,29 +338,29 @@
     {
       "id": "b000042",
       "kind": "blank",
-      "start_line": 144,
-      "end_line": 144,
+      "start_line": 147,
+      "end_line": 147,
       "raw": "\n"
     },
     {
       "id": "b000043",
       "kind": "paragraph",
-      "start_line": 145,
-      "end_line": 149,
+      "start_line": 148,
+      "end_line": 152,
       "raw": "Society의 단일 PyTorch 체크포인트 후보는 확장자와 무관하게 모델 목록에 표시한다.\n목록에 보이는 것은 후보 발견을 뜻하며 실제 실행 호환성을 보증하지 않는다.\n확인되지 않은 유형은 기존 이미지 후보 규칙과 사용자 분류를 따르고, 선택할 때\n원본 식별자를 캡처하며 변경된 파일은 사용하지 않는다. 이미지 작업은 기존의\n안전한 weights-only 검사 및 변환 경로를 통과해야 한다. 일반 ZIP·pickle과 ONNX는 모델로 확인한 것이 아니다.\n"
     },
     {
       "id": "b000044",
       "kind": "blank",
-      "start_line": 150,
-      "end_line": 150,
+      "start_line": 153,
+      "end_line": 153,
       "raw": "\n"
     },
     {
       "id": "b000045",
       "kind": "heading",
-      "start_line": 151,
-      "end_line": 151,
+      "start_line": 154,
+      "end_line": 154,
       "raw": "### PyTorch 분할 체크포인트\n",
       "level": 3,
       "title": "PyTorch 분할 체크포인트"
@@ -368,15 +368,15 @@
     {
       "id": "b000046",
       "kind": "blank",
-      "start_line": 152,
-      "end_line": 152,
+      "start_line": 155,
+      "end_line": 155,
       "raw": "\n"
     },
     {
       "id": "b000047",
       "kind": "paragraph",
-      "start_line": 153,
-      "end_line": 156,
+      "start_line": 156,
+      "end_line": 159,
       "raw": "완전한 PyTorch 분할 인덱스는 개별 조각 대신 모델 하나로 표시한다. 선택은 인덱스와\n모든 샤드의 식별자를 포함하며 샤드가 누락되거나 바뀌면 작업 준비를 거부한다.\n이미지·비디오 워커는 원본 경로를 받아 weights-only 검사와 순차 변환을 수행한다.\n이 검사와 변환은 실제 아키텍처 실행 가능성이나 생성 품질의 증거가 아니다.\n"
     }
   ],
@@ -411,7 +411,7 @@
       "level": 3,
       "title": "Video image conditions",
       "anchor": "video-image-conditions",
-      "start_line": 120
+      "start_line": 123
     },
     {
       "block_id": "b000037",
@@ -419,7 +419,7 @@
       "level": 3,
       "title": "Renamed standalone shard indexes",
       "anchor": "renamed-standalone-shard-indexes",
-      "start_line": 135
+      "start_line": 138
     },
     {
       "block_id": "b000041",
@@ -427,7 +427,7 @@
       "level": 3,
       "title": "PyTorch 체크포인트 목록",
       "anchor": "pytorch-체크포인트-목록",
-      "start_line": 143
+      "start_line": 146
     },
     {
       "block_id": "b000045",
@@ -435,7 +435,7 @@
       "level": 3,
       "title": "PyTorch 분할 체크포인트",
       "anchor": "pytorch-분할-체크포인트",
-      "start_line": 151
+      "start_line": 154
     }
   ],
   "indexes": {
@@ -491,7 +491,7 @@
       },
       {
         "block_id": "b000027",
-        "line": 98,
+        "line": 101,
         "text": "requires a compatible text encoder.",
         "basis": "lexical_match",
         "context": "paragraph"

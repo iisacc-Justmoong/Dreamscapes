@@ -79,7 +79,10 @@ iiGUI widget trees; they do not run generation or launch the application.
 
 ## Model catalogue
 
-The native Society catalogue recognizes safetensors and GGUF files from a
+On desktop, the model inventory and Generation History destination come from
+the Society daemon. Dreamscapes checks local model identities before passing
+them to the iiLocalDiffusion worker. The catalogue recognizes safetensors and
+GGUF files from a
 bounded content probe when their filename uses another extension. Existing
 recognized extensions remain visible, while ONNX and unrelated files remain
 excluded. GGUF architecture metadata and tensor signatures distinguish known

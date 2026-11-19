@@ -1,5 +1,6 @@
 #pragma once
 #include "NativeCanvasFileModel.h"
+#include "NativeSocietyStorage.h"
 #include "App/Views/Result/NativeReviewSession.h"
 #include <iiSDKCore>
 #include <filesystem>
@@ -8,6 +9,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <stop_token>
 #include <thread>
 
 namespace dreamscapes::native {
@@ -17,6 +19,9 @@ class SocietyHistoryModel final : public std::enable_shared_from_this<SocietyHis
   public:
     static std::shared_ptr<SocietyHistoryModel> create(std::shared_ptr<review::Session>,
         ii::runtime::EventLoop &,CanvasFileModel::Submit,std::filesystem::path selection,std::filesystem::path explicitRoot={});
+    /// Reads history through the same provider that supplies the Files workspace.
+    static std::shared_ptr<SocietyHistoryModel> create(std::shared_ptr<review::Session>,
+        ii::runtime::EventLoop &,CanvasFileModel::Submit,SocietyStorageAccess::Read);
     ~SocietyHistoryModel();
     // A zero limit requests all results supported by the bounded storage scan.
     [[nodiscard]] ii::core::Result<void> refresh(std::size_t limit=0);
@@ -28,7 +33,7 @@ class SocietyHistoryModel final : public std::enable_shared_from_this<SocietyHis
   private:
     struct Bridge;
     SocietyHistoryModel(std::shared_ptr<review::Session>,ii::runtime::EventLoop::Sender,
-        CanvasFileModel::Submit,std::filesystem::path,std::filesystem::path);
+                        CanvasFileModel::Submit,SocietyStorageAccess::Read);
     void start();
     void launch();
     void deliver();
@@ -37,7 +42,8 @@ class SocietyHistoryModel final : public std::enable_shared_from_this<SocietyHis
     std::shared_ptr<review::Session> session_;
     ii::runtime::EventLoop::Sender sender_;
     CanvasFileModel::Submit submit_;
-    std::filesystem::path selection_,root_;
+    SocietyStorageAccess::Read read_;
+    std::stop_source requestStop_;
     SnapshotHandler snapshot_;
     std::shared_ptr<Bridge> bridge_;
     ii::runtime::TaskToken wake_;

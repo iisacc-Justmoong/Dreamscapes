@@ -47,8 +47,26 @@ ii::core::Result<vm::Value> readManifest(const fs::path &root) {
         return std::move(*parsed);
     } catch (...) {return ii::core::fail(ErrorCode::failed,"Cannot read Society manifest",std::current_exception());}
 }
+
+// A manifest section must name a direct, real directory within the drive.
+ii::core::Result<fs::path> sectionLocation(const fs::path &root, const vm::Value &manifest, std::string_view section) {
+    std::string folder;
+    int matches=0;
+    for (const auto &entry:vm::array(vm::get(manifest,"sections"))) if (vm::text(vm::get(entry,"id"))==section) {
+        folder=vm::text(vm::get(entry,"path"));
+        ++matches;
+    }
+    const auto component=nativePath(folder);
+    if (matches!=1 || folder.empty() || folder.front()=='.' || folder.find('\\')!=std::string::npos ||
+        component.is_absolute() || component!=component.filename() || component=="..")
+        return ii::core::fail(ErrorCode::invalid_argument,"Invalid Society section path");
+    Tree container(root);
+    auto entry=container.entry(component);
+    if (!container.isValid() || container.rootPath()!=root || !entry || entry.value->kind!=Tree::Kind::Directory)
+        return ii::core::fail(ErrorCode::failed,"Society section is missing or redirected");
+    return root/component;
 }
-namespace {
+
 ii::core::Result<SocietyListing> browse(const fs::path &selectionFile,const std::string &section,
     const std::string &directory,const std::string &query,const fs::path &explicitRoot,bool recent,std::size_t limit,bool modelInventory) {
     if (section!="files" && section!="asset-library" && section!="generation-history" && !(modelInventory && section=="models"))
@@ -63,19 +81,9 @@ ii::core::Result<SocietyListing> browse(const fs::path &selectionFile,const std:
                 "The configured Society root differs from the shared selection; select it in Society before browsing");
         auto manifest=readManifest(selection->root);
         if (!manifest) return std::unexpected(manifest.error());
-        std::string folder; int matches=0;
-        for (const auto &entry:vm::array(vm::get(*manifest,"sections"))) if (vm::text(vm::get(entry,"id"))==section) {
-            folder=vm::text(vm::get(entry,"path")); ++matches;
-        }
-        const auto component=nativePath(folder);
-        if (matches!=1 || folder.empty() || folder.front()=='.' || folder.find('\\')!=std::string::npos ||
-            component.is_absolute() || component!=component.filename() || component=="..")
-            return ii::core::fail(ErrorCode::invalid_argument,"Invalid Society section path");
-        Tree container(selection->root);
-        auto sectionEntry=container.entry(component);
-        if (!sectionEntry || sectionEntry.value->kind!=Tree::Kind::Directory)
-            return ii::core::fail(ErrorCode::failed,"Society section is missing or redirected");
-        const auto sectionPath=selection->root/component;
+        const auto location=sectionLocation(selection->root,*manifest,section);
+        if (!location) return std::unexpected(location.error());
+        const auto &sectionPath=*location;
         Tree tree(sectionPath);
         if (!tree.isValid() || tree.rootPath()!=sectionPath)
             return ii::core::fail(ErrorCode::failed,"Society section is missing or redirected");
@@ -109,7 +117,7 @@ ii::core::Result<SocietyListing> browse(const fs::path &selectionFile,const std:
             vm::Object row{{"section",vm::Value(section)},{"exists",vm::Value(true)},{"key",vm::Value(section+"/"+path)},
                 {"name",vm::Value(name)},{"relativePath",vm::Value(path)},{"nativePath",vm::Value(utf8(entry->path))},
                 {"isDirectory",vm::Value(entry->kind==Tree::Kind::Directory)},
-                {"sourceRevision",vm::Value(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(entry->lastModified.time_since_epoch()).count())+"-"+std::to_string(entry->size))}};
+                {"sourceRevision",vm::Value(societySourceRevision(entry->lastModified,entry->size))}};
             if (auto date=localDate(entry->lastModified); !date.empty()) row.emplace("dateText",vm::Value(std::move(date)));
             rows.emplace_back(std::move(row));
             if (recent && rows.size()>=limit) break;
@@ -122,6 +130,52 @@ ii::core::Result<SocietyListing> browse(const fs::path &selectionFile,const std:
     } catch (...) {return ii::core::fail(ErrorCode::failed,"Cannot browse Society storage",std::current_exception());}
 }
 }
+ii::core::Result<SocietyListing> describeSocietySection(const fs::path &root, std::string_view section) {
+    if (!root.is_absolute() || root.lexically_normal()!=root ||
+        (section!="files" && section!="asset-library" && section!="generation-history" && section!="models"))
+        return ii::core::fail(ErrorCode::invalid_argument,"Invalid Society drive or section");
+    try {
+        Tree drive(root);
+        const auto record=drive.entry(".society-drive.json");
+        if (!drive.isValid() || drive.rootPath()!=root || !record || record.value->kind!=Tree::Kind::File)
+            return ii::core::fail(ErrorCode::failed,"The Society drive manifest is unavailable");
+        auto manifest=readManifest(root);
+        if (!manifest) return std::unexpected(manifest.error());
+        auto identity=vm::text(vm::get(*manifest,"identifier"));
+        if (identity.empty()) return ii::core::fail(ErrorCode::invalid_argument,"The Society drive has no identifier");
+        auto location=sectionLocation(root,*manifest,section);
+        if (!location) return std::unexpected(location.error());
+        return SocietyListing{root,std::move(identity),vm::Value(vm::Array{}),std::move(*location)};
+    } catch (...) {return ii::core::fail(ErrorCode::failed,"Cannot validate the Society drive",std::current_exception());}
+}
+
+SocietyStorageAccess localSocietyStorage(fs::path selection, fs::path root) {
+    return {.read=[selection=std::move(selection),root=std::move(root)](
+        const SocietyStorageQuery &request, SocietyStorageAccess::Canceled canceled) -> ii::core::Result<SocietyListing> {
+        // Model inventory callers already check cancellation around this
+        // synchronous filesystem snapshot and throughout metadata inspection.
+        if (request.kind!=SocietyListingKind::modelEntries && canceled && canceled())
+            return ii::core::fail(ErrorCode::cancelled,"Society storage request canceled");
+        switch (request.kind) {
+        case SocietyListingKind::recent:
+            return browseSocietyRecentFiles(selection,request.limit,root);
+        case SocietyListingKind::modelEntries:
+            return browseSocietyModelEntries(selection,root);
+        case SocietyListingKind::section:
+            // The local browse validates the selection both before and after reading it.
+            return browseSociety(selection,request.section,"","",root);
+        case SocietyListingKind::directory:
+            return browseSociety(selection,request.section,request.directory,request.filter,root);
+        }
+        return ii::core::fail(ErrorCode::invalid_argument,"Invalid Society storage request");
+    }};
+}
+
+std::string societySourceRevision(fs::file_time_type modified,std::uintmax_t bytes) {
+    const auto time=std::chrono::duration_cast<std::chrono::microseconds>(modified.time_since_epoch()).count();
+    return std::to_string(time)+'-'+std::to_string(bytes);
+}
+
 ii::core::Result<SocietyListing> browseSociety(const fs::path &selection,const std::string &section,
     const std::string &directory,const std::string &query,const fs::path &root) {
     return browse(selection,section,directory,query,root,false,0,false);

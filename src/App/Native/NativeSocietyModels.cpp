@@ -111,9 +111,15 @@ ii::core::Result<vm::Value> capture(const SocietyListing &listing,const std::str
 }
 ii::core::Result<SocietyListing> browseSocietyModels(const std::filesystem::path &selection,
     const std::filesystem::path &explicitRoot,std::function<bool()> canceled) {
+    return browseSocietyModels(localSocietyStorage(selection,explicitRoot).read,std::move(canceled));
+}
+
+ii::core::Result<SocietyListing> browseSocietyModels(const SocietyStorageAccess::Read &read,
+    SocietyStorageAccess::Canceled canceled) {
     try {
         if (canceled && canceled()) return ii::core::fail(ErrorCode::cancelled,"Model inventory canceled");
-        auto listing=browseSocietyModelEntries(selection,explicitRoot);
+        const SocietyStorageQuery query{"models","","",SocietyListingKind::modelEntries};
+        auto listing=read(query,canceled);
         if (!listing) return std::unexpected(listing.error());
         const auto original=listing->aliases;
         const auto indexed=index(*listing);
@@ -213,7 +219,8 @@ ii::core::Result<SocietyListing> browseSocietyModels(const std::filesystem::path
             return lowerLeft==lowerRight?left<right:lowerLeft<lowerRight;
         });
         if (canceled && canceled()) return ii::core::fail(ErrorCode::cancelled,"Model inventory canceled");
-        auto after=browseSocietyModelEntries(selection,explicitRoot);
+        auto after=read(query,canceled);
+        if (!after && after.error().code==ErrorCode::cancelled) return std::unexpected(after.error());
         if (!after || after->root!=listing->root || after->containerId!=listing->containerId || after->aliases!=original)
             return ii::core::fail(ErrorCode::busy,"Society models changed during inspection");
         listing->aliases=vm::Value(std::move(result));return listing;
@@ -221,12 +228,18 @@ ii::core::Result<SocietyListing> browseSocietyModels(const std::filesystem::path
 }
 ii::core::Result<std::filesystem::path> resolveSocietyModel(const std::filesystem::path &selection,
     const vm::Value &source,const std::filesystem::path &explicitRoot,std::function<bool()> canceled) {
+    return resolveSocietyModel(localSocietyStorage(selection,explicitRoot).read,source,std::move(canceled));
+}
+
+ii::core::Result<std::filesystem::path> resolveSocietyModel(const SocietyStorageAccess::Read &read,
+    const vm::Value &source,SocietyStorageAccess::Canceled canceled) {
     if (canceled && canceled()) return ii::core::fail(ErrorCode::cancelled,"Model resolution canceled");
     const auto id=vm::text(vm::get(source,"id"));
     if (id.empty() || vm::text(vm::get(source,"root")).empty() || vm::text(vm::get(source,"containerId")).empty() ||
         vm::get(source,"directory").kind()!=ii::core::ValueKind::boolean || vm::array(vm::get(source,"members")).empty())
         return ii::core::fail(ErrorCode::invalid_argument,"Model reference is incomplete");
-    auto listing=browseSocietyModelEntries(selection,explicitRoot);
+    const SocietyStorageQuery query{"models","","",SocietyListingKind::modelEntries};
+    auto listing=read(query,canceled);
     if (!listing) return std::unexpected(listing.error());
     if (utf8(listing->root)!=vm::text(vm::get(source,"root")) || listing->containerId!=vm::text(vm::get(source,"containerId")))
         return ii::core::fail(ErrorCode::busy,"The selected Society container changed");
@@ -235,7 +248,8 @@ ii::core::Result<std::filesystem::path> resolveSocietyModel(const std::filesyste
     auto current=capture(*listing,id,directory,indexed,canceled);
     if (!current) return std::unexpected(current.error());
     if (*current!=source) return ii::core::fail(ErrorCode::busy,"The selected model changed after it was chosen");
-    auto after=browseSocietyModelEntries(selection,explicitRoot);
+    auto after=read(query,canceled);
+    if (!after && after.error().code==ErrorCode::cancelled) return std::unexpected(after.error());
     if (!after || after->root!=listing->root || after->containerId!=listing->containerId || after->aliases!=listing->aliases)
         return ii::core::fail(ErrorCode::busy,"Society models changed during model resolution");
     for (const auto &entry:vm::array(listing->aliases)) if (vm::text(vm::get(entry,"relativePath"))==id)

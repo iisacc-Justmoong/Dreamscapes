@@ -16,6 +16,9 @@ class SocietyStorageModel final : public std::enable_shared_from_this<SocietySto
         const std::string &,const std::string &,const std::filesystem::path &,Canceled)>;
     static std::shared_ptr<SocietyStorageModel> create(std::shared_ptr<storage::WorkspaceModel>,
         ii::runtime::EventLoop &,CanvasFileModel::Submit,std::filesystem::path selection,std::filesystem::path explicitRoot={},Browse browse={});
+    /// Connects a directory view to the supplied worker-side provider.
+    static std::shared_ptr<SocietyStorageModel> create(std::shared_ptr<storage::WorkspaceModel>,
+        ii::runtime::EventLoop &,CanvasFileModel::Submit,SocietyStorageAccess::Read);
     ~SocietyStorageModel();
     void setLocationHandler(std::function<void(std::optional<std::filesystem::path>)>);
     // The result is valid for the duration of the callback; consumers copy
@@ -26,7 +29,7 @@ class SocietyStorageModel final : public std::enable_shared_from_this<SocietySto
     struct Request;
     struct Bridge;
     SocietyStorageModel(std::shared_ptr<storage::WorkspaceModel>,ii::runtime::EventLoop::Sender,
-                        CanvasFileModel::Submit,std::filesystem::path,std::filesystem::path,Browse);
+                        CanvasFileModel::Submit,SocietyStorageAccess::Read);
     void start();
     void request(std::string,std::string,std::string);
     void launch();
@@ -35,9 +38,7 @@ class SocietyStorageModel final : public std::enable_shared_from_this<SocietySto
     std::shared_ptr<storage::WorkspaceModel> workspace_;
     ii::runtime::EventLoop::Sender sender_;
     CanvasFileModel::Submit submit_;
-    std::filesystem::path selection_;
-    std::filesystem::path explicitRoot_;
-    Browse browse_;
+    SocietyStorageAccess::Read browse_;
     std::shared_ptr<Bridge> bridge_;
     std::shared_ptr<std::atomic_bool> cancel_;
     ii::runtime::TaskToken wake_;

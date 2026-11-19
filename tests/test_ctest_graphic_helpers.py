@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class GraphicHelperCTestContract(unittest.TestCase):
     def test_canvas_and_graphic_adjust_package_versions(self):
         cmake = (ROOT / 'CMakeLists.txt').read_text()
-        self.assertRegex(cmake, r'find_package\(iiSharedCanvas\s+0\.35\.39\s+EXACT\s+CONFIG\s+REQUIRED\s+COMPONENTS\s+Quick\b')
+        self.assertRegex(cmake, r'find_package\(iiSharedCanvas\s+0\.35\.39\s+CONFIG\s+REQUIRED\s+COMPONENTS\s+Quick\b')
         self.assertRegex(cmake, r'find_package\(iiGraphicAdjust\s+0\.6\.2\s+EXACT\s+CONFIG\s+REQUIRED\b')
         review = (ROOT / 'cmake/NativeReviewNavigation.cmake').read_text()
         self.assertRegex(review, r'find_package\(iiSharedCanvasNative\s+0\.35\.39\s+CONFIG\s+REQUIRED\b')

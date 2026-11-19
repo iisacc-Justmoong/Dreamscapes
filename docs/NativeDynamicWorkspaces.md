@@ -233,32 +233,28 @@ The file-model contract exercises JPEG and the other advertised image formats.
 Older installed codec packages may not advertise their JPEG ABI and require
 the matching JPEG headers and library to be selected at configuration time.
 
-The native browser reads the Society-selected container directly, without a
-daemon or inter-application messages. Validate the selected identity and
-manifest before and after listing. A redirected root, unready replica, unsafe
-section path, changed selection or incomplete search is an error, never an
-empty successful listing. Ordinary browsing reads one directory; searches are
-bounded, recursive, and return only actual local entries. Work runs on the
-runtime worker and only the newest section, directory and search request may
-update the owner-thread model. Opening a row delegates to the existing canvas
-file model. The request queue accepts replaceable listing adapters for regular
-storage, recent files and model metadata. It reads the shared selection file; a
-conflicting legacy
-environment root override is rejected, and shared-group bootstrap has not been ported. Remote-only
-catalog entries and downloads remain separate work.
+On desktop, Dreamscapes uses the Society daemon's same-user broker for Files,
+Assets, Generation History and Models. `SOCIETY_LOCAL_BROKER_DIR` can select a
+broker. `SOCIETY_CONTAINER_PATH` can constrain the drive that broker announces.
+The daemon supplies revision-pinned directory pages and prepares selected files.
+Dreamscapes validates the selected manifest and the returned path before
+opening a file. Ordinary browsing reads one folder. Recursive searches have
+depth and entry bounds. The broker budget is 20 seconds for a listing and five
+minutes to prepare a file. An unavailable daemon or a drive change is surfaced
+as an error. Only the newest worker request publishes its view model snapshot.
+Mobile reads through its on-device storage provider.
 
 The Generation History route maintains a review session separate from the
-current in-memory generation session. When opened, it lists the selected
-Society container's actual local history files on a worker and validates the
-container identity before and after the listing. The initial order follows
-filesystem modification time; later arrivals append to preserve review
-positions. Locally present images and videos are represented
-by their real paths; unavailable model, prompt, and generation details are
-never inferred. Image previews use the asynchronous native image loader.
+current in-memory generation session. A worker reads the selected history
+directory from the storage provider. The initial order follows modification
+time and later arrivals append to preserve review positions. Remote entries
+carry a logical reference. Resident files supply their real paths and image
+previews use the asynchronous native image loader.
 Videos without a known preview remain without an image. Selecting, filtering,
 or reviewing an item only changes the history session, never its source file.
-When one locally available still image is focused or selected, the review
-gallery's existing Edit action imports it into an unsaved editor canvas.
+When one supported still image is focused or selected, the review gallery's
+Edit action prepares its referenced file through Society and imports it into
+an unsaved editor canvas.
 Unsupported files, video and multi-selection do not expose this action until
 the corresponding editor import is available; no subset is silently edited.
 An unsaved editor document is not replaced, and failed imports remain visible
@@ -274,8 +270,8 @@ batch export are not presented as supported by this single-file action.
 An unavailable or changing container reports an error instead of an empty
 successful history. Refreshes preserve session selection for surviving file
 identities, and stale or post-close worker completions are ignored. The current
-storage scan is limited to 10,000 entries and reports an error if exceeded;
-pagination and remote-only downloads are not connected.
+storage request is limited to 10,000 entries and reports an error if exceeded.
+The desktop provider reads those entries in revision-checked daemon pages.
 
 The review workspace compares two to four selected still-image results in a
 retained overlay, leaving the gallery's selection, focus and scroll state in
@@ -284,11 +280,10 @@ view never changes the originals. Synchronized comparison uses one pixel scale
 and shared relative center, while unsynchronized panes can be adjusted
 independently. An unavailable preview is reported per pane, and late image
 results from a closed or replaced comparison are ignored.
-Home's recent-files projection scans the selected Society Files section on a
-worker, including nested files, and displays at most twenty of the most
-recently modified local entries. Returning Home requests a fresh scan. It does
-not follow links or modify originals. The displayed date comes from each
-file's filesystem modification time in the local time zone.
+Home's recent-files projection reads the selected Society Files catalogue on a
+worker, including nested files, and shows up to twenty recently modified
+resident entries. Returning Home refreshes the catalogue. The displayed date
+comes from the modification timestamp carried by the storage provider.
 The selected-file panel follows the actual selected entry and uses the native
 preview provider when supported. Locally available `.iisc` files and supported
 still images open through the asynchronous canvas file service; other file types remain
@@ -494,8 +489,9 @@ selection changes the draft only and never begins inference. A missing catalogue
 keeps model selection and generation unavailable. If catalogue publication is
 rejected during another snapshot notification, both the internal catalogue and
 its selections retain the last accepted state.
-The catalogue is read from the Society Models section on a worker. It uses
-iiLocalDiffusion's bounded model-metadata inspection and honors stored modality
+The desktop catalogue receives its Models inventory from the Society daemon.
+An app worker uses iiLocalDiffusion's bounded metadata inspection for locally
+resident models and honors stored modality
 overrides; local Diffusers packages are listed once instead of listing their
 internal weight files separately, and the Society VAE category is excluded from
 the main model selector. Entries with no recognized modality retain the
@@ -592,19 +588,13 @@ visible, retains the last completed frame during a render, and is canceled when
 the user leaves. Its preview is separate from the frame media prepared for the
 platform review plan and does not itself upload a post.
 
-The file browser reads locally resident entries from the selected Society
-container on demand. Filtering, selection and navigation do not mutate
-storage. Locally available `.iisc` and supported still-image rows can be opened in the editor; unsupported
-rows do not enable Open. Selecting a row updates its selection state without
-recreating the current listing. The Storage preference exposes the verified
-selected path read-only. Generation prompt and Image/Video default model values
-are backed by the existing preferences file; other settings still need providers. The
-interactive social account authorization is not yet connected; no upload is
-represented as successful without a provider result. Remote-only catalog entries and their
-downloads are not yet represented by the native browser.
-Home's file and generation-history View all actions navigate to their
-respective routes. Recent-file and generation-history feeds read locally present
-Society files on workers and do not represent remote-only entries.
+The desktop browser reads the selected drive through the Society daemon. Open
+asks it to prepare a supported `.iisc` or still-image file and hands the
+verified local path to the editor. The Storage preference shows the
+daemon-selected path. Home's View all actions open Files or Generation History,
+which use the same provider. Generation prompt and Image/Video defaults use the
+local preferences file. Interactive social account authorization is outside
+this storage connection.
 
 The native generation migration must keep a session-owned queue separate from
 the views and from the Society files that completed jobs produce. A submission
@@ -641,9 +631,9 @@ explicit error. Social-media account connections and social publication still
 require providers. The worker and publication contracts are covered with
 synthetic fixtures; those tests do not establish that a particular installed
 model or hardware can successfully generate an image or video.
-The model catalogue captures the selected Society container and file identities
-on its worker. An image checkpoint or a directory package must resolve against
-that same selection before execution and again before publication. A changed,
+The model catalogue captures the daemon-selected drive and local source file
+identities on its worker. An image checkpoint or directory package resolves
+against the same selection before execution and result publication. A changed,
 removed, redirected or newly added package member invalidates the captured
 reference; the application must not silently run a replacement model. These
 filesystem identities detect ordinary replacement and edits, not deliberate

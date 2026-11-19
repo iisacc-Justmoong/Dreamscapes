@@ -13,6 +13,7 @@ struct CanvasFileModel::Request final {
     std::filesystem::path path;
     std::optional<CanvasFileVersion> version;
     std::shared_ptr<const iiSharedCanvas::Document> snapshot;
+    Resolve resolve;
 };
 struct CanvasFileModel::Bridge final {
     struct Completion final {Request request; ii::core::Result<CanvasFileResult> result;};
@@ -58,13 +59,14 @@ void CanvasFileModel::refresh() {
     (void)canSaveAs.set(available);
     (void)canSave.set(available && document_->dirty.get() && version_ && version_->working);
 }
-ii::core::Result<void> CanvasFileModel::open(std::filesystem::path pathValue) {
+ii::core::Result<void> CanvasFileModel::open(std::filesystem::path pathValue,Resolve resolve) {
     if (auto valid=writable(); !valid) return valid;
     if (document_->hasDocument.get() && document_->dirty.get())
         return ii::core::fail(ErrorCode::busy,"Save the current canvas before opening another");
     if (!supportsCanvasInput(pathValue)) return ii::core::fail(ErrorCode::invalid_argument,"Choose an absolute canvas or supported image file path");
     Request request; request.action=isCanvasImage(pathValue)?Request::Action::Import:Request::Action::Open;
     request.path=std::move(pathValue);
+    request.resolve=std::move(resolve);
     return submit(std::move(request));
 }
 ii::core::Result<void> CanvasFileModel::save() {
@@ -90,12 +92,24 @@ ii::core::Result<void> CanvasFileModel::submit(Request request) {
     current_=request.id; (void)busy.set(true); (void)error.set({});
     (void)status.set(reading?"Opening canvas…":"Saving canvas…"); refresh();
     auto bridge=bridge_;
+    openStop_=std::stop_source{};
     bool accepted=false;
     try {
-        accepted=submit_([bridge,request=std::move(request)]() mutable {
+        accepted=submit_([bridge,request=std::move(request),stop=openStop_.get_token()]() mutable {
             ii::core::Result<CanvasFileResult> result=ii::core::fail(ErrorCode::failed,"Canvas file operation failed");
             try {
-                switch (request.action) {
+                // Revalidate the reference before the existing versioned read.
+                bool prepared=true;
+                if (request.resolve) {
+                    auto location=request.resolve(stop);
+                    prepared=location && *location==request.path && !stop.stop_requested();
+                    if (!prepared) {
+                        if (!location) result=std::unexpected(location.error());
+                        else result=ii::core::fail(ErrorCode::busy,"The selected file changed before it could be opened");
+                    }
+                    request.resolve={};
+                }
+                if (prepared) switch (request.action) {
                 case Request::Action::Open: result=openCanvasFile(request.path); break;
                 case Request::Action::Import: result=importCanvasImage(request.path); break;
                 case Request::Action::Save: result=saveCanvasFile(*request.version,*request.snapshot); break;
@@ -180,6 +194,7 @@ void CanvasFileModel::close() {
     if (owner_!=std::this_thread::get_id()) throw std::logic_error("Canvas files require their owner thread");
     if (!active_) return;
     active_=false; current_=0; submit_={}; opened_={};
+    openStop_.request_stop();
     identityObserver_={}; dirtyObserver_={}; documentObserver_={};
     if (bridge_) {std::lock_guard lock(bridge_->mutex); bridge_->closed=true; bridge_->completion.reset();}
     (void)sender_.cancel(wake_); (void)busy.set(false); (void)canSave.set(false); (void)canSaveAs.set(false);

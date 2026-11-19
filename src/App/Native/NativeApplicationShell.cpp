@@ -359,7 +359,7 @@ void NativeApplicationShell::updateLicenseGate() {
     const bool blocked=license_ && license_->gateVisible.get();
     editorWorkspace_->setVisible(!blocked && editorRoute_);
     publishingWorkspace_->setVisible(!blocked && publishRoute_);
-    auto changed=viewChange_;
+    auto changed=licenseGateChange_;
     if (changed) if (auto result=changed(); !result && workspace_) (void)workspace_->setError(result.error().message);
 }
 ii::core::Result<void> NativeApplicationShell::connectGenerationQueue(ii::runtime::EventLoop &loop,
@@ -570,11 +570,7 @@ ii::core::Result<void> NativeApplicationShell::connectCanvasFiles(ii::runtime::E
             }
         });
         storageWorkspace_->setOpenHandler([weak](vm::Value entry) {
-            auto shell=weak.lock(); if (!shell || !shell->canvasFiles_) return;
-            const auto path=vm::text(vm::get(entry,"nativePath"));
-            if (path.empty()) {shell->canvasFiles_->reportError("The selected file is not available locally"); return;}
-            if (auto result=shell->canvasFiles_->open(nativePath(path)); !result)
-                shell->canvasFiles_->reportError(result.error().message);
+            if (auto shell=weak.lock()) shell->openRecentCanvas(entry);
         },[](const vm::Value &entry) {
             const auto path=vm::text(vm::get(entry,"nativePath"));
             return !path.empty() && supportsCanvasInput(nativePath(path));
@@ -602,23 +598,32 @@ void NativeApplicationShell::disconnectCanvasFiles() {
 }
 ii::core::Result<void> NativeApplicationShell::connectSocietyStorage(ii::runtime::EventLoop &loop,
     CanvasFileModel::Submit submit,std::filesystem::path selection,std::filesystem::path explicitRoot) {
-    if (!submit || selection.empty())
-        return ii::core::fail(ii::core::ErrorCode::invalid_argument,"Society storage worker and selection are required");
+    if (selection.empty())
+        return ii::core::fail(ii::core::ErrorCode::invalid_argument,"Society storage selection is required");
+    return connectSocietyStorage(loop,std::move(submit),localSocietyStorage(std::move(selection),std::move(explicitRoot)));
+}
+
+// Each view keeps its existing worker and refresh lifecycle. Only the source
+// of its directory inventory and file activation is replaced.
+ii::core::Result<void> NativeApplicationShell::connectSocietyStorage(ii::runtime::EventLoop &loop,
+    CanvasFileModel::Submit submit,SocietyStorageAccess access) {
+    if (!submit || !access.read)
+        return ii::core::fail(ii::core::ErrorCode::invalid_argument,"Society storage worker and provider are required");
     try {
         disconnectSocietyStorage();
-        auto model=SocietyStorageModel::create(storageWorkspace_,loop,submit,selection,explicitRoot);
+        auto model=SocietyStorageModel::create(storageWorkspace_,loop,submit,access.read);
         auto recentWorkspace=storage::WorkspaceModel::create();
-        auto recent=SocietyStorageModel::create(recentWorkspace,loop,submit,selection,explicitRoot,
-            [](const auto &path,const auto &,const auto &,const auto &,const auto &root,SocietyStorageModel::Canceled canceled) {
-                if (canceled && canceled()) return ii::core::Result<SocietyListing>{ii::core::fail(ii::core::ErrorCode::cancelled,"Recent files scan canceled")};
-                return browseSocietyRecentFiles(path,20,root);
+        auto recent=SocietyStorageModel::create(recentWorkspace,loop,submit,
+            [read=access.read](const SocietyStorageQuery &,SocietyStorageModel::Canceled canceled) {
+                return read({"files","","",SocietyListingKind::recent,20},std::move(canceled));
             });
         auto modelWorkspace=storage::WorkspaceModel::create();
-        auto modelCatalog=SocietyStorageModel::create(modelWorkspace,loop,submit,selection,explicitRoot,
-            [](const auto &path,const auto &,const auto &,const auto &,const auto &root,SocietyStorageModel::Canceled canceled) {
-                return browseSocietyModels(path,root,std::move(canceled));
+        auto modelCatalog=SocietyStorageModel::create(modelWorkspace,loop,submit,
+            [read=access.read](const SocietyStorageQuery &,SocietyStorageModel::Canceled canceled) {
+                return browseSocietyModels(read,std::move(canceled));
             });
-        auto history=SocietyHistoryModel::create(historySession_,loop,std::move(submit),std::move(selection),std::move(explicitRoot));
+        auto history=SocietyHistoryModel::create(historySession_,loop,std::move(submit),std::move(access.read));
+        societyMaterialize_=std::move(access.materialize);
         const std::weak_ptr<NativeApplicationShell> weak=shared_from_this();
         model->setLocationHandler([weak](std::optional<std::filesystem::path> path) {
             if (auto shell=weak.lock()) {
@@ -684,6 +689,7 @@ ii::core::Result<void> NativeApplicationShell::connectSocietyStorage(ii::runtime
     } catch (...) {return ii::core::fail(ii::core::ErrorCode::failed,"Cannot connect Society storage",std::current_exception());}
 }
 void NativeApplicationShell::disconnectSocietyStorage() {
+    societyMaterialize_={};
     if (modelCatalogProvider_) modelCatalogProvider_->close();
     modelCatalogProvider_.reset();modelCatalogWorkspace_.reset();
     if (localDraft_ && preferencesWorkspace_) (void)setGenerationModelCatalog({},"Model catalogue unavailable");
@@ -742,11 +748,22 @@ void NativeApplicationShell::selectRecentFile(const std::string &key) {
     if (workspace_) (void)workspace_->setError("Recent file selection did not settle");
 }
 void NativeApplicationShell::openRecentCanvas(const vm::Value &entry) {
-    const auto path=vm::text(vm::get(entry,"nativePath"));
-    if (!canvasFiles_ || path.empty() || !supportsCanvasInput(nativePath(path))) {
+    const auto path=nativePath(vm::text(vm::get(entry,"nativePath"),vm::text(vm::get(entry,"path"))));
+    if (!canvasFiles_ || !supportsCanvasInput(path)) {
         if (workspace_) (void)workspace_->setError("This file cannot be opened in the canvas editor");return;
     }
-    if (auto result=canvasFiles_->open(nativePath(path)); !result) canvasFiles_->reportError(result.error().message);
+    // History keeps its file reference alongside the result metadata. Other
+    // Society views already carry the reference on the selected row.
+    const auto &reference=vm::has(entry,"societyReference")?vm::get(entry,"societyReference"):entry;
+    CanvasFileModel::Resolve resolve;
+    if (vm::has(reference,"referenceRoot")) {
+        if (!societyMaterialize_) {canvasFiles_->reportError("Society storage is unavailable"); return;}
+        resolve=[prepare=societyMaterialize_,reference](std::stop_token stop) {
+            return prepare(reference,[stop]{return stop.stop_requested();});
+        };
+    }
+    if (auto result=canvasFiles_->open(path,std::move(resolve)); !result)
+        canvasFiles_->reportError(result.error().message);
 }
 void NativeApplicationShell::updateHistoryStatus() {
     const auto error=canvasFiles_?canvasFiles_->error.get():std::string{};
@@ -761,9 +778,7 @@ void NativeApplicationShell::configureReviewActions(const std::shared_ptr<review
     const std::weak_ptr<NativeApplicationShell> weak=shared_from_this();
     gallery->setEditHandler([weak](std::vector<vm::Value> entries) {
         auto shell=weak.lock();if (!shell || !shell->canvasFiles_ || entries.size()!=1) return;
-        const auto path=vm::text(vm::get(entries.front(),"path"));
-        if (auto result=shell->canvasFiles_->open(nativePath(path)); !result)
-            shell->canvasFiles_->reportError(result.error().message);
+        shell->openRecentCanvas(entries.front());
     },[weak](const std::vector<vm::Value> &entries) {
         const auto shell=weak.lock();
         if (!shell || !shell->canvasFiles_ || entries.size()!=1) return false;

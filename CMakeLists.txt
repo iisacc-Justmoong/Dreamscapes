@@ -90,7 +90,7 @@ endif()
 if(TARGET iiMultimodalAgent::ImageTypes)
     set_target_properties(iiMultimodalAgent::ImageTypes PROPERTIES SYSTEM FALSE)
 endif()
-find_package(iiSharedCanvas 0.35.39 EXACT CONFIG REQUIRED COMPONENTS Quick HINTS
+find_package(iiSharedCanvas 0.35.39 CONFIG REQUIRED COMPONENTS Quick HINTS
     "${CMAKE_CURRENT_SOURCE_DIR}/../../SDK/iiSharedCanvas/build/install" "$ENV{HOME}/.local/SDK/iiSharedCanvas")
 find_package(iiGraphicAdjust 0.6.2 EXACT CONFIG REQUIRED HINTS "$ENV{HOME}/.local/SDK/iiGraphicAdjust")
 find_package(iiColorManager 0.1.1 CONFIG REQUIRED COMPONENTS iiColorManager Values
